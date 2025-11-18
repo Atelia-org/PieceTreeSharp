@@ -8,7 +8,7 @@
 
 ## 1. 主循环视角
 把自己视作“调度器(main)”：
-1. **LoadContext**：读取 `AGENTS.md`、当前 Sprint、任务板。若有会议纪要/阻塞则同步。
+1. **LoadContext**：读取 `AGENTS.md`、当前 Sprint、任务板。若需概览或摘要，先触发 Info-Indexer 生成索引，减少手动查阅。
 2. **PlanStep**：判断下一次迭代目标（依 Sprint 与任务优先级），决定需要触发哪些 SubAgent。
 3. **PrepPayload**：为每个 SubAgent 汇总输入：
    - 任务描述 + 期望输出
@@ -20,7 +20,7 @@
    - `agent-team/task-board.md` → 状态与备注
    - 相关记忆文件 / README / type mapping 等
   - 触发 DocMaintainer 进行一致性巡检（详见第 3 章），必要时压缩陈旧内容
-6. **Broadcast**：当达到阶段成果或有决策需要共享，更新 `AGENTS.md` 和 sprint/meeting 文档。
+6. **Broadcast**：当达到阶段成果或有决策需要共享，更新 `AGENTS.md` 和 sprint/meeting 文档；必要时请求 Info-Indexer 发布索引更新。
 7. **Feedback**：评估流程是否高效，记录改进项，必要时创建下一次会议或 sprint 调整。
 
 该循环在每个“主 Agent 回合”内执行一次，保证所有信息都落在文件中，便于下次加载时恢复状态。
@@ -39,10 +39,11 @@
   3. 给出下一步建议，方便主 Agent 决策。
 
 ## 3. DocMaintainer 集成节点
-DocMaintainer 作为“文档中枢”，在以下位置介入：
+DocMaintainer 与 Info-Indexer 分工如下：
 1. **Info Proxy（LoadContext 之后）**：若主 Agent 需要大规模信息检索或摘要，优先触发 DocMaintainer 调用，产出写入其记忆或指定临时文件，以减少主上下文占用。
 2. **Consistency Gate（IntegrateResults 阶段）**：在代码/知识更新后，DocMaintainer 负责复核核心文档是否自洽（`AGENTS.md`、Sprint、任务板、README 等），并执行交叉引用校验。
 3. **Doc Gardener（Broadcast & Feedback 之前）**：定期整理、压缩或存档过时内容，确保关键文件保持紧凑。必要时记录“精简”行动与理由，防止信息丢失。
+4. **Info-Indexer Hooks**：负责在 Load/Broadcast 阶段提供索引增量与引用表，帮助其他成员快速定位信息并减少重复描述。
 
 ## 4. Sprint 与任务对接
 1. Sprint 文件 (`docs/sprints/sprint-XX.md`) 定义一周目标、任务、runSubAgent 预算。

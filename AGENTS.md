@@ -1,5 +1,5 @@
 ## 跨会话记忆文档
-本文档(`./AGENTS.md`)会伴随每个 user 消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。
+本文档(`./AGENTS.md`)会伴随每个 user 消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。请及时维护你的外部记忆文件，对齐你的关键认知和后续思路。
 
 ## 已知的工具问题
 - 需要要删除请用改名替代，因为环境会拦截删除文件操作。
@@ -20,3 +20,5 @@
 - 2025-11-19：构建首批 SubAgent 角色（Planner、Investigator-TS、Porter-CS、QA-Automation、DocMaintainer），创建各自记忆文件、任务分配、Kickoff 会议纪要与 Sprint-00 计划。
 - 2025-11-19：整理主 Agent 主循环与 SubAgent 协作方法论，形成 `agent-team/main-loop-methodology.md`，确保后续按固定迭代流程推进。
 - 2025-11-19：在主循环中引入 DocMaintainer 三项职责（Info Proxy、Consistency Gate、Doc Gardener），更新 `agent-team/members/doc-maintainer.md` 以指导文档治理。
+- 2025-11-19：召开“Org Self-Improvement”全员会议（`docs/meetings/meeting-20251119-org-self-improvement.md`），决定新增 Info-Indexer 角色、建立索引目录并启动组织自我完善 Sprint。
+- 2025-11-19：创建 Info-Indexer 记忆文件、`agent-team/indexes/README.md`、`docs/sprints/sprint-org-self-improvement.md`，在任务板加入 OI 系列任务并更新主循环文档以包含索引钩子。
