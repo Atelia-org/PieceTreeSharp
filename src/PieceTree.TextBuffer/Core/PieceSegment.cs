@@ -9,6 +9,18 @@ internal sealed record PieceSegment(
     BufferCursor End,
     int LineFeedCount,
     int Length
-);
+)
+{
+    public static PieceSegment Empty { get; } = new PieceSegment(
+        PieceTreeModel.ChangeBufferId,
+        BufferCursor.Zero,
+        BufferCursor.Zero,
+        0,
+        0
+    );
+}
 
-internal readonly record struct BufferCursor(int Line, int Column);
+internal readonly record struct BufferCursor(int Line, int Column)
+{
+    public static BufferCursor Zero { get; } = new BufferCursor(0, 0);
+}

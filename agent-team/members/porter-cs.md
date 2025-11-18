@@ -28,11 +28,18 @@
   - 评估 C# 端缺口（仅余 `ChunkBuffer`/`PieceSegment` + `StringBuilder` 缓冲），确认 PT-004 首阶段需先落 `PieceTreeNode`/sentinel/Tree 容器。
   - 与 Planner/Investigator/QA/DocMaintainer 对齐依赖：获取 Builder/Search/PrefixSum 类型映射、runSubAgent 模板拆分、QA 属性测试入口及 Porting Log 写入约定。
   - 承诺交付 Core README + TreeDebug 钩子帮助 QA 复核不变量，并把结构性变更写入 Porting Log。
+- **2025-11-19 – PT-004.M2 drop**
+  - 将 `PieceTreeBuffer` 接上 `ChunkBuffer` → `PieceTreeBuilder` → `PieceTreeModel` 流水线，`FromChunks`/`Length`/`GetText`/`ApplyEdit` 均以 PieceTree 数据驱动。
+  - `ChunkBuffer` 新增 line-start/CRLF 计算与 `Slice` helper，`PieceSegment.Empty`、builder result 等保证 sentinel 元数据，`ApplyEdit` 暂以“重建整棵树”作为 TODO 记录的降级方案。
+  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，4 tests：multi-chunk builder + CRLF edit 覆盖）。
+  - Risks: 每次编辑仍需重建树（性能/暂时性），Search stub 依旧待 Investigator-TS 完善类型映射后再规划 PT-007。
+- **2025-11-19 – PT-004 literal translation spike**
+  - 在 `src/PieceTree.TextBuffer/PortingDrafts/PieceTreeBase.literal.cs.txt` 新建 Literal C# 版本，完成 TypeScript `pieceTreeBase.ts` 开头到搜索逻辑的 1:1 结构移植并标注剩余 TODO，供后续增量补全与 Info-Indexer 建立 PortingDrafts 钩子。
 
 - **Upcoming Goals (runSubAgent 粒度):**
-  1. **PT-004.G1**：完成 `Core/PieceTreeNode`、sentinel、`PieceTree` 管理器与 `TreeDebug` 断言工具，为 Investigator 新字段映射预留钩子。
-  2. **PT-004.G2**：将 `PieceTreeBuffer.ApplyEdit/FromChunks` 接上树容器并草拟 `EnumeratePieces`/`LocateLineByOffset` API，便于 QA-Automation 固定测试矩阵输入。
-  3. **OI-SUPPORT.G1**：更新 `src/PieceTree.TextBuffer/README.md` Porting Log + 新建 `Core/README.md`，记录每次树操作移植、引用 `type-mapping.md` 章节供 DocMaintainer 编织索引。
+  1. **PT-004.G2-next**：消除重建式编辑，接入 change buffer + PieceTree 原生插入/删除，并补齐 `EnumeratePieces`/`LocateLineByOffset` API 供 QA 复用。
+  2. **PT-004.G3**：实现长度/位置互转与 chunk-based slicing 的额外断言，扩充 xUnit 覆盖（CR-only、BOM、跨 chunk ranges）。
+  3. **OI-SUPPORT.G1**：保持 Porting Log & Core README 更新，并将 search stub 依赖、doc 钩子同步给 DocMaintainer/Planner 以支撑 PT-007 规划。
 
 ## Blocking Issues
 - 仍需 Investigator-TS 在 `agent-team/type-mapping.md` 中补充 `pieceTreeTextBufferBuilder.ts` / `textModelSearch.ts` / `prefixSumComputer.ts` 字段与缓存语义，避免盲目迁移。

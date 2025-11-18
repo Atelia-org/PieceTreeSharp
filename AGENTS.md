@@ -23,3 +23,9 @@
 - 2025-11-19：召开“Org Self-Improvement”全员会议（`docs/meetings/meeting-20251119-org-self-improvement.md`），决定新增 Info-Indexer 角色、建立索引目录并启动组织自我完善 Sprint。
 - 2025-11-19：创建 Info-Indexer 记忆文件、`agent-team/indexes/README.md`、`docs/sprints/sprint-org-self-improvement.md`，在任务板加入 OI 系列任务并更新主循环文档以包含索引钩子。
 - 2025-11-19：完成 OI-002/OI-001/OI-003/OI-004，分别交付 `agent-team/indexes/core-docs-index.md`、`docs/reports/consistency/consistency-report-20251119.md`、runSubAgent 提示模板（主循环/Playbook/记忆模板）以及分层版 `agent-team/task-board.md`，全面引入 Info-Indexer changefeed 提醒。
+- 2025-11-19：完成 PT-003（类型映射），`agent-team/type-mapping.md` 新增 Piece/PieceTreeNode/SearchContext/BufferRange 映射及 Porter-CS/QA 风险提示，并附 Diff Summary 供 Info-Indexer 消费。
+- 2025-11-19：交付 PT-004.G1，`src/PieceTree.TextBuffer/Core` 接入 `PieceTreeBuilder`→`PieceTreeModel` 链路，`PieceTreeBuffer` 改为树驱动 façade 并记录增量编辑 TODO，`dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（4/4）通过且 Porting Log 更新。
+- 2025-11-19：PT-005.G1 完成 QA 基线，`src/PieceTree.TextBuffer.Tests/TestMatrix.md` 建立，`UnitTest1.cs` 扩展至 7 个 Plain/CRLF/Multi-chunk/metadata Fact，baseline `dotnet test`（7/7）与 S8~S10 TODO 均已记录。
+- 2025-11-19：创建 `docs/reports/migration-log.md`，在更新 AGENTS / Sprint / Task Board 状态前须先查阅对应迁移日志行并同步 `agent-team/indexes/README.md#delta-2025-11-19` changefeed。
+
+**状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19`，并在条目中附上两者的链接。

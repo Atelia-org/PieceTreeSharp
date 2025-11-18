@@ -1,0 +1,1371 @@
+// ---------------------------------------------------------------------------------------------
+// Literal translation of ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts.
+// Captured on 2025-11-19 for PT-004 literal translation spike (literal-first strategy).
+// Compile blockers: depends on rbTreeBase literal port (TreeNode/SENTINEL helpers), text model
+// search helpers (Searcher/createFindMatch/isValidMatch), and VS Code core types (Range,
+// Position, FindMatch, etc.). TODOs inline mark TS-specific constructs (iterators, regex).
+// ---------------------------------------------------------------------------------------------
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace PieceTree.TextBuffer.PortingDrafts;
+
+using static PieceTree.TextBuffer.PortingDrafts.PieceTreeBaseLiteralHelpers;
+using static PieceTree.TextBuffer.PortingDrafts.RbTreeBaseHelpers;
+using static PieceTree.TextBuffer.PortingDrafts.TextModelSearchPlaceholders;
+
+internal sealed class LineStartArray : IEnumerable<int>
+{
+    private readonly List<int> _values;
+
+    public LineStartArray()
+    {
+        _values = new List<int>();
+    }
+
+    public LineStartArray(IEnumerable<int> values)
+    {
+        _values = values?.ToList() ?? new List<int>();
+    }
+
+    public int length
+    {
+        get => _values.Count;
+        set => SetLength(value);
+    }
+
+    public int this[int index]
+    {
+        get => _values[index];
+        set
+        {
+            EnsureLength(index + 1);
+            _values[index] = value;
+        }
+    }
+
+    public void push(int value) => _values.Add(value);
+
+    public LineStartArray slice(int start)
+    {
+        if (start <= 0)
+        {
+            return new LineStartArray(_values);
+        }
+
+        if (start >= _values.Count)
+        {
+            return new LineStartArray();
+        }
+
+        return new LineStartArray(_values.Skip(start));
+    }
+
+    public LineStartArray concat(LineStartArray other)
+    {
+        var result = new LineStartArray(_values);
+        if (other != null)
+        {
+            result._values.AddRange(other._values);
+        }
+        return result;
+    }
+
+    public void clear() => _values.Clear();
+
+    public LineStartArray Clone() => new LineStartArray(_values);
+
+    public int[] ToArray() => _values.ToArray();
+
+    public List<int> ToList() => new List<int>(_values);
+
+    private void EnsureLength(int targetLength)
+    {
+        while (_values.Count < targetLength)
+        {
+            _values.Add(0);
+        }
+    }
+
+    private void SetLength(int newLength)
+    {
+        if (newLength < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(newLength));
+        }
+
+        if (newLength < _values.Count)
+        {
+            _values.RemoveRange(newLength, _values.Count - newLength);
+        }
+        else
+        {
+            EnsureLength(newLength);
+        }
+    }
+
+    public IEnumerator<int> GetEnumerator() => _values.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+internal sealed class LineStarts
+{
+    public LineStartArray lineStarts { get; }
+    public int cr { get; }
+    public int lf { get; }
+    public int crlf { get; }
+    public bool isBasicASCII { get; }
+
+    public LineStarts(LineStartArray lineStarts, int cr, int lf, int crlf, bool isBasicASCII)
+    {
+        this.lineStarts = lineStarts;
+        this.cr = cr;
+        this.lf = lf;
+        this.crlf = crlf;
+        this.isBasicASCII = isBasicASCII;
+    }
+}
+
+internal static class PieceTreeBaseLiteralHelpers
+{
+    internal const int AverageBufferSize = 65535;
+
+    private static LineStartArray createUintArray(LineStartArray arr)
+    {
+        return arr.Clone();
+    }
+
+    internal static LineStartArray createLineStartsFast(string str, bool readOnly = true)
+    {
+        var r = new LineStartArray(new[] { 0 });
+        var rLength = 1;
+        var length = str?.Length ?? 0;
+
+        for (var i = 0; i < length; i++)
+        {
+            var chr = (int)str[i];
+
+            if (chr == CharCode.CarriageReturn)
+            {
+                if (i + 1 < length && str[i + 1] == (char)CharCode.LineFeed)
+                {
+                    r[rLength++] = i + 2;
+                    i++;
+                }
+                else
+                {
+                    r[rLength++] = i + 1;
+                }
+            }
+            else if (chr == CharCode.LineFeed)
+            {
+                r[rLength++] = i + 1;
+            }
+        }
+
+        if (readOnly)
+        {
+            return createUintArray(r);
+        }
+
+        return r;
+    }
+
+    internal static LineStarts createLineStarts(LineStartArray r, string str)
+    {
+        r.length = 0;
+        r[0] = 0;
+        var rLength = 1;
+        var cr = 0;
+        var lf = 0;
+        var crlf = 0;
+        var isBasicASCII = true;
+        var length = str?.Length ?? 0;
+
+        for (var i = 0; i < length; i++)
+        {
+            var chr = (int)str[i];
+
+            if (chr == CharCode.CarriageReturn)
+            {
+                if (i + 1 < length && str[i + 1] == (char)CharCode.LineFeed)
+                {
+                    crlf++;
+                    r[rLength++] = i + 2;
+                    i++;
+                }
+                else
+                {
+                    cr++;
+                    r[rLength++] = i + 1;
+                }
+            }
+            else if (chr == CharCode.LineFeed)
+            {
+                lf++;
+                r[rLength++] = i + 1;
+            }
+            else if (isBasicASCII)
+            {
+                if (chr != CharCode.Tab && (chr < 32 || chr > 126))
+                {
+                    isBasicASCII = false;
+                }
+            }
+        }
+
+        var result = new LineStarts(createUintArray(r), cr, lf, crlf, isBasicASCII);
+        r.length = 0;
+        return result;
+    }
+}
+
+internal sealed class NodePosition
+{
+    public TreeNode node;
+    public int remainder;
+    public int nodeStartOffset;
+
+    public NodePosition(TreeNode node, int remainder, int nodeStartOffset)
+    {
+        this.node = node;
+        this.remainder = remainder;
+        this.nodeStartOffset = nodeStartOffset;
+    }
+}
+
+internal sealed class BufferCursor
+{
+    public int line;
+    public int column;
+
+    public BufferCursor()
+    {
+        line = 0;
+        column = 0;
+    }
+
+    public BufferCursor(int line, int column)
+    {
+        this.line = line;
+        this.column = column;
+    }
+
+    public BufferCursor Clone()
+    {
+        return new BufferCursor(line, column);
+    }
+}
+
+public sealed class Piece
+{
+    public int bufferIndex { get; }
+    public BufferCursor start { get; }
+    public BufferCursor end { get; }
+    public int length { get; }
+    public int lineFeedCnt { get; }
+
+    public Piece(int bufferIndex, BufferCursor start, BufferCursor end, int lineFeedCnt, int length)
+    {
+        this.bufferIndex = bufferIndex;
+        this.start = start;
+        this.end = end;
+        this.lineFeedCnt = lineFeedCnt;
+        this.length = length;
+    }
+}
+
+public sealed class StringBuffer
+{
+    public string buffer;
+    public LineStartArray? lineStarts;
+
+    public StringBuffer(string buffer, LineStartArray? lineStarts)
+    {
+        this.buffer = buffer ?? string.Empty;
+        this.lineStarts = lineStarts;
+    }
+}
+
+internal sealed class PieceTreeSnapshot : ITextSnapshot
+{
+    private readonly List<Piece> _pieces;
+    private int _index;
+    private readonly PieceTreeBase _tree;
+    private readonly string _bom;
+
+    public PieceTreeSnapshot(PieceTreeBase tree, string bom)
+    {
+        _pieces = new List<Piece>();
+        _tree = tree;
+        _bom = bom ?? string.Empty;
+        _index = 0;
+
+        if (tree.root != TreeNode.Sentinel)
+        {
+            tree.iterate(tree.root, node =>
+            {
+                if (node != TreeNode.Sentinel)
+                {
+                    _pieces.Add(node.piece);
+                }
+                return true;
+            });
+        }
+    }
+
+    public string? read()
+    {
+        if (_pieces.Count == 0)
+        {
+            if (_index == 0)
+            {
+                _index++;
+                return _bom;
+            }
+
+            return null;
+        }
+
+        if (_index > _pieces.Count - 1)
+        {
+            return null;
+        }
+
+        if (_index == 0)
+        {
+            return _bom + _tree.getPieceContent(_pieces[_index++]);
+        }
+
+        return _tree.getPieceContent(_pieces[_index++]);
+    }
+}
+
+internal sealed class CacheEntry
+{
+    public TreeNode node;
+    public int nodeStartOffset;
+    public int? nodeStartLineNumber;
+
+    public CacheEntry(TreeNode node, int nodeStartOffset, int? nodeStartLineNumber)
+    {
+        this.node = node;
+        this.nodeStartOffset = nodeStartOffset;
+        this.nodeStartLineNumber = nodeStartLineNumber;
+    }
+}
+
+internal sealed class PieceTreeSearchCache
+{
+    private readonly int _limit;
+    private List<CacheEntry> _cache;
+
+    public PieceTreeSearchCache(int limit)
+    {
+        _limit = limit;
+        _cache = new List<CacheEntry>();
+    }
+
+    public CacheEntry? get(int offset)
+    {
+        for (var i = _cache.Count - 1; i >= 0; i--)
+        {
+            var nodePos = _cache[i];
+            if (nodePos.nodeStartOffset <= offset && nodePos.nodeStartOffset + nodePos.node.piece.length >= offset)
+            {
+                return nodePos;
+            }
+        }
+
+        return null;
+    }
+
+    public (TreeNode node, int nodeStartOffset, int nodeStartLineNumber)? get2(int lineNumber)
+    {
+        for (var i = _cache.Count - 1; i >= 0; i--)
+        {
+            var nodePos = _cache[i];
+            if (nodePos.nodeStartLineNumber.HasValue && nodePos.nodeStartLineNumber.Value < lineNumber && nodePos.nodeStartLineNumber.Value + nodePos.node.piece.lineFeedCnt >= lineNumber)
+            {
+                return (nodePos.node, nodePos.nodeStartOffset, nodePos.nodeStartLineNumber.Value);
+            }
+        }
+
+        return null;
+    }
+
+    public void set(CacheEntry nodePosition)
+    {
+        if (_cache.Count >= _limit)
+        {
+            _cache.RemoveAt(0);
+        }
+
+        _cache.Add(nodePosition);
+    }
+
+    public void validate(int offset)
+    {
+        var hasInvalid = false;
+        for (var i = 0; i < _cache.Count; i++)
+        {
+            var nodePos = _cache[i];
+            if (nodePos.node.parent == null || nodePos.nodeStartOffset >= offset)
+            {
+                _cache[i] = null!;
+                hasInvalid = true;
+            }
+        }
+
+        if (hasInvalid)
+        {
+            var newArr = new List<CacheEntry>();
+            foreach (var entry in _cache)
+            {
+                if (entry != null)
+                {
+                    newArr.Add(entry);
+                }
+            }
+
+            _cache = newArr;
+        }
+    }
+}
+
+public class PieceTreeBase
+{
+    private static readonly Regex LineBreakRegex = new Regex("\r\n|\r|\n", RegexOptions.Compiled);
+    private static readonly Regex TrailingLineBreakRegex = new Regex("(\r\n|\r|\n)$", RegexOptions.Compiled);
+
+    public TreeNode root = TreeNode.Sentinel;
+    protected List<StringBuffer> _buffers = new List<StringBuffer>();
+    protected int _lineCnt;
+    protected int _length;
+    protected string _EOL = "\n";
+    protected int _EOLLength = 1;
+    protected bool _EOLNormalized;
+    private BufferCursor _lastChangeBufferPos = new BufferCursor(0, 0);
+    private PieceTreeSearchCache _searchCache = new PieceTreeSearchCache(1);
+    private readonly LastVisitedLine _lastVisitedLine = new LastVisitedLine();
+
+    private sealed class LastVisitedLine
+    {
+        public int lineNumber;
+        public string value;
+
+        public LastVisitedLine()
+        {
+            lineNumber = 0;
+            value = string.Empty;
+        }
+    }
+
+    public PieceTreeBase(IList<StringBuffer> chunks, string eol, bool eolNormalized)
+    {
+        create(chunks, eol, eolNormalized);
+    }
+
+    public void create(IList<StringBuffer> chunks, string eol, bool eolNormalized)
+    {
+        _buffers = new List<StringBuffer>
+        {
+            new StringBuffer(string.Empty, new LineStartArray(new[] { 0 }))
+        };
+        _lastChangeBufferPos = new BufferCursor(0, 0);
+        root = TreeNode.Sentinel;
+        _lineCnt = 1;
+        _length = 0;
+        _EOL = eol;
+        _EOLLength = eol.Length;
+        _EOLNormalized = eolNormalized;
+
+        TreeNode? lastNode = null;
+        for (var i = 0; i < chunks.Count; i++)
+        {
+            var chunk = chunks[i];
+            if (string.IsNullOrEmpty(chunk.buffer))
+            {
+                continue;
+            }
+
+            if (chunk.lineStarts == null)
+            {
+                chunk.lineStarts = createLineStartsFast(chunk.buffer);
+            }
+
+            var piece = new Piece(
+                i + 1,
+                new BufferCursor(0, 0),
+                new BufferCursor(chunk.lineStarts!.length - 1, chunk.buffer.Length - chunk.lineStarts[chunk.lineStarts.length - 1]),
+                chunk.lineStarts.length - 1,
+                chunk.buffer.Length
+            );
+
+            _buffers.Add(chunk);
+            lastNode = rbInsertRight(lastNode, piece);
+        }
+
+        _searchCache = new PieceTreeSearchCache(1);
+        _lastVisitedLine.lineNumber = 0;
+        _lastVisitedLine.value = string.Empty;
+        computeBufferMetadata();
+    }
+
+    public void normalizeEOL(string eol)
+    {
+        var averageBufferSize = AverageBufferSize;
+        var min = averageBufferSize - (int)Math.Floor(averageBufferSize / 3.0);
+        var max = min * 2;
+
+        var tempChunk = string.Empty;
+        var tempChunkLen = 0;
+        var chunks = new List<StringBuffer>();
+
+        iterate(root, node =>
+        {
+            if (node == TreeNode.Sentinel)
+            {
+                return true;
+            }
+
+            var str = getNodeContent(node);
+            var len = str.Length;
+            if (tempChunkLen <= min || tempChunkLen + len < max)
+            {
+                tempChunk += str;
+                tempChunkLen += len;
+                return true;
+            }
+
+            var text = LineBreakRegex.Replace(tempChunk, eol);
+            chunks.Add(new StringBuffer(text, createLineStartsFast(text)));
+            tempChunk = str;
+            tempChunkLen = len;
+            return true;
+        });
+
+        if (tempChunkLen > 0)
+        {
+            var text = LineBreakRegex.Replace(tempChunk, eol);
+            chunks.Add(new StringBuffer(text, createLineStartsFast(text)));
+        }
+
+        create(chunks, eol, true);
+    }
+
+    public string getEOL()
+    {
+        return _EOL;
+    }
+
+    public void setEOL(string newEOL)
+    {
+        _EOL = newEOL;
+        _EOLLength = _EOL.Length;
+        normalizeEOL(newEOL);
+    }
+
+    public ITextSnapshot createSnapshot(string bom)
+    {
+        return new PieceTreeSnapshot(this, bom);
+    }
+
+    public bool equal(PieceTreeBase other)
+    {
+        if (getLength() != other.getLength())
+        {
+            return false;
+        }
+
+        if (getLineCount() != other.getLineCount())
+        {
+            return false;
+        }
+
+        var offset = 0;
+        var ret = iterate(root, node =>
+        {
+            if (node == TreeNode.Sentinel)
+            {
+                return true;
+            }
+
+            var str = getNodeContent(node);
+            var len = str.Length;
+            var startPosition = other.nodeAt(offset);
+            var endPosition = other.nodeAt(offset + len);
+            var val = other.getValueInRange2(startPosition, endPosition);
+
+            offset += len;
+            return str == val;
+        });
+
+        return ret;
+    }
+
+    public int getOffsetAt(int lineNumber, int column)
+    {
+        var leftLen = 0;
+        var x = root;
+
+        while (x != TreeNode.Sentinel)
+        {
+            if (x.left != TreeNode.Sentinel && x.lf_left + 1 >= lineNumber)
+            {
+                x = x.left;
+            }
+            else if (x.lf_left + x.piece.lineFeedCnt + 1 >= lineNumber)
+            {
+                leftLen += x.size_left;
+                var accumulated = getAccumulatedValue(x, lineNumber - x.lf_left - 2);
+                return leftLen += accumulated + column - 1;
+            }
+            else
+            {
+                lineNumber -= x.lf_left + x.piece.lineFeedCnt;
+                leftLen += x.size_left + x.piece.length;
+                x = x.right;
+            }
+        }
+
+        return leftLen;
+    }
+
+    public Position getPositionAt(double rawOffset)
+    {
+        var offset = (int)Math.Floor(rawOffset);
+        offset = Math.Max(0, offset);
+
+        var x = root;
+        var lfCnt = 0;
+        var originalOffset = offset;
+
+        while (x != TreeNode.Sentinel)
+        {
+            if (x.size_left != 0 && x.size_left >= offset)
+            {
+                x = x.left;
+            }
+            else if (x.size_left + x.piece.length >= offset)
+            {
+                var outInfo = getIndexOf(x, offset - x.size_left);
+
+                lfCnt += x.lf_left + outInfo.index;
+
+                if (outInfo.index == 0)
+                {
+                    var lineStartOffset = getOffsetAt(lfCnt + 1, 1);
+                    var column = originalOffset - lineStartOffset;
+                    return new Position(lfCnt + 1, column + 1);
+                }
+
+                return new Position(lfCnt + 1, outInfo.remainder + 1);
+            }
+            else
+            {
+                offset -= x.size_left + x.piece.length;
+                lfCnt += x.lf_left + x.piece.lineFeedCnt;
+
+                if (x.right == TreeNode.Sentinel)
+                {
+                    var lineStartOffset = getOffsetAt(lfCnt + 1, 1);
+                    var column = originalOffset - offset - lineStartOffset;
+                    return new Position(lfCnt + 1, column + 1);
+                }
+
+                x = x.right;
+            }
+        }
+
+        return new Position(1, 1);
+    }
+
+    public string getValueInRange(Range range, string? eol = null)
+    {
+        if (range.startLineNumber == range.endLineNumber && range.startColumn == range.endColumn)
+        {
+            return string.Empty;
+        }
+
+        var startPosition = nodeAt2(range.startLineNumber, range.startColumn);
+        var endPosition = nodeAt2(range.endLineNumber, range.endColumn);
+
+        var value = getValueInRange2(startPosition, endPosition);
+        if (!string.IsNullOrEmpty(eol))
+        {
+            if (eol != _EOL || !_EOLNormalized)
+            {
+                return LineBreakRegex.Replace(value, eol);
+            }
+
+            if (eol == getEOL() && _EOLNormalized)
+            {
+                return value;
+            }
+
+            return LineBreakRegex.Replace(value, eol);
+        }
+
+        return value;
+    }
+
+    public string getValueInRange2(NodePosition startPosition, NodePosition endPosition)
+    {
+        if (startPosition.node == endPosition.node)
+        {
+            var node = startPosition.node;
+            var buffer = _buffers[node.piece.bufferIndex].buffer;
+            var startOffset = offsetInBuffer(node.piece.bufferIndex, node.piece.start);
+            var startIndex = startOffset + startPosition.remainder;
+            var endIndex = startOffset + endPosition.remainder;
+            return buffer.Substring(startIndex, endIndex - startIndex);
+        }
+
+        var x = startPosition.node;
+        var sb = new StringBuilder();
+        var bufferSegment = _buffers[x.piece.bufferIndex].buffer;
+        var segmentStart = offsetInBuffer(x.piece.bufferIndex, x.piece.start);
+        sb.Append(bufferSegment.Substring(segmentStart + startPosition.remainder, x.piece.length - startPosition.remainder));
+
+        x = x.next();
+        while (x != TreeNode.Sentinel)
+        {
+            bufferSegment = _buffers[x.piece.bufferIndex].buffer;
+            segmentStart = offsetInBuffer(x.piece.bufferIndex, x.piece.start);
+
+            if (x == endPosition.node)
+            {
+                sb.Append(bufferSegment.Substring(segmentStart, endPosition.remainder));
+                break;
+            }
+
+            sb.Append(bufferSegment.Substring(segmentStart, x.piece.length));
+            x = x.next();
+        }
+
+        return sb.ToString();
+    }
+
+    public List<string> getLinesContent()
+    {
+        var lines = new List<string>();
+        var currentLine = string.Empty;
+        var danglingCR = false;
+
+        iterate(root, node =>
+        {
+            if (node == TreeNode.Sentinel)
+            {
+                return true;
+            }
+
+            var piece = node.piece;
+            var pieceLength = piece.length;
+            if (pieceLength == 0)
+            {
+                return true;
+            }
+
+            var buffer = _buffers[piece.bufferIndex].buffer;
+            var lineStarts = _buffers[piece.bufferIndex].lineStarts!;
+            var pieceStartLine = piece.start.line;
+            var pieceEndLine = piece.end.line;
+            var pieceStartOffset = lineStarts[pieceStartLine] + piece.start.column;
+
+            if (danglingCR)
+            {
+                if (buffer[pieceStartOffset] == (char)CharCode.LineFeed)
+                {
+                    pieceStartOffset++;
+                    pieceLength--;
+                }
+
+                lines.Add(currentLine);
+                currentLine = string.Empty;
+                danglingCR = false;
+                if (pieceLength == 0)
+                {
+                    return true;
+                }
+            }
+
+            if (pieceStartLine == pieceEndLine)
+            {
+                if (!_EOLNormalized && buffer[pieceStartOffset + pieceLength - 1] == (char)CharCode.CarriageReturn)
+                {
+                    danglingCR = true;
+                    currentLine += buffer.Substring(pieceStartOffset, pieceLength - 1);
+                }
+                else
+                {
+                    currentLine += buffer.Substring(pieceStartOffset, pieceLength);
+                }
+
+                return true;
+            }
+
+            var nextLineStart = lineStarts[pieceStartLine + 1];
+            var firstLineEnd = _EOLNormalized ? Math.Max(pieceStartOffset, nextLineStart - _EOLLength) : nextLineStart;
+            var firstSegment = buffer.Substring(pieceStartOffset, firstLineEnd - pieceStartOffset);
+            if (!_EOLNormalized)
+            {
+                firstSegment = TrailingLineBreakRegex.Replace(firstSegment, string.Empty);
+            }
+            currentLine += firstSegment;
+            lines.Add(currentLine);
+
+            for (var line = pieceStartLine + 1; line < pieceEndLine; line++)
+            {
+                var start = lineStarts[line];
+                var end = lineStarts[line + 1];
+                var length = _EOLNormalized ? end - _EOLLength - start : end - start;
+                var segment = buffer.Substring(start, Math.Max(0, length));
+                if (!_EOLNormalized)
+                {
+                    segment = TrailingLineBreakRegex.Replace(segment, string.Empty);
+                }
+                currentLine = segment;
+                lines.Add(currentLine);
+            }
+
+            var pieceEndStart = lineStarts[pieceEndLine];
+            if (!_EOLNormalized && piece.end.column > 0 && buffer[pieceEndStart + piece.end.column - 1] == (char)CharCode.CarriageReturn)
+            {
+                danglingCR = true;
+                if (piece.end.column == 0)
+                {
+                    if (lines.Count > 0)
+                    {
+                        lines.RemoveAt(lines.Count - 1);
+                    }
+                }
+                else
+                {
+                    currentLine = buffer.Substring(pieceEndStart, piece.end.column - 1);
+                }
+            }
+            else
+            {
+                currentLine = buffer.Substring(pieceEndStart, piece.end.column);
+            }
+
+            return true;
+        });
+
+        if (danglingCR)
+        {
+            lines.Add(currentLine);
+            currentLine = string.Empty;
+        }
+
+        lines.Add(currentLine);
+        return lines;
+    }
+
+    public int getLength()
+    {
+        return _length;
+    }
+
+    public int getLineCount()
+    {
+        return _lineCnt;
+    }
+
+    public string getLineContent(int lineNumber)
+    {
+        if (_lastVisitedLine.lineNumber == lineNumber)
+        {
+            return _lastVisitedLine.value;
+        }
+
+        _lastVisitedLine.lineNumber = lineNumber;
+
+        if (lineNumber == _lineCnt)
+        {
+            _lastVisitedLine.value = getLineRawContent(lineNumber);
+        }
+        else if (_EOLNormalized)
+        {
+            _lastVisitedLine.value = getLineRawContent(lineNumber, _EOLLength);
+        }
+        else
+        {
+            _lastVisitedLine.value = TrailingLineBreakRegex.Replace(getLineRawContent(lineNumber), string.Empty);
+        }
+
+        return _lastVisitedLine.value;
+    }
+
+    private int _getCharCode(NodePosition nodePos)
+    {
+        if (nodePos.remainder == nodePos.node.piece.length)
+        {
+            var matchingNode = nodePos.node.next();
+            if (matchingNode == null)
+            {
+                return 0;
+            }
+
+            var buffer = _buffers[matchingNode.piece.bufferIndex];
+            var startOffset = offsetInBuffer(matchingNode.piece.bufferIndex, matchingNode.piece.start);
+            return buffer.buffer[startOffset];
+        }
+        else
+        {
+            var buffer = _buffers[nodePos.node.piece.bufferIndex];
+            var startOffset = offsetInBuffer(nodePos.node.piece.bufferIndex, nodePos.node.piece.start);
+            var targetOffset = startOffset + nodePos.remainder;
+            return buffer.buffer[targetOffset];
+        }
+    }
+
+    public int getLineCharCode(int lineNumber, int index)
+    {
+        var nodePos = nodeAt2(lineNumber, index + 1);
+        return _getCharCode(nodePos);
+    }
+
+    public int getLineLength(int lineNumber)
+    {
+        if (lineNumber == getLineCount())
+        {
+            var startOffset = getOffsetAt(lineNumber, 1);
+            return getLength() - startOffset;
+        }
+
+        return getOffsetAt(lineNumber + 1, 1) - getOffsetAt(lineNumber, 1) - _EOLLength;
+    }
+
+    public int getCharCode(int offset)
+    {
+        var nodePos = nodeAt(offset);
+        return _getCharCode(nodePos);
+    }
+
+    public string getNearestChunk(int offset)
+    {
+        var nodePos = nodeAt(offset);
+        if (nodePos.remainder == nodePos.node.piece.length)
+        {
+            var matchingNode = nodePos.node.next();
+            if (matchingNode == null || matchingNode == TreeNode.Sentinel)
+            {
+                return string.Empty;
+            }
+
+            var buffer = _buffers[matchingNode.piece.bufferIndex];
+            var startOffset = offsetInBuffer(matchingNode.piece.bufferIndex, matchingNode.piece.start);
+            return buffer.buffer.Substring(startOffset, matchingNode.piece.length);
+        }
+        else
+        {
+            var buffer = _buffers[nodePos.node.piece.bufferIndex];
+            var startOffset = offsetInBuffer(nodePos.node.piece.bufferIndex, nodePos.node.piece.start);
+            var targetOffset = startOffset + nodePos.remainder;
+            var targetEnd = startOffset + nodePos.node.piece.length;
+            return buffer.buffer.Substring(targetOffset, targetEnd - targetOffset);
+        }
+    }
+
+    public int findMatchesInNode(
+        TreeNode node,
+        Searcher searcher,
+        int startLineNumber,
+        int startColumn,
+        BufferCursor startCursor,
+        BufferCursor endCursor,
+        SearchData searchData,
+        bool captureMatches,
+        int limitResultCount,
+        int resultLen,
+        List<FindMatch> result)
+    {
+        var buffer = _buffers[node.piece.bufferIndex];
+        var startOffsetInBuffer = offsetInBuffer(node.piece.bufferIndex, node.piece.start);
+        var start = offsetInBuffer(node.piece.bufferIndex, startCursor);
+        var end = offsetInBuffer(node.piece.bufferIndex, endCursor);
+
+        RegExpExecArray? m;
+        var ret = new BufferCursor(0, 0);
+        string searchText;
+        Func<int, int> offsetInBufferFn;
+
+        if (!string.IsNullOrEmpty(searcher.wordSeparators))
+        {
+            searchText = buffer.buffer.Substring(start, end - start);
+            offsetInBufferFn = offset => offset + start;
+            searcher.reset(0);
+        }
+        else
+        {
+            searchText = buffer.buffer;
+            offsetInBufferFn = offset => offset;
+            searcher.reset(start);
+        }
+
+        do
+        {
+            m = searcher.next(searchText);
+
+            if (m != null)
+            {
+                if (offsetInBufferFn(m.index) >= end)
+                {
+                    return resultLen;
+                }
+
+                positionInBuffer(node, offsetInBufferFn(m.index) - startOffsetInBuffer, ret);
+                var lineFeedCnt = getLineFeedCnt(node.piece.bufferIndex, startCursor, ret);
+                var retStartColumn = ret.line == startCursor.line ? ret.column - startCursor.column + startColumn : ret.column + 1;
+                var retEndColumn = retStartColumn + m[0].Length;
+                result.Add(createFindMatch(new Range(startLineNumber + lineFeedCnt, retStartColumn, startLineNumber + lineFeedCnt, retEndColumn), m, captureMatches));
+                resultLen++;
+
+                if (offsetInBufferFn(m.index) + m[0].Length >= end || resultLen >= limitResultCount)
+                {
+                    return resultLen;
+                }
+            }
+        }
+        while (m != null);
+
+        return resultLen;
+    }
+
+    public List<FindMatch> findMatchesLineByLine(Range searchRange, SearchData searchData, bool captureMatches, int limitResultCount)
+    {
+        var result = new List<FindMatch>();
+        var resultLen = 0;
+        var searcher = new Searcher(searchData.wordSeparators, searchData.regex);
+
+        var startPosition = nodeAt2(searchRange.startLineNumber, searchRange.startColumn);
+        if (startPosition == null)
+        {
+            return result;
+        }
+
+        var endPosition = nodeAt2(searchRange.endLineNumber, searchRange.endColumn);
+        if (endPosition == null)
+        {
+            return result;
+        }
+
+        var start = positionInBuffer(startPosition.node, startPosition.remainder);
+        var end = positionInBuffer(endPosition.node, endPosition.remainder);
+
+        if (startPosition.node == endPosition.node)
+        {
+            findMatchesInNode(startPosition.node, searcher, searchRange.startLineNumber, searchRange.startColumn, start, end, searchData, captureMatches, limitResultCount, resultLen, result);
+            return result;
+        }
+
+        var startLineNumber = searchRange.startLineNumber;
+        var currentNode = startPosition.node;
+        while (currentNode != endPosition.node)
+        {
+            var lineBreakCnt = getLineFeedCnt(currentNode.piece.bufferIndex, start, currentNode.piece.end);
+
+            if (lineBreakCnt >= 1)
+            {
+                var lineStarts = _buffers[currentNode.piece.bufferIndex].lineStarts!;
+                var startOffsetInBuffer = offsetInBuffer(currentNode.piece.bufferIndex, currentNode.piece.start);
+                var nextLineStartOffset = lineStarts[start.line + lineBreakCnt];
+                var startColumnVal = startLineNumber == searchRange.startLineNumber ? searchRange.startColumn : 1;
+                resultLen = findMatchesInNode(
+                    currentNode,
+                    searcher,
+                    startLineNumber,
+                    startColumnVal,
+                    start,
+                    positionInBuffer(currentNode, nextLineStartOffset - startOffsetInBuffer),
+                    searchData,
+                    captureMatches,
+                    limitResultCount,
+                    resultLen,
+                    result);
+
+                if (resultLen >= limitResultCount)
+                {
+                    return result;
+                }
+
+                startLineNumber += lineBreakCnt;
+            }
+
+            var startColumnValue = startLineNumber == searchRange.startLineNumber ? searchRange.startColumn - 1 : 0;
+            if (startLineNumber == searchRange.endLineNumber)
+            {
+                var text = getLineContent(startLineNumber).Substring(startColumnValue, searchRange.endColumn - 1 - startColumnValue);
+                resultLen = _findMatchesInLine(searchData, searcher, text, searchRange.endLineNumber, startColumnValue, resultLen, result, captureMatches, limitResultCount);
+                return result;
+            }
+
+            var remainingLine = getLineContent(startLineNumber).Substring(startColumnValue);
+            resultLen = _findMatchesInLine(searchData, searcher, remainingLine, startLineNumber, startColumnValue, resultLen, result, captureMatches, limitResultCount);
+
+            if (resultLen >= limitResultCount)
+            {
+                return result;
+            }
+
+            startLineNumber++;
+            startPosition = nodeAt2(startLineNumber, 1);
+            currentNode = startPosition.node;
+            start = positionInBuffer(startPosition.node, startPosition.remainder);
+        }
+
+        if (startLineNumber == searchRange.endLineNumber)
+        {
+            var startColumnValue = startLineNumber == searchRange.startLineNumber ? searchRange.startColumn - 1 : 0;
+            var text = getLineContent(startLineNumber).Substring(startColumnValue, searchRange.endColumn - 1 - startColumnValue);
+            _findMatchesInLine(searchData, searcher, text, searchRange.endLineNumber, startColumnValue, resultLen, result, captureMatches, limitResultCount);
+            return result;
+        }
+
+        var finalStartColumn = startLineNumber == searchRange.startLineNumber ? searchRange.startColumn : 1;
+        findMatchesInNode(endPosition.node, searcher, startLineNumber, finalStartColumn, start, end, searchData, captureMatches, limitResultCount, resultLen, result);
+        return result;
+    }
+
+    private int _findMatchesInLine(SearchData searchData, Searcher searcher, string text, int lineNumber, int deltaOffset, int resultLen, List<FindMatch> result, bool captureMatches, int limitResultCount)
+    {
+        var wordSeparators = searchData.wordSeparators;
+        if (!captureMatches && !string.IsNullOrEmpty(searchData.simpleSearch))
+        {
+            var searchString = searchData.simpleSearch;
+            var searchStringLen = searchString.Length;
+            var textLength = text.Length;
+
+            var lastMatchIndex = -searchStringLen;
+            while ((lastMatchIndex = text.IndexOf(searchString, lastMatchIndex + searchStringLen, StringComparison.Ordinal)) != -1)
+            {
+                if (string.IsNullOrEmpty(wordSeparators) || isValidMatch(wordSeparators, text, textLength, lastMatchIndex, searchStringLen))
+                {
+                    result.Add(new FindMatch(new Range(lineNumber, lastMatchIndex + 1 + deltaOffset, lineNumber, lastMatchIndex + 1 + searchStringLen + deltaOffset), null));
+                    resultLen++;
+                    if (resultLen >= limitResultCount)
+                    {
+                        return resultLen;
+                    }
+                }
+            }
+
+            return resultLen;
+        }
+
+        RegExpExecArray? m;
+        searcher.reset(0);
+        do
+        {
+            m = searcher.next(text);
+            if (m != null)
+            {
+                result.Add(createFindMatch(new Range(lineNumber, m.index + 1 + deltaOffset, lineNumber, m.index + 1 + m[0].Length + deltaOffset), m, captureMatches));
+                resultLen++;
+                if (resultLen >= limitResultCount)
+                {
+                    return resultLen;
+                }
+            }
+        }
+        while (m != null);
+
+        return resultLen;
+    }
+
+    // TODO: Remaining editing and tree operations translation continues below.
+}
+
+#region TODO literal placeholders
+
+internal static class CharCode
+{
+    public const int CarriageReturn = 13;
+    public const int LineFeed = 10;
+    public const int Tab = 9;
+}
+
+public sealed class Position
+{
+    public int lineNumber { get; }
+    public int column { get; }
+
+    public Position(int lineNumber, int column)
+    {
+        this.lineNumber = lineNumber;
+        this.column = column;
+    }
+}
+
+public sealed class Range
+{
+    public int startLineNumber { get; }
+    public int startColumn { get; }
+    public int endLineNumber { get; }
+    public int endColumn { get; }
+
+    public Range(int startLineNumber, int startColumn, int endLineNumber, int endColumn)
+    {
+        this.startLineNumber = startLineNumber;
+        this.startColumn = startColumn;
+        this.endLineNumber = endLineNumber;
+        this.endColumn = endColumn;
+    }
+}
+
+public sealed class FindMatch
+{
+    public Range range { get; }
+    public RegExpExecArray? matches { get; }
+
+    public FindMatch(Range range, RegExpExecArray? matches)
+    {
+        this.range = range;
+        this.matches = matches;
+    }
+}
+
+public interface ITextSnapshot
+{
+    string? read();
+}
+
+public sealed class SearchData
+{
+    public string? wordSeparators { get; set; }
+    public Regex? regex { get; set; }
+    public string? simpleSearch { get; set; }
+}
+
+public sealed class Searcher
+{
+    public string? wordSeparators => _wordSeparators;
+    private readonly string? _wordSeparators;
+    private readonly Regex? _regex;
+
+    public Searcher(string? wordSeparators, Regex? regex)
+    {
+        _wordSeparators = wordSeparators;
+        _regex = regex;
+    }
+
+    public void reset(int start)
+    {
+        // TODO: literal searcher reset behavior.
+    }
+
+    public RegExpExecArray? next(string text)
+    {
+        // TODO: literal regex iteration.
+        return null;
+    }
+}
+
+public sealed class RegExpExecArray
+{
+    public int index { get; set; }
+    public string Value { get; set; } = string.Empty;
+
+    public string this[int idx] => idx == 0 ? Value : string.Empty;
+}
+
+internal static class TextModelSearchPlaceholders
+{
+    internal static FindMatch createFindMatch(Range range, RegExpExecArray? match, bool captureMatches)
+    {
+        return new FindMatch(range, match);
+    }
+
+    internal static bool isValidMatch(string? wordSeparators, string text, int textLength, int lastMatchIndex, int searchStringLen)
+    {
+        return true;
+    }
+}
+
+public enum NodeColor
+{
+    Red,
+    Black
+}
+
+public class TreeNode
+{
+    public Piece piece;
+    public TreeNode left;
+    public TreeNode right;
+    public TreeNode parent;
+    public NodeColor color;
+    public int size_left;
+    public int lf_left;
+
+    public static TreeNode Sentinel { get; } = new TreeNode(isSentinel: true);
+
+    public TreeNode(bool isSentinel = false)
+    {
+        piece = new Piece(0, new BufferCursor(), new BufferCursor(), 0, 0);
+        color = isSentinel ? NodeColor.Black : NodeColor.Red;
+        size_left = 0;
+        lf_left = 0;
+
+        if (isSentinel)
+        {
+            left = this;
+            right = this;
+            parent = this;
+        }
+        else
+        {
+            left = Sentinel;
+            right = Sentinel;
+            parent = Sentinel;
+        }
+    }
+
+    public TreeNode next()
+    {
+        return this; // TODO: literal traversal stub.
+    }
+
+    public TreeNode prev()
+    {
+        return this; // TODO: literal traversal stub.
+    }
+}
+
+internal static class RbTreeBaseHelpers
+{
+    public static void fixInsert(PieceTreeBase tree, TreeNode node)
+    {
+        throw new NotImplementedException("TODO: literal rbTree fixInsert");
+    }
+
+    public static TreeNode leftest(TreeNode node)
+    {
+        return node;
+    }
+
+    public static void rbDelete(PieceTreeBase tree, TreeNode node)
+    {
+        throw new NotImplementedException("TODO: literal rbTree delete");
+    }
+
+    public static TreeNode righttest(TreeNode node)
+    {
+        return node;
+    }
+
+    public static void updateTreeMetadata(PieceTreeBase tree, TreeNode node, int sizeDelta, int lfDelta)
+    {
+        // TODO: literal metadata update.
+    }
+}
+
+#endregion

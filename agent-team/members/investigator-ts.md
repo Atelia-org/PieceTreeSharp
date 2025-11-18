@@ -34,16 +34,18 @@
   - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
   - 列出 PieceTree 及其依赖 TS 文件的研读顺序，标记与类型映射、索引输出的映射关系。
   - 明确将成果写回 `type-mapping.md` 与未来索引文件，便于 Planner 跟踪 PT/OI 交付。
+  - 2025-11-19: 完成 PT-003 mapping pass（PieceSegment、PieceTreeNode、Searcher、BufferRange、helpers），在 `agent-team/type-mapping.md` 写入 invariants/QA hints/TODOs 并附 Diff Summary，标出 WordSeparators→.NET 映射仍待定义以便 Porter/QA 提前知晓。
 - **Upcoming Goals (1 runSubAgent per item):**
-  1. PT-003.A：深入 `pieceTreeBase.ts` 段落，输出节点字段/不变量总结并更新 `agent-team/type-mapping.md`。
-  2. PT-003.B：解析 `rbTreeBase.ts` 旋转/重平衡流程，附 C# 端约束笔记，写回 `type-mapping.md`。
-  3. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，罗列 PieceTree→Core 依赖和推荐阅读顺序。
-  4. PT-003.C：补齐 `textModelSearch.ts` 与 `pieceTreeTextBufferBuilder.ts` 的调用链/字段映射，确认哪些接口需要在 Sprint 00 内反映给 Porter-CS。
+  1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
+  2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。
+  3. PT-003.D：回读 `pieceTreeTextBufferBuilder.ts` + `textModelSearch.ts` 的剩余触点，形成 QA/Porter checklist（若缺上下文则在下一 run 请求 Planner 追加资料）。
+  4. Sprint-00 meta：在 Info-Indexer/Task Board 上登记本次 type map 变更与待定 search stub，以免 PT-004/005 启动时遗漏依赖。
 
 ## Blocking Issues
 - 需要 Planner 明确 PT-003 与 OI-002 工时的优先顺序，避免同一 runSubAgent 同时覆盖两条任务。
 - 等待 Info-Indexer 提供索引文件命名/结构约束，以确保 Investigator 输出与目录约定一致。
 - 需要 Porter-CS 确认 C# RBTree 公共 API（插入/删除、snapshot rebuild、search hook），好在类型映射文件中提前标注依赖。
+- Searcher/WordSeparators 对应的 .NET 实现尚未定案；PT-004 skeleton 与 PT-005 QA plan 都需要可调用的 stub 行为（已在 type map Notes 标注 TBD，需 Planner/Porter 在 11-20 前给出指示，否则 PT-004 只能以 no-op search 落地）。
 
 ## Hand-off Checklist
 1. 研究笔记写入 `agent-team/members/investigator-ts.md`。

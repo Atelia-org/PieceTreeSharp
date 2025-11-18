@@ -18,6 +18,11 @@ Reviewed `AGENTS.md`, Sprint 00, Sprint OI-01, both 2025-11-19 meeting notes, `a
 - Finish OI-004 by layering the Task Board and pointing Notes to the relevant index entries instead of repeating rationale inline.
 - Refresh both 2025-11-19 meeting files to track actual task status and backlink to the new consistency report, keeping meeting artifacts as decision logs only.
 
+## Migration Log & Changefeed Hooks
+- **Log available:** `docs/reports/migration-log.md` now canonically lists PT/OI deltas with links to the touched files, validation evidence, and the Info-Indexer entry at `agent-team/indexes/README.md#delta-2025-11-19`.
+- **Editor protocol:** Anyone editing `AGENTS.md`, `docs/sprints/sprint-00.md`, or `agent-team/task-board.md` must cite both the relevant migration-log row and the matching changefeed anchor before changing text or status.
+- **Enforcement:** Reject edits that lack those two references—migration log provides the audit trail, the changefeed remains the canonical diff source.
+
 ## Next Steps
 - DocMaintainer to update the Org Self-Improvement meeting record, AGENTS log, and Task Board structure per OI-001/OI-004, referencing the changefeed and this report.
 - Planner + Info-Indexer to extend the runSubAgent template and AI Team Playbook with an "Indexes & changefeed" section so future prompts mandate consuming the delta feed (OI-003).

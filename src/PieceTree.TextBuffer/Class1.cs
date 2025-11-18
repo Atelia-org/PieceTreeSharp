@@ -1,54 +1,87 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
+using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer;
 
 /// <summary>
-/// Minimal placeholder implementation that will host the PieceTree port.
-/// For now it behaves like a simple mutable string so tests can exercise the surface API.
+/// Minimal PieceTree-backed buffer façade. Edits rebuild the tree until incremental change wiring lands.
 /// </summary>
 public sealed class PieceTreeBuffer
 {
-
-	private readonly StringBuilder _builder;
+	private PieceTreeModel _model;
+	private List<ChunkBuffer> _chunkBuffers;
 
 	public PieceTreeBuffer(string? text = null)
+		: this(PieceTreeBuilder.BuildFromChunks(new[] { text ?? string.Empty }))
 	{
-		_builder = new StringBuilder(text ?? string.Empty);
+	}
+
+	private PieceTreeBuffer(PieceTreeBuildResult buildResult)
+	{
+		_model = buildResult.Model;
+		_chunkBuffers = buildResult.Buffers;
 	}
 
 	public static PieceTreeBuffer FromChunks(IEnumerable<string> chunks)
 	{
 		ArgumentNullException.ThrowIfNull(chunks);
-		var builder = new StringBuilder();
-		foreach (var chunk in chunks)
-		{
-			builder.Append(chunk);
-		}
-
-		return new PieceTreeBuffer(builder.ToString());
+		var buildResult = PieceTreeBuilder.BuildFromChunks(chunks);
+		return new PieceTreeBuffer(buildResult);
 	}
 
-	public int Length => _builder.Length;
+	public int Length => _model.TotalLength;
 
-	public string GetText() => _builder.ToString();
+	public string GetText()
+	{
+		if (_model.IsEmpty)
+		{
+			return string.Empty;
+		}
+
+		var builder = new StringBuilder(_model.TotalLength);
+		foreach (var piece in _model.EnumeratePiecesInOrder())
+		{
+			var buffer = _chunkBuffers[piece.BufferIndex];
+			builder.Append(buffer.Slice(piece.Start, piece.End));
+		}
+
+		return builder.ToString();
+	}
 
 	public void ApplyEdit(int start, int length, string? text)
 	{
-		if (start < 0 || start > _builder.Length)
+		var bufferLength = Length;
+		if ((uint)start > (uint)bufferLength)
 		{
 			throw new ArgumentOutOfRangeException(nameof(start));
 		}
 
-		if (length < 0 || start + length > _builder.Length)
+		if (length < 0 || start + length > bufferLength)
 		{
 			throw new ArgumentOutOfRangeException(nameof(length));
 		}
 
-		_builder.Remove(start, length);
-		if (!string.IsNullOrEmpty(text))
+		var current = GetText();
+		var replacement = text ?? string.Empty;
+		var builder = new StringBuilder(current.Length - length + replacement.Length);
+		builder.Append(current.AsSpan(0, start));
+		builder.Append(replacement);
+		var tailIndex = start + length;
+		if (tailIndex < current.Length)
 		{
-			_builder.Insert(start, text);
+			builder.Append(current.AsSpan(tailIndex));
 		}
+
+		// TODO(PT-004): Replace rebuild-per-edit with incremental PieceTree updates once change buffers are wired.
+		RebuildFromChunks(new[] { builder.ToString() });
+	}
+
+	private void RebuildFromChunks(IEnumerable<string> chunks)
+	{
+		var buildResult = PieceTreeBuilder.BuildFromChunks(chunks);
+		_model = buildResult.Model;
+		_chunkBuffers = buildResult.Buffers;
 	}
 }

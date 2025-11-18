@@ -27,7 +27,7 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-19（OI-004 layering + changefeed adoption sweep kickoff）
+- **Last Update:** 2025-11-19（PT-006 migration log wiring）
 - **Recent Actions:**
   - 2025-11-19：完成 OI-004 Task Board 压缩与分层，添加 changefeed reminder、Key Artifact/Latest Update 引用层，并标记后续需同步 Sprint 状态。
   - 2025-11-19：完成 OI-001 文档正交性稽核，产出 `docs/reports/consistency/consistency-report-20251119.md` 并记录 Info-Indexer changefeed 消费点（AGENTS / Sprints / Meetings / Task Board）。
@@ -35,15 +35,15 @@
   - 2025-11-19：完成 DocMaintainer onboarding 巡检（AGENTS、Playbook、Main Loop、会议纪要、Sprint、Task Board、Index Catalog），整理 Doc↔Info 协作要点。
   - 2025-11-19：协助整理 AI Team Playbook、模板。
   - 2025-11-19：在 Org Self-Improvement 会议中提交 DocMaintainer 声明，锁定 PT-006 迁移日志模板、OI-001 正交性稽核产物、OI-004 Task Board 分层策略，并明确对 Info-Indexer/Planner 的交付期待。
+  - 2025-11-19：执行 PT-006（Migration Log & changefeed wiring），落地 `docs/reports/migration-log.md` 表格、更新 `docs/reports/consistency/consistency-report-20251119.md`、`AGENTS.md`、`docs/sprints/sprint-00.md`、`agent-team/task-board.md`，为状态编辑者植入“先查 migration log + changefeed”提醒。
 
 ## Upcoming Goals (1-3 runSubAgent calls)
-1. **Changefeed Adoption Sweep (1 call)**：把 Info-Indexer changefeed reminder 嵌入 `AGENTS.md`、`docs/sprints/sprint-org-self-improvement.md`、`docs/meetings/*`，并在每份文档的“更新记录/引用”区指回 `agent-team/indexes/README.md#delta-2025-11-19`。
-2. **PT-006 – Migration Log Flow (1 call)**：落地 `docs/migration-log.md` + QA 引用字段，并更新主循环 checklist，确保每次 TS→C# 迁移都有日志与验证链接。
+1. **Changefeed Adoption Sweep (0.5 call)**：继续把 Info-Indexer/migration log 提醒扩展到 `docs/sprints/sprint-org-self-improvement.md` 与 2025-11-19 会议纪要，统一状态更新协议。
+2. **Migration Log Automation (0.5 call)**：与 Info-Indexer/Planner 对齐 runSubAgent checklist，让新 PT/OI 记录自动生成 migration log + changefeed 链接模版。
 3. **QA/Test Assets Index Assist (0.5 call)**：与 Info-Indexer 协同新增 QA/Test 资产索引（OI backlog），验证引用最小化并在 Task Board “Latest Update” 列挂钩。
 
 ## Blocking Issues
-- Planner / Main Agent 需确认 Changefeed Adoption Sweep 与 PT-006 的 runSubAgent 排期，避免与 PieceTree 迁移冲突。
-- 迁移日志模板仍等待字段批准（任务 ID、影响文件、验证方式），PT-006 无法开工。
+- Planner / Main Agent 需确认 Changefeed Adoption Sweep 剩余文档（Sprint-org、Meetings）的 runSubAgent 排期，避免与 PieceTree 迁移冲突。
 - QA/Test 资产索引尚未立项，需 Info-Indexer 提供初稿以便 DocMaintainer 校验引用策略。
 - 需要持续收到 Info-Indexer changefeed delta（增删/压缩）记录，才可在 Task Board “Latest Update” 列保持单一事实来源。
 
@@ -53,6 +53,6 @@
 3. 下一位接手者需检查 `docs/meetings` & `docs/sprints` 是否最新，并在必要时安排 Info Proxy / Doc Gardener 任务。
 
 ## Logging & Artifact Plan
-- **Migration Log**：集中于 `docs/migration-log.md`（PT-006 交付后启用），每条记录包含日期、任务 ID、TS↔C# 差异、验证结果。
+- **Migration Log**：集中于 `docs/reports/migration-log.md`（PT-006 交付后启用），每条记录包含日期、任务 ID、TS↔C# 差异、验证结果。
 - **Consistency Reports**：归档在 `docs/reports/consistency/consistency-report-YYYYMMDD.md`（新建目录），记录 Task Board / Sprint / AGENTS 巡检结论。
 - **Compression Logs**：放置于 `agent-team/doc-gardener/logs/compression-YYYYMMDD.md`，列出被精简内容、替代索引与 Info-Indexer 交接备忘。
