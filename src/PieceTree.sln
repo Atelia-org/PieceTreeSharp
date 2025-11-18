@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer", "PieceTree.TextBuffer\PieceTree.TextBuffer.csproj", "{7987828C-7512-4D81-9EC2-D12929CECDC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer.Tests", "PieceTree.TextBuffer.Tests\PieceTree.TextBuffer.Tests.csproj", "{98497BC5-B65B-443E-99E4-7BA9FBAFA631}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7987828C-7512-4D81-9EC2-D12929CECDC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7987828C-7512-4D81-9EC2-D12929CECDC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7987828C-7512-4D81-9EC2-D12929CECDC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7987828C-7512-4D81-9EC2-D12929CECDC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98497BC5-B65B-443E-99E4-7BA9FBAFA631}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98497BC5-B65B-443E-99E4-7BA9FBAFA631}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98497BC5-B65B-443E-99E4-7BA9FBAFA631}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98497BC5-B65B-443E-99E4-7BA9FBAFA631}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

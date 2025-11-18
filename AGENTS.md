@@ -12,3 +12,11 @@
 **总体目标**是将位于“./ts”目录内的VS Code的无GUI编辑器核心移植为C#类库(dotnet 9.0 + xUnit)。核心目标是“./ts/src/vs/editor/common/model/pieceTreeTextBuffer”, 如果移植顺利后续可以围绕pieceTreeTextBuffer再移植diff/edit/cursor等其他部分。
 
 **用途背景**是为工作在Agent系统中的LLM创建一种DocUI，类似TUI但是不是渲染到2D终端而是渲染为Markdown文本，UI元素被渲染为Markdown元素。渲染出的Markdown会被通过上下文工程注入LLM Context中。可以想象为“把LLM Context作为向LLM展示信息的屏幕”。这需要高质量的Text建模、编辑、比较、查找、装饰功能。举例说明这里“装饰”的含义，例如我们要创建一个TextBox Widget来向LLM呈现可编辑文本，把原始文本和虚拟行号渲染为Markdown代码围栏，把光标/选区这些overlay元素渲染为插入文本中的Mark，并在代码围栏外用图例注解插入的光标/选区起点/终点Mark。像这些虚拟行号、光标/选区Mark，就是前面所说的“装饰”。后续有望用这条DocUI为LLM Agent打造更加LLM Native & Friendly的编程IDE。
+
+## 最新进展
+- 2025-11-19：已评估 PieceTree 移植可行性并在 `src/` 下创建 `PieceTree.sln`、`PieceTree.TextBuffer` 与 xUnit 测试骨架，提供最小 `PieceTreeBuffer` 占位实现及 README，等待从 TypeScript 逐步迁移核心逻辑。
+- 2025-11-19：确认通过 `runSubAgent` 组建 AI Team 的协作模式——主 Agent 负责调度与消息转发，SubAgent 以 `agent-team/` 下的记忆文件维持认知，必要时共享聊天室文件实现“会议”。
+- 2025-11-19：建立 AI Team 运作设施：`agent-team/ai-team-playbook.md`、SubAgent 记忆模板、任务看板、TS↔C# 类型映射草稿，以及 `docs/meetings` / `docs/sprints` 模板，便于按 `runSubAgent` 粒度规划执行。
+- 2025-11-19：构建首批 SubAgent 角色（Planner、Investigator-TS、Porter-CS、QA-Automation、DocMaintainer），创建各自记忆文件、任务分配、Kickoff 会议纪要与 Sprint-00 计划。
+- 2025-11-19：整理主 Agent 主循环与 SubAgent 协作方法论，形成 `agent-team/main-loop-methodology.md`，确保后续按固定迭代流程推进。
+- 2025-11-19：在主循环中引入 DocMaintainer 三项职责（Info Proxy、Consistency Gate、Doc Gardener），更新 `agent-team/members/doc-maintainer.md` 以指导文档治理。
