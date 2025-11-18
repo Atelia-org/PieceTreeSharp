@@ -23,11 +23,13 @@
 ## Worklog
 - **2025-11-19:** 角色创建（DocMaintainer 建议下设立 Info-Indexer，等待投入）。
 - **2025-11-19:** 完成首轮文档审阅，锁定 OI-001/OI-002 依赖，起草索引交付结构并更新记忆文件。
+- **2025-11-19:** 在 Org Self-Improvement 会议中提交 Info-Indexer 立场，承诺 `core-docs-index.md` v0、QA 资产表与 delta 摘要流程，准备在 48 小时内交付首批索引。
+- **2025-11-19:** 交付 `agent-team/indexes/core-docs-index.md` v0，登记 8 个核心文档的目的/owner/更新时间，并更新 `agent-team/indexes/README.md` Delta 区供 DocMaintainer 在 OI-001 中引用。
 
 ## Upcoming Goals (runSubAgent scoped)
-1. **OI-002 / Core Docs Index:** 单次 runSubAgent 生成 `agent-team/indexes/core-docs-index.md` v0，涵盖文档职责、更新时间与指针。
-2. **OI-001 / 正交性审计支持:** 与 DocMaintainer 联合梳理重复/缺口列表，并在索引中记下需要压缩或补写的区域。
-3. **QA/Test Assets Index Draft:** 与 QA-Automation 对齐测试矩阵结构，产出 `qa-test-assets-index.md` 框架，便于后续 runSubAgent 扩充。
+1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
+2. **QA/Test Assets Index Draft:** 在 QA-Automation 提供资产清单后，生成 `qa-test-assets-index.md` 首张表（接口、文件、负责人、复核节奏），供 QA 直接引用。
+3. **OI-003 / Indexing Hooks Snippet:** 与 Planner 协作，将索引引用段落纳入 runSubAgent 输入模板，减少每次调用的路径说明成本。
 
 ## Blocking Issues
 - 需 DocMaintainer 提供 OI-001 审计输入（最新的重复/缺口列表）以便索引记录行动项。

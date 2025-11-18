@@ -23,14 +23,15 @@
 ## Worklog
 - **Last Update:** 2025-11-19
 - **Recent Actions (2025-11-19):**
-  - 阅读 AGENTS 时间线与 Sprint-00 / Sprint OI-01，梳理 PieceTree 与 OI 双轨目标。
-  - 对齐两份会议纪要，锁定 Planner 负责的 PT-003、OI-003、Task Board 同步职责。
-  - 标记需与 DocMaintainer、Info-Indexer 协作的交付物（OI-001 输出、Task Board 精简输入）。
+  - 落地 OI-003：在 `agent-team/main-loop-methodology.md` 新增 `runSubAgent Input Template`，引入 ContextSeeds/Objectives/Dependencies/... 结构并强调 changefeed 钩子。
+  - 更新 `agent-team/ai-team-playbook.md`，让 Core Artifacts + Workflow 显式引用模板与 `agent-team/indexes/README.md#delta-20251119` checkpoint。
+  - 调整 `agent-team/templates/subagent-memory-template.md`，要求 SubAgent 在 Knowledge Index / Worklog 记录消费或产出的 changefeed 与索引引用。
+  - 复核 Sprint OI-01 与审计要求，确认 Planner 记忆已捕捉新模板依赖与 Info-Indexer handoff。
 
 ## Upcoming Goals (runSubAgent-sized)
-1. **OI-003 – runSubAgent 模板刷新：** 在 `agent-team/main-loop-methodology.md` 写入标准输入片段 + checklist 更新，并邀请 DocMaintainer复核。
-2. **PT-003 – Sprint 对齐：** 等待 Investigator-TS 的类型映射扩展后，将差异同步到 `docs/sprints/sprint-00.md` 与 `agent-team/task-board.md`。
-3. **OI-001/OI-004 接口：** 与 DocMaintainer / Info-Indexer 联动，把文档审计结果和 Task Board 精简策略转换为 Planner 可执行的 backlog 调整方案。
+1. **OI-003 – Adoption Pass:** 验证各 SubAgent 在下一轮调用中使用新模板并标记 changefeed checkpoint；收集反馈准备后续迭代。
+2. **OI-001/OI-004 接口落地：** 与 DocMaintainer、Info-Indexer 共建“索引输入 -> Task Board 精简”流水线，确保审计结果能直接转化为 backlog 调整提案。
+3. **PT-003 – Sprint 对齐：** 等待 Investigator-TS 的类型映射扩展后，更新 `docs/sprints/sprint-00.md` 与 `agent-team/task-board.md` 的依赖、预算与节奏。
 
 ## Blocking Issues
 - 仍需 Investigator-TS 汇总 PieceTree 类型映射/依赖输出，方能重新评估 PT-004 时间表与 runSubAgent 预算。

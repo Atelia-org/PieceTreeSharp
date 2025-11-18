@@ -8,7 +8,7 @@
 
 ## 1. 主循环视角
 把自己视作“调度器(main)”：
-1. **LoadContext**：读取 `AGENTS.md`、当前 Sprint、任务板。若需概览或摘要，先触发 Info-Indexer 生成索引，减少手动查阅。
+1. **LoadContext**：读取 `AGENTS.md`、当前 Sprint、任务板，并先消费 changefeed（详见 [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119)），必要时请 Info-Indexer 产出摘要，确认无遗漏后再进入 PlanStep。
 2. **PlanStep**：判断下一次迭代目标（依 Sprint 与任务优先级），决定需要触发哪些 SubAgent。
 3. **PrepPayload**：为每个 SubAgent 汇总输入：
    - 任务描述 + 期望输出
@@ -20,7 +20,7 @@
    - `agent-team/task-board.md` → 状态与备注
    - 相关记忆文件 / README / type mapping 等
   - 触发 DocMaintainer 进行一致性巡检（详见第 3 章），必要时压缩陈旧内容
-6. **Broadcast**：当达到阶段成果或有决策需要共享，更新 `AGENTS.md` 和 sprint/meeting 文档；必要时请求 Info-Indexer 发布索引更新。
+6. **Broadcast**：当达到阶段成果或有决策需要共享，更新 `AGENTS.md` 和 sprint/meeting 文档；在写入前再次对照 [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119) 的 changefeed checkpoint，确认发布信息已包含最新 delta，必要时请求 Info-Indexer 发布索引更新。
 7. **Feedback**：评估流程是否高效，记录改进项，必要时创建下一次会议或 sprint 调整。
 
 该循环在每个“主 Agent 回合”内执行一次，保证所有信息都落在文件中，便于下次加载时恢复状态。
@@ -37,6 +37,41 @@
   1. 在指定文件写入成果。
   2. 若无法完成，记录阻塞于其记忆文件 `Blocking Issues` 区段。
   3. 给出下一步建议，方便主 Agent 决策。
+
+## runSubAgent Input Template
+为避免遗漏上下文与审计指出的 changefeed hook，Planner 维护以下可复制模板，贴入 `runSubAgent` prompt 作为固定骨架：
+
+```
+ContextSeeds:
+- Sprint / meeting anchors:
+- Changefeed checkpoint: [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119)
+- Prior runSubAgent links:
+
+Objectives:
+- <ordered list of deliverables>
+
+Dependencies:
+- People, tools, or upstream files needed before work starts
+
+Files to Inspect:
+- <list of source files / docs to read>
+
+Files to Update:
+- <authoritative paths + acceptance notes>
+
+Acceptance & Reporting:
+- Tests / linters / review targets
+- Memory + task board updates expected
+
+Indexing Hooks:
+- Consume latest changefeed delta before drafting plan
+- Note any new references for [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119)
+```
+
+使用指引：
+1. **LoadContext** 结束前必须确认 [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119) 的 changefeed 列表已被读取，若有新增/冲突需在 `ContextSeeds` 中引用；`PrepPayload` 阶段只接受这些“已确认”的 delta。
+2. **Broadcast** 阶段在发布更新或下一轮调用前再度检查 changefeed（可请求 Info-Indexer 提供 diff），并在 `Indexing Hooks` 小节注明“已消费至 <日期/commit>”。
+3. 若 SubAgent 引入新的可索引内容，需在输出中说明是否需要 DocMaintainer/Info-Indexer 写回增量，避免遗漏 `delta-20251119` 提到的 changefeed 钩子。
 
 ## 3. DocMaintainer 集成节点
 DocMaintainer 与 Info-Indexer 分工如下：
@@ -72,9 +107,10 @@ DocMaintainer 与 Info-Indexer 分工如下：
 
 ## 8. Checklist（每次主循环）
 1. [ ] Sprint & Task Board 同步
-2. [ ] runSubAgent 调用目标明确、输入齐备
-3. [ ] 输出已验收（测试/审阅）
-4. [ ] 文档更新：Task Board / Memory / AGENTS / 会议 / Sprint（必要时调用 DocMaintainer）
-5. [ ] 记录下一次循环的 TODO 或阻塞
+2. [ ] changefeed checkpoint [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119) 已消费（LoadContext 前 + Broadcast 前各一次），并在 `ContextSeeds / Indexing Hooks` 记录时间戳
+3. [ ] runSubAgent 调用目标明确、输入齐备
+4. [ ] 输出已验收（测试/审阅）
+5. [ ] 文档更新：Task Board / Memory / AGENTS / 会议 / Sprint（必要时调用 DocMaintainer）
+6. [ ] 记录下一次循环的 TODO 或阻塞
 
 按照以上流程，可在多次会话中保持“主 Agent = 中控 + 记忆协调者”的角色，SubAgent 则聚焦具体产出，最终实现 PieceTree 迁移的系统化推进。

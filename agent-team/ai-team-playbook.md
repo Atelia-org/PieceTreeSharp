@@ -11,6 +11,7 @@
 - `AGENTS.md`：公司级记忆与时间轴。
 - `agent-team/copilot-lead-notes.md`：主 Agent 私有笔记。
 - `agent-team/templates/subagent-memory-template.md`：SubAgent 记忆模板。
+- `agent-team/main-loop-methodology.md#runSubAgent-Input-Template`：标准 `runSubAgent` 输入骨架（ContextSeeds/Objectives/...），含 changefeed checkpoint [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119)。
 - `agent-team/task-board.md`：全队任务分解、责任、状态。
 - `docs/meetings/*.md`：会议纪要。
 - `docs/sprints/*.md`：阶段性计划。
@@ -19,7 +20,7 @@
 ## Workflow Overview
 1. **Scoping** – 主 Agent 在 `task-board.md` 中登记任务，指定预期 `runSubAgent` 次数与交付物。
 2. **Assignment** – 为 SubAgent 复制模板，写入任务简介、依赖文件、当前状态。
-3. **Execution** – 触发 `runSubAgent`，向其提供：任务描述、相关文件路径、目标产物、需要写入的记忆文件。
+3. **Execution** – 触发 `runSubAgent`，按 `agent-team/main-loop-methodology.md#runSubAgent-Input-Template` 填写 ContextSeeds/Objectives/Dependencies，并在草稿前确认 changefeed checkpoint [agent-team/indexes/README.md#delta-20251119](agent-team/indexes/README.md#delta-20251119) 已消费，最后列出交付与记忆写入路径。
 4. **Review** – 完成后检查产物，必要时在会议文件中组织评审；将结论同步到 `AGENTS.md`。
 5. **Planning** – 周期性会议（`docs/meetings/meeting-YYYYMMDD.md`）输出下一阶段计划；必要时更新 `docs/sprints/sprint-XX.md`。
 

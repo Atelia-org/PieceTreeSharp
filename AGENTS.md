@@ -22,3 +22,4 @@
 - 2025-11-19：在主循环中引入 DocMaintainer 三项职责（Info Proxy、Consistency Gate、Doc Gardener），更新 `agent-team/members/doc-maintainer.md` 以指导文档治理。
 - 2025-11-19：召开“Org Self-Improvement”全员会议（`docs/meetings/meeting-20251119-org-self-improvement.md`），决定新增 Info-Indexer 角色、建立索引目录并启动组织自我完善 Sprint。
 - 2025-11-19：创建 Info-Indexer 记忆文件、`agent-team/indexes/README.md`、`docs/sprints/sprint-org-self-improvement.md`，在任务板加入 OI 系列任务并更新主循环文档以包含索引钩子。
+- 2025-11-19：完成 OI-002/OI-001/OI-003/OI-004，分别交付 `agent-team/indexes/core-docs-index.md`、`docs/reports/consistency/consistency-report-20251119.md`、runSubAgent 提示模板（主循环/Playbook/记忆模板）以及分层版 `agent-team/task-board.md`，全面引入 Info-Indexer changefeed 提醒。

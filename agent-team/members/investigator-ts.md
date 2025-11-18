@@ -30,6 +30,7 @@
 ## Worklog
 - **Last Update:** 2025-11-19
 - **Recent Actions:**
+  - 2025-11-19: 在 `docs/meetings/meeting-20251119-org-self-improvement.md` 提交 Investigator-TS 陈述，记录 PieceTree 覆盖现状、blind spots、协作需求与文档治理建议。
   - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
   - 列出 PieceTree 及其依赖 TS 文件的研读顺序，标记与类型映射、索引输出的映射关系。
   - 明确将成果写回 `type-mapping.md` 与未来索引文件，便于 Planner 跟踪 PT/OI 交付。
@@ -37,10 +38,12 @@
   1. PT-003.A：深入 `pieceTreeBase.ts` 段落，输出节点字段/不变量总结并更新 `agent-team/type-mapping.md`。
   2. PT-003.B：解析 `rbTreeBase.ts` 旋转/重平衡流程，附 C# 端约束笔记，写回 `type-mapping.md`。
   3. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，罗列 PieceTree→Core 依赖和推荐阅读顺序。
+  4. PT-003.C：补齐 `textModelSearch.ts` 与 `pieceTreeTextBufferBuilder.ts` 的调用链/字段映射，确认哪些接口需要在 Sprint 00 内反映给 Porter-CS。
 
 ## Blocking Issues
 - 需要 Planner 明确 PT-003 与 OI-002 工时的优先顺序，避免同一 runSubAgent 同时覆盖两条任务。
 - 等待 Info-Indexer 提供索引文件命名/结构约束，以确保 Investigator 输出与目录约定一致。
+- 需要 Porter-CS 确认 C# RBTree 公共 API（插入/删除、snapshot rebuild、search hook），好在类型映射文件中提前标注依赖。
 
 ## Hand-off Checklist
 1. 研究笔记写入 `agent-team/members/investigator-ts.md`。

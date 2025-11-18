@@ -8,13 +8,13 @@
   - Task Board 精简策略实施，DocMaintainer/Info-Indexer 分工落地
 
 ## Backlog Snapshot
-| Priority | Task | Description | runSubAgent Budget | Owner |
-| --- | --- | --- | --- | --- |
-| P0 | OI-001 | 核查文档正交性与缺口 | 1 | DocMaintainer + Info-Indexer |
-| P0 | OI-002 | 建立索引目录与首个索引 | 1 | Info-Indexer |
-| P1 | OI-003 | 模板化 runSubAgent 输入 & 流程 | 1 | Planner |
-| P1 | OI-004 | Task Board 精简与分层方案 | 1 | DocMaintainer |
-| P2 | OI-005 | 更新主循环 & Checklist，加入 Info-Indexer 钩子 | 1 | Main Agent |
+| Priority | Task | Description | runSubAgent Budget | Owner | Status |
+| --- | --- | --- | --- | --- | --- |
+| P0 | OI-001 | 核查文档正交性与缺口 | 1 | DocMaintainer + Info-Indexer | Done (2025-11-19) |
+| P0 | OI-002 | 建立索引目录与首个索引 | 1 | Info-Indexer | Done (2025-11-19) |
+| P1 | OI-003 | 模板化 runSubAgent 输入 & 流程 | 1 | Planner | Done (2025-11-19) |
+| P1 | OI-004 | Task Board 精简与分层方案 | 1 | DocMaintainer | Planned |
+| P2 | OI-005 | 更新主循环 & Checklist，加入 Info-Indexer 钩子 | 1 | Main Agent | Done (2025-11-19) |
 
 ## Plan
 ### Milestone A – 审计与索引 (Day 1-2)

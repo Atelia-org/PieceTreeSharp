@@ -27,20 +27,25 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-19
+- **Last Update:** 2025-11-19（OI-004 layering + changefeed adoption sweep kickoff）
 - **Recent Actions:**
+  - 2025-11-19：完成 OI-004 Task Board 压缩与分层，添加 changefeed reminder、Key Artifact/Latest Update 引用层，并标记后续需同步 Sprint 状态。
+  - 2025-11-19：完成 OI-001 文档正交性稽核，产出 `docs/reports/consistency/consistency-report-20251119.md` 并记录 Info-Indexer changefeed 消费点（AGENTS / Sprints / Meetings / Task Board）。
+  - 2025-11-19：启动 changefeed adoption sweep，先复核 Info-Indexer `core-docs-index.md` 与 `agent-team/indexes/README.md` 的 delta，准备在 AGENTS / Sprint / Meeting 文档嵌入引用提示。
   - 2025-11-19：完成 DocMaintainer onboarding 巡检（AGENTS、Playbook、Main Loop、会议纪要、Sprint、Task Board、Index Catalog），整理 Doc↔Info 协作要点。
   - 2025-11-19：协助整理 AI Team Playbook、模板。
+  - 2025-11-19：在 Org Self-Improvement 会议中提交 DocMaintainer 声明，锁定 PT-006 迁移日志模板、OI-001 正交性稽核产物、OI-004 Task Board 分层策略，并明确对 Info-Indexer/Planner 的交付期待。
 
 ## Upcoming Goals (1-3 runSubAgent calls)
-1. **PT-006 – Migration Log Flow (1 call)**：创建 `docs/migration-log.md` 与更新 checklist，协调 Planner 把“TS→C# 变更必留痕”写入验收。
-2. **OI-001 – Core Docs Audit (1 call)**：联动 Info-Indexer 巡检 AGENTS / Sprint / Meeting / Index Catalog，输出重复与缺口行动列表。
-3. **OI-004 – Task Board Compression (1 call)**：设计“核心进展 vs backlog”分层，并将长尾细节外链至索引文件。
+1. **Changefeed Adoption Sweep (1 call)**：把 Info-Indexer changefeed reminder 嵌入 `AGENTS.md`、`docs/sprints/sprint-org-self-improvement.md`、`docs/meetings/*`，并在每份文档的“更新记录/引用”区指回 `agent-team/indexes/README.md#delta-2025-11-19`。
+2. **PT-006 – Migration Log Flow (1 call)**：落地 `docs/migration-log.md` + QA 引用字段，并更新主循环 checklist，确保每次 TS→C# 迁移都有日志与验证链接。
+3. **QA/Test Assets Index Assist (0.5 call)**：与 Info-Indexer 协同新增 QA/Test 资产索引（OI backlog），验证引用最小化并在 Task Board “Latest Update” 列挂钩。
 
 ## Blocking Issues
-- Info-Indexer 需先交付首个 `core-docs-index.md`，OI-001 才能引用统一视图。
-- Planner / Main Agent 尚未确认 PT-006 与 OI-004 的 runSubAgent 排期，需避免与开发关键路径冲突。
-- 迁移日志模板等待 Main Agent 批准字段（任务 ID、影响文件、验证方式）。
+- Planner / Main Agent 需确认 Changefeed Adoption Sweep 与 PT-006 的 runSubAgent 排期，避免与 PieceTree 迁移冲突。
+- 迁移日志模板仍等待字段批准（任务 ID、影响文件、验证方式），PT-006 无法开工。
+- QA/Test 资产索引尚未立项，需 Info-Indexer 提供初稿以便 DocMaintainer 校验引用策略。
+- 需要持续收到 Info-Indexer changefeed delta（增删/压缩）记录，才可在 Task Board “Latest Update” 列保持单一事实来源。
 
 ## Hand-off Checklist
 1. 文档更新遵循模板并标注日期作者。

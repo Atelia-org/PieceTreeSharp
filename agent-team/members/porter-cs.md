@@ -24,15 +24,20 @@
   - 完成首轮 Onboarding，熟悉 AI Team 运作方式、Sprint 目标与 PT-004 期待成果。
   - 审核当前 C# 骨架，确认 `PieceTreeBuffer` 仍为占位，需从 Core 目录启动红黑树实现。
   - 记录代码/测试日志归档位置（`src/PieceTree.TextBuffer/README.md`）。
+- **2025-11-19 – Org Self-Improvement Mtg**
+  - 评估 C# 端缺口（仅余 `ChunkBuffer`/`PieceSegment` + `StringBuilder` 缓冲），确认 PT-004 首阶段需先落 `PieceTreeNode`/sentinel/Tree 容器。
+  - 与 Planner/Investigator/QA/DocMaintainer 对齐依赖：获取 Builder/Search/PrefixSum 类型映射、runSubAgent 模板拆分、QA 属性测试入口及 Porting Log 写入约定。
+  - 承诺交付 Core README + TreeDebug 钩子帮助 QA 复核不变量，并把结构性变更写入 Porting Log。
 
 - **Upcoming Goals (runSubAgent 粒度):**
-  1. 实现 `PieceTreeNode` 结构、颜色/父子链接与基础 Piece 容器（PT-004/Pass-1）。
-  2. 编写插入/删除旋转与 FixUp 框架，链接 `PieceTreeBuffer` 外观方法（PT-004/Pass-2）。
-  3. 移植基础只读查询 API（长度、行列转换），并附最小 xUnit 断言（后续任务）。
+  1. **PT-004.G1**：完成 `Core/PieceTreeNode`、sentinel、`PieceTree` 管理器与 `TreeDebug` 断言工具，为 Investigator 新字段映射预留钩子。
+  2. **PT-004.G2**：将 `PieceTreeBuffer.ApplyEdit/FromChunks` 接上树容器并草拟 `EnumeratePieces`/`LocateLineByOffset` API，便于 QA-Automation 固定测试矩阵输入。
+  3. **OI-SUPPORT.G1**：更新 `src/PieceTree.TextBuffer/README.md` Porting Log + 新建 `Core/README.md`，记录每次树操作移植、引用 `type-mapping.md` 章节供 DocMaintainer 编织索引。
 
 ## Blocking Issues
-- 等待 Investigator-TS 在 `agent-team/type-mapping.md` 中补充 Piece metadata 更新规则与 TS 枚举对应关系。
-- 树平衡策略仍需明确是否完全复刻 TS 逻辑或可适度 C# 化，需 Main Agent 决策。
+- 仍需 Investigator-TS 在 `agent-team/type-mapping.md` 中补充 `pieceTreeTextBufferBuilder.ts` / `textModelSearch.ts` / `prefixSumComputer.ts` 字段与缓存语义，避免盲目迁移。
+- QA-Automation 尚未锁定属性测试/基准入口，需其在 PT-005 定稿后提供最小断言集合以验证我们暴露的 API。
+- DocMaintainer 的迁移日志模板（PT-006）与 Main Agent 的“是否 1:1 复刻 TS 红黑树” 决策待定，此前实现需保持开关便于回滚配置。
 
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。

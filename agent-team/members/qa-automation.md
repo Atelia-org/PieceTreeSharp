@@ -22,15 +22,17 @@
 
 ## Worklog
 - **2025-11-19:** 完成入职材料审阅、评估现有 xUnit 骨架、确认 PT-005/OI-005 对 QA 的期望输出与文档落点。
+- **2025-11-19:** 参加 Org Self-Improvement 会议，通报测试矩阵/属性测试缺口，确认对 Porter-CS API、Investigator-TS 类型映射与 Info-Indexer 索引结构的依赖，并提出 QA 产物索引化方案。
 
 - **Upcoming Goals (1-3 runSubAgent calls):**
 1. **PT-005.G1**：生成 `TestMatrix.md`（覆盖 Piece/Insert/Delete/Undo/Decoration）并校验与 Planner 的 Sprint-00 验收一致。
-2. **PT-005.G2**：提交 FsCheck 驱动的属性测试提案（含 API 依赖、样例伪代码、落地步骤）。
-3. **OI-SUPPORT.G1**：定义 QA 结果写入 Convention（索引引用 + 产物路径），确保 Task Board 压缩后仍可定位测试资产。
+2. **PT-005.G2**：提交 FsCheck 驱动的属性测试提案（含 API 依赖、样例伪代码、落地步骤），等待 Porter-CS 暴露 `ApplyEdit`/`EnumeratePieces` 草稿接口即可启动。
+3. **OI-SUPPORT.G1**：与 Info-Indexer 对齐 QA 资产索引写入 Convention（索引引用 + 产物路径），确保 Task Board 精简后仍可定位测试与基准文件。
 
 ## Blocking Issues
-- Porter-CS 需明确 PieceTreeBuffer API 稳定面（批量编辑、片段导出）以便属性测试生成器固定接口。
-- Info-Indexer 待交付索引模板，才能将 QA 资产挂载至 org 索引，暂以本记忆文件记录位置。
+- Porter-CS 需明确 PieceTreeBuffer API 稳定面（批量编辑、片段导出、Snapshot/EnumeratePieces）以便属性测试生成器固定断言钩子。
+- Investigator-TS 需要在类型映射中标注 C# 侧必须保持的缓存字段（line count、accumulated length等），否则 QA 无法制定属性断言。
+- Info-Indexer 待交付索引模板与 QA section 占位，才能将 QA 资产挂载至 org 索引，暂以本记忆文件记录位置。
 
 ## Recording Notes
 - QA 测试矩阵放置于 `src/PieceTree.TextBuffer.Tests/TestMatrix.md`（运行日志亦附表）。

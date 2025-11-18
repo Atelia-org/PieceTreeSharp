@@ -10,12 +10,13 @@
 | --- | --- | --- |
 | Piece Tree Core | ts/src/vs/editor/common/model/pieceTreeTextBuffer | <how to load> |
 | C# Port | src/PieceTree.TextBuffer | <status> |
+| Changefeed / Index Hooks | agent-team/indexes/README.md#delta-20251119 | <what was consumed or published> |
 
-_Add or remove rows as needed._
+_Add or remove rows as needed; document any changefeed or index references (link + status) here._
 
 ## Worklog
 - **Last Update:** <YYYY-MM-DD>
-- **Recent Actions:** <bullet list>
+- **Recent Actions:** <bullet list - include consumed/published changefeed or index references>
 - **Upcoming Goals (1-3 runSubAgent calls):** <ordered list>
 
 ## Blocking Issues
