@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Core;
 
@@ -10,47 +9,59 @@ namespace PieceTree.TextBuffer.Core;
 internal sealed class ChunkBuffer
 {
     private readonly string _buffer;
-    private readonly int[] _lineStarts;
+    private readonly LineStartTable _lineStarts;
 
-    private ChunkBuffer(string buffer, int[] lineStarts)
+    private ChunkBuffer(string buffer, LineStartTable lineStarts)
     {
         _buffer = buffer;
         _lineStarts = lineStarts;
     }
 
-    public static ChunkBuffer Empty { get; } = new ChunkBuffer(string.Empty, new[] { 0 });
+    public static ChunkBuffer Empty { get; } = new ChunkBuffer(string.Empty, LineStartTable.Empty);
 
     public string Buffer => _buffer;
 
     public int Length => _buffer.Length;
 
-    public int LineFeedCount => Math.Max(0, _lineStarts.Length - 1);
+    public int LineFeedCount => _lineStarts.LineBreakCount;
 
-    public IReadOnlyList<int> LineStarts => _lineStarts;
+    public int CarriageReturnCount => _lineStarts.CarriageReturnCount;
 
-    public static ChunkBuffer FromText(string? text)
+    public int LineFeedOnlyCount => _lineStarts.LineFeedCount;
+
+    public int CarriageReturnLineFeedCount => _lineStarts.CarriageReturnLineFeedCount;
+
+    public bool IsBasicAscii => _lineStarts.IsBasicAscii;
+
+    public IReadOnlyList<int> LineStarts => _lineStarts.LineStarts;
+
+    public static ChunkBuffer FromText(string? text, bool forceSlowPath = false, bool trackAscii = true)
     {
         text ??= string.Empty;
-        var lineStarts = ComputeLineStarts(text);
+        var lineStarts = LineStartBuilder.Build(text, forceSlowPath, trackAscii);
         return new ChunkBuffer(text, lineStarts);
     }
 
+    internal static ChunkBuffer FromPrecomputed(string text, LineStartTable lineStarts) => new ChunkBuffer(text, lineStarts);
+
     internal BufferCursor CreateEndCursor()
     {
-        var lastLine = _lineStarts.Length - 1;
-        var column = _buffer.Length - _lineStarts[lastLine];
+        var starts = _lineStarts.AsSpan();
+        var lastLine = starts.Length - 1;
+        var column = _buffer.Length - starts[lastLine];
         return new BufferCursor(lastLine, column);
     }
 
     internal int GetOffset(BufferCursor cursor)
     {
-        if ((uint)cursor.Line >= (uint)_lineStarts.Length)
+        var starts = _lineStarts.AsSpan();
+        if ((uint)cursor.Line >= (uint)starts.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(cursor), "Cursor line outside chunk.");
         }
 
-        var lineStart = _lineStarts[cursor.Line];
-        var nextLineStart = cursor.Line + 1 < _lineStarts.Length ? _lineStarts[cursor.Line + 1] : _buffer.Length;
+        var lineStart = starts[cursor.Line];
+        var nextLineStart = cursor.Line + 1 < starts.Length ? starts[cursor.Line + 1] : _buffer.Length;
         var absolute = lineStart + cursor.Column;
         if (cursor.Column < 0 || absolute > nextLineStart)
         {
@@ -77,32 +88,4 @@ internal sealed class ChunkBuffer
         return _buffer.Substring(startOffset, endOffset - startOffset);
     }
 
-    private static int[] ComputeLineStarts(string text)
-    {
-        var starts = new List<int> { 0 };
-        var index = 0;
-        while (index < text.Length)
-        {
-            var ch = text[index];
-            if (ch == '\r')
-            {
-                if (index + 1 < text.Length && text[index + 1] == '\n')
-                {
-                    starts.Add(index + 2);
-                    index += 2;
-                    continue;
-                }
-
-                starts.Add(index + 1);
-            }
-            else if (ch == '\n')
-            {
-                starts.Add(index + 1);
-            }
-
-            index++;
-        }
-
-        return starts.ToArray();
-    }
 }

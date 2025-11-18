@@ -35,6 +35,7 @@
   - 列出 PieceTree 及其依赖 TS 文件的研读顺序，标记与类型映射、索引输出的映射关系。
   - 明确将成果写回 `type-mapping.md` 与未来索引文件，便于 Planner 跟踪 PT/OI 交付。
   - 2025-11-19: 完成 PT-003 mapping pass（PieceSegment、PieceTreeNode、Searcher、BufferRange、helpers），在 `agent-team/type-mapping.md` 写入 invariants/QA hints/TODOs 并附 Diff Summary，标出 WordSeparators→.NET 映射仍待定义以便 Porter/QA 提前知晓。
+  - 2025-11-19: 产出 PieceTree “type skeleton diff brief”，新增 `Line Infrastructure` / `Search Helpers` / `Builder/Normalizer` 三个映射表（见 `agent-team/type-mapping.md`），方便 Porter-CS 锚定缺口（search shim、builder 元数据、snapshot/cache）。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。

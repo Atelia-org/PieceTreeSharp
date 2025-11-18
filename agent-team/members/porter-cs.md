@@ -36,6 +36,11 @@
 - **2025-11-19 – PT-004 literal translation spike**
   - 在 `src/PieceTree.TextBuffer/PortingDrafts/PieceTreeBase.literal.cs.txt` 新建 Literal C# 版本，完成 TypeScript `pieceTreeBase.ts` 开头到搜索逻辑的 1:1 结构移植并标注剩余 TODO，供后续增量补全与 Info-Indexer 建立 PortingDrafts 钩子。
 
+- **2025-11-19 – PT-004 line infra/cache drop**
+  - 按类型映射要求实现 `LineStartTable`/`LineStartBuilder`（`src/PieceTree.TextBuffer/Core/LineStarts.cs`）并让 `ChunkBuffer` 保存 CR/LF/CRLF 计数与 `IsBasicAscii` 标志，PieceTreeBuilder 重用该元数据。
+  - 新增 `PieceTreeSearchCache`（`src/PieceTree.TextBuffer/Core/PieceTreeSearchCache.cs`）及 `PieceTreeModel` 缓存钩子，后续 `nodeAt`/`getLineContent` 可复用缓存且在插入时自动失效。
+  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，7 tests）。
+
 - **Upcoming Goals (runSubAgent 粒度):**
   1. **PT-004.G2-next**：消除重建式编辑，接入 change buffer + PieceTree 原生插入/删除，并补齐 `EnumeratePieces`/`LocateLineByOffset` API 供 QA 复用。
   2. **PT-004.G3**：实现长度/位置互转与 chunk-based slicing 的额外断言，扩充 xUnit 覆盖（CR-only、BOM、跨 chunk ranges）。

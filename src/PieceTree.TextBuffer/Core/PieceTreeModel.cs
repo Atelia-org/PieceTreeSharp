@@ -10,6 +10,7 @@ internal sealed class PieceTreeModel
     public const int ChangeBufferId = 0;
 
     private readonly PieceTreeNode _sentinel = PieceTreeNode.Sentinel;
+    private readonly PieceTreeSearchCache _searchCache = new();
     private PieceTreeNode _root;
     private int _count;
 
@@ -28,8 +29,13 @@ internal sealed class PieceTreeModel
 
     public bool IsEmpty => ReferenceEquals(_root, _sentinel);
 
+    internal PieceTreeSearchCache SearchCache => _searchCache;
+
     public PieceTreeNode InsertPieceAtEnd(PieceSegment piece)
     {
+        var insertionOffset = TotalLength;
+        _searchCache.InvalidateFromOffset(insertionOffset);
+
         var node = new PieceTreeNode(piece);
         node.ResetLinks();
 
@@ -56,6 +62,23 @@ internal sealed class PieceTreeModel
         RecomputeMetadataUpwards(node);
         return node;
     }
+
+    internal bool TryGetCachedNodeByOffset(int offset, out PieceTreeNode node, out int nodeStartOffset)
+    {
+        return _searchCache.TryGetByOffset(offset, out node, out nodeStartOffset);
+    }
+
+    internal bool TryGetCachedNodeByLine(int lineNumber, out PieceTreeNode node, out int nodeStartOffset, out int nodeStartLineNumber)
+    {
+        return _searchCache.TryGetByLine(lineNumber, out node, out nodeStartOffset, out nodeStartLineNumber);
+    }
+
+    internal void RememberNodePosition(PieceTreeNode node, int nodeStartOffset, int? nodeStartLineNumber = null)
+    {
+        _searchCache.Remember(node, nodeStartOffset, nodeStartLineNumber);
+    }
+
+    internal void InvalidateCacheFromOffset(int offset) => _searchCache.InvalidateFromOffset(offset);
 
     public IEnumerable<PieceSegment> EnumeratePiecesInOrder()
     {
