@@ -16,7 +16,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
 **Workflow Skeleton**
 
 1. **Initialize Cycle**
-   - **Load Context**: Read `AGENTS.md`, `agent-team/copilot-lead-notes.md` (CRITICAL for role alignment), `agent-team/type-mapping.md`, `agent-team/task-board.md`, and the latest changefeed at `agent-team/indexes/README.md#delta-2025-11-19`.
+   - **Load Context**: Read `agent-team/copilot-lead-notes.md` (CRITICAL for role alignment), `agent-team/type-mapping.md`, `agent-team/task-board.md`, and the latest changefeed at `agent-team/indexes/README.md#delta-2025-11-19`.
    - **Pick Task**: Read `agent-team/task-board.md` to pick the next `TASK_ID` (e.g., PT-010).
    - **Locate Sources**: If the source files aren't obvious, use `file_search` to find them by name. **DO NOT read their content**.
    - **Define Scope**: Define the specific TS module slice to port (e.g., "Port `getLineContent` optimization").

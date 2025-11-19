@@ -1,25 +1,29 @@
 # Copilot Lead Notes
 
 ## Tooling Understanding
-- `runSubAgent` 可在单次调用内运行完整的 LLM Agent 工具循环，具备和我相同的读写权限，但缺少 `runSubAgent` 与跨轮对话上下文。
-- 可以通过在 `agent-team/` 下创建特定记忆文件，为每位 SubAgent 提供持久化的“入职资料”，帮助其快速加载必要文件索引与工作流约定。
-- 共享对话或会议可通过一个公共的“聊天室文件”实现，由我负责在星形拓扑中转发消息。
+- **DMA (Direct Memory Access) Workflow**: The "Zero-Copy" approach is highly effective.
+  - **Data Plane**: SubAgents write heavy content (Briefs, Diffs, Results) to `agent-team/handoffs/`. I only read these to verify completion, not to load code into my context.
+  - **Control Plane**: I act as the CPU, managing `task-board.md` and triggering `runSubAgent`. My context is kept light (Status, Logs, Plans).
+- `runSubAgent` is a powerful "Accelerator". By giving them a specific role (Investigator/Porter) and a file-based interface, they perform complex tasks autonomously.
+- **Memory Persistence**: `agent-team/members/` works well for role definition. `handoffs/` works well for task-specific context.
 
-## 团队策略
-- 我负责总体调度：划分任务、创建/更新记忆文件、触发 `runSubAgent`、整合成果。
-- SubAgent 角色建议：例如“PieceTree-Mapper”（专注 TypeScript 端梳理）与“PieceTree-Porter”（专注 C# 实现），后续按模块扩展。
-- 每位 SubAgent 需维护：任务简述、关键文件列表、当前阻塞、计划中的下一步，确保随用随取。
-- 统一采用 `agent-team/ai-team-playbook.md` 中的流程，所有新文档应参考对应模板以保证信息密度。
-- Info-Indexer 与 DocMaintainer 形成“索引增量 -> 文档精简”流水，Planner/QA/Porter/Investigator 在会议纪要中只写结论并指向索引/日志，主循环 checklist 需确认两位守门人是否完成巡检。
+## Team Strategy
+- **The "Interrupt" Pattern**: SubAgents write a Result file. I read it. If it's good, I clear the interrupt (update Task Board). If bad, I re-queue the task.
+- **Role Specialization**:
+  - `Investigator-TS`: Reads TS, writes Briefs. No C# coding.
+  - `Porter-CS`: Reads Briefs, writes C#. No TS analysis (relies on Brief).
+  - `QA-Automation`: Verifies the Result against the Brief.
+- **Info-Indexer Loop**: The `migration-log.md` + `indexes/README.md` changefeed is crucial for keeping the "Context Window" of future sessions clean.
 
-## 即刻计划
-1. 调度 OI-001~OI-004：依次触发 DocMaintainer+Info-Indexer（审计/索引）、Planner（模板）、DocMaintainer（Task Board 压缩），每次 runSubAgent 前复核 Task Board 预算与依赖。
-2. 协助 Planner 完成 runSubAgent 输入模板扩展（ContextSeeds/Objectives/Dependencies/Hand-off）并同步到 `main-loop-methodology.md` 与记忆模板。
-3. 监控 Investigator-TS → Porter-CS → QA-Automation 的 PT-003/004/005 依赖链，必要时组织临时会议或在 Task Board 写清阻塞；确保新的实现/测试成果进入 Porting Log、TestMatrix、索引。
-4. 所有会议/任务完成后，第一时间更新 `AGENTS.md` 与个人笔记，保持跨会话记忆同步。
+## Immediate Plans
+1. **Consolidate PT-004/PT-005**: With PT-010 (Normalization) done, the core PieceTree is likely feature-complete for a "v1".
+   - Action: Review `src/PieceTree.TextBuffer` against `PT-004` scope. If `Insert/Delete/Search/Snapshot/Normalize` are present, mark PT-004 Done.
+   - Action: Review `TestMatrix.md` against current 23 tests. If coverage is sufficient for v1, mark PT-005 Done.
+2. **Next Phase Planning**:
+   - Identify what's needed to make this a usable "TextBuffer" for the LLM DocUI.
+   - Likely candidates: `TextModel` (events, version id), `Cursor/Selection` logic (if not part of view), or `Diff` algorithm.
+3. **Maintain Discipline**: Continue using the DMA prompt. Do not fall back to reading code directly unless debugging a stall.
 
-## runSubAgent 会议经验
-- 会前准备：先定位会议记录文件、最新 Sprint/Task Board、所有成员记忆路径，并在 prompt 中显式列出读取/写入文件，避免 SubAgent 忘记同步自己的 memory。
-- Prompt 结构：使用“Context / Goals / Files to inspect / Files to update / Reporting instructions”模板，强调“更新记忆后再汇报”，减少遗漏。
-- 顺序调度：按依赖顺序调用（Planner→Investigator→Porter→QA→DocMaintainer→Info-Indexer），让后续角色能够参考前人发言，保证会议纪要自然串联。
-- 会后收敛：逐一复核会议文件与记忆文件是否落地、Task Board/Sprint 是否需要更新，再写入 `AGENTS.md` 与本笔记，形成可回溯的主持流程。
+## runSubAgent Meeting Experience
+- **File-Based Handoffs**: Passing `handoffs/PT-xxx-Brief.md` to the Porter is much better than pasting text in the prompt.
+- **Explicit "Files to Update"**: Telling SubAgents exactly which file to write prevents them from outputting to the chat (which wastes my tokens).
