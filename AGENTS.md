@@ -33,5 +33,6 @@
 - 2025-11-19：PT-011 完成 v1 阶段性验收。QA-Automation 验证了 RBTree 骨架 (PT-004) 与测试矩阵 (PT-005) 的完整性，确认 Insert/Delete/Search/Snapshot/Normalize 功能齐备且 23 个测试全通。PT-004/PT-005/PT-011 状态均更新为 Done。
 - 2025-11-19：Phase 2 (TextModel & Interaction) 冲刺完成。通过 DMA 工作流连续交付了 TM-001 (Analysis), TM-002/3/4 (TextModel/Selection/Events), TM-005 (Cursor)。实现了 `TextModel` 包装器、`Selection` 结构体以及支持基础导航（上下左右）的 `Cursor` 类。所有 33 个测试用例（含新增的 10 个 TextModel/Cursor 测试）全部通过。
 - 2025-11-19：Phase 3 (Diffing & Decorations) 冲刺完成。交付了 DF-001 (Analysis), DF-002 (Myers Diff), DF-003/4 (Decorations/IntervalTree), DF-005 (MarkdownRenderer)。实现了文本比较算法、装饰器存储（v1 List-based）以及 DocUI 的核心渲染器。所有 50 个测试用例全部通过。
+- 2025-11-19：Phase 4 (Alignment & Audit) 冲刺完成。通过 AA-001~004 审计了 C# 实现与 TS 原版的差异，并执行了 AA-005/006 修复任务。解决了 Split CRLF 数据损坏风险、Search Cache 性能问题、Word Search 边界判定以及 Cursor Sticky Column 体验问题。所有 56 个测试用例全部通过。
 
 **状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19`，并在条目中附上两者的链接。

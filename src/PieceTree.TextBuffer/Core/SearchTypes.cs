@@ -83,11 +83,61 @@ public class SearchParams
              }
         }
 
-        return new SearchData(regex, null, simpleSearch);
+        if (regex == null && simpleSearch != null)
+        {
+             string pattern = Regex.Escape(simpleSearch);
+             RegexOptions options = RegexOptions.None;
+             if (!MatchCase) options |= RegexOptions.IgnoreCase;
+             regex = new Regex(pattern, options | RegexOptions.Compiled);
+        }
+
+        WordCharacterClassifier? classifier = null;
+        if (!string.IsNullOrEmpty(WordSeparators))
+        {
+            classifier = new WordCharacterClassifier();
+        }
+
+        return new SearchData(regex, classifier, simpleSearch);
     }
 }
 
 public class WordCharacterClassifier
 {
-    // Stub
+    public bool IsWordCharacter(char c)
+    {
+        // Simplified: Alphanumeric + Underscore are word characters.
+        // Everything else is a separator.
+        return char.IsLetterOrDigit(c) || c == '_';
+    }
+
+    public bool IsValidMatch(string text, int matchStartIndex, int matchLength)
+    {
+        if (matchLength == 0) return true;
+
+        // Check start boundary
+        if (matchStartIndex > 0)
+        {
+            char charBefore = text[matchStartIndex - 1];
+            char firstChar = text[matchStartIndex];
+
+            if (IsWordCharacter(firstChar) && IsWordCharacter(charBefore))
+            {
+                return false;
+            }
+        }
+
+        // Check end boundary
+        if (matchStartIndex + matchLength < text.Length)
+        {
+            char charAfter = text[matchStartIndex + matchLength];
+            char lastChar = text[matchStartIndex + matchLength - 1];
+
+            if (IsWordCharacter(lastChar) && IsWordCharacter(charAfter))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

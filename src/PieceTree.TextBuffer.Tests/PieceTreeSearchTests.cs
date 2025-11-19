@@ -62,4 +62,24 @@ public class PieceTreeSearchTests
         Assert.Equal(2, matches[0].Range.Start.LineNumber);
         Assert.Equal(1, matches[0].Range.Start.Column);
     }
+
+    [Fact]
+    public void TestWholeWordFind()
+    {
+        var model = CreateModel("foobar foo");
+        
+        // Search "foo" with whole word.
+        // Should match the second "foo" (column 8), but NOT the first one (column 1).
+        
+        // SearchParams: searchString, isRegex, matchCase, wordSeparators
+        // We pass a non-null string for wordSeparators to enable whole word search.
+        var searchParams = new SearchParams("foo", false, false, "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?");
+        var searchData = searchParams.ParseSearchRequest();
+        
+        var matches = model.FindMatchesLineByLine(new Range(1, 1, 1, 11), searchData!, false, 1000);
+        
+        Assert.Single(matches);
+        Assert.Equal(1, matches[0].Range.Start.LineNumber);
+        Assert.Equal(8, matches[0].Range.Start.Column);
+    }
 }

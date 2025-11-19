@@ -124,4 +124,39 @@ public class CursorTests
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Anchor);
         Assert.Equal(new TextPosition(1, 5), cursor.Selection.Active);
     }
+
+    [Fact]
+    public void TestCursor_StickyColumn()
+    {
+        // Line 1: "LongLine" (8 chars)
+        // Line 2: "Short" (5 chars)
+        // Line 3: "LongLineAgain" (12 chars)
+        var model = new TextModel("LongLine\nShort\nLongLineAgain");
+        var cursor = new CursorClass(model);
+        
+        // Move to end of first line (1, 9)
+        cursor.MoveTo(new TextPosition(1, 9));
+        
+        // Move down to short line. Should be clamped to (2, 6).
+        cursor.MoveDown();
+        Assert.Equal(new TextPosition(2, 6), cursor.Selection.Active);
+        
+        // Move down to long line. Should recover column 9.
+        cursor.MoveDown();
+        Assert.Equal(new TextPosition(3, 9), cursor.Selection.Active);
+        
+        // Move up to short line. Should be clamped to (2, 6).
+        cursor.MoveUp();
+        Assert.Equal(new TextPosition(2, 6), cursor.Selection.Active);
+        
+        // Move up to first line. Should recover column 9.
+        cursor.MoveUp();
+        Assert.Equal(new TextPosition(1, 9), cursor.Selection.Active);
+        
+        // Move Left resets sticky column
+        cursor.MoveLeft(); // (1, 8)
+        cursor.MoveDown(); // (2, 6)
+        cursor.MoveDown(); // (3, 8) - NOT 9
+        Assert.Equal(new TextPosition(3, 8), cursor.Selection.Active);
+    }
 }

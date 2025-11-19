@@ -137,6 +137,11 @@ internal sealed partial class PieceTreeModel
             
             while ((lastMatchIndex = text.IndexOf(searchString, lastMatchIndex + searchStringLen, StringComparison.Ordinal)) != -1)
             {
+                if (searchData.WordSeparators != null && !searchData.WordSeparators.IsValidMatch(text, lastMatchIndex, searchStringLen))
+                {
+                    continue;
+                }
+
                 result.Add(new FindMatch(new Range(lineNumber, lastMatchIndex + 1 + deltaOffset, lineNumber, lastMatchIndex + 1 + searchStringLen + deltaOffset), null));
                 if (result.Count >= limitResultCount) return;
             }
@@ -224,58 +229,105 @@ internal sealed partial class PieceTreeModel
 
     public string GetLineRawContent(int lineNumber, int endOffset = 0)
     {
-        var x = _root;
-        string ret = "";
-        
+        PieceTreeNode x = _root;
+        int relativeLineNumber = lineNumber;
+
+        if (_searchCache.TryGetByLine(lineNumber, out var cachedNode, out _, out var cachedStartLine))
+        {
+            x = cachedNode;
+            relativeLineNumber = lineNumber - (cachedStartLine - 1);
+            return GetContentFromNode(x, relativeLineNumber, endOffset);
+        }
+
         while (!ReferenceEquals(x, _sentinel))
         {
-             if (!ReferenceEquals(x.Left, _sentinel) && x.LineFeedsLeft >= lineNumber - 1)
+             if (!ReferenceEquals(x.Left, _sentinel) && x.LineFeedsLeft >= relativeLineNumber - 1)
              {
                  x = x.Left;
              }
-             else if (x.LineFeedsLeft + x.Piece.LineFeedCount > lineNumber - 1)
+             else if (x.LineFeedsLeft + x.Piece.LineFeedCount > relativeLineNumber - 1)
              {
-                 int prevAccumulatedValue = GetAccumulatedValue(x, lineNumber - x.LineFeedsLeft - 2);
-                 int accumulatedValue = GetAccumulatedValue(x, lineNumber - x.LineFeedsLeft - 1);
-                 var buffer = _buffers[x.Piece.BufferIndex].Buffer;
-                 var startOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.Start);
-                 
-                 return buffer.Substring(startOffset + prevAccumulatedValue, accumulatedValue - prevAccumulatedValue - endOffset);
+                 relativeLineNumber -= x.LineFeedsLeft;
+                 _searchCache.Remember(x, GetOffsetOfNode(x), lineNumber - (relativeLineNumber - 1));
+                 return GetContentFromNode(x, relativeLineNumber, endOffset);
              }
-             else if (x.LineFeedsLeft + x.Piece.LineFeedCount == lineNumber - 1)
+             else if (x.LineFeedsLeft + x.Piece.LineFeedCount == relativeLineNumber - 1)
              {
-                 int prevAccumulatedValue = GetAccumulatedValue(x, lineNumber - x.LineFeedsLeft - 2);
-                 var buffer = _buffers[x.Piece.BufferIndex].Buffer;
-                 var startOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.Start);
-                 ret = buffer.Substring(startOffset + prevAccumulatedValue, x.Piece.Length - prevAccumulatedValue);
-                 break;
+                 relativeLineNumber -= x.LineFeedsLeft;
+                 _searchCache.Remember(x, GetOffsetOfNode(x), lineNumber - (relativeLineNumber - 1));
+                 return GetContentFromNode(x, relativeLineNumber, endOffset);
              }
              else
              {
-                 lineNumber -= x.LineFeedsLeft + x.Piece.LineFeedCount;
+                 relativeLineNumber -= x.LineFeedsLeft + x.Piece.LineFeedCount;
                  x = x.Right;
              }
         }
         
-        x = x.Next();
-        while (!ReferenceEquals(x, _sentinel))
+        return "";
+    }
+
+    private string GetContentFromNode(PieceTreeNode x, int relativeLineNumber, int endOffset)
+    {
+        int prevAccumulatedValue = GetAccumulatedValue(x, relativeLineNumber - 2);
+        int accumulatedValue = GetAccumulatedValue(x, relativeLineNumber - 1);
+        var buffer = _buffers[x.Piece.BufferIndex].Buffer;
+        var startOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.Start);
+
+        string ret;
+        if (relativeLineNumber - 1 < x.Piece.LineFeedCount)
         {
-            var buffer = _buffers[x.Piece.BufferIndex].Buffer;
-            if (x.Piece.LineFeedCount > 0)
-            {
-                int accumulatedValue = GetAccumulatedValue(x, 0);
-                var startOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.Start);
-                ret += buffer.Substring(startOffset, accumulatedValue - endOffset);
-                return ret;
-            }
-            else
-            {
-                var startOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.Start);
-                ret += buffer.Substring(startOffset, x.Piece.Length);
-            }
-            x = x.Next();
+             ret = buffer.Substring(startOffset + prevAccumulatedValue, accumulatedValue - prevAccumulatedValue - endOffset);
         }
-        
+        else
+        {
+             ret = buffer.Substring(startOffset + prevAccumulatedValue, x.Piece.Length - prevAccumulatedValue);
+             
+             var next = x.Next();
+             while (!ReferenceEquals(next, _sentinel))
+             {
+                var buf = _buffers[next.Piece.BufferIndex].Buffer;
+                if (next.Piece.LineFeedCount > 0)
+                {
+                    int acc = GetAccumulatedValue(next, 0);
+                    var st = OffsetInBuffer(next.Piece.BufferIndex, next.Piece.Start);
+                    ret += buf.Substring(st, acc - endOffset);
+                    break; // Found end of line
+                }
+                else
+                {
+                    var st = OffsetInBuffer(next.Piece.BufferIndex, next.Piece.Start);
+                    ret += buf.Substring(st, next.Piece.Length);
+                }
+                next = next.Next();
+             }
+        }
+
+        // Backward traversal if we started at the beginning of the node
+        if (relativeLineNumber == 1)
+        {
+            var p = x.Prev();
+            while (!ReferenceEquals(p, _sentinel))
+            {
+                var pBuf = _buffers[p.Piece.BufferIndex].Buffer;
+                var pStart = OffsetInBuffer(p.Piece.BufferIndex, p.Piece.Start);
+                
+                if (p.Piece.LineFeedCount == 0)
+                {
+                    ret = pBuf.Substring(pStart, p.Piece.Length) + ret;
+                }
+                else
+                {
+                    int lastLFOffset = GetAccumulatedValue(p, p.Piece.LineFeedCount - 1);
+                    int startInP = lastLFOffset;
+                    int len = p.Piece.Length - startInP;
+                    ret = pBuf.Substring(pStart + startInP, len) + ret;
+                    break;
+                }
+                p = p.Prev();
+            }
+        }
+
         return ret;
     }
 }

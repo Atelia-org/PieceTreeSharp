@@ -77,6 +77,35 @@ internal sealed class PieceTreeNode
         return current.Parent;
     }
 
+    internal PieceTreeNode Prev()
+    {
+        if (!ReferenceEquals(Left, Sentinel))
+        {
+            var node = Left;
+            while (!ReferenceEquals(node.Right, Sentinel))
+            {
+                node = node.Right;
+            }
+            return node;
+        }
+
+        var current = this;
+        while (!ReferenceEquals(current.Parent, Sentinel))
+        {
+            if (ReferenceEquals(current.Parent.Right, current))
+            {
+                break;
+            }
+            current = current.Parent;
+        }
+
+        if (ReferenceEquals(current.Parent, Sentinel))
+        {
+            return Sentinel;
+        }
+        return current.Parent;
+    }
+
     internal void Detach()
     {
         Parent = Sentinel;

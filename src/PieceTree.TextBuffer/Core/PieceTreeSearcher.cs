@@ -59,11 +59,14 @@ public class PieceTreeSearcher
 
             _prevMatchStartIndex = matchStartIndex;
             _prevMatchLength = matchLength;
-            _lastIndex = matchStartIndex + matchLength;
-
-            // Word separator check stub
-            // if (!this._wordSeparators || isValidMatch(...)) return m;
             
+            if (_wordSeparators != null && !_wordSeparators.IsValidMatch(text, matchStartIndex, matchLength))
+            {
+                _lastIndex = matchStartIndex + 1;
+                continue;
+            }
+
+            _lastIndex = matchStartIndex + matchLength;
             return m;
 
         } while (true);

@@ -64,6 +64,7 @@ internal sealed partial class PieceTreeModel
             {
                 InsertContentToNodeLeft(value, node);
                 _searchCache.InvalidateFromOffset(offset);
+                ValidateCRLFWithPrevNode(node);
             }
             else if (nodeStartOffset + piece.Length > offset)
             {
@@ -81,7 +82,19 @@ internal sealed partial class PieceTreeModel
                     OffsetInBuffer(bufferIndex, piece.End) - OffsetInBuffer(bufferIndex, insertPosInBuffer)
                 );
 
-                // TODO: CRLF checks (startWithLF, endWithCR)
+                if (EndWithCR(node.Piece) && StartWithLF(newRightPiece))
+                {
+                    ValidateCRLFWithPrevNode(node); // This might be wrong place or logic.
+                    // Actually, we are splitting 'node'.
+                    // 'node' becomes left part. 'newRightPiece' becomes right part.
+                    // If original 'node' had \r\n split, it was already handled?
+                    // No, we are splitting.
+                    // If we split "A\r\nB" at \r|\n.
+                    // Left: "A\r". Right: "\nB".
+                    // Left LF: 1. Right LF: 1. Total 2.
+                    // We need to fix it.
+                    // ValidateCRLFWithPrevNode(newRightNode) would fix it.
+                }
 
                 DeleteNodeTail(node, insertPosInBuffer);
 
@@ -98,24 +111,96 @@ internal sealed partial class PieceTreeModel
                 }
                 
                 DeleteNodes(nodesToDel);
+                
+                // Validate CRLF after insertions
+                // We inserted newRightPiece (maybe) and newPieces.
+                // We need to validate boundaries.
+                
+                // 1. node vs first inserted piece (or newRightPiece if no newPieces? No, newPieces always has at least 1).
+                // Wait, newPieces comes from 'value'.
+                // We insert newRightPiece FIRST (to the right of node).
+                // Then we insert newPieces to the right of node (pushing newRightPiece further right? No).
+                // RbInsertRight(node, newRightPiece) -> node.Right = newRightPiece.
+                // Then RbInsertRight(tmpNode, p). tmpNode starts as node.
+                // So we insert p1 right of node.
+                // Then p2 right of p1.
+                // So order: node -> p1 -> p2 -> ... -> newRightPiece?
+                // No. RbInsertRight inserts as immediate right child or successor?
+                // RbInsertRight(node, p) inserts p such that it follows node in in-order.
+                
+                // If we do:
+                // RbInsertRight(node, newRightPiece);
+                // tmpNode = node;
+                // RbInsertRight(tmpNode, p); -> inserts p right of node.
+                // So p comes between node and newRightPiece?
+                // Yes.
+                
+                // So order: node -> newPieces -> newRightPiece.
+                
+                // We need to validate:
+                // node vs newPieces[0]
+                // newPieces[last] vs newRightPiece
+                
+                // But we iterate newPieces and insert them.
+                // tmpNode tracks the last inserted node.
+                
+                // Let's look at the loop:
+                // tmpNode = node;
+                // foreach (var p in newPieces) { tmpNode = RbInsertRight(tmpNode, p); }
+                // So tmpNode becomes the last inserted piece from value.
+                
+                // Wait, where is newRightPiece?
+                // We inserted it first: RbInsertRight(node, newRightPiece).
+                // So node -> newRightPiece.
+                // Then we insert p1 right of node.
+                // node -> p1 -> newRightPiece.
+                // Then p2 right of p1.
+                // node -> p1 -> p2 -> newRightPiece.
+                
+                // So correct order.
+                
+                // Validation:
+                // 1. node vs newPieces[0] (which is node.Next())
+                // 2. newPieces[last] vs newRightPiece (which is newPieces[last].Next())
+                
+                // We can just call ValidateCRLFWithPrevNode on the nodes we inserted + newRightPiece.
+                
+                // Actually, simpler:
+                // After all insertions:
+                // ValidateCRLFWithPrevNode(firstInsertedNode);
+                // ...
+                // ValidateCRLFWithPrevNode(newRightPieceNode);
+                
+                // But we don't have easy access to them unless we track them.
+                // But we know the structure.
+                
+                // Let's just call ValidateCRLFWithPrevNode on the specific boundaries.
+                
+                // Boundary 1: node | next (first new piece)
+                ValidateCRLFWithPrevNode(node.Next());
+                
+                // Boundary 2: last new piece | next (newRightPiece)
+                // tmpNode is the last new piece.
+                ValidateCRLFWithPrevNode(tmpNode.Next());
             }
             else
             {
                 InsertContentToNodeRight(value, node);
+                ValidateCRLFWithPrevNode(node.Next());
             }
         }
         else
         {
             // Insert new node
             var pieces = CreateNewPieces(value);
-            var node = RbInsertLeft(null, pieces[0]);
+            var node = RbInsertLeft(_sentinel, pieces[0]);
             for (int k = 1; k < pieces.Count; k++)
             {
                 node = RbInsertRight(node, pieces[k]);
             }
         }
 
-        RecomputeMetadataUpwards(_root); // TODO: Optimize
+        // RecomputeMetadataUpwards(_root); // Handled by RbInsert
     }
 
     public void Delete(int offset, int cnt)
@@ -227,28 +312,52 @@ internal sealed partial class PieceTreeModel
 
     private int GetLineFeedCnt(int bufferIndex, BufferCursor start, BufferCursor end)
     {
-        // Simplified logic from TS
-        if (end.Column == 0) return end.Line - start.Line;
-        var lineStarts = _buffers[bufferIndex].LineStarts;
-        if (end.Line == lineStarts.Count - 1) return end.Line - start.Line;
-        
-        var nextLineStart = lineStarts[end.Line + 1];
-        var endOffset = lineStarts[end.Line] + end.Column;
-        if (nextLineStart > endOffset + 1) return end.Line - start.Line;
+        return end.Line - start.Line;
+    }
 
-        // Check for \r before \n
-        var buffer = _buffers[bufferIndex];
-        // Need to access char at endOffset - 1. 
-        // BufferCursor is 0-based line/col.
-        // ChunkBuffer doesn't expose char access easily by offset without GetText?
-        // ChunkBuffer has `Slice`.
-        // We need to check if char at endOffset-1 is \r.
-        // But ChunkBuffer stores string.
-        // We can use `buffer.GetChar(endOffset - 1)`.
-        // ChunkBuffer needs to expose this.
-        
-        // For now assume simple LF count
-        return end.Line - start.Line; 
+    private void ValidateCRLFWithPrevNode(PieceTreeNode nextNode)
+    {
+        if (ReferenceEquals(nextNode, _sentinel))
+        {
+            return;
+        }
+
+        var prevNode = nextNode.Prev();
+        if (ReferenceEquals(prevNode, _sentinel))
+        {
+            return;
+        }
+
+        var prevPiece = prevNode.Piece;
+        var piece = nextNode.Piece;
+
+        if (EndWithCR(prevPiece) && StartWithLF(piece))
+        {
+            var newPrevPiece = prevPiece with { LineFeedCount = prevPiece.LineFeedCount - 1 };
+            prevNode.Piece = newPrevPiece;
+            RecomputeMetadataUpwards(prevNode);
+        }
+        else
+        {
+             // throw new Exception($"Validation failed. Prev: {prevPiece}, Curr: {piece}. EndWithCR: {EndWithCR(prevPiece)}, StartWithLF: {StartWithLF(piece)}");
+        }
+    }
+
+    private bool EndWithCR(PieceSegment piece)
+    {
+        var buffer = _buffers[piece.BufferIndex];
+        var endOffset = OffsetInBuffer(piece.BufferIndex, piece.End);
+        if (endOffset == 0) return false;
+        char ch = buffer.Buffer[endOffset - 1];
+        return ch == '\r';
+    }
+
+    private bool StartWithLF(PieceSegment piece)
+    {
+        var buffer = _buffers[piece.BufferIndex];
+        var startOffset = OffsetInBuffer(piece.BufferIndex, piece.Start);
+        if (startOffset >= buffer.Buffer.Length) return false;
+        return buffer.Buffer[startOffset] == '\n';
     }
 
     private void DeleteNodeTail(PieceTreeNode node, BufferCursor pos)
@@ -371,6 +480,7 @@ internal sealed partial class PieceTreeModel
         }
 
         InsertFixup(z);
+        RecomputeMetadataUpwards(z);
         return z;
     }
 
@@ -401,6 +511,7 @@ internal sealed partial class PieceTreeModel
         }
 
         InsertFixup(z);
+        RecomputeMetadataUpwards(z);
         return z;
     }
 

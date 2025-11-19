@@ -7,6 +7,7 @@ public class Cursor
 {
     private readonly TextModel _model;
     private Selection _selection;
+    private int _stickyColumn = -1;
 
     public Cursor(TextModel model)
     {
@@ -20,12 +21,14 @@ public class Cursor
     {
         var validated = ValidatePosition(position);
         _selection = new Selection(validated, validated);
+        _stickyColumn = -1;
     }
 
     public void SelectTo(TextPosition position)
     {
         var validated = ValidatePosition(position);
         _selection = new Selection(_selection.Anchor, validated);
+        _stickyColumn = -1;
     }
 
     public void MoveLeft()
@@ -63,10 +66,15 @@ public class Cursor
         var current = _selection.Active;
         if (current.LineNumber > 1)
         {
+            int sticky = _stickyColumn;
+            if (sticky == -1) sticky = current.Column;
+
             var newLine = current.LineNumber - 1;
             var len = _model.GetLineContent(newLine).Length;
-            var newCol = Math.Min(current.Column, len + 1);
+            var newCol = Math.Min(sticky, len + 1);
+            
             MoveTo(new TextPosition(newLine, newCol));
+            _stickyColumn = sticky;
         }
     }
 
@@ -75,10 +83,15 @@ public class Cursor
         var current = _selection.Active;
         if (current.LineNumber < _model.GetLineCount())
         {
+            int sticky = _stickyColumn;
+            if (sticky == -1) sticky = current.Column;
+
             var newLine = current.LineNumber + 1;
             var len = _model.GetLineContent(newLine).Length;
-            var newCol = Math.Min(current.Column, len + 1);
+            var newCol = Math.Min(sticky, len + 1);
+            
             MoveTo(new TextPosition(newLine, newCol));
+            _stickyColumn = sticky;
         }
     }
 
