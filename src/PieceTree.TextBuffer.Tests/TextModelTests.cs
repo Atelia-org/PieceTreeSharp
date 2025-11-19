@@ -57,7 +57,7 @@ public class TextModelTests
         {
             eventFired = true;
             Assert.Equal(2, e.VersionId);
-            Assert.Equal(1, e.Changes.Count);
+            Assert.Single(e.Changes);
         };
 
         // Replace "World" with "Universe"
@@ -114,5 +114,118 @@ public class TextModelTests
         var found = model.GetDecorationsInRange(new TextRange(16, 21));
         Assert.Single(found);
         Assert.Equal(decoration, found.First());
+    }
+
+    [Fact]
+    public void UndoRedo_Roundtrip()
+    {
+        var model = new TextModel("Hello");
+        model.PushEditOperations(new[]
+        {
+            new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), " World")
+        });
+
+        Assert.Equal("Hello World", model.GetValue());
+        Assert.True(model.CanUndo);
+        Assert.True(model.Undo());
+        Assert.Equal("Hello", model.GetValue());
+        Assert.True(model.CanRedo);
+        Assert.True(model.Redo());
+        Assert.Equal("Hello World", model.GetValue());
+    }
+
+    [Fact]
+    public void StackElementBoundariesAreRespected()
+    {
+        var model = new TextModel("abc123");
+        model.PushEditOperations(new[]
+        {
+            new TextEdit(new TextPosition(1, 4), new TextPosition(1, 7), "XYZ")
+        });
+
+        model.PushStackElement();
+
+        model.PushEditOperations(new[]
+        {
+            new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "HELLO ")
+        });
+
+        Assert.Equal("HELLO abcXYZ", model.GetValue());
+
+        Assert.True(model.Undo());
+        Assert.Equal("abcXYZ", model.GetValue());
+
+        Assert.True(model.Undo());
+        Assert.Equal("abc123", model.GetValue());
+    }
+
+    [Fact]
+    public void UpdateOptionsRaisesChangeEvent()
+    {
+        var model = new TextModel("line");
+        TextModelOptionsChangedEventArgs? captured = null;
+        model.OnDidChangeOptions += (_, args) => captured = args;
+
+        model.UpdateOptions(new TextModelUpdateOptions
+        {
+            TabSize = 2,
+            InsertSpaces = false,
+            TrimAutoWhitespace = true,
+        });
+
+        Assert.NotNull(captured);
+        Assert.True(captured!.TabSizeChanged);
+        Assert.True(captured.InsertSpacesChanged);
+        Assert.True(captured.TrimAutoWhitespaceChanged);
+        Assert.Equal(2, model.GetOptions().TabSize);
+    }
+
+    [Fact]
+    public void DetectIndentationPrefersSpaces()
+    {
+        var text = "def\n  foo()\n    bar()\n";
+        var model = new TextModel(text);
+        model.DetectIndentation(defaultInsertSpaces: false, defaultTabSize: 4);
+
+        var options = model.GetOptions();
+        Assert.True(options.InsertSpaces);
+        Assert.Equal(2, options.TabSize);
+        Assert.Equal(2, options.IndentSize);
+    }
+
+    [Fact]
+    public void PushEolIsUndoable()
+    {
+        var model = new TextModel("A\nB\n");
+        model.PushEol(EndOfLineSequence.CRLF);
+        Assert.Contains("\r\n", model.GetValue());
+
+        bool undoEventSeen = false;
+        model.OnDidChangeContent += (_, args) =>
+        {
+            if (args.IsUndo)
+            {
+                undoEventSeen = true;
+            }
+        };
+
+        Assert.True(model.Undo());
+        Assert.Equal("A\nB\n", model.GetValue());
+        Assert.True(undoEventSeen);
+    }
+
+    [Fact]
+    public void SetLanguageRaisesEvent()
+    {
+        var model = new TextModel("text");
+        string? newLanguage = null;
+        model.OnDidChangeLanguage += (_, args) => newLanguage = args.NewLanguageId;
+
+        model.SetLanguage("csharp");
+        Assert.Equal("csharp", newLanguage);
+
+        newLanguage = null;
+        model.SetLanguage("csharp");
+        Assert.Null(newLanguage);
     }
 }

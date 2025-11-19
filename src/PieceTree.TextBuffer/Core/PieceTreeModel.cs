@@ -41,6 +41,8 @@ internal sealed partial class PieceTreeModel
 
     internal PieceTreeSearchCache SearchCache => _searchCache;
 
+    public string Eol => _eol;
+
     public void NormalizeEOL(string eol)
     {
         _eol = eol;

@@ -44,6 +44,16 @@ public sealed class PieceTreeBuffer
 
 	public int Length => _model.TotalLength;
 
+	public string GetEol() => _model.Eol;
+
+	public void SetEol(string eol)
+	{
+		ArgumentException.ThrowIfNullOrEmpty(eol);
+		_model.NormalizeEOL(eol);
+		_cachedSnapshot = string.Empty;
+		_cachedLineMap = LineStartTable.Empty;
+	}
+
 	public string GetText()
 	{
 		if (_model.IsEmpty)
@@ -63,6 +73,24 @@ public sealed class PieceTreeBuffer
 		_cachedSnapshot = builder.ToString();
 		_cachedLineMap = LineStartBuilder.Build(_cachedSnapshot);
 		return _cachedSnapshot;
+	}
+
+	public string GetText(int start, int length)
+	{
+		if (length <= 0)
+		{
+			return string.Empty;
+		}
+
+		var snapshot = EnsureSnapshot();
+		if (snapshot.Length == 0)
+		{
+			return string.Empty;
+		}
+
+		start = Math.Clamp(start, 0, snapshot.Length);
+		length = Math.Clamp(length, 0, snapshot.Length - start);
+		return snapshot.Substring(start, length);
 	}
 
 	public void ApplyEdit(int start, int length, string? text)
