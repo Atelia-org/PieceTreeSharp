@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using PieceTree.TextBuffer.Core;
+using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer;
 
@@ -53,6 +54,7 @@ public class TextModelContentChangedEventArgs : EventArgs
 public class TextModel
 {
     private readonly PieceTreeBuffer _buffer;
+    private readonly IntervalTree _decorations = new IntervalTree();
     private int _versionId = 1;
     private int _alternativeVersionId = 1;
     private string _eol = "\n";
@@ -92,6 +94,21 @@ public class TextModel
         return content.Substring(0, len);
     }
     public int GetLength() => _buffer.Length;
+
+    public int GetOffsetAt(TextPosition position) => _buffer.GetOffsetAt(position.LineNumber, position.Column);
+    public TextPosition GetPositionAt(int offset) => _buffer.GetPositionAt(offset);
+
+    public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions options)
+    {
+        var decoration = new ModelDecoration(Guid.NewGuid().ToString(), range, options);
+        _decorations.Insert(decoration);
+        return decoration;
+    }
+
+    public IEnumerable<ModelDecoration> GetDecorationsInRange(TextRange range)
+    {
+        return _decorations.Search(range);
+    }
     
     public int GetLineCount()
     {
@@ -120,6 +137,7 @@ public class TextModel
             int endOffset = _buffer.GetOffsetAt(edit.End.LineNumber, edit.End.Column);
             int length = endOffset - startOffset;
 
+            _decorations.AcceptReplace(startOffset, length, edit.Text.Length);
             _buffer.ApplyEdit(startOffset, length, edit.Text);
             changes.Add(new TextChange(edit.Start, edit.End, edit.Text));
         }

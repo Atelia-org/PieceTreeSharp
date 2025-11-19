@@ -1,0 +1,99 @@
+using System;
+using Xunit;
+using PieceTree.TextBuffer;
+using PieceTree.TextBuffer.Rendering;
+using PieceTree.TextBuffer.Decorations;
+
+namespace PieceTree.TextBuffer.Tests
+{
+    public class MarkdownRendererTests
+    {
+        [Fact]
+        public void TestRender_Cursor()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+
+            // Cursor at 1, 7 ('W')
+            var pos = new TextPosition(1, 7);
+            var offset = model.GetOffsetAt(pos);
+            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.Default);
+
+            var output = renderer.Render(model);
+            
+            var expected = 
+@"```text
+Hello |World
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_Selection()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+
+            // Selection "World" (1, 7) to (1, 12)
+            var startPos = new TextPosition(1, 7);
+            var endPos = new TextPosition(1, 12);
+            var startOffset = model.GetOffsetAt(startPos);
+            var endOffset = model.GetOffsetAt(endPos);
+            
+            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.Default);
+
+            var output = renderer.Render(model);
+            
+            var expected = 
+@"```text
+Hello [World]
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_MultiLine_Cursor()
+        {
+            var model = new TextModel("Line1\nLine2");
+            var renderer = new MarkdownRenderer();
+
+            // Cursor at start of Line 2 (2, 1)
+            var pos = new TextPosition(2, 1);
+            var offset = model.GetOffsetAt(pos);
+            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.Default);
+
+            var output = renderer.Render(model);
+            
+            var expected = 
+@"```text
+Line1
+|Line2
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_MultiLine_Selection()
+        {
+            var model = new TextModel("Line1\nLine2");
+            var renderer = new MarkdownRenderer();
+
+            // Selection from start of Line 1 to end of Line 2
+            var startPos = new TextPosition(1, 1);
+            var endPos = new TextPosition(2, 6); // "Line2" is 5 chars. 2,6 is end.
+            var startOffset = model.GetOffsetAt(startPos);
+            var endOffset = model.GetOffsetAt(endPos);
+            
+            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.Default);
+
+            var output = renderer.Render(model);
+            
+            var expected = 
+@"```text
+[Line1
+Line2]
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+    }
+}

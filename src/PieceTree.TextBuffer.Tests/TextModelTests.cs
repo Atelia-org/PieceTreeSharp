@@ -2,6 +2,8 @@ using System;
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
+using System.Linq;
+using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -86,5 +88,31 @@ public class TextModelTests
         model.ApplyEdits(new[] { edit1, edit2 });
         
         Assert.Equal("Hi Big World", model.GetValue());
+    }
+
+    [Fact]
+    public void TestTextModel_Decorations()
+    {
+        var model = new TextModel("Hello World");
+        // Decoration on "World" (6, 11)
+        var range = new TextRange(6, 11);
+        var decoration = model.AddDecoration(range, ModelDecorationOptions.Default);
+        
+        Assert.Equal(6, decoration.Range.StartOffset);
+        Assert.Equal(11, decoration.Range.EndOffset);
+        
+        // Insert "Beautiful " before "World" at offset 6 (1, 7)
+        var edit = new TextEdit(new TextPosition(1, 7), new TextPosition(1, 7), "Beautiful ");
+        model.ApplyEdits(new[] { edit });
+        
+        Assert.Equal("Hello Beautiful World", model.GetValue());
+        
+        // Decoration should shift
+        Assert.Equal(16, decoration.Range.StartOffset);
+        Assert.Equal(21, decoration.Range.EndOffset);
+        
+        var found = model.GetDecorationsInRange(new TextRange(16, 21));
+        Assert.Single(found);
+        Assert.Equal(decoration, found.First());
     }
 }

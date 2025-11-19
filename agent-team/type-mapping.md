@@ -85,3 +85,15 @@ Sprint 00 (PT-003) aims to unblock Porter-CS before 2025-11-20 by locking down t
 | `Position` (`core/position.ts`) | `readonly struct Position` | Invariant: 1-based line/column. Already defined in Phase 1, but ensure `CompareTo` and equality operators are robust. |
 | `IModelContentChangedEvent` (`textModelEvents.ts`) | `class TextModelContentChangedEventArgs : EventArgs` | Invariant: `Changes` ordered reverse-document order (safe to apply); `VersionId` matches model after change; Edge: `IsFlush` indicates total reset; `Eol` change is a separate flag. |
 | `SingleCursorState` (`cursorCommon.ts`) | `struct SingleCursorState` | Invariant: Tracks `SelectionStart` (Anchor Range), `Position` (Active), and `LeftoverVisibleColumns` (for vertical navigation); Edge: `SelectionStartKind` (Simple/Word/Line) determines expansion behavior. |
+
+## Phase 3: Diffing & Decorations
+
+| TypeScript Source | Proposed C# Type | Notes |
+| --- | --- | --- |
+| `IDiffComputer` (`diff/diffComputer.ts`) | `interface IDiffComputer` | Invariant: Computes diffs between two line arrays; Edge: `computeDiff` returns `IDiffResult` containing `DiffChange[]`; C# port should support `pretty` flag for cleanup. |
+| `DiffChange` (`base/common/diff/diffChange.ts`) | `struct DiffChange` | Invariant: `originalStart`, `originalLength`, `modifiedStart`, `modifiedLength`; Edge: Represents a single change block; used by `LcsDiff` and `DiffComputer`. |
+| `LcsDiff` (`base/common/diff/diff.ts`) | `class LcsDiff` | Invariant: Implements Myers' O(ND) algorithm; Edge: Supports `ContinueProcessingPredicate` for timeout/early exit; Uses `Int32Array` for history to save memory. |
+| `IModelDecoration` (`model.ts`) | `class ModelDecoration` | Invariant: `id`, `ownerId`, `range`, `options`; Edge: `range` is dynamic (tracked via `IntervalTree`); `options` define stickiness and rendering. |
+| `IntervalTree` (`model/intervalTree.ts`) | `class IntervalTree<T>` | Invariant: Augmented Red-Black Tree; Nodes store `delta` for efficient shifting; `maxEnd` for overlap search; Edge: `T` is `IntervalNode`; C# generic implementation preferred or specialized `DecorationIntervalTree`. |
+| `IntervalNode` (`model/intervalTree.ts`) | `class IntervalNode` | Invariant: `start`, `end`, `delta`, `maxEnd`, `metadata` (color, visited, etc.); Edge: `cachedVersionId` for lazy range resolution; `metadata` packs booleans/enums into `int`. |
+| `DecorationsTrees` (`model/textModel.ts`) | `class DecorationsTrees` | Invariant: Manages 3 trees (normal, overview, injected); Edge: `deltaDecorations` updates trees; `getDecorationsInRange` queries them; Handles `ownerId` filtering. |
