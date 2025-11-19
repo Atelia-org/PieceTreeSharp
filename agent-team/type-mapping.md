@@ -75,3 +75,13 @@ Sprint 00 (PT-003) aims to unblock Porter-CS before 2025-11-20 by locking down t
 - Added invariants, risky edge cases, QA prompts, and explicit TODOs (Porter stubs + WordSeparators TBD) per row to satisfy Sprint 00 review criteria.
 - Flagged remaining unknowns (WordCharacterClassifier mapping, multiline regex instrumentation) so Info-Indexer and Planner can track blockers while Porter proceeds with skeleton work.
 - Added dedicated sections for Line Infrastructure, Search Helpers, and Builder/Normalizer to capture the remaining TS contracts (builder metadata, snapshot semantics, search shims) Porter-CS needs before PT-004/005 coding starts.
+
+## Phase 2: TextModel & Interaction
+
+| TypeScript Source | Proposed C# Type | Notes |
+| --- | --- | --- |
+| `TextModel` (`model/textModel.ts`) | `class TextModel` | Invariant: Wraps `PieceTreeTextBuffer`; manages `_versionId` (monotonic) and `_alternativeVersionId` (undo-aware); Edge: `setValue` destroys decorations/undo stack; QA: Verify version increments on edits and undo/redo behavior. |
+| `Selection` (`core/selection.ts`) | `readonly struct Selection` | Invariant: `Anchor` (selectionStart) and `Active` (position) define the selection; `Start`/`End` (Range) are derived (normalized); Edge: `Selection` in TS extends `Range`, but C# struct cannot inherit. Composition preferred: `Selection { Position Anchor; Position Active; }`. |
+| `Position` (`core/position.ts`) | `readonly struct Position` | Invariant: 1-based line/column. Already defined in Phase 1, but ensure `CompareTo` and equality operators are robust. |
+| `IModelContentChangedEvent` (`textModelEvents.ts`) | `class TextModelContentChangedEventArgs : EventArgs` | Invariant: `Changes` ordered reverse-document order (safe to apply); `VersionId` matches model after change; Edge: `IsFlush` indicates total reset; `Eol` change is a separate flag. |
+| `SingleCursorState` (`cursorCommon.ts`) | `struct SingleCursorState` | Invariant: Tracks `SelectionStart` (Anchor Range), `Position` (Active), and `LeftoverVisibleColumns` (for vertical navigation); Edge: `SelectionStartKind` (Simple/Word/Line) determines expansion behavior. |

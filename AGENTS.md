@@ -31,5 +31,6 @@
 - 2025-11-19：PT-004.Positions 增加 `TextPosition` 与 `PieceTreeBuffer.GetPositionAt/GetOffsetAt` 等 API，并移植 TS prefix-sum 风格测试（详见 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 对应条目，changefeed 仍为 [`agent-team/indexes/README.md#delta-2025-11-19`](agent-team/indexes/README.md#delta-2025-11-19)）。
 - 2025-11-19：PT-010 完成 CRLF Normalization 移植。Investigator-TS 分析了 `normalizeEOL` 与 Builder 差异，Porter-CS 实现了 `PieceTreeNormalizer`、BOM/Split-CRLF 处理及 `_eolNormalized` 优化，并补充了 3 个 TS 对应测试（CRLF 删除与 Normalization 优化验证），Tests (23/23) 通过。
 - 2025-11-19：PT-011 完成 v1 阶段性验收。QA-Automation 验证了 RBTree 骨架 (PT-004) 与测试矩阵 (PT-005) 的完整性，确认 Insert/Delete/Search/Snapshot/Normalize 功能齐备且 23 个测试全通。PT-004/PT-005/PT-011 状态均更新为 Done。
+- 2025-11-19：Phase 2 (TextModel & Interaction) 冲刺完成。通过 DMA 工作流连续交付了 TM-001 (Analysis), TM-002/3/4 (TextModel/Selection/Events), TM-005 (Cursor)。实现了 `TextModel` 包装器、`Selection` 结构体以及支持基础导航（上下左右）的 `Cursor` 类。所有 33 个测试用例（含新增的 10 个 TextModel/Cursor 测试）全部通过。
 
 **状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19`，并在条目中附上两者的链接。
