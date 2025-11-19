@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Core;
 
-internal sealed class PieceTreeModel
+internal sealed partial class PieceTreeModel
 {
     private const string SearchNotImplementedMessage = "PieceTreeModel search stub is not implemented (PT-004 placeholder).";
 
@@ -11,11 +11,13 @@ internal sealed class PieceTreeModel
 
     private readonly PieceTreeNode _sentinel = PieceTreeNode.Sentinel;
     private readonly PieceTreeSearchCache _searchCache = new();
+    private readonly List<ChunkBuffer> _buffers;
     private PieceTreeNode _root;
     private int _count;
 
-    public PieceTreeModel()
+    public PieceTreeModel(List<ChunkBuffer> buffers)
     {
+        _buffers = buffers ?? throw new ArgumentNullException(nameof(buffers));
         _root = _sentinel;
     }
 
@@ -61,6 +63,40 @@ internal sealed class PieceTreeModel
         InsertFixup(node);
         RecomputeMetadataUpwards(node);
         return node;
+    }
+
+    internal NodeHit NodeAt(int offset)
+    {
+        var x = _root;
+        if (_searchCache.TryGetByOffset(offset, out var cachedNode, out var cachedStartOffset))
+        {
+            return new NodeHit(cachedNode, offset - cachedStartOffset, cachedStartOffset);
+        }
+
+        var nodeStartOffset = 0;
+
+        while (!ReferenceEquals(x, _sentinel))
+        {
+            if (x.SizeLeft > offset)
+            {
+                x = x.Left;
+            }
+            else if (x.SizeLeft + x.Piece.Length >= offset)
+            {
+                nodeStartOffset += x.SizeLeft;
+                var hit = new NodeHit(x, offset - x.SizeLeft, nodeStartOffset);
+                _searchCache.Remember(x, nodeStartOffset);
+                return hit;
+            }
+            else
+            {
+                offset -= x.SizeLeft + x.Piece.Length;
+                nodeStartOffset += x.SizeLeft + x.Piece.Length;
+                x = x.Right;
+            }
+        }
+
+        return default;
     }
 
     internal bool TryGetCachedNodeByOffset(int offset, out PieceTreeNode node, out int nodeStartOffset)
@@ -291,5 +327,7 @@ internal sealed class PieceTreeModel
 }
 
 internal sealed record PieceTreeSearchPlan(string QueryText);
+
+internal readonly record struct NodeHit(PieceTreeNode Node, int Remainder, int NodeStartOffset);
 
 internal sealed record PieceTreeSearchResult;

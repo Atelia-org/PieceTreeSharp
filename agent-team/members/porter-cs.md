@@ -45,8 +45,15 @@
   - 在 `PieceTree.TextBuffer.Tests/UnitTest1.cs` 移植 TS `prefix sum` 风格断言，覆盖 offset→position round trip、CRLF 行长与行内字符编码，测试总数扩展至 10。
   - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，10 tests）。
 
+- **2025-11-19 – PT-004 insert/delete drop**
+  - 实现 `PieceTreeModel.Edit.cs`，包含 `Insert`、`Delete`、`RbDelete`、`DeleteFixup` 等核心红黑树编辑逻辑，替换了之前的重建树方案。
+  - `PieceTreeNode` 增加 `Next()`、`Detach()` 及属性 setter 以支持树操作。
+  - `PieceTreeBuffer.ApplyEdit` 更新为调用 `_model.Delete` 和 `_model.Insert`。
+  - 移植 TS 基础编辑测试至 `PieceTreeBaseTests.cs`，覆盖 `BasicInsertDelete`、`MoreInserts`、`MoreDeletes`。
+  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，13 tests）。
+
 - **Upcoming Goals (runSubAgent 粒度):**
-  1. **PT-004.G2-next**：消除重建式编辑，接入 change buffer + PieceTree 原生插入/删除，并补齐 `EnumeratePieces`/`LocateLineByOffset` API 供 QA 复用。
+  1. **PT-005.Search**：实现 `PieceTreeSearch` 逻辑，支持 Find/Match 等操作。
   2. **PT-004.G3**：实现长度/位置互转与 chunk-based slicing 的额外断言，扩充 xUnit 覆盖（CR-only、BOM、跨 chunk ranges）。
   3. **OI-SUPPORT.G1**：保持 Porting Log & Core README 更新，并将 search stub 依赖、doc 钩子同步给 DocMaintainer/Planner 以支撑 PT-007 规划。
 

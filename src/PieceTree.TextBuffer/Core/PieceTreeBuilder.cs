@@ -9,8 +9,9 @@ internal static class PieceTreeBuilder
     {
         ArgumentNullException.ThrowIfNull(chunks);
 
-        var model = new PieceTreeModel();
         var buffers = new List<ChunkBuffer> { ChunkBuffer.Empty };
+        var model = new PieceTreeModel(buffers);
+        
         foreach (var chunk in chunks)
         {
             var chunkBuffer = ChunkBuffer.FromText(chunk);

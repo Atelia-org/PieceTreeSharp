@@ -68,25 +68,18 @@ public sealed class PieceTreeBuffer
 			throw new ArgumentOutOfRangeException(nameof(length));
 		}
 
-		var current = GetText();
-		var replacement = text ?? string.Empty;
-		var builder = new StringBuilder(current.Length - length + replacement.Length);
-		builder.Append(current.AsSpan(0, start));
-		builder.Append(replacement);
-		var tailIndex = start + length;
-		if (tailIndex < current.Length)
+		_cachedSnapshot = string.Empty;
+		_cachedLineMap = LineStartTable.Empty;
+
+		if (length > 0)
 		{
-			builder.Append(current.AsSpan(tailIndex));
+			_model.Delete(start, length);
 		}
 
-		// TODO(PT-004): Replace rebuild-per-edit with incremental PieceTree updates once change buffers are wired.
-		RebuildFromChunks(new[] { builder.ToString() });
-	}
-
-	private void RebuildFromChunks(IEnumerable<string> chunks)
-	{
-		var buildResult = PieceTreeBuilder.BuildFromChunks(chunks);
-		ApplyBuildResult(buildResult);
+		if (!string.IsNullOrEmpty(text))
+		{
+			_model.Insert(start, text);
+		}
 	}
 
 	private void ApplyBuildResult(PieceTreeBuildResult buildResult)

@@ -8,7 +8,7 @@ internal enum NodeColor
 
 internal sealed class PieceTreeNode
 {
-    private PieceTreeNode(PieceSegment piece, NodeColor color)
+    internal PieceTreeNode(PieceSegment piece, NodeColor color)
     {
         Piece = piece;
         Color = color;
@@ -26,7 +26,7 @@ internal sealed class PieceTreeNode
     {
     }
 
-    public PieceSegment Piece { get; }
+    public PieceSegment Piece { get; set; }
 
     public PieceTreeNode Parent { get; set; }
 
@@ -36,9 +36,9 @@ internal sealed class PieceTreeNode
 
     public NodeColor Color { get; set; }
 
-    public int SizeLeft { get; private set; }
+    public int SizeLeft { get; set; }
 
-    public int LineFeedsLeft { get; private set; }
+    public int LineFeedsLeft { get; set; }
 
     public int AggregatedLength { get; private set; }
 
@@ -47,6 +47,42 @@ internal sealed class PieceTreeNode
     public static PieceTreeNode Sentinel { get; } = CreateSentinel();
 
     internal bool IsSentinel => ReferenceEquals(this, Sentinel);
+
+    internal PieceTreeNode Next()
+    {
+        if (!ReferenceEquals(Right, Sentinel))
+        {
+            var node = Right;
+            while (!ReferenceEquals(node.Left, Sentinel))
+            {
+                node = node.Left;
+            }
+            return node;
+        }
+
+        var current = this;
+        while (!ReferenceEquals(current.Parent, Sentinel))
+        {
+            if (ReferenceEquals(current.Parent.Left, current))
+            {
+                break;
+            }
+            current = current.Parent;
+        }
+
+        if (ReferenceEquals(current.Parent, Sentinel))
+        {
+            return Sentinel;
+        }
+        return current.Parent;
+    }
+
+    internal void Detach()
+    {
+        Parent = Sentinel;
+        Left = Sentinel;
+        Right = Sentinel;
+    }
 
     private static PieceTreeNode CreateSentinel()
     {
