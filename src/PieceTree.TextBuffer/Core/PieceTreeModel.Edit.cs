@@ -7,12 +7,45 @@ internal sealed partial class PieceTreeModel
 {
     public void Insert(int offset, string value)
     {
+        _lastVisitedLine = default;
         if (string.IsNullOrEmpty(value))
         {
             return;
         }
 
-        // TODO: CRLF normalization logic if needed, for now assume raw insert
+        if (_eolNormalized)
+        {
+            if (_eol == "\n")
+            {
+                if (value.Contains('\r'))
+                {
+                    _eolNormalized = false;
+                }
+            }
+            else if (_eol == "\r\n")
+            {
+                for (int i = 0; i < value.Length; i++)
+                {
+                    if (value[i] == '\r')
+                    {
+                        if (i + 1 < value.Length && value[i + 1] == '\n')
+                        {
+                            i++;
+                        }
+                        else
+                        {
+                            _eolNormalized = false;
+                            break;
+                        }
+                    }
+                    else if (value[i] == '\n')
+                    {
+                        _eolNormalized = false;
+                        break;
+                    }
+                }
+            }
+        }
         
         if (!ReferenceEquals(_root, _sentinel))
         {
@@ -87,6 +120,7 @@ internal sealed partial class PieceTreeModel
 
     public void Delete(int offset, int cnt)
     {
+        _lastVisitedLine = default;
         if (cnt <= 0 || ReferenceEquals(_root, _sentinel))
         {
             return;

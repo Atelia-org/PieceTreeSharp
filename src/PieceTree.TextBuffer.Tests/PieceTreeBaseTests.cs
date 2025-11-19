@@ -56,4 +56,38 @@ public class PieceTreeBaseTests
         buffer.ApplyEdit(0, 5, null);
         Assert.Equal("", buffer.GetText());
     }
+
+    [Fact]
+    public void GetLineContent_Cache_Invalidation_Insert()
+    {
+        var buffer = new PieceTreeBuffer("Line 1\nLine 2\nLine 3");
+        
+        // Cache miss -> load
+        var line2 = buffer.GetLineContent(2);
+        Assert.Equal("Line 2\n", line2);
+        
+        // Insert in Line 2 (at start of line 2, offset 7)
+        buffer.ApplyEdit(7, 0, "Modified "); // "Line 1\nModified Line 2\nLine 3"
+        
+        // Should get updated content (cache invalidated)
+        var line2Modified = buffer.GetLineContent(2);
+        Assert.Equal("Modified Line 2\n", line2Modified);
+    }
+
+    [Fact]
+    public void GetLineContent_Cache_Invalidation_Delete()
+    {
+        var buffer = new PieceTreeBuffer("Line 1\nLine 2\nLine 3");
+        
+        // Cache miss -> load
+        var line2 = buffer.GetLineContent(2);
+        Assert.Equal("Line 2\n", line2);
+        
+        // Delete from Line 2 (at start of line 2, offset 7, length 5 "Line ")
+        buffer.ApplyEdit(7, 5, null); // "Line 1\n2\nLine 3"
+        
+        // Should get updated content (cache invalidated)
+        var line2Modified = buffer.GetLineContent(2);
+        Assert.Equal("2\n", line2Modified);
+    }
 }

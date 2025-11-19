@@ -27,8 +27,18 @@ public sealed class PieceTreeBuffer
 
 	public static PieceTreeBuffer FromChunks(IEnumerable<string> chunks)
 	{
+		return FromChunks(chunks, false);
+	}
+
+	public static PieceTreeBuffer FromChunks(IEnumerable<string> chunks, bool normalizeEOL)
+	{
 		ArgumentNullException.ThrowIfNull(chunks);
-		var buildResult = PieceTreeBuilder.BuildFromChunks(chunks);
+		var builder = new PieceTreeBuilder();
+		foreach (var chunk in chunks)
+		{
+			builder.AcceptChunk(chunk);
+		}
+		var buildResult = builder.Finish(normalizeEOL);
 		return new PieceTreeBuffer(buildResult);
 	}
 
@@ -159,6 +169,11 @@ public sealed class PieceTreeBuffer
 		}
 
 		return snapshot[offset];
+	}
+
+	public string GetLineContent(int lineNumber)
+	{
+		return _model.GetLineContent(lineNumber);
 	}
 
 	private string EnsureSnapshot()

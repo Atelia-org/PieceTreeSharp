@@ -1,40 +1,54 @@
-# Diff-Driven PieceTree Porting Prompt
+# DMA-Driven PieceTree Porting Prompt (v2.1)
 
-Use this prompt whenever you (future Copilot) resume the PieceTree migration. It encodes the diff-driven workflow we validated on 2025-11-19.
+Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA)** workflow. This minimizes context load by using file-based handoffs between SubAgents.
 
 ---
 
 **System Context**
-- Goal: Port VS Code PieceTree (`ts/src/vs/editor/common/model/pieceTreeTextBuffer`) into `src/PieceTree.TextBuffer` using .NET 9 + xUnit.
-- Strategy: Iterate via TS↔C# comparisons; each cycle produces a Diff Brief, targeted implementation, imported TS tests, and a single migration-log entry.
-- Documentation Discipline: Update only `docs/reports/migration-log.md`, `agent-team/task-board.md`, and the relevant member memory per cycle. Avoid redundant summaries elsewhere.
+- **Goal**: Port VS Code PieceTree (`ts/src/vs/editor/common/model/pieceTreeTextBuffer`) into `src/PieceTree.TextBuffer`.
+- **Philosophy**: You are the **CPU/Controller**; SubAgents are **Accelerators**.
+  - **Data Plane**: `agent-team/handoffs/` (High bandwidth, detailed briefs/logs).
+  - **Control Plane**: `agent-team/task-board.md` (Low bandwidth, status flags).
+- **Key Directories**:
+  - `agent-team/handoffs/`: Shared memory for briefs and results.
+  - `agent-team/members/`: Persistent memory for SubAgents.
 
-**Prompt Skeleton for Future Runs**
-1. **Load Context**
-   - Read `AGENTS.md`, `agent-team/type-mapping.md`, `agent-team/task-board.md`, and the latest changefeed at `agent-team/indexes/README.md#delta-2025-11-19`.
-   - Note the last migration-log row to understand the most recent C# additions.
+**Workflow Skeleton**
 
-2. **Plan Cycle**
-   - Pick a TS module slice (e.g., `nodeAt/nodeAt2`, `insert/delete`, search helpers).
-   - Ask Investigator-TS (via `runSubAgent`) for a Diff Brief: TS symbols, invariants, missing C# coverage, and candidate TS tests.
-   - Define acceptance: which C# files to touch, which TS tests to port to xUnit, and the single log/doc update you will make when done.
+1. **Initialize Cycle**
+   - **Load Context**: Read `AGENTS.md`, `agent-team/copilot-lead-notes.md` (CRITICAL for role alignment), `agent-team/type-mapping.md`, `agent-team/task-board.md`, and the latest changefeed at `agent-team/indexes/README.md#delta-2025-11-19`.
+   - **Pick Task**: Read `agent-team/task-board.md` to pick the next `TASK_ID` (e.g., PT-010).
+   - **Locate Sources**: If the source files aren't obvious, use `file_search` to find them by name. **DO NOT read their content**.
+   - **Define Scope**: Define the specific TS module slice to port (e.g., "Port `getLineContent` optimization").
 
-3. **Execute**
-   - Porter-CS implements the mapped methods or shims directly in the target C# file (prefer editing in-place, not PortingDrafts unless the diff is huge).
-   - Port the matching TS unit tests into `src/PieceTree.TextBuffer.Tests`, keeping names close to the originals.
-   - Run `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` after every functional change.
+2. **Phase 1: Investigation (Offloaded)**
+   - **Action**: Call `runSubAgent` (`subagentType="Investigator-TS"`).
+   - **Prompt**:
+     > "Analyze [TS Files] and compare with current C# implementation in `src/PieceTree.TextBuffer`.
+     > **DO NOT** output the analysis here.
+     > Write a detailed Diff Brief to `agent-team/handoffs/${TASK_ID}-Brief.md`.
+     > Include: TS symbols, invariants, missing C# coverage, edge cases, and 2-3 TS tests to port."
 
-4. **Document Minimally**
-   - Append one row to `docs/reports/migration-log.md` referencing the code paths and test command.
-   - If ownership or status shifts, update `agent-team/task-board.md` once per cycle.
-   - Log a single bullet in the relevant member memory (e.g., `agent-team/members/porter-cs.md`).
+3. **Phase 2: Implementation (Offloaded)**
+   - **Action**: Call `runSubAgent` (`subagentType="Porter-CS"`).
+   - **Prompt**:
+     > "Read `agent-team/handoffs/${TASK_ID}-Brief.md`.
+     > Implement the logic in `src/PieceTree.TextBuffer/...`.
+     > **NEVER** use `insert_edit_into_file`.
+     > Run tests: `dotnet test ...`.
+     > Write a summary of changes and test results to `agent-team/handoffs/${TASK_ID}-Result.md`."
+
+4. **Phase 3: Synchronization (Control Plane)**
+   - **Action**: Read `agent-team/handoffs/${TASK_ID}-Result.md` (The "Interrupt").
+   - **Decision**:
+     - **Success**: Update `docs/reports/migration-log.md` and update the `TASK_ID` row in `agent-team/task-board.md` to "Done".
+     - **Failure**: Call `runSubAgent` (`subagentType="Porter-CS"`) again. Prompt: "Read `agent-team/handoffs/${TASK_ID}-Result.md` to see the errors. Fix the implementation and re-run tests."
 
 5. **Iterate**
-   - Re-read the changefeed before the next cycle; note any files that now require Info-Indexer deltas (e.g., new shims, PortingDrafts).
-   - Continue looping until the TS slice reaches parity.
+   - Clear the "Interrupt" (acknowledge the result) and pick the next Task ID.
 
 **Reminders**
-- Prefer actionable Diff Briefs over general summaries; every run should highlight specific missing members/tests.
-- Treat typed arrays, regex differences, and unions pragmatically: implement shims once, then reuse.
-- Only stop an iteration early if a blocker arises; document the blocker in the member memory and surface it in the next call.
-- Keep conversations concise—lead with plan, show diffs/tests, then record the single migration-log entry.
+- **Zero-Copy**: Don't ask SubAgents to "report back" the full code. Ask them to "write to file".
+- **Monitoring**: Your context window is for *control signals* (Task IDs, Statuses), not *data* (Code, Diffs).
+- **Role Alignment**: You are the Manager. Don't write code unless it's a one-line fix.
+

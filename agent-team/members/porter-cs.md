@@ -52,6 +52,26 @@
   - 移植 TS 基础编辑测试至 `PieceTreeBaseTests.cs`，覆盖 `BasicInsertDelete`、`MoreInserts`、`MoreDeletes`。
   - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，13 tests）。
 
+- **2025-11-19 – PT-005 Search**
+  - 实现 `PieceTreeSearcher` (C# Regex wrapper) 与 `SearchTypes` (SearchData, FindMatch, Range)。
+  - 实现 `PieceTreeModel.Search.cs`，包含 `FindMatchesLineByLine`、`FindMatchesInNode`、`FindMatchesInLine` 等核心搜索逻辑。
+  - 移植 TS 搜索逻辑，包括多行搜索、简单字符串搜索优化、Regex 搜索。
+  - 新增 `PieceTreeSearchTests.cs`，覆盖基本字符串搜索、Regex 搜索、多行搜索。
+  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 16 tests)。
+
+- **2025-11-19 – PT-008 Snapshot**
+  - 创建 `ITextSnapshot` 接口与 `PieceTreeSnapshot` 实现，支持基于 `PieceTreeModel` 的不可变快照读取。
+  - 更新 `PieceTreeModel` 以暴露 `Buffers` 并提供 `CreateSnapshot` 方法。
+  - 新增 `PieceTreeSnapshotTests.cs`，覆盖快照读取与不可变性验证（即使 Model 变更，Snapshot 内容保持不变）。
+  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 18 tests)。
+
+- **2025-11-19 – PT-009 Line Optimization**
+  - 在 `PieceTreeModel.cs` 中引入 `LastVisitedLine` 结构与 `_lastVisitedLine` 字段，实现单行缓存。
+  - 更新 `PieceTreeModel.Search.cs` 中的 `GetLineContent` 以利用缓存，并在 `PieceTreeModel.Edit.cs` 的 `Insert`/`Delete` 中失效缓存。
+  - 在 `PieceTreeBuffer` 中暴露 `GetLineContent` 以供测试。
+  - 新增 `PieceTreeBaseTests.cs` 测试用例 `GetLineContent_Cache_Invalidation_Insert` 和 `GetLineContent_Cache_Invalidation_Delete`，验证缓存失效逻辑。
+  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 20 tests)。
+
 - **Upcoming Goals (runSubAgent 粒度):**
   1. **PT-005.Search**：实现 `PieceTreeSearch` 逻辑，支持 Find/Match 等操作。
   2. **PT-004.G3**：实现长度/位置互转与 chunk-based slicing 的额外断言，扩充 xUnit 覆盖（CR-only、BOM、跨 chunk ranges）。

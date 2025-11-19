@@ -12,6 +12,10 @@
 | PT-004 | Port RBTree skeleton to C# | Porter-CS | `src/PieceTree.TextBuffer/Core` | 2 | In Progress | `docs/reports/migration-log.md` (2025-11-19 PT-004.Edit: Insert/Delete/NodeAt implemented) |
 | PT-005 | Draft QA test matrix & perf plan | QA-Automation | `src/PieceTree.TextBuffer.Tests/UnitTest1.cs`<br>`src/PieceTree.TextBuffer.Tests/TestMatrix.md` | 1 | In Progress | `src/PieceTree.TextBuffer.Tests/TestMatrix.md` (2025-11-19 matrix + 7 Fact baseline logged) |
 | PT-006 | Establish migration log & doc flow | DocMaintainer | `docs/sprints/sprint-org-self-improvement.md#milestone-c`<br>`docs/reports/consistency/consistency-report-20251119.md#findings` | 1 | Planned | `docs/reports/consistency/consistency-report-20251119.md#recommendations` (logging gap flagged) |
+| PT-007 | Port Search Logic | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeSearcher.cs` | 2 | Done | `docs/reports/migration-log.md` (2025-11-19 PT-005.Search implemented) |
+| PT-008 | Port Snapshot Logic | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeSnapshot.cs` | 1 | Done | `docs/reports/migration-log.md` (2025-11-19 PT-008.Snapshot implemented) |
+| PT-009 | Line Content Optimization | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeModel.cs` | 1 | Done | `docs/reports/migration-log.md` (2025-11-19 PT-009.LineOpt implemented) |
+| PT-010 | CRLF Normalization | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeNormalizer.cs` | 2 | Done | `docs/reports/migration-log.md` (2025-11-19 PT-010 implemented) |
 | OI-001 | Audit core docs orthogonality | DocMaintainer + Info-Indexer | `docs/reports/consistency/consistency-report-20251119.md` | 1 | Done | `docs/sprints/sprint-org-self-improvement.md#backlog-snapshot` (Done 2025-11-19) |
 | OI-002 | Create index catalog + first index | Info-Indexer | `agent-team/indexes/core-docs-index.md` | 1 | Done | `agent-team/indexes/README.md#delta-2025-11-19` (index creation logged) |
 | OI-003 | Template runSubAgent inputs & checklist | Planner | `agent-team/main-loop-methodology.md`<br>`agent-team/ai-team-playbook.md` | 1 | Done | `docs/sprints/sprint-org-self-improvement.md#backlog-snapshot` (Done 2025-11-19) |

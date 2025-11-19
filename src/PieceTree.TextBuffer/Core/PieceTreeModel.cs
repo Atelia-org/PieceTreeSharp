@@ -11,19 +11,27 @@ internal sealed partial class PieceTreeModel
 
     private readonly PieceTreeNode _sentinel = PieceTreeNode.Sentinel;
     private readonly PieceTreeSearchCache _searchCache = new();
+    private struct LastVisitedLine { public int LineNumber; public string Value; }
+    private LastVisitedLine _lastVisitedLine;
     private readonly List<ChunkBuffer> _buffers;
     private PieceTreeNode _root;
     private int _count;
+    private bool _eolNormalized;
+    private string _eol = "\n";
 
-    public PieceTreeModel(List<ChunkBuffer> buffers)
+    public PieceTreeModel(List<ChunkBuffer> buffers, bool eolNormalized = false, string eol = "\n")
     {
         _buffers = buffers ?? throw new ArgumentNullException(nameof(buffers));
         _root = _sentinel;
+        _eolNormalized = eolNormalized;
+        _eol = eol;
     }
 
     public PieceTreeNode Root => _root;
 
     public int PieceCount => _count;
+
+    internal IReadOnlyList<ChunkBuffer> Buffers => _buffers;
 
     public int TotalLength => ReferenceEquals(_root, _sentinel) ? 0 : _root.AggregatedLength;
 
@@ -32,6 +40,96 @@ internal sealed partial class PieceTreeModel
     public bool IsEmpty => ReferenceEquals(_root, _sentinel);
 
     internal PieceTreeSearchCache SearchCache => _searchCache;
+
+    public void NormalizeEOL(string eol)
+    {
+        _eol = eol;
+        var averageBufferSize = 65536;
+        var sb = new System.Text.StringBuilder();
+        var chunks = new List<string>();
+        bool skipNextLF = false;
+
+        foreach (var piece in EnumeratePiecesInOrder())
+        {
+            var buffer = _buffers[piece.BufferIndex];
+            var text = buffer.Slice(piece.Start, piece.End);
+            
+            int start = 0;
+            if (skipNextLF)
+            {
+                if (text.Length > 0 && text[0] == '\n')
+                {
+                    start = 1;
+                }
+                skipNextLF = false;
+            }
+            
+            for (int i = start; i < text.Length; i++)
+            {
+                char ch = text[i];
+                if (ch == '\r')
+                {
+                    sb.Append(eol);
+                    if (i + 1 < text.Length)
+                    {
+                        if (text[i + 1] == '\n')
+                        {
+                            i++;
+                        }
+                    }
+                    else
+                    {
+                        skipNextLF = true;
+                    }
+                }
+                else if (ch == '\n')
+                {
+                    sb.Append(eol);
+                }
+                else
+                {
+                    sb.Append(ch);
+                }
+            }
+            
+            if (sb.Length > averageBufferSize)
+            {
+                chunks.Add(sb.ToString());
+                sb.Clear();
+            }
+        }
+        
+        if (sb.Length > 0)
+        {
+            chunks.Add(sb.ToString());
+        }
+        
+        if (chunks.Count > 0)
+        {
+            _root = _sentinel;
+            _count = 0;
+            _searchCache.InvalidateFromOffset(0);
+            _buffers.Clear();
+            _buffers.Add(ChunkBuffer.Empty);
+            
+            foreach (var chunk in chunks)
+            {
+                var chunkBuffer = ChunkBuffer.FromText(chunk);
+                _buffers.Add(chunkBuffer);
+                var bufferIndex = _buffers.Count - 1;
+                var piece = new PieceSegment(
+                    bufferIndex,
+                    BufferCursor.Zero,
+                    chunkBuffer.CreateEndCursor(),
+                    chunkBuffer.LineFeedCount,
+                    chunkBuffer.Length
+                );
+                InsertPieceAtEnd(piece);
+            }
+            
+            _eolNormalized = true;
+        }
+    }
 
     public PieceTreeNode InsertPieceAtEnd(PieceSegment piece)
     {
@@ -122,6 +220,11 @@ internal sealed partial class PieceTreeModel
         {
             yield return node.Piece;
         }
+    }
+
+    public ITextSnapshot CreateSnapshot(string bom)
+    {
+        return new PieceTreeSnapshot(this, bom);
     }
 
     internal IEnumerable<PieceTreeNode> EnumerateNodesInOrder()

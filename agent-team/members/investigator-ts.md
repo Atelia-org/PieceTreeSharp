@@ -36,6 +36,24 @@
   - 明确将成果写回 `type-mapping.md` 与未来索引文件，便于 Planner 跟踪 PT/OI 交付。
   - 2025-11-19: 完成 PT-003 mapping pass（PieceSegment、PieceTreeNode、Searcher、BufferRange、helpers），在 `agent-team/type-mapping.md` 写入 invariants/QA hints/TODOs 并附 Diff Summary，标出 WordSeparators→.NET 映射仍待定义以便 Porter/QA 提前知晓。
   - 2025-11-19: 产出 PieceTree “type skeleton diff brief”，新增 `Line Infrastructure` / `Search Helpers` / `Builder/Normalizer` 三个映射表（见 `agent-team/type-mapping.md`），方便 Porter-CS 锚定缺口（search shim、builder 元数据、snapshot/cache）。
+  - 2025-11-19: 完成 PT-008 Snapshot 分析。
+    - 分析了 `pieceTreeBase.ts` 中的 `PieceTreeSnapshot` 。
+    - 确定了 `ITextSnapshot` 接口（简单的 `read(): string | null`）。
+    - 确认了线程安全性依赖于不可变的 `Piece` 和仅追加的缓冲区。
+    - 为 C# 移植准备了 Diff 简报：
+      - 类：实现了 `ITextSnapshot` 的 `PieceTreeSnapshot` 。
+      - 构造函数：捕获树状态（piece 列表）。
+      - `Read()`：迭代 pieces。
+      - 工厂： `PieceTreeBase.CreateSnapshot(string bom)` 。
+      - 测试：在 `pieceTreeTextBuffer.test.ts` 中识别 `bug #45564` 和不可变快照测试。
+  - 2025-11-19: 完成 PT-009 Line Optimization 分析。
+    - 分析了 `pieceTreeBase.ts` 中的 `_lastVisitedLine` 缓存逻辑。
+    - 确定了 `_lastVisitedLine` 是一个简单的单行缓存（lineNumber, value），在 `getLineContent` 中检查，在 `insert`/`delete` 中失效。
+    - 为 C# 移植准备了 Diff 简报：
+      - 结构：在 `PieceTreeModel` 中添加 `LastVisitedLine` 结构体和字段。
+      - 方法：更新 `GetLineContent` 以使用缓存。
+      - 失效：在 `Insert` 和 `Delete` 方法中重置缓存。
+      - 测试：建议添加访问同一行多次、修改后访问的测试用例。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。
