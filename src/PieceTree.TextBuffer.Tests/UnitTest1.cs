@@ -1,4 +1,6 @@
-﻿using PieceTree.TextBuffer;
+﻿using System.Linq;
+using System.Text;
+using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;
@@ -120,7 +122,95 @@ public class PieceTreeBufferTests
         Assert.Equal('c', buffer.GetCharCode(100));
     }
 
+    [Fact]
+    public void DeleteAcrossCrlfRepairsBoundary()
+    {
+        var build = PieceTreeBuilder.BuildFromChunks(new[] { "foo\r", "\nbar" });
+        var model = build.Model;
+
+        model.Delete(0, 3);
+
+        var snapshot = ReadModelText(model);
+        Assert.Equal("\r\nbar", snapshot);
+        Assert.Equal(snapshot.Length, model.TotalLength);
+        Assert.Equal(snapshot.Count(c => c == '\n'), model.TotalLineFeeds);
+    }
+
+    [Fact]
+    public void MetadataRecomputesAfterMultiLineDelete()
+    {
+        const string text = "line1\r\nline2\r\nline3";
+        var build = PieceTreeBuilder.BuildFromChunks(new[] { text });
+        var model = build.Model;
+
+        model.Delete("line1\r\n".Length, "line2\r\n".Length);
+
+        var snapshot = ReadModelText(model);
+        Assert.Equal("line1\r\nline3", snapshot);
+        Assert.Equal(snapshot.Length, model.TotalLength);
+        Assert.Equal(snapshot.Count(c => c == '\n'), model.TotalLineFeeds);
+    }
+
+    [Fact]
+    public void PieceCountTracksTreeMutations()
+    {
+        var build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
+        var model = build.Model;
+
+        Assert.Equal(model.EnumeratePiecesInOrder().Count(), model.PieceCount);
+
+        model.Insert(3, "XYZ");
+        model.Delete(0, 2);
+
+        Assert.Equal(model.EnumeratePiecesInOrder().Count(), model.PieceCount);
+    }
+
+    [Fact]
+    public void SearchCacheDropsDetachedNodes()
+    {
+        var build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
+        var model = build.Model;
+
+        var primed = model.NodeAt(0);
+        Assert.Equal("abc", ReadPieceText(model, primed.Node));
+
+        model.Delete(0, 3);
+
+        var hit = model.NodeAt(0);
+        Assert.Equal("def", ReadPieceText(model, hit.Node));
+    }
+
     // TODO(PT-005.S8): Blocked on Porter-CS (PT-004.G2) exposing EnumeratePieces to assert piece-level layout & chunk reuse.
     // TODO(PT-005.S9): Blocked on Investigator-TS finalizing BufferRange/SearchContext mapping before property-based edit fuzzing can begin.
     // TODO(PT-005.S10): Planned sequential delete+insert coverage to assert metadata after back-to-back ApplyEdit calls.
+
+    private static string ReadModelText(PieceTreeModel model)
+    {
+        var buffers = model.Buffers;
+        var builder = new StringBuilder();
+
+        foreach (var piece in model.EnumeratePiecesInOrder())
+        {
+            if (piece.Length == 0)
+            {
+                continue;
+            }
+
+            var buffer = buffers[piece.BufferIndex];
+            builder.Append(buffer.Slice(piece.Start, piece.End));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string ReadPieceText(PieceTreeModel model, PieceTreeNode node)
+    {
+        if (node is null || ReferenceEquals(node, PieceTreeNode.Sentinel) || node.Piece.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var buffer = model.Buffers[node.Piece.BufferIndex];
+        return buffer.Slice(node.Piece.Start, node.Piece.End);
+    }
 }
