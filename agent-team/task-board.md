@@ -1,27 +1,33 @@
-# Task Board - Phase 5: Alignment & Audit R2
+# Task Board - Phase 6: Alignment & Audit R3
 
-**Goal:** Run a second-pass audit/remediation cycle for TS parity, catching any missed advanced scenarios (regression coverage, TS feature parity, and high-risk edge cases).
+**Goal:** 启动第三轮 TS↔C# 对照审核（TextModel/搜索/Diff/Decorations/DocUI），通过“发现→修复→验证”链条确保 DocUI-ready 质量。
 
-**Changefeed Reminder:** Read `agent-team/indexes/README.md` before editing any status or owner so Task Board changes stay aligned with the Info-Indexer delta feed.
+**Changefeed Reminder:** 在修改任务状态前读取 `agent-team/indexes/README.md#delta-2025-11-20`，必要时请求 Info-Indexer 发布新 delta，避免与 `docs/reports/migration-log.md` 失联。
 
-## Alignment & Audit R2 (AA2/OI)
+## Alignment & Audit R3 (AA3/OI)
 
 | ID | Description | Owner | Key Artifacts | runSubAgent Budget | Status | Latest Update |
 | --- | --- | --- | --- | --- | --- | --- |
-| AA2-001 | Audit PieceTree advanced cases (split deletions, multi-line edits, metadata invariants) | Investigator-TS | `src/PieceTree.TextBuffer/PieceTreeModel.cs`<br>`src/PieceTree.TextBuffer/Operations` | 2 | Done | `agent-team/handoffs/AA2-001-Audit.md` |
-| AA2-002 | Audit TextModel undo/redo hooks, language configuration (tab size, indent), and EOL toggles | Investigator-TS | `src/PieceTree.TextBuffer/TextModel.cs`<br>`src/PieceTree.TextBuffer/TextModelUndoRedo.cs` | 2 | Done | `agent-team/handoffs/AA2-002-Audit.md` |
-| AA2-003 | Audit Search advanced features (regex captures, backreferences, Unicode word boundaries) | Investigator-TS | `src/PieceTree.TextBuffer/Search/PieceTreeSearcher.cs` | 2 | Done | `agent-team/handoffs/AA2-003-Audit.md` |
-| AA2-004 | Audit Diff prettify logic and decoration stickiness vs TS | Investigator-TS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 2 | Done | `agent-team/handoffs/AA2-004-Audit.md` |
-| AA2-005 | Remediate core issues surfaced in AA2-001/002 | Porter-CS | `src/PieceTree.TextBuffer/Core` | 3 | Done | CRLF/metadata/cache 修复与 TextModel undo/redo + options/EOL API 已落地，详见 [`docs/reports/migration-log.md`](../docs/reports/migration-log.md)（AA2-005）。|
-| AA2-006 | Remediate feature issues surfaced in AA2-003/004 | Porter-CS | `src/PieceTree.TextBuffer/Search`<br>`src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 3 | Done | Search/diff/decor parity landed（详见 [`docs/reports/migration-log.md`](../docs/reports/migration-log.md) AA2-006 + [`agent-team/indexes/README.md#delta-2025-11-20`](indexes/README.md#delta-2025-11-20)；`dotnet test ...` 71/71）。 |
-| OI-009 | Update documentation/indexes for Phase 5 (audit deltas, parity notes) | Info-Indexer | `agent-team/indexes/`<br>`docs/reports/` | 1 | Planned | - |
+| AA3-001 | Investigator：CL1（TextModel options / metadata / events）对照，生成差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/textModel.ts`<br>`src/PieceTree.TextBuffer/TextModel.cs`<br>`docs/reports/audit-checklist-aa3.md`<br>`agent-team/handoffs/AA3-001-Audit.md` | 2 | Done | `AA3-001-Audit.md` 列出 F1~F5（creation options、language config、attachment、EditStack、multi-range search）；CL1 清单已更新。 |
+| AA3-002 | Investigator：CL2（Search/Replace + regex captures）对照，生成差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/textModelSearch.ts`<br>`src/PieceTree.TextBuffer/Core/PieceTreeSearcher.cs`<br>`agent-team/handoffs/AA3-002-Audit.md` | 2 | Planned | - |
+| AA3-005 | Investigator：CL3（Diff prettify & move metadata）对照 | Investigator-TS | `ts/src/vs/editor/common/diff/diffComputer.ts`<br>`src/PieceTree.TextBuffer/Diff/DiffComputer.cs`<br>`agent-team/handoffs/AA3-005-Audit.md` | 2 | Planned | - |
+| AA3-007 | Investigator：CL4（Decorations & Markdown DocUI）对照 | Investigator-TS | `ts/src/vs/editor/common/model/textModelDecorations.ts`<br>`src/PieceTree.TextBuffer/Decorations`<br>`agent-team/handoffs/AA3-007-Audit.md` | 2 | Planned | - |
+| AA3-003 | Porter：落实 CL1 修复（TextModel options/metadata），更新 tests & 迁移日志 | Porter-CS | `src/PieceTree.TextBuffer/TextModel.cs`<br>`docs/reports/audit-checklist-aa3.md#cl1`<br>`agent-team/handoffs/AA3-003-Result.md` | 3 | Planned | Blocked on AA3-001 report |
+| AA3-004 | Porter：落实 CL2 修复（Search/Replace/regex） | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeSearcher.cs`<br>`PieceTree.TextBuffer.Tests/PieceTreeSearchTests.cs`<br>`agent-team/handoffs/AA3-004-Result.md` | 3 | Planned | Blocked on AA3-002 report |
+| AA3-006 | Porter：落实 CL3 修复（Diff/move metadata + consumers） | Porter-CS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`agent-team/handoffs/AA3-006-Result.md` | 3 | Planned | Blocked on AA3-005 report |
+| AA3-008 | Porter：落实 CL4 修复（Decorations/DocUI） | Porter-CS | `src/PieceTree.TextBuffer/Decorations`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`agent-team/handoffs/AA3-008-Result.md` | 3 | Planned | Blocked on AA3-007 report |
+| AA3-009 | QA：扩展 TextModel/Search/Diff/Decoration/Markdown Tests，记录 `dotnet test ...` 基线 | QA-Automation | `src/PieceTree.TextBuffer.Tests/`<br>`docs/reports/audit-checklist-aa3.md`<br>`agent-team/handoffs/AA3-009-QA.md` | 2 | Planned | Dependent on AA3-003~008 |
+| OI-010 | Info-Indexer：同步 Sprint 01 产物至 changefeed/索引，维护 AGENTS/Sprint/Task Board 一致性 | Info-Indexer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-01.md`<br>`docs/reports/migration-log.md` | 1 | Planned | Gated on AA3 deliverables |
 
 ## Reference & Logs
 
-- `agent-team/task-board-v4-archive.md` – Phase 4 (Alignment & Audit) history.
-- `agent-team/task-board-v3-archive.md` – Phase 3 (Diffing & Decorations) history.
-- `agent-team/task-board-v2-archive.md` – Phase 2 (TextModel & Interaction) history.
-- `agent-team/task-board-v1-archive.md` – Phase 1 (PieceTree Core) history.
-- `agent-team/indexes/README.md` – canonical Info-Indexer changefeed.
-- `docs/reports/migration-log.md` – full migration audit trail.
-- `AGENTS.md` – cross-session log.
+- `agent-team/task-board-v5-archive.md` – Phase 5 (Alignment & Audit R2) 历史。
+- `agent-team/task-board-v4-archive.md` – Phase 4 历史。
+- `agent-team/task-board-v3-archive.md` – Phase 3 历史。
+- `agent-team/task-board-v2-archive.md` – Phase 2 历史。
+- `agent-team/task-board-v1-archive.md` – Phase 1 历史。
+- `docs/sprints/sprint-01.md` – Sprint 01 目标/计划。
+- `docs/reports/audit-checklist-aa3.md` – CL1~CL4 清单。
+- `agent-team/indexes/README.md` – canonical Info-Indexer changefeed。
+- `docs/reports/migration-log.md` – full migration audit trail。
+- `AGENTS.md` – cross-session log。
