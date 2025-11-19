@@ -27,5 +27,7 @@
 - 2025-11-19：交付 PT-004.G1，`src/PieceTree.TextBuffer/Core` 接入 `PieceTreeBuilder`→`PieceTreeModel` 链路，`PieceTreeBuffer` 改为树驱动 façade 并记录增量编辑 TODO，`dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（4/4）通过且 Porting Log 更新。
 - 2025-11-19：PT-005.G1 完成 QA 基线，`src/PieceTree.TextBuffer.Tests/TestMatrix.md` 建立，`UnitTest1.cs` 扩展至 7 个 Plain/CRLF/Multi-chunk/metadata Fact，baseline `dotnet test`（7/7）与 S8~S10 TODO 均已记录。
 - 2025-11-19：创建 `docs/reports/migration-log.md`，在更新 AGENTS / Sprint / Task Board 状态前须先查阅对应迁移日志行并同步 `agent-team/indexes/README.md#delta-2025-11-19` changefeed。
+- 2025-11-19：确定以“Diff Brief → 实现 → TS 测试 → 单条日志”循环推进 PieceTree 迁移，并在 `docs/prompts/diff-driven-porting-prompt.md` 固化提示模板，引用 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md#delta-2025-11-19`](agent-team/indexes/README.md#delta-2025-11-19) 追踪每轮变更。
+- 2025-11-19：PT-004.Positions 增加 `TextPosition` 与 `PieceTreeBuffer.GetPositionAt/GetOffsetAt` 等 API，并移植 TS prefix-sum 风格测试（详见 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 对应条目，changefeed 仍为 [`agent-team/indexes/README.md#delta-2025-11-19`](agent-team/indexes/README.md#delta-2025-11-19)）。
 
 **状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19`，并在条目中附上两者的链接。

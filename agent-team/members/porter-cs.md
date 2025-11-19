@@ -40,6 +40,10 @@
   - 按类型映射要求实现 `LineStartTable`/`LineStartBuilder`（`src/PieceTree.TextBuffer/Core/LineStarts.cs`）并让 `ChunkBuffer` 保存 CR/LF/CRLF 计数与 `IsBasicAscii` 标志，PieceTreeBuilder 重用该元数据。
   - 新增 `PieceTreeSearchCache`（`src/PieceTree.TextBuffer/Core/PieceTreeSearchCache.cs`）及 `PieceTreeModel` 缓存钩子，后续 `nodeAt`/`getLineContent` 可复用缓存且在插入时自动失效。
   - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，7 tests）。
+- **2025-11-19 – PT-004 positions/API drop**
+  - 增加 `TextPosition` 结构与 `PieceTreeBuffer` 的 `GetPositionAt` / `GetOffsetAt` / `GetLineLength` / `GetLineCharCode` / `GetCharCode` API，暂以全文快照+`LineStartBuilder` 计算坐标，后续将替换为 tree-aware 实现。
+  - 在 `PieceTree.TextBuffer.Tests/UnitTest1.cs` 移植 TS `prefix sum` 风格断言，覆盖 offset→position round trip、CRLF 行长与行内字符编码，测试总数扩展至 10。
+  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，10 tests）。
 
 - **Upcoming Goals (runSubAgent 粒度):**
   1. **PT-004.G2-next**：消除重建式编辑，接入 change buffer + PieceTree 原生插入/删除，并补齐 `EnumeratePieces`/`LocateLineByOffset` API 供 QA 复用。

@@ -77,6 +77,49 @@ public class PieceTreeBufferTests
         Assert.Equal("abcXYZhij".Length, buffer.Length);
     }
 
+    [Fact]
+    public void PositionLookupMatchesTsPrefixSumExpectations()
+    {
+        const string text = "line1\nline2\r\nline3";
+        var buffer = new PieceTreeBuffer(text);
+
+        var pos0 = buffer.GetPositionAt(0);
+        Assert.Equal(new TextPosition(1, 1), pos0);
+
+        var posAfterLine1 = buffer.GetPositionAt("line1\n".Length);
+        Assert.Equal(new TextPosition(2, 1), posAfterLine1);
+
+        var posWithinLine3 = buffer.GetPositionAt(text.Length - 1);
+        Assert.Equal(new TextPosition(3, 5), posWithinLine3);
+
+        Assert.Equal(0, buffer.GetOffsetAt(1, 1));
+        Assert.Equal("line1\n".Length, buffer.GetOffsetAt(2, 1));
+        Assert.Equal(text.Length, buffer.GetOffsetAt(3, buffer.GetLineLength(3) + 1));
+    }
+
+    [Fact]
+    public void LineCharCodeFollowsCrlfBoundaries()
+    {
+        var buffer = PieceTreeBuffer.FromChunks(new[] { "foo\r\nbar", "\nend" });
+
+        Assert.Equal('f', buffer.GetLineCharCode(1, 0));
+        Assert.Equal('b', buffer.GetLineCharCode(2, 0));
+        Assert.Equal('e', buffer.GetLineCharCode(3, 0));
+
+        Assert.Equal(3, buffer.GetLineLength(1));
+        Assert.Equal(3, buffer.GetLineLength(2));
+        Assert.Equal(3, buffer.GetLineLength(3));
+    }
+
+    [Fact]
+    public void CharCodeClampedWithinDocument()
+    {
+        var buffer = new PieceTreeBuffer("abc");
+        Assert.Equal('a', buffer.GetCharCode(0));
+        Assert.Equal('c', buffer.GetCharCode(2));
+        Assert.Equal('c', buffer.GetCharCode(100));
+    }
+
     // TODO(PT-005.S8): Blocked on Porter-CS (PT-004.G2) exposing EnumeratePieces to assert piece-level layout & chunk reuse.
     // TODO(PT-005.S9): Blocked on Investigator-TS finalizing BufferRange/SearchContext mapping before property-based edit fuzzing can begin.
     // TODO(PT-005.S10): Planned sequential delete+insert coverage to assert metadata after back-to-back ApplyEdit calls.
