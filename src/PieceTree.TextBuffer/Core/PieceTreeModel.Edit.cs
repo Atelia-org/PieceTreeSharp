@@ -13,6 +13,8 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
+        _searchCache.InvalidateFromOffset(offset);
+
         if (_eolNormalized)
         {
             if (_eol == "\n")
@@ -201,6 +203,7 @@ internal sealed partial class PieceTreeModel
         }
 
         // RecomputeMetadataUpwards(_root); // Handled by RbInsert
+        _searchCache.InvalidateFromOffset(offset);
     }
 
     public void Delete(int offset, int cnt)
@@ -211,8 +214,11 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
+        _searchCache.InvalidateFromOffset(offset);
+
         var startHit = NodeAt(offset);
         var endHit = NodeAt(offset + cnt);
+        _searchCache.InvalidateFromOffset(offset);
         var startNode = startHit.Node;
         var endNode = endHit.Node;
 
@@ -225,17 +231,22 @@ internal sealed partial class PieceTreeModel
             {
                 if (cnt == startNode.Piece.Length)
                 {
+                    var next = startNode.Next();
                     RbDelete(startNode);
+                    ValidateCRLFWithPrevNode(next);
                     return;
                 }
                 DeleteNodeHead(startNode, endSplitPos);
                 _searchCache.InvalidateFromOffset(offset);
+                ValidateCRLFWithPrevNode(startNode);
+                ValidateCRLFWithNextNode(startNode);
                 return;
             }
 
             if (startHit.NodeStartOffset + startNode.Piece.Length == offset + cnt)
             {
                 DeleteNodeTail(startNode, startSplitPos);
+                ValidateCRLFWithNextNode(startNode);
                 return;
             }
 
@@ -266,7 +277,9 @@ internal sealed partial class PieceTreeModel
             secondNode = secondNode.Next();
         }
 
+        var prev = startNode.Piece.Length == 0 ? startNode.Prev() : startNode;
         DeleteNodes(nodesToDel);
+        ValidateCRLFWithNextNode(prev);
     }
 
     private void InsertContentToNodeLeft(string value, PieceTreeNode node)
@@ -278,6 +291,8 @@ internal sealed partial class PieceTreeModel
         {
             newNode = RbInsertLeft(newNode, newPieces[k]);
         }
+
+        ValidateCRLFWithPrevNode(newNode);
     }
 
     private void InsertContentToNodeRight(string value, PieceTreeNode node)
@@ -290,6 +305,8 @@ internal sealed partial class PieceTreeModel
         {
             tmpNode = RbInsertRight(tmpNode, newPieces[k]);
         }
+
+        ValidateCRLFWithPrevNode(newNode);
     }
 
     private BufferCursor PositionInBuffer(PieceTreeNode node, int remainder)
@@ -317,7 +334,7 @@ internal sealed partial class PieceTreeModel
 
     private void ValidateCRLFWithPrevNode(PieceTreeNode nextNode)
     {
-        if (ReferenceEquals(nextNode, _sentinel))
+        if (!ShouldCheckCRLF() || ReferenceEquals(nextNode, _sentinel))
         {
             return;
         }
@@ -328,20 +345,116 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
-        var prevPiece = prevNode.Piece;
-        var piece = nextNode.Piece;
-
-        if (EndWithCR(prevPiece) && StartWithLF(piece))
+        if (EndWithCR(prevNode.Piece) && StartWithLF(nextNode.Piece))
         {
-            var newPrevPiece = prevPiece with { LineFeedCount = prevPiece.LineFeedCount - 1 };
-            prevNode.Piece = newPrevPiece;
-            RecomputeMetadataUpwards(prevNode);
-        }
-        else
-        {
-             // throw new Exception($"Validation failed. Prev: {prevPiece}, Curr: {piece}. EndWithCR: {EndWithCR(prevPiece)}, StartWithLF: {StartWithLF(piece)}");
+            FixCRLF(prevNode, nextNode);
         }
     }
+
+    private void ValidateCRLFWithNextNode(PieceTreeNode node)
+    {
+        if (!ShouldCheckCRLF() || ReferenceEquals(node, _sentinel))
+        {
+            return;
+        }
+
+        var nextNode = node.Next();
+        if (ReferenceEquals(nextNode, _sentinel))
+        {
+            return;
+        }
+
+        if (EndWithCR(node.Piece) && StartWithLF(nextNode.Piece))
+        {
+            FixCRLF(node, nextNode);
+        }
+    }
+
+    private void FixCRLF(PieceTreeNode prevNode, PieceTreeNode nextNode)
+    {
+        if (ReferenceEquals(prevNode, _sentinel) || ReferenceEquals(nextNode, _sentinel))
+        {
+            return;
+        }
+
+        var mutationOffset = GetOffsetOfNode(prevNode);
+        _searchCache.InvalidateFromOffset(mutationOffset);
+
+        var nodesToDelete = new List<PieceTreeNode>(2);
+        RemoveTrailingCarriageReturn(prevNode, nodesToDelete);
+        RemoveLeadingLineFeed(nextNode, nodesToDelete);
+
+        var pieces = CreateNewPieces("\r\n");
+        var insertionAnchor = prevNode;
+        foreach (var piece in pieces)
+        {
+            insertionAnchor = RbInsertRight(insertionAnchor, piece);
+        }
+
+        foreach (var candidate in nodesToDelete)
+        {
+            if (!ReferenceEquals(candidate, _sentinel) && candidate.Piece.Length == 0)
+            {
+                RbDelete(candidate);
+            }
+        }
+    }
+
+    private void RemoveTrailingCarriageReturn(PieceTreeNode node, List<PieceTreeNode> nodesToDelete)
+    {
+        if (ReferenceEquals(node, _sentinel) || node.Piece.Length == 0)
+        {
+            return;
+        }
+
+        var piece = node.Piece;
+        var buffer = _buffers[piece.BufferIndex];
+        var endOffset = buffer.GetOffset(piece.End);
+        if (endOffset == 0)
+        {
+            return;
+        }
+
+        var newEnd = CursorFromOffset(piece.BufferIndex, endOffset - 1);
+        var newLength = piece.Length - 1;
+        var newLineFeeds = GetLineFeedCnt(piece.BufferIndex, piece.Start, newEnd);
+        node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeeds, newLength);
+        RecomputeMetadataUpwards(node);
+
+        if (newLength == 0)
+        {
+            nodesToDelete.Add(node);
+        }
+    }
+
+    private void RemoveLeadingLineFeed(PieceTreeNode node, List<PieceTreeNode> nodesToDelete)
+    {
+        if (ReferenceEquals(node, _sentinel) || node.Piece.Length == 0)
+        {
+            return;
+        }
+
+        var piece = node.Piece;
+        var buffer = _buffers[piece.BufferIndex];
+        var startOffset = buffer.GetOffset(piece.Start);
+        if (startOffset >= buffer.Length)
+        {
+            return;
+        }
+
+        var newStart = CursorFromOffset(piece.BufferIndex, startOffset + 1);
+        var newLength = piece.Length - 1;
+        var newLineFeeds = GetLineFeedCnt(piece.BufferIndex, newStart, piece.End);
+        node.Piece = new PieceSegment(piece.BufferIndex, newStart, piece.End, newLineFeeds, newLength);
+        RecomputeMetadataUpwards(node);
+
+        if (newLength == 0)
+        {
+            nodesToDelete.Add(node);
+        }
+    }
+
+    private bool ShouldCheckCRLF() => !(_eolNormalized && _eol == "\n");
 
     private bool EndWithCR(PieceSegment piece)
     {
@@ -376,6 +489,7 @@ internal sealed partial class PieceTreeModel
         
         node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeedCnt, newLength);
         UpdateTreeMetadata(node, size_delta, lf_delta);
+        RecomputeMetadataUpwards(node);
     }
 
     private void DeleteNodeHead(PieceTreeNode node, BufferCursor pos)
@@ -394,6 +508,7 @@ internal sealed partial class PieceTreeModel
         
         node.Piece = new PieceSegment(piece.BufferIndex, newStart, piece.End, newLineFeedCnt, newLength);
         UpdateTreeMetadata(node, size_delta, lf_delta);
+        RecomputeMetadataUpwards(node);
     }
 
     private void ShrinkNode(PieceTreeNode node, BufferCursor start, BufferCursor end)
@@ -411,6 +526,7 @@ internal sealed partial class PieceTreeModel
         
         node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeedCnt, newLength);
         UpdateTreeMetadata(node, newLength - oldLength, newLineFeedCnt - oldLFCnt);
+        RecomputeMetadataUpwards(node);
         
         var newPiece = new PieceSegment(
             piece.BufferIndex,
@@ -420,7 +536,8 @@ internal sealed partial class PieceTreeModel
             OffsetInBuffer(piece.BufferIndex, originalEnd) - OffsetInBuffer(piece.BufferIndex, end)
         );
         
-        RbInsertRight(node, newPiece);
+        var newNode = RbInsertRight(node, newPiece);
+        ValidateCRLFWithPrevNode(newNode);
     }
 
     private void DeleteNodes(List<PieceTreeNode> nodes)
@@ -480,6 +597,7 @@ internal sealed partial class PieceTreeModel
         }
 
         InsertFixup(z);
+        _count++;
         RecomputeMetadataUpwards(z);
         return z;
     }
@@ -511,12 +629,14 @@ internal sealed partial class PieceTreeModel
         }
 
         InsertFixup(z);
+        _count++;
         RecomputeMetadataUpwards(z);
         return z;
     }
 
     private void RbDelete(PieceTreeNode z)
     {
+        var deletionOffset = GetOffsetOfNode(z);
         PieceTreeNode x, y;
 
         if (ReferenceEquals(z.Left, _sentinel))
@@ -610,6 +730,8 @@ internal sealed partial class PieceTreeModel
         }
 
         z.Detach();
+        _count = Math.Max(0, _count - 1);
+        _searchCache.InvalidateFromOffset(deletionOffset);
 
         if (ReferenceEquals(x.Parent.Left, x))
         {
@@ -752,6 +874,16 @@ internal sealed partial class PieceTreeModel
     {
         if (ReferenceEquals(node, _sentinel)) return 0;
         return node.LineFeedsLeft + node.Piece.LineFeedCount + CalculateLF(node.Right);
+    }
+
+    private BufferCursor CursorFromOffset(int bufferIndex, int absoluteOffset)
+    {
+        var buffer = _buffers[bufferIndex];
+        absoluteOffset = Math.Clamp(absoluteOffset, 0, buffer.Buffer.Length);
+        var lineStarts = buffer.LineStarts;
+        var lineIndex = FindLineIndex(lineStarts, absoluteOffset);
+        var column = absoluteOffset - lineStarts[lineIndex];
+        return new BufferCursor(lineIndex, column);
     }
 
     private static int FindLineIndex(IReadOnlyList<int> lineStarts, int offset)

@@ -19,6 +19,7 @@ internal sealed class PieceTreeNode
         LineFeedsLeft = 0;
         AggregatedLength = piece.Length;
         AggregatedLineFeeds = piece.LineFeedCount;
+        IsDetached = false;
     }
 
     public PieceTreeNode(PieceSegment piece)
@@ -43,6 +44,8 @@ internal sealed class PieceTreeNode
     public int AggregatedLength { get; private set; }
 
     public int AggregatedLineFeeds { get; private set; }
+
+    internal bool IsDetached { get; private set; }
 
     public static PieceTreeNode Sentinel { get; } = CreateSentinel();
 
@@ -111,6 +114,7 @@ internal sealed class PieceTreeNode
         Parent = Sentinel;
         Left = Sentinel;
         Right = Sentinel;
+        IsDetached = true;
     }
 
     private static PieceTreeNode CreateSentinel()
@@ -126,6 +130,7 @@ internal sealed class PieceTreeNode
         sentinel.Parent = sentinel;
         sentinel.Left = sentinel;
         sentinel.Right = sentinel;
+        sentinel.IsDetached = false;
         return sentinel;
     }
 
@@ -138,6 +143,7 @@ internal sealed class PieceTreeNode
         LineFeedsLeft = 0;
         AggregatedLength = Piece.Length;
         AggregatedLineFeeds = Piece.LineFeedCount;
+        IsDetached = false;
     }
 
     internal void RecomputeAggregates(PieceTreeNode sentinel)

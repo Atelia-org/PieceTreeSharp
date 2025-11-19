@@ -129,7 +129,7 @@ internal sealed class PieceTreeSearchCache
 
         public bool IsValid(int earliestMutationOffset)
         {
-            if (Node.Parent is null)
+            if (Node.IsDetached)
             {
                 return false;
             }
