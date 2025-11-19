@@ -8,11 +8,11 @@
 
 | ID | Description | Owner | Key Artifacts | runSubAgent Budget | Status | Latest Update |
 | --- | --- | --- | --- | --- | --- | --- |
-| AA2-001 | Audit PieceTree advanced cases (split deletions, multi-line edits, metadata invariants) | Investigator-TS | `src/PieceTree.TextBuffer/PieceTreeModel.cs`<br>`src/PieceTree.TextBuffer/Operations` | 2 | Done | `agent-team/handoffs/AA2-001-Audit.md` |
-| AA2-002 | Audit TextModel undo/redo hooks, language configuration (tab size, indent), and EOL toggles | Investigator-TS | `src/PieceTree.TextBuffer/TextModel.cs`<br>`src/PieceTree.TextBuffer/TextModelUndoRedo.cs` | 2 | Done | `agent-team/handoffs/AA2-002-Audit.md` |
-| AA2-003 | Audit Search advanced features (regex captures, backreferences, Unicode word boundaries) | Investigator-TS | `src/PieceTree.TextBuffer/Search/PieceTreeSearcher.cs` | 2 | Done | `agent-team/handoffs/AA2-003-Audit.md` |
-| AA2-004 | Audit Diff prettify logic and decoration stickiness vs TS | Investigator-TS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 2 | Done | `agent-team/handoffs/AA2-004-Audit.md` |
-| AA2-005 | Remediate core issues surfaced in AA2-001/002 | Porter-CS | `src/PieceTree.TextBuffer/Core` | 3 | In Progress | CRLF/metadata/cache/`PieceCount` 修复已合入，详见 [`docs/reports/migration-log.md`](../docs/reports/migration-log.md)（AA2-005）|
+| AA2-001 | Audit PieceTree advanced cases (split deletions, multi-line edits, metadata invariants) | Investigator-TS | `src/PieceTree.TextBuffer/PieceTreeModel.cs`<br>`src/PieceTree.TextBuffer/Operations` | 2 | Planned | - |
+| AA2-002 | Audit TextModel undo/redo hooks, language configuration (tab size, indent), and EOL toggles | Investigator-TS | `src/PieceTree.TextBuffer/TextModel.cs`<br>`src/PieceTree.TextBuffer/TextModelUndoRedo.cs` | 2 | Planned | - |
+| AA2-003 | Audit Search advanced features (regex captures, backreferences, Unicode word boundaries) | Investigator-TS | `src/PieceTree.TextBuffer/Search/PieceTreeSearcher.cs` | 2 | Planned | - |
+| AA2-004 | Audit Diff prettify logic and decoration stickiness vs TS | Investigator-TS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 2 | Planned | - |
+| AA2-005 | Remediate core issues surfaced in AA2-001/002 | Porter-CS | `src/PieceTree.TextBuffer/Core` | 3 | Planned | - |
 | AA2-006 | Remediate feature issues surfaced in AA2-003/004 | Porter-CS | `src/PieceTree.TextBuffer/Search`<br>`src/PieceTree.TextBuffer/Diff` | 3 | Planned | - |
 | OI-009 | Update documentation/indexes for Phase 5 (audit deltas, parity notes) | Info-Indexer | `agent-team/indexes/`<br>`docs/reports/` | 1 | Planned | - |
 
