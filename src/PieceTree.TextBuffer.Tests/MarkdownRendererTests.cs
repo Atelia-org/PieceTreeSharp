@@ -17,7 +17,7 @@ namespace PieceTree.TextBuffer.Tests
             // Cursor at 1, 7 ('W')
             var pos = new TextPosition(1, 7);
             var offset = model.GetOffsetAt(pos);
-            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.Default);
+            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.CreateCursorOptions());
 
             var output = renderer.Render(model);
             
@@ -40,7 +40,7 @@ Hello |World
             var startOffset = model.GetOffsetAt(startPos);
             var endOffset = model.GetOffsetAt(endPos);
             
-            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.Default);
+            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSelectionOptions());
 
             var output = renderer.Render(model);
             
@@ -60,7 +60,7 @@ Hello [World]
             // Cursor at start of Line 2 (2, 1)
             var pos = new TextPosition(2, 1);
             var offset = model.GetOffsetAt(pos);
-            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.Default);
+            model.AddDecoration(new TextRange(offset, offset), ModelDecorationOptions.CreateCursorOptions());
 
             var output = renderer.Render(model);
             
@@ -84,7 +84,7 @@ Line1
             var startOffset = model.GetOffsetAt(startPos);
             var endOffset = model.GetOffsetAt(endPos);
             
-            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.Default);
+            model.AddDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSelectionOptions());
 
             var output = renderer.Render(model);
             
@@ -94,6 +94,48 @@ Line1
 Line2]
 ```";
             Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_SearchHighlights()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+            var options = new MarkdownRenderOptions
+            {
+                Search = new MarkdownSearchOptions
+                {
+                    Query = "World",
+                }
+            };
+
+            var output = renderer.Render(model, options);
+            var expected = 
+@"```text
+Hello <World>
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_OwnerFilter()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+
+            var cursorOffset = model.GetOffsetAt(new TextPosition(1, 6));
+            model.AddDecoration(new TextRange(cursorOffset, cursorOffset), ModelDecorationOptions.CreateCursorOptions());
+
+            var ownerId = model.AllocateDecorationOwnerId();
+            model.DeltaDecorations(ownerId, null, new[]
+            {
+                new ModelDeltaDecoration(new TextRange(2, 4), ModelDecorationOptions.CreateSelectionOptions()),
+            });
+
+            var filtered = renderer.Render(model, new MarkdownRenderOptions { OwnerIdFilter = ownerId });
+
+            Assert.DoesNotContain("|", filtered);
+            Assert.Contains("[ll", filtered);
         }
     }
 }

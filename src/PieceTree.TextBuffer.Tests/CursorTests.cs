@@ -1,5 +1,6 @@
 using Xunit;
 using PieceTree.TextBuffer;
+using PieceTree.TextBuffer.Decorations;
 using CursorClass = PieceTree.TextBuffer.Cursor.Cursor;
 
 namespace PieceTree.TextBuffer.Tests;
@@ -158,5 +159,17 @@ public class CursorTests
         cursor.MoveDown(); // (2, 6)
         cursor.MoveDown(); // (3, 8) - NOT 9
         Assert.Equal(new TextPosition(3, 8), cursor.Selection.Active);
+        cursor.Dispose();
+    }
+
+    [Fact]
+    public void CursorProducesDecorations()
+    {
+        var model = new TextModel("Hello");
+        using var cursor = new CursorClass(model);
+
+        var decorations = model.GetDecorationsInRange(new TextRange(0, model.GetLength()));
+        Assert.Single(decorations);
+        Assert.Equal(DecorationRenderKind.Cursor, decorations[0].Options.RenderKind);
     }
 }

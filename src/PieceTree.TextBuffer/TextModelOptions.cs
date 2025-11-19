@@ -8,6 +8,13 @@ public enum EndOfLineSequence
     CRLF = 1,
 }
 
+public enum EndOfLinePreference
+{
+    TextDefined = 0,
+    LF = 1,
+    CRLF = 2,
+}
+
 public enum DefaultEndOfLine
 {
     LF = 1,

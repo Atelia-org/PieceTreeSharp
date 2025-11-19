@@ -1,20 +1,221 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PieceTree.TextBuffer.Diff
 {
     public class DiffComputer
     {
+        public static DiffResult Compute(string original, string modified, DiffComputerOptions? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(original);
+            ArgumentNullException.ThrowIfNull(modified);
+
+            var configured = options ?? new DiffComputerOptions();
+            var raw = new LcsDiff<char>(original.ToCharArray(), modified.ToCharArray(), EqualityComparer<char>.Default).ComputeDiff();
+            var changes = new List<DiffChange>(raw);
+            var summary = new DiffSummary();
+
+            if (configured.EnablePrettify && changes.Count > 1)
+            {
+                changes = MergeShortMatches(changes, configured.ShortMatchMergeThreshold, summary);
+                if (configured.ExtendToWordBoundaries)
+                {
+                    if (ExtendToWordBoundaries(original, modified, changes))
+                    {
+                        summary.UsedPrettify = true;
+                    }
+                }
+                else if (summary.MergeCount > 0)
+                {
+                    summary.UsedPrettify = true;
+                }
+            }
+
+            var moves = configured.ComputeMoves
+                ? DetectMoves(original, modified, changes, configured, summary)
+                : Array.Empty<DiffMove>();
+
+            return new DiffResult(changes, moves, summary);
+        }
+
         public static DiffChange[] ComputeDiff(string original, string modified)
         {
-            return ComputeDiff(original.ToCharArray(), modified.ToCharArray());
+            return Compute(original, modified).Changes.ToArray();
+        }
+
+        public static DiffResult Compute<T>(IList<T> original, IList<T> modified, IEqualityComparer<T>? comparer = null, DiffComputerOptions? options = null)
+        {
+            comparer ??= EqualityComparer<T>.Default;
+            var raw = new LcsDiff<T>(original, modified, comparer).ComputeDiff();
+            var changes = new List<DiffChange>(raw);
+            return new DiffResult(changes, Array.Empty<DiffMove>(), new DiffSummary());
         }
 
         public static DiffChange[] ComputeDiff<T>(IList<T> original, IList<T> modified, IEqualityComparer<T>? comparer = null)
         {
-            comparer ??= EqualityComparer<T>.Default;
-            return new LcsDiff<T>(original, modified, comparer).ComputeDiff();
+            return Compute(original, modified, comparer).Changes.ToArray();
         }
+
+        private static List<DiffChange> MergeShortMatches(IReadOnlyList<DiffChange> source, int threshold, DiffSummary summary)
+        {
+            if (source.Count <= 1)
+            {
+                return new List<DiffChange>(source);
+            }
+
+            var result = new List<DiffChange>();
+            var current = source[0];
+            for (int i = 1; i < source.Count; i++)
+            {
+                var next = source[i];
+                var gapOriginal = next.OriginalStart - current.OriginalEnd;
+                var gapModified = next.ModifiedStart - current.ModifiedEnd;
+                if (gapOriginal <= threshold && gapModified <= threshold)
+                {
+                    current = new DiffChange(
+                        current.OriginalStart,
+                        next.OriginalEnd - current.OriginalStart,
+                        current.ModifiedStart,
+                        next.ModifiedEnd - current.ModifiedStart);
+                    summary.MergeCount++;
+                }
+                else
+                {
+                    result.Add(current);
+                    current = next;
+                }
+            }
+
+            result.Add(current);
+            return result;
+        }
+
+        private static bool ExtendToWordBoundaries(string original, string modified, List<DiffChange> changes)
+        {
+            var changed = false;
+            for (int i = 0; i < changes.Count; i++)
+            {
+                var change = changes[i];
+
+                while (change.OriginalStart > 0 && change.ModifiedStart > 0)
+                {
+                    var oChar = original[change.OriginalStart - 1];
+                    var mChar = modified[change.ModifiedStart - 1];
+                    if (oChar != mChar || !IsWordChar(oChar))
+                    {
+                        break;
+                    }
+
+                    change.OriginalStart--;
+                    change.OriginalLength++;
+                    change.ModifiedStart--;
+                    change.ModifiedLength++;
+                    changed = true;
+                }
+
+                while (change.OriginalEnd < original.Length && change.ModifiedEnd < modified.Length)
+                {
+                    var oChar = original[change.OriginalEnd];
+                    var mChar = modified[change.ModifiedEnd];
+                    if (oChar != mChar || !IsWordChar(oChar))
+                    {
+                        break;
+                    }
+
+                    change.OriginalLength++;
+                    change.ModifiedLength++;
+                    changed = true;
+                }
+
+                changes[i] = change;
+            }
+
+            return changed;
+        }
+
+        private static IReadOnlyList<DiffMove> DetectMoves(string original, string modified, IReadOnlyList<DiffChange> changes, DiffComputerOptions options, DiffSummary summary)
+        {
+            var deletions = new List<(DiffChange change, string text)>();
+            var insertions = new List<(DiffChange change, string text)>();
+
+            foreach (var change in changes)
+            {
+                if (change.OriginalLength > 0)
+                {
+                    var text = original.Substring(change.OriginalStart, change.OriginalLength).Trim();
+                    if (text.Length >= options.MoveDetectionMinMatchLength)
+                    {
+                        deletions.Add((change, text));
+                    }
+                }
+
+                if (change.ModifiedLength > 0)
+                {
+                    var text = modified.Substring(change.ModifiedStart, change.ModifiedLength).Trim();
+                    if (text.Length >= options.MoveDetectionMinMatchLength)
+                    {
+                        insertions.Add((change, text));
+                    }
+                }
+            }
+
+            if (deletions.Count == 0 || insertions.Count == 0)
+            {
+                return Array.Empty<DiffMove>();
+            }
+
+            var moves = new List<DiffMove>();
+            var usedInsertions = new bool[insertions.Count];
+            var maxCandidates = options.MaxMoveCandidates <= 0 ? int.MaxValue : options.MaxMoveCandidates;
+            var evaluated = 0;
+
+            foreach (var deletion in deletions)
+            {
+                if (evaluated++ >= maxCandidates)
+                {
+                    break;
+                }
+
+                for (int i = 0; i < insertions.Count; i++)
+                {
+                    if (usedInsertions[i])
+                    {
+                        continue;
+                    }
+
+                    if (ChangesMatch(deletion.change, insertions[i].change))
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(deletion.text, insertions[i].text, StringComparison.Ordinal))
+                    {
+                        moves.Add(new DiffMove(
+                            deletion.change.OriginalStart,
+                            deletion.change.OriginalLength,
+                            insertions[i].change.ModifiedStart,
+                            insertions[i].change.ModifiedLength,
+                            deletion.text));
+                        usedInsertions[i] = true;
+                        summary.MoveCount++;
+                        break;
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        private static bool ChangesMatch(DiffChange left, DiffChange right)
+        {
+            return left.OriginalStart == right.OriginalStart &&
+                   left.OriginalLength == right.OriginalLength &&
+                   left.ModifiedStart == right.ModifiedStart &&
+                   left.ModifiedLength == right.ModifiedLength;
+        }
+
+        private static bool IsWordChar(char ch) => char.IsLetterOrDigit(ch) || ch == '_';
     }
 
     internal class LcsDiff<T>
@@ -195,5 +396,6 @@ namespace PieceTree.TextBuffer.Diff
             Array.Copy(right, 0, result2, left.Length, right.Length);
             return result2;
         }
+
     }
 }

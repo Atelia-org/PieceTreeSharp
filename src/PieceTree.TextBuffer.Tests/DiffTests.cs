@@ -78,6 +78,32 @@ namespace PieceTree.TextBuffer.Tests
             VerifyChanges(original, modified, changes);
         }
 
+        [Fact]
+        public void PrettyDiffMergesCommaInsertion()
+        {
+            var original = "import { Baz, Bar } from \"foo\";";
+            var modified = "import { Baz, Bar, Foo } from \"foo\";";
+            var result = DiffComputer.Compute(original, modified);
+
+            Assert.Single(result.Changes);
+            var change = result.Changes[0];
+            Assert.Equal(0, change.OriginalLength);
+            Assert.Equal(", Foo".Length, change.ModifiedLength);
+            Assert.Equal(", Foo", modified.Substring(change.ModifiedStart, change.ModifiedLength));
+        }
+
+        [Fact]
+        public void MoveDetectionFindsRelocatedBlock()
+        {
+            var original = "alpha\nbeta\ngamma\ndelta";
+            var modified = "gamma\ndelta\nalpha\nbeta";
+            var result = DiffComputer.Compute(original, modified, new DiffComputerOptions { MoveDetectionMinMatchLength = 4 });
+
+            Assert.NotEmpty(result.Moves);
+            Assert.True(result.Summary.MoveCount > 0);
+            Assert.Contains(result.Moves, move => move.Text.Contains("alpha", StringComparison.Ordinal));
+        }
+
         private void VerifyChanges(string original, string modified, DiffChange[] changes)
         {
             int originalIndex = 0;

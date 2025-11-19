@@ -2,98 +2,50 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Rendering
 {
     public class MarkdownRenderer
     {
-        public string Render(TextModel model)
+        private readonly record struct InlineMarker(int Column, string Text, int Priority);
+
+        public string Render(TextModel model, MarkdownRenderOptions? options = null)
         {
+            ArgumentNullException.ThrowIfNull(model);
             var sb = new StringBuilder();
             sb.AppendLine("```text");
 
+            var ownerFilter = options?.OwnerIdFilter ?? DecorationOwnerIds.Any;
+            var searchMarkers = CollectSearchMarkers(model, options?.Search);
             int lineCount = model.GetLineCount();
             for (int i = 1; i <= lineCount; i++)
             {
                 string lineContent = model.GetLineContent(i);
                 int lineStartOffset = model.GetOffsetAt(new TextPosition(i, 1));
-                // We need to include the newline in the range to catch decorations at the end of the line?
-                // Or just the content?
-                // If a cursor is at the end of the line (after the last char), its offset is start + length.
-                // GetDecorationsInRange takes a range.
-                // Let's search for decorations that might overlap this line.
-                // A decoration at the very end of the line (col = len + 1) has offset = start + len.
-                
-                int lineEndOffset = lineStartOffset + lineContent.Length; 
-                // Note: GetLineContent strips EOL. So the actual line in buffer might be longer.
-                // But we only care about rendering the content we have.
-                // However, if the cursor is at the end of the line, we want to show it.
-                
-                // We search a bit wider to be safe, or just exact?
-                // If we search [start, end], we get things overlapping.
-                // Since we check LineNumber later, we can be generous with the search range.
-                // But we must be careful not to miss a cursor at the very end.
-                // A cursor at (i, len+1) has offset = lineStartOffset + len.
-                
-                var decorations = model.GetDecorationsInRange(new TextRange(lineStartOffset, lineEndOffset + 1));
+                int lineEndOffset = lineStartOffset + lineContent.Length;
+                var decorations = model.GetDecorationsInRange(new TextRange(lineStartOffset, lineEndOffset + 1), ownerFilter);
 
-                var insertions = new List<(int Index, string Text)>();
-
-                foreach (var dec in decorations)
+                var markers = new List<InlineMarker>();
+                foreach (var decoration in decorations)
                 {
-                    // Cursor
-                    if (dec.Range.Length == 0)
-                    {
-                        var pos = model.GetPositionAt(dec.Range.StartOffset);
-                        if (pos.LineNumber == i)
-                        {
-                            insertions.Add((pos.Column - 1, "|"));
-                        }
-                    }
-                    // Selection
-                    else
-                    {
-                        var startPos = model.GetPositionAt(dec.Range.StartOffset);
-                        var endPos = model.GetPositionAt(dec.Range.EndOffset);
-
-                        if (startPos.LineNumber == i)
-                        {
-                            insertions.Add((startPos.Column - 1, "["));
-                        }
-                        if (endPos.LineNumber == i)
-                        {
-                            insertions.Add((endPos.Column - 1, "]"));
-                        }
-                    }
+                    AppendDecorationMarkers(model, decoration, i, markers);
                 }
 
-                // Sort descending by index to insert without shifting
-                // If indices are equal, we need a deterministic order.
-                // E.g. Cursor | and Selection Start [ at same position.
-                // [|text vs |[text.
-                // Usually cursor is inside selection? Or at edge?
-                // If I select "a" -> [a]. Cursor is usually at one end.
-                // If cursor is at start: |[a] or [|a]?
-                // If cursor is at end: [a]| or [a|]?
-                // Let's just rely on stable sort or secondary sort.
-                // Let's say we want markers to be "outside" -> [ ... ]
-                // And cursor is a point.
-                // If we have [ and |, maybe |[ is better?
-                // If we have ] and |, maybe ]| is better?
-                // For now, just sort by index.
-                
-                var sortedInsertions = insertions
-                    .OrderByDescending(x => x.Index)
-                    .ThenByDescending(x => x.Text) // Deterministic tie-breaker
-                    .ToList();
+                if (searchMarkers.TryGetValue(i, out var searchLineMarkers))
+                {
+                    markers.AddRange(searchLineMarkers);
+                }
 
                 var sbLine = new StringBuilder(lineContent);
-                foreach (var ins in sortedInsertions)
+                foreach (var marker in markers
+                    .OrderByDescending(m => m.Column)
+                    .ThenByDescending(m => m.Priority)
+                    .ThenByDescending(m => m.Text, StringComparer.Ordinal))
                 {
-                    // Clamp index to valid range (0 to Length)
-                    int idx = Math.Clamp(ins.Index, 0, sbLine.Length);
-                    sbLine.Insert(idx, ins.Text);
+                    int idx = Math.Clamp(marker.Column, 0, sbLine.Length);
+                    sbLine.Insert(idx, marker.Text);
                 }
 
                 sb.AppendLine(sbLine.ToString());
@@ -101,6 +53,87 @@ namespace PieceTree.TextBuffer.Rendering
 
             sb.Append("```");
             return sb.ToString();
+        }
+
+        private static Dictionary<int, List<InlineMarker>> CollectSearchMarkers(TextModel model, MarkdownSearchOptions? options)
+        {
+            var result = new Dictionary<int, List<InlineMarker>>();
+            if (options == null || string.IsNullOrEmpty(options.Query))
+            {
+                return result;
+            }
+
+            var searchParams = new SearchParams(options.Query, options.IsRegex, options.MatchCase, options.WordSeparators);
+            var matches = model.FindMatches(searchParams, null, options.CaptureMatches, options.Limit);
+            foreach (var match in matches)
+            {
+                AddSearchMarker(result, match.Range.Start.LineNumber, match.Range.Start.Column - 1, "<");
+                AddSearchMarker(result, match.Range.End.LineNumber, match.Range.End.Column - 1, ">");
+            }
+
+            return result;
+        }
+
+        private static void AddSearchMarker(Dictionary<int, List<InlineMarker>> store, int lineNumber, int column, string text)
+        {
+            if (!store.TryGetValue(lineNumber, out var list))
+            {
+                list = new List<InlineMarker>();
+                store[lineNumber] = list;
+            }
+
+            list.Add(new InlineMarker(column, text, 0));
+        }
+
+        private static void AppendDecorationMarkers(TextModel model, ModelDecoration decoration, int lineNumber, List<InlineMarker> markers)
+        {
+            if (decoration.IsCollapsed && !decoration.Options.ShowIfCollapsed)
+            {
+                return;
+            }
+
+            switch (decoration.Options.RenderKind)
+            {
+                case DecorationRenderKind.Cursor:
+                {
+                    var pos = model.GetPositionAt(decoration.Range.StartOffset);
+                    if (pos.LineNumber == lineNumber)
+                    {
+                        markers.Add(new InlineMarker(pos.Column - 1, "|", 3));
+                    }
+                    break;
+                }
+                case DecorationRenderKind.Selection:
+                {
+                    var startPos = model.GetPositionAt(decoration.Range.StartOffset);
+                    if (startPos.LineNumber == lineNumber)
+                    {
+                        markers.Add(new InlineMarker(startPos.Column - 1, "[", 2));
+                    }
+
+                    var endPos = model.GetPositionAt(decoration.Range.EndOffset);
+                    if (endPos.LineNumber == lineNumber)
+                    {
+                        markers.Add(new InlineMarker(endPos.Column - 1, "]", 2));
+                    }
+                    break;
+                }
+                case DecorationRenderKind.SearchMatch:
+                {
+                    var start = model.GetPositionAt(decoration.Range.StartOffset);
+                    if (start.LineNumber == lineNumber)
+                    {
+                        markers.Add(new InlineMarker(start.Column - 1, "<", 1));
+                    }
+
+                    var end = model.GetPositionAt(decoration.Range.EndOffset);
+                    if (end.LineNumber == lineNumber)
+                    {
+                        markers.Add(new InlineMarker(end.Column - 1, ">", 1));
+                    }
+                    break;
+                }
+            }
         }
     }
 }

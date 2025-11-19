@@ -1,18 +1,27 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using PieceTree.TextBuffer.Core;
+using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Cursor;
 
-public class Cursor
+public class Cursor : IDisposable
 {
     private readonly TextModel _model;
     private Selection _selection;
     private int _stickyColumn = -1;
+    private readonly int _ownerId;
+    private string[] _decorationIds = Array.Empty<string>();
+    private bool _disposed;
 
     public Cursor(TextModel model)
     {
         _model = model ?? throw new ArgumentNullException(nameof(model));
         _selection = new Selection(new TextPosition(1, 1), new TextPosition(1, 1));
+        _ownerId = _model.AllocateDecorationOwnerId();
+        _model.OnDidChangeOptions += HandleOptionsChanged;
+        UpdateDecorations();
     }
 
     public Selection Selection => _selection;
@@ -22,6 +31,7 @@ public class Cursor
         var validated = ValidatePosition(position);
         _selection = new Selection(validated, validated);
         _stickyColumn = -1;
+        UpdateDecorations();
     }
 
     public void SelectTo(TextPosition position)
@@ -29,6 +39,7 @@ public class Cursor
         var validated = ValidatePosition(position);
         _selection = new Selection(_selection.Anchor, validated);
         _stickyColumn = -1;
+        UpdateDecorations();
     }
 
     public void MoveLeft()
@@ -95,6 +106,18 @@ public class Cursor
         }
     }
 
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _model.OnDidChangeOptions -= HandleOptionsChanged;
+        _model.RemoveAllDecorations(_ownerId);
+    }
+
     private TextPosition ValidatePosition(TextPosition position)
     {
         var lineCount = _model.GetLineCount();
@@ -104,5 +127,40 @@ public class Cursor
         var col = Math.Clamp(position.Column, 1, lineLen + 1);
         
         return new TextPosition(line, col);
+    }
+
+    private void UpdateDecorations()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var specs = BuildDecorations();
+        var created = _model.DeltaDecorations(_ownerId, _decorationIds, specs);
+        _decorationIds = created.Select(d => d.Id).ToArray();
+    }
+
+    private IReadOnlyList<ModelDeltaDecoration> BuildDecorations()
+    {
+        var result = new List<ModelDeltaDecoration>();
+
+        var activeOffset = _model.GetOffsetAt(_selection.Active);
+        result.Add(new ModelDeltaDecoration(new TextRange(activeOffset, activeOffset), ModelDecorationOptions.CreateCursorOptions()));
+
+        if (!_selection.IsEmpty)
+        {
+            var startOffset = _model.GetOffsetAt(_selection.Start);
+            var endOffset = _model.GetOffsetAt(_selection.End);
+            result.Add(new ModelDeltaDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSelectionOptions()));
+        }
+
+        return result;
+    }
+
+    private void HandleOptionsChanged(object? sender, TextModelOptionsChangedEventArgs e)
+    {
+        _stickyColumn = -1;
+        // TODO(SnippetController): integrate snippet tabstop stickiness so column resets fold into snippet navigation once ported.
     }
 }

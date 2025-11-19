@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer;
 
@@ -51,10 +55,11 @@ public class TextModelContentChangedEventArgs : EventArgs
     }
 }
 
-public class TextModel
+public class TextModel : ITextSearchAccess
 {
     private readonly PieceTreeBuffer _buffer;
     private readonly IntervalTree _decorations = new();
+    private readonly Dictionary<int, HashSet<string>> _decorationIdsByOwner = new();
     private readonly EditStack _editStack;
     private TextModelResolvedOptions _options;
     private string _languageId;
@@ -63,10 +68,12 @@ public class TextModel
     private string _eol;
     private bool _isUndoing;
     private bool _isRedoing;
+    private int _nextDecorationOwnerId = DecorationOwnerIds.SearchHighlights + 1;
 
     public event EventHandler<TextModelContentChangedEventArgs>? OnDidChangeContent;
     public event EventHandler<TextModelOptionsChangedEventArgs>? OnDidChangeOptions;
     public event EventHandler<TextModelLanguageChangedEventArgs>? OnDidChangeLanguage;
+    public event EventHandler<TextModelDecorationsChangedEventArgs>? OnDidChangeDecorations;
 
     public TextModel(string text, string defaultEol = "\n", string languageId = "plaintext")
     {
@@ -97,7 +104,19 @@ public class TextModel
 
     public TextModelResolvedOptions GetOptions() => _options;
 
+    public int AllocateDecorationOwnerId() => Interlocked.Increment(ref _nextDecorationOwnerId);
+
     public string GetValue() => _buffer.GetText();
+
+    public string GetValueInRange(Range range, EndOfLinePreference preference = EndOfLinePreference.TextDefined)
+    {
+        return preference switch
+        {
+            EndOfLinePreference.LF => GetValueInRangeInternal(range, normalizeLineEndings: true, out _),
+            EndOfLinePreference.CRLF => NormalizeLfToCrLf(GetValueInRangeInternal(range, normalizeLineEndings: true, out _)),
+            _ => GetValueInRangeInternal(range, normalizeLineEndings: false, out _),
+        };
+    }
 
     public int GetLength() => _buffer.Length;
 
@@ -139,14 +158,152 @@ public class TextModel
 
     public TextPosition GetPositionAt(int offset) => _buffer.GetPositionAt(offset);
 
-    public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions options)
+    public IReadOnlyList<FindMatch> FindMatches(string searchString, Range? searchRange, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches, int limitResultCount = TextModelSearch.DefaultLimit)
     {
-        var decoration = new ModelDecoration(Guid.NewGuid().ToString(), range, options);
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindMatches(searchParams, searchRange, captureMatches, limitResultCount);
+    }
+
+    public IReadOnlyList<FindMatch> FindMatches(SearchParams searchParams, Range? searchRange = null, bool captureMatches = false, int limitResultCount = TextModelSearch.DefaultLimit)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return Array.Empty<FindMatch>();
+        }
+
+        var range = searchRange ?? GetDocumentRange();
+        return TextModelSearch.FindMatches(this, searchData, range, captureMatches, limitResultCount);
+    }
+
+    public FindMatch? FindNextMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
+    {
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindNextMatch(searchParams, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindNextMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return null;
+        }
+
+        return TextModelSearch.FindNextMatch(this, searchData, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindPreviousMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
+    {
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindPreviousMatch(searchParams, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindPreviousMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return null;
+        }
+
+        return TextModelSearch.FindPreviousMatch(this, searchData, searchStart, captureMatches);
+    }
+
+    public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Default)
+    {
+        var decoration = CreateDecoration(range, options ?? ModelDecorationOptions.Default, ownerId);
         _decorations.Insert(decoration);
+        TrackDecoration(decoration);
+        RaiseDecorationsChanged(new[] { new DecorationChange(decoration, DecorationDeltaKind.Added) });
         return decoration;
     }
 
-    public IEnumerable<ModelDecoration> GetDecorationsInRange(TextRange range) => _decorations.Search(range);
+    public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
+        => _decorations.Search(range, ownerIdFilter);
+
+    public IReadOnlyList<ModelDecoration> DeltaDecorations(int ownerId, IReadOnlyList<string>? oldDecorationIds, IReadOnlyList<ModelDeltaDecoration>? newDecorations)
+    {
+        var changes = new List<DecorationChange>();
+
+        if (oldDecorationIds != null)
+        {
+            foreach (var id in oldDecorationIds)
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    continue;
+                }
+
+                if (_decorations.TryGet(id, out var existing) && existing.OwnerId == ownerId)
+                {
+                    _decorations.Remove(id);
+                    UntrackDecoration(existing);
+                    changes.Add(new DecorationChange(existing, DecorationDeltaKind.Removed));
+                }
+            }
+        }
+
+        var added = new List<ModelDecoration>();
+        if (newDecorations != null)
+        {
+            foreach (var descriptor in newDecorations)
+            {
+                var decoration = CreateDecoration(descriptor.Range, descriptor.Options, ownerId);
+                _decorations.Insert(decoration);
+                TrackDecoration(decoration);
+                added.Add(decoration);
+                changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Added));
+            }
+        }
+
+        if (changes.Count > 0)
+        {
+            RaiseDecorationsChanged(changes);
+        }
+
+        return added;
+    }
+
+    public void RemoveAllDecorations(int ownerId)
+    {
+        if (!_decorationIdsByOwner.TryGetValue(ownerId, out var ids) || ids.Count == 0)
+        {
+            return;
+        }
+
+        DeltaDecorations(ownerId, ids.ToArray(), Array.Empty<ModelDeltaDecoration>());
+    }
+
+    public IReadOnlyList<ModelDecoration> HighlightSearchMatches(SearchHighlightOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (string.IsNullOrEmpty(options.Query))
+        {
+            RemoveAllDecorations(options.OwnerId);
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var searchParams = new SearchParams(options.Query, options.IsRegex, options.MatchCase, options.WordSeparators);
+        var matches = FindMatches(searchParams, searchRange: null, captureMatches: options.CaptureMatches, limitResultCount: options.Limit);
+        var projections = new List<ModelDeltaDecoration>(matches.Count);
+        foreach (var match in matches)
+        {
+            var startOffset = GetOffsetAt(match.Range.Start);
+            var endOffset = GetOffsetAt(match.Range.End);
+            projections.Add(new ModelDeltaDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSearchMatchOptions()));
+        }
+
+        var previous = _decorationIdsByOwner.TryGetValue(options.OwnerId, out var ids)
+            ? ids.ToArray()
+            : Array.Empty<string>();
+
+        // TODO(FindController): When incremental find wiring lands, wrap highlight refreshes inside dedicated pushStackElement boundaries.
+        return DeltaDecorations(options.OwnerId, previous, projections);
+    }
 
     public void PushStackElement() => _editStack.PushStackElement();
 
@@ -308,7 +465,7 @@ public class TextModel
             return Array.Empty<TextChange>();
         }
 
-        ApplyPendingEdits(pending);
+        var decorationChanges = ApplyPendingEdits(pending);
 
         foreach (var edit in pending)
         {
@@ -341,6 +498,11 @@ public class TextModel
         }
 
         OnDidChangeContent?.Invoke(this, new TextModelContentChangedEventArgs(changes, _versionId, isUndo, isRedo, false));
+
+        if (decorationChanges.Count > 0)
+        {
+            RaiseDecorationsChanged(decorationChanges);
+        }
 
         if (recordInUndoStack && !_isUndoing && !_isRedoing)
         {
@@ -386,7 +548,7 @@ public class TextModel
         return pending;
     }
 
-    private void ApplyPendingEdits(List<PendingEdit> pending)
+    private List<DecorationChange> ApplyPendingEdits(List<PendingEdit> pending)
     {
         var applyOrder = new List<PendingEdit>(pending);
         applyOrder.Sort((a, b) =>
@@ -400,12 +562,20 @@ public class TextModel
             return b.OldEndOffset.CompareTo(a.OldEndOffset);
         });
 
+        var decorationChanges = new List<DecorationChange>();
         foreach (var edit in applyOrder)
         {
             var removedLength = edit.OldEndOffset - edit.OldStartOffset;
-            _decorations.AcceptReplace(edit.OldStartOffset, removedLength, edit.NewText.Length);
+            var deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length);
+            if (deltas.Count > 0)
+            {
+                decorationChanges.AddRange(deltas);
+            }
+
             _buffer.ApplyEdit(edit.OldStartOffset, removedLength, edit.NewText);
         }
+
+        return decorationChanges;
     }
 
     private void ApplyRecordedEdits(EditStackElement element, bool isUndo)
@@ -485,6 +655,94 @@ public class TextModel
         _alternativeVersionId = newValue;
     }
 
+    private Range GetDocumentRange()
+    {
+        var lineCount = GetLineCount();
+        var end = new TextPosition(lineCount, GetLineMaxColumn(lineCount));
+        return new Range(new TextPosition(1, 1), end);
+    }
+
+    private string GetValueInRangeInternal(Range range, bool normalizeLineEndings, out LineFeedCounter? lineFeedCounter)
+    {
+        var startOffset = GetOffsetAt(range.Start);
+        var endOffset = GetOffsetAt(range.End);
+        if (endOffset < startOffset)
+        {
+            (startOffset, endOffset) = (endOffset, startOffset);
+        }
+
+        var length = Math.Max(0, endOffset - startOffset);
+        var value = _buffer.GetText(startOffset, length);
+        if (!normalizeLineEndings)
+        {
+            lineFeedCounter = null;
+            return value;
+        }
+
+        if (_eol == "\n")
+        {
+            lineFeedCounter = null;
+            return value;
+        }
+
+        var normalized = NormalizeToLf(value);
+        lineFeedCounter = new LineFeedCounter(normalized);
+        return normalized;
+    }
+
+    private static string NormalizeLfToCrLf(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        return text.Replace("\n", "\r\n");
+    }
+
+    private static string NormalizeToLf(string text)
+    {
+        if (string.IsNullOrEmpty(text) || text.IndexOf('\r') < 0)
+        {
+            return text;
+        }
+
+        var builder = new StringBuilder(text.Length);
+        for (int i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '\r')
+            {
+                if (i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+                builder.Append('\n');
+            }
+            else
+            {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    int ITextSearchAccess.LineCount => GetLineCount();
+
+    string ITextSearchAccess.EndOfLine => _eol;
+
+    string ITextSearchAccess.GetLineContent(int lineNumber) => GetLineContent(lineNumber);
+
+    int ITextSearchAccess.GetLineMaxColumn(int lineNumber) => GetLineMaxColumn(lineNumber);
+
+    int ITextSearchAccess.GetOffsetAt(TextPosition position) => GetOffsetAt(position);
+
+    TextPosition ITextSearchAccess.GetPositionAt(int offset) => GetPositionAt(offset);
+
+    string ITextSearchAccess.GetValueInRange(Range range, bool normalizeLineEndings, out LineFeedCounter? lineFeedCounter)
+        => GetValueInRangeInternal(range, normalizeLineEndings, out lineFeedCounter);
+
     private static string SequenceToString(EndOfLineSequence sequence) => sequence == EndOfLineSequence.CRLF ? "\r\n" : "\n";
 
     private static string NormalizeEol(string value) => string.Equals(value, "\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
@@ -501,6 +759,176 @@ public class TextModel
         }
 
         return left == 0 ? 1 : left;
+    }
+
+    private ModelDecoration CreateDecoration(TextRange range, ModelDecorationOptions options, int ownerId)
+    {
+        var decoration = new ModelDecoration(Guid.NewGuid().ToString(), ownerId, range, options);
+        decoration.VersionId = _versionId;
+        return decoration;
+    }
+
+    private void TrackDecoration(ModelDecoration decoration)
+    {
+        if (!_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out var ids))
+        {
+            ids = new HashSet<string>(StringComparer.Ordinal);
+            _decorationIdsByOwner[decoration.OwnerId] = ids;
+        }
+
+        ids.Add(decoration.Id);
+    }
+
+    private void UntrackDecoration(ModelDecoration decoration)
+    {
+        if (_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out var ids))
+        {
+            ids.Remove(decoration.Id);
+            if (ids.Count == 0)
+            {
+                _decorationIdsByOwner.Remove(decoration.OwnerId);
+            }
+        }
+    }
+
+    private void RaiseDecorationsChanged(IReadOnlyList<DecorationChange> changes)
+    {
+        if (changes.Count == 0)
+        {
+            return;
+        }
+
+        OnDidChangeDecorations?.Invoke(this, new TextModelDecorationsChangedEventArgs(changes, _versionId));
+    }
+
+    private IReadOnlyList<DecorationChange> AdjustDecorationsForEdit(int offset, int removedLength, int insertedLength)
+    {
+        if (_decorations.Count == 0 || (removedLength == 0 && insertedLength == 0))
+        {
+            return Array.Empty<DecorationChange>();
+        }
+
+        var processed = new HashSet<string>(StringComparer.Ordinal);
+        var changes = new List<DecorationChange>();
+        var searchEnd = removedLength > 0 ? offset + removedLength : offset + insertedLength;
+        var overlaps = _decorations.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
+        foreach (var decoration in overlaps)
+        {
+            if (!processed.Add(decoration.Id))
+            {
+                continue;
+            }
+
+            if (UpdateDecorationRange(decoration, offset, removedLength, insertedLength))
+            {
+                changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated));
+            }
+        }
+
+        foreach (var decoration in _decorations.EnumerateFrom(offset))
+        {
+            if (!processed.Add(decoration.Id))
+            {
+                continue;
+            }
+
+            if (UpdateDecorationRange(decoration, offset, removedLength, insertedLength))
+            {
+                changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated));
+            }
+        }
+
+        return changes;
+    }
+
+        private bool UpdateDecorationRange(ModelDecoration decoration, int offset, int removedLength, int insertedLength)
+        {
+            var range = decoration.Range;
+            var start = range.StartOffset;
+            var end = range.EndOffset;
+            var originalStart = start;
+            var originalEnd = end;
+            var deleteEnd = offset + removedLength;
+            var collapsedByReplace = false;
+
+            if (removedLength > 0)
+            {
+                if (decoration.Options.CollapseOnReplaceEdit && start >= offset && end <= deleteEnd)
+                {
+                    start = offset;
+                    end = offset;
+                    collapsedByReplace = true;
+                }
+            else
+            {
+                if (start >= deleteEnd)
+                {
+                    start -= removedLength;
+                }
+                else if (start >= offset)
+                {
+                    start = offset;
+                }
+
+                if (end >= deleteEnd)
+                {
+                    end -= removedLength;
+                }
+                else if (end >= offset)
+                {
+                    end = offset;
+                }
+            }
+        }
+
+            if (insertedLength > 0)
+        {
+            var growStart = !decoration.Options.ForceMoveMarkers &&
+                (decoration.Options.Stickiness == TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges ||
+                 decoration.Options.Stickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingBefore);
+
+            var growEnd = !decoration.Options.ForceMoveMarkers &&
+                (decoration.Options.Stickiness == TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges ||
+                 decoration.Options.Stickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingAfter);
+
+            if (offset < start)
+            {
+                start += insertedLength;
+            }
+                else if (offset == start && !growStart && !collapsedByReplace)
+            {
+                start += insertedLength;
+            }
+
+            if (offset < end)
+            {
+                end += insertedLength;
+            }
+                else if (offset == end && growEnd && !collapsedByReplace)
+            {
+                end += insertedLength;
+            }
+        }
+
+        if (start < 0)
+        {
+            start = 0;
+        }
+
+        if (end < start)
+        {
+            end = start;
+        }
+
+        if (start == originalStart && end == originalEnd)
+        {
+            return false;
+        }
+
+        decoration.Range = new TextRange(start, end);
+        decoration.VersionId = _versionId;
+        _decorations.Reinsert(decoration);
+        return true;
     }
 
     private sealed class PendingEdit

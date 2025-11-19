@@ -1,85 +1,98 @@
 using Xunit;
-using PieceTree.TextBuffer.Core;
-using System.Collections.Generic;
-using System.Linq;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 
-public class PieceTreeSearchTests
+public class TextModelSearchTests
 {
-    private PieceTreeModel CreateModel(string text)
+    private static TextModel CreateModel(string text) => new(text);
+
+    [Fact]
+    public void FindMatches_ReturnsLiteralHits()
     {
-        var buildResult = PieceTreeBuilder.BuildFromChunks(new[] { text });
-        return buildResult.Model;
+        var model = CreateModel("foo bar foo");
+        var matches = model.FindMatches("foo", searchRange: null, isRegex: false, matchCase: false, wordSeparators: null, captureMatches: false);
+
+        Assert.Equal(2, matches.Count);
+        Assert.Equal(1, matches[0].Range.Start.Column);
+        Assert.Equal(9, matches[1].Range.Start.Column);
     }
 
     [Fact]
-    public void TestBasicStringFind()
+    public void FindMatches_ProvidesCaptureGroups()
     {
-        var model = CreateModel("foo bar foo");
-        var searchParams = new SearchParams("foo", false, false, null);
-        var searchData = searchParams.ParseSearchRequest();
-        
-        var matches = model.FindMatchesLineByLine(new Range(1, 1, 1, 12), searchData!, false, 1000);
-        
+        var model = CreateModel("line1\nline2");
+        var matches = model.FindMatches("(l(in)e)(\\d)", null, isRegex: true, matchCase: false, wordSeparators: null, captureMatches: true);
+
         Assert.Equal(2, matches.Count);
+        Assert.Equal("line1", matches[0].Matches?[0]);
+        Assert.Equal("line", matches[0].Matches?[1]);
+        Assert.Equal("in", matches[0].Matches?[2]);
+    }
+
+    [Fact]
+    public void FindMatches_MultilineLiteralAcrossCrLf()
+    {
+        var model = CreateModel("alpha\r\nbeta\r\ngamma");
+        var matches = model.FindMatches("alpha\nbeta", null, isRegex: false, matchCase: false, wordSeparators: null, captureMatches: false);
+
+        Assert.Single(matches);
         Assert.Equal(1, matches[0].Range.Start.LineNumber);
         Assert.Equal(1, matches[0].Range.Start.Column);
-        Assert.Equal(1, matches[0].Range.End.LineNumber);
-        Assert.Equal(4, matches[0].Range.End.Column);
-        
-        Assert.Equal(1, matches[1].Range.Start.LineNumber);
-        Assert.Equal(9, matches[1].Range.Start.Column);
-        Assert.Equal(1, matches[1].Range.End.LineNumber);
-        Assert.Equal(12, matches[1].Range.End.Column);
+        Assert.Equal(2, matches[0].Range.End.LineNumber);
+        Assert.Equal(5, matches[0].Range.End.Column);
     }
 
     [Fact]
-    public void TestRegexFind()
-    {
-        var model = CreateModel("foo bar foo");
-        var searchParams = new SearchParams("f[o]+", true, false, null);
-        var searchData = searchParams.ParseSearchRequest();
-        
-        var matches = model.FindMatchesLineByLine(new Range(1, 1, 1, 12), searchData!, false, 1000);
-        
-        Assert.Equal(2, matches.Count);
-        Assert.Equal(1, matches[0].Range.Start.Column);
-        Assert.Equal(9, matches[1].Range.Start.Column);
-    }
-
-    [Fact]
-    public void TestMultilineFind()
-    {
-        var model = CreateModel("foo\nbar\nfoo");
-        var searchParams = new SearchParams("bar", false, false, null);
-        var searchData = searchParams.ParseSearchRequest();
-        
-        var matches = model.FindMatchesLineByLine(new Range(1, 1, 3, 4), searchData!, false, 1000);
-        
-        Assert.Single(matches);
-        Assert.Equal(2, matches[0].Range.Start.LineNumber);
-        Assert.Equal(1, matches[0].Range.Start.Column);
-    }
-
-    [Fact]
-    public void TestWholeWordFind()
+    public void FindMatches_WholeWordHonorsSeparators()
     {
         var model = CreateModel("foobar foo");
-        
-        // Search "foo" with whole word.
-        // Should match the second "foo" (column 8), but NOT the first one (column 1).
-        
-        // SearchParams: searchString, isRegex, matchCase, wordSeparators
-        // We pass a non-null string for wordSeparators to enable whole word search.
-        var searchParams = new SearchParams("foo", false, false, "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?");
-        var searchData = searchParams.ParseSearchRequest();
-        
-        var matches = model.FindMatchesLineByLine(new Range(1, 1, 1, 11), searchData!, false, 1000);
-        
+        var separators = "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?";
+
+        var matches = model.FindMatches("foo", null, isRegex: false, matchCase: false, wordSeparators: separators, captureMatches: false);
+
         Assert.Single(matches);
-        Assert.Equal(1, matches[0].Range.Start.LineNumber);
         Assert.Equal(8, matches[0].Range.Start.Column);
+    }
+
+    [Fact]
+    public void FindMatches_CustomSeparatorsSupportUnicode()
+    {
+        var model = CreateModel("foo·bar foo");
+        var defaultSeparators = "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?";
+        var separatorsWithDot = defaultSeparators + "·";
+
+        var withoutCustom = model.FindMatches("foo", null, isRegex: false, matchCase: true, wordSeparators: defaultSeparators, captureMatches: false);
+        Assert.Single(withoutCustom);
+
+        var withCustom = model.FindMatches("foo", null, isRegex: false, matchCase: true, wordSeparators: separatorsWithDot, captureMatches: false);
+        Assert.Equal(2, withCustom.Count);
+    }
+
+    [Fact]
+    public void FindMatches_ZeroLengthRegexOnAstralAdvances()
+    {
+        var emoji = char.ConvertFromUtf32(0x1F600);
+        var model = CreateModel(emoji);
+        var range = new Range(1, 1, 1, model.GetLineMaxColumn(1));
+
+        var matches = model.FindMatches("(?=)", range, isRegex: true, matchCase: false, wordSeparators: null, captureMatches: false, limitResultCount: 2);
+
+        Assert.Equal(2, matches.Count);
+        Assert.Equal(1, matches[0].Range.Start.Column);
+        Assert.Equal(model.GetLineMaxColumn(1), matches[1].Range.Start.Column);
+    }
+
+    [Fact]
+    public void FindNextAndPrevious_WrapAroundDocument()
+    {
+        var model = CreateModel("foo\nbar\nfoo");
+        var next = model.FindNextMatch("foo", new TextPosition(2, 1), isRegex: false, matchCase: false, wordSeparators: null);
+        Assert.NotNull(next);
+        Assert.Equal(3, next!.Range.Start.LineNumber);
+
+        var previous = model.FindPreviousMatch("foo", new TextPosition(1, 1), isRegex: false, matchCase: false, wordSeparators: null);
+        Assert.NotNull(previous);
+        Assert.Equal(3, previous!.Range.Start.LineNumber);
     }
 }

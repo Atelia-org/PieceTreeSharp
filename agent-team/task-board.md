@@ -13,7 +13,7 @@
 | AA2-003 | Audit Search advanced features (regex captures, backreferences, Unicode word boundaries) | Investigator-TS | `src/PieceTree.TextBuffer/Search/PieceTreeSearcher.cs` | 2 | Done | `agent-team/handoffs/AA2-003-Audit.md` |
 | AA2-004 | Audit Diff prettify logic and decoration stickiness vs TS | Investigator-TS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 2 | Done | `agent-team/handoffs/AA2-004-Audit.md` |
 | AA2-005 | Remediate core issues surfaced in AA2-001/002 | Porter-CS | `src/PieceTree.TextBuffer/Core` | 3 | Done | CRLF/metadata/cache 修复与 TextModel undo/redo + options/EOL API 已落地，详见 [`docs/reports/migration-log.md`](../docs/reports/migration-log.md)（AA2-005）。|
-| AA2-006 | Remediate feature issues surfaced in AA2-003/004 | Porter-CS | `src/PieceTree.TextBuffer/Search`<br>`src/PieceTree.TextBuffer/Diff` | 3 | Planned | - |
+| AA2-006 | Remediate feature issues surfaced in AA2-003/004 | Porter-CS | `src/PieceTree.TextBuffer/Search`<br>`src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Decorations` | 3 | Done | Search/diff/decor parity landed（详见 [`docs/reports/migration-log.md`](../docs/reports/migration-log.md) AA2-006 + [`agent-team/indexes/README.md#delta-2025-11-20`](indexes/README.md#delta-2025-11-20)；`dotnet test ...` 71/71）。 |
 | OI-009 | Update documentation/indexes for Phase 5 (audit deltas, parity notes) | Info-Indexer | `agent-team/indexes/`<br>`docs/reports/` | 1 | Planned | - |
 
 ## Reference & Logs

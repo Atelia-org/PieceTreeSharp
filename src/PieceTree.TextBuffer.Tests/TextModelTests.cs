@@ -94,9 +94,9 @@ public class TextModelTests
     public void TestTextModel_Decorations()
     {
         var model = new TextModel("Hello World");
-        // Decoration on "World" (6, 11)
+        // Decoration on "World" (offsets 6-11)
         var range = new TextRange(6, 11);
-        var decoration = model.AddDecoration(range, ModelDecorationOptions.Default);
+        var decoration = model.AddDecoration(range, ModelDecorationOptions.CreateSelectionOptions());
         
         Assert.Equal(6, decoration.Range.StartOffset);
         Assert.Equal(11, decoration.Range.EndOffset);
@@ -108,12 +108,29 @@ public class TextModelTests
         Assert.Equal("Hello Beautiful World", model.GetValue());
         
         // Decoration should shift
-        Assert.Equal(16, decoration.Range.StartOffset);
+        Assert.Equal(6, decoration.Range.StartOffset);
         Assert.Equal(21, decoration.Range.EndOffset);
         
-        var found = model.GetDecorationsInRange(new TextRange(16, 21));
+        var found = model.GetDecorationsInRange(new TextRange(6, 21));
         Assert.Single(found);
-        Assert.Equal(decoration, found.First());
+        Assert.Equal(decoration, found[0]);
+    }
+
+    [Fact]
+    public void TextModel_RaisesDecorationEvents()
+    {
+        var model = new TextModel("Hello World");
+        var decoration = model.AddDecoration(new TextRange(6, 11), ModelDecorationOptions.CreateSelectionOptions());
+        TextModelDecorationsChangedEventArgs? observed = null;
+        model.OnDidChangeDecorations += (_, args) => observed = args;
+
+        model.ApplyEdits(new[]
+        {
+            new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), "Beautiful ")
+        });
+
+        Assert.NotNull(observed);
+        Assert.Contains(observed!.Changes, c => c.Id == decoration.Id && c.Kind == DecorationDeltaKind.Updated);
     }
 
     [Fact]

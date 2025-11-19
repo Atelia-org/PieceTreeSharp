@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 
 namespace PieceTree.TextBuffer.Core;
@@ -8,7 +9,7 @@ public class PieceTreeSearcher
     private readonly WordCharacterClassifier? _wordSeparators;
     private int _lastIndex;
     private int _prevMatchStartIndex = -1;
-    private int _prevMatchLength = 0;
+    private int _prevMatchLength = -1;
 
     public PieceTreeSearcher(WordCharacterClassifier? wordSeparators, Regex searchRegex)
     {
@@ -18,57 +19,75 @@ public class PieceTreeSearcher
 
     public void Reset(int lastIndex)
     {
-        _lastIndex = lastIndex;
+        _lastIndex = Math.Max(0, lastIndex);
         _prevMatchStartIndex = -1;
-        _prevMatchLength = 0;
+        _prevMatchLength = -1;
     }
 
     public Match? Next(string text)
     {
-        int textLength = text.Length;
-        Match m;
+        var textLength = text.Length;
 
-        do
+        while (true)
         {
-            if (_prevMatchStartIndex + _prevMatchLength == textLength)
+            if (_lastIndex > textLength)
             {
                 return null;
             }
 
-            if (_lastIndex > textLength) return null;
-
-            m = _searchRegex.Match(text, _lastIndex);
-            if (!m.Success)
+            var match = _searchRegex.Match(text, _lastIndex);
+            if (!match.Success)
             {
                 return null;
             }
 
-            int matchStartIndex = m.Index;
-            int matchLength = m.Length;
+            var matchStartIndex = match.Index;
+            var matchLength = match.Length;
 
             if (matchStartIndex == _prevMatchStartIndex && matchLength == _prevMatchLength)
             {
                 if (matchLength == 0)
                 {
-                    _lastIndex++;
-                    if (_lastIndex > textLength) return null;
+                    AdvanceForZeroLength(text, matchStartIndex);
                     continue;
                 }
+
                 return null;
             }
 
             _prevMatchStartIndex = matchStartIndex;
             _prevMatchLength = matchLength;
-            
+
+            AdvanceLastIndex(text, matchStartIndex, matchLength);
+
             if (_wordSeparators != null && !_wordSeparators.IsValidMatch(text, matchStartIndex, matchLength))
             {
-                _lastIndex = matchStartIndex + 1;
                 continue;
             }
 
-            _lastIndex = matchStartIndex + matchLength;
-            return m;
+            return match;
+        }
+    }
 
-        } while (true);
+    private void AdvanceLastIndex(string text, int matchStartIndex, int matchLength)
+    {
+        if (matchLength == 0)
+        {
+            AdvanceForZeroLength(text, matchStartIndex);
+            return;
+        }
+
+        _lastIndex = matchStartIndex + matchLength;
+    }
+
+    private void AdvanceForZeroLength(string text, int matchStartIndex)
+    {
+        var nextIndex = UnicodeUtility.AdvanceByCodePoint(text, matchStartIndex);
+        if (nextIndex <= matchStartIndex)
+        {
+            nextIndex = matchStartIndex + 1;
+        }
+
+        _lastIndex = nextIndex;
     }
 }
