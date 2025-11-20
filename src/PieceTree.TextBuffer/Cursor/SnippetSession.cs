@@ -15,7 +15,8 @@ namespace PieceTree.TextBuffer.Cursor
     {
         private readonly TextModel _model;
         private readonly int _ownerId;
-        private readonly List<(int Index, TextPosition Start, TextPosition End)> _placeholders = new();
+        // Each placeholder keeps a live ModelDecoration so later edits move the range automatically.
+        private readonly List<(int Index, ModelDecoration Decoration)> _placeholders = new();
         private int _current = -1;
         private bool _disposed;
 
@@ -81,9 +82,6 @@ namespace PieceTree.TextBuffer.Cursor
             {
                 var absoluteStart = startOffset + entry.Start;
                 var absoluteEnd = absoluteStart + entry.Length;
-                var startPos = _model.GetPositionAt(absoluteStart);
-                var endPos = _model.GetPositionAt(absoluteEnd);
-                _placeholders.Add((entry.Index, startPos, endPos));
                 var placeholderOptions = new ModelDecorationOptions
                 {
                     Description = "snippet-placeholder",
@@ -91,11 +89,19 @@ namespace PieceTree.TextBuffer.Cursor
                     ShowIfCollapsed = true,
                     InlineDescription = "snippet",
                 };
-                _model.DeltaDecorations(_ownerId, null, new[] { new ModelDeltaDecoration(new TextRange(absoluteStart, absoluteEnd), placeholderOptions) });
+                var created = _model.DeltaDecorations(
+                    _ownerId,
+                    oldDecorationIds: null,
+                    new[] { new ModelDeltaDecoration(new TextRange(absoluteStart, absoluteEnd), placeholderOptions) });
+                if (created.Count == 1)
+                {
+                    // Storing the decoration itself (instead of the original offsets) keeps navigation in sync with edits.
+                    _placeholders.Add((entry.Index, created[0]));
+                }
             }
 
             _placeholders.Sort((a, b) => a.Index.CompareTo(b.Index));
-            _current = _placeholders.Count > 0 ? -1 : -1;
+            _current = -1;
             if (_current >= 0)
             {
                 // move cursors to first placeholder - callers will coordinate multi-cursor behavior
@@ -109,8 +115,14 @@ namespace PieceTree.TextBuffer.Cursor
                 return null;
             }
 
-            _current = Math.Min(_current + 1, _placeholders.Count - 1);
-            return _placeholders[_current].Start;
+            if (_current >= _placeholders.Count - 1)
+            {
+                _current = _placeholders.Count; // sentinel meaning "past the end" to prevent infinite loops
+                return null;
+            }
+
+            _current++;
+            return GetPlaceholderStart(_placeholders[_current]);
         }
 
         public TextPosition? PrevPlaceholder()
@@ -120,13 +132,28 @@ namespace PieceTree.TextBuffer.Cursor
                 return null;
             }
 
-            _current = Math.Max(-1, _current - 1);
-            if (_current == -1)
+            if (_current == _placeholders.Count)
             {
+                // if we just walked past the end, jump back to the last placeholder
+                _current = _placeholders.Count - 1;
+                return GetPlaceholderStart(_placeholders[_current]);
+            }
+
+            if (_current <= 0)
+            {
+                _current = -1;
                 return null;
             }
 
-            return _placeholders[_current].Start;
+            _current--;
+            return GetPlaceholderStart(_placeholders[_current]);
+        }
+
+        private TextPosition GetPlaceholderStart((int Index, ModelDecoration Decoration) placeholder)
+        {
+            var startOffset = placeholder.Decoration.Range.StartOffset;
+            // Re-evaluate positions on demand so placeholder edits cannot desync navigation state.
+            return _model.GetPositionAt(startOffset);
         }
     }
 }
