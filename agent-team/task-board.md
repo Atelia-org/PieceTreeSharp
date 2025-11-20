@@ -1,33 +1,31 @@
-# Task Board - Phase 6: Alignment & Audit R3
+# Task Board - Phase 7: Alignment & Audit R4
 
-**Goal:** 启动第三轮 TS↔C# 对照审核（TextModel/搜索/Diff/Decorations/DocUI），通过“发现→修复→验证”链条确保 DocUI-ready 质量。
+**Goal:** 启动第四轮 TS↔C# 对照审核，聚焦 PieceTree Builder/ChangeBuffer、增量编辑、Cursor WordOps 与 DocUI Find/Replace 管线，继续以“发现→修复→验证”闭环巩固 DocUI-ready 质量。
 
-**Changefeed Reminder:** 在修改任务状态前读取 `agent-team/indexes/README.md#delta-2025-11-20`，必要时请求 Info-Indexer 发布新 delta，避免与 `docs/reports/migration-log.md` 失联。
+**Changefeed Reminder:** 更新任务状态前先读取 `agent-team/indexes/README.md#delta-2025-11-20`，必要时请求 Info-Indexer 发布新 delta，保持与 `docs/reports/migration-log.md` 同步。
 
-## Alignment & Audit R3 (AA3/OI)
+## Alignment & Audit R4 (AA4/OI)
 
 | ID | Description | Owner | Key Artifacts | runSubAgent Budget | Status | Latest Update |
 | --- | --- | --- | --- | --- | --- | --- |
-| AA3-001 | Investigator：CL1（TextModel options / metadata / events）对照，生成差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/textModel.ts`<br>`src/PieceTree.TextBuffer/TextModel.cs`<br>`docs/reports/audit-checklist-aa3.md`<br>`agent-team/handoffs/AA3-001-Audit.md` | 2 | Done | `AA3-001-Audit.md` 列出 F1~F5（creation options、language config、attachment、EditStack、multi-range search）；CL1 清单已更新。 |
-| AA3-002 | Investigator：CL2（Search/Replace + regex captures）对照，生成差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/textModelSearch.ts`<br>`src/PieceTree.TextBuffer/Core/PieceTreeSearcher.cs`<br>`agent-team/handoffs/AA3-002-Audit.md` | 2 | Done | `AA3-002-Audit.md` 记录 F1~F3（ECMAScript regex、word separators、surrogate pairs）；CL2 清单已更新。 |
-| AA3-005 | Investigator：CL3（Diff prettify & move metadata）对照 | Investigator-TS | `ts/src/vs/editor/common/diff/diffComputer.ts`<br>`src/PieceTree.TextBuffer/Diff/DiffComputer.cs`<br>`agent-team/handoffs/AA3-005-Audit.md` | 2 | Done | `AA3-005-Audit.md` enumerates F1–F4（LinesDiff/innerChanges、move detection、options/timeout、DocUI plumbing）。 |
-| AA3-007 | Investigator：CL4（Decorations & Markdown DocUI）对照 | Investigator-TS | `ts/src/vs/editor/common/model/textModelDecorations.ts`<br>`src/PieceTree.TextBuffer/Decorations`<br>`agent-team/handoffs/AA3-007-Audit.md` | 2 | Done | `AA3-007-Audit.md` covers ModelDecoration options, decoration trees/events, stickiness, MarkdownRenderer gaps。 |
-| AA3-003 | Porter：落实 CL1 修复（TextModel options/metadata），更新 tests & 迁移日志 | Porter-CS | `src/PieceTree.TextBuffer/TextModel.cs`<br>`docs/reports/audit-checklist-aa3.md#cl1`<br>`agent-team/handoffs/AA3-003-Result.md` | 3 | Done | TextModel options + undo parity landed (`agent-team/handoffs/AA3-003-Result.md`); `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 79/79 green，引用已登记于 `agent-team/indexes/README.md#delta-2025-11-20`. |
-| AA3-004 | Porter：落实 CL2 修复（Search/Replace/regex） | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeSearcher.cs`<br>`PieceTree.TextBuffer.Tests/PieceTreeSearchTests.cs`<br>`agent-team/handoffs/AA3-004-Result.md` | 3 | Done | `AA3-004-Result.md`: ECMAScript regex + surrogate-safe wildcards + word-separator parity; tests `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (84/84). |
-| AA3-006 | Porter：落实 CL3 修复（Diff/move metadata + consumers） | Porter-CS | `src/PieceTree.TextBuffer/Diff`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`agent-team/handoffs/AA3-006-Result.md` | 3 | Done | `AA3-006-Result.md`: LinesDiff + move heuristics + timeout options landed；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 80/80. |
-| AA3-008 | Porter：落实 CL4 修复（Decorations/DocUI） | Porter-CS | `src/PieceTree.TextBuffer/Decorations`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`agent-team/handoffs/AA3-008-Result.md` | 3 | Done | 2025-11-20 – Deliveries in `agent-team/handoffs/AA3-008-Result.md` (DecorationsTrees/DecorationRangeUpdater + DocUI renderer upgrades) verified by `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (85/85); AA3-009 QA recorded the canonical DocUI confirmation via `agent-team/handoffs/AA3-009-QA.md` and the changefeed entry `agent-team/indexes/README.md#delta-2025-11-20`. |
-| AA3-009 | QA：扩展 TextModel/Search/Diff/Decoration/Markdown Tests，记录 `dotnet test ...` 基线 | QA-Automation | `src/PieceTree.TextBuffer.Tests/`<br>`docs/reports/audit-checklist-aa3.md`<br>`agent-team/handoffs/AA3-009-QA.md` | 2 | Done | 2025-11-20 – Validated CL4 decoration metadata + DocUI diff snapshots（`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 88/88，参考 changefeed `agent-team/indexes/README.md#delta-2025-11-20`）。 |
-| OI-010 | Info-Indexer：同步 Sprint 01 产物至 changefeed/索引，维护 AGENTS/Sprint/Task Board 一致性 | Info-Indexer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-01.md`<br>`docs/reports/migration-log.md` | 1 | Done | 2025-11-20 – AA3-009 QA changefeed条目发布（`agent-team/indexes/README.md#delta-2025-11-20` “AA3-009 QA” bullet），AGENTS/Sprint/Task Board 已对齐现状 |
+| AA4-001 | Investigator：CL5（PieceTree Builder & Factory parity）对照，输出差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts`<br>`ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts`<br>`src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs`<br>`docs/reports/audit-checklist-aa4.md#cl5`<br>`agent-team/handoffs/AA4-001-Audit.md` | 2 | Done | `AA4-001-Audit.md` 交付 F1~F6（chunk split/CRLF、BOM、metadata flags、factory API、DefaultEOL heuristics、normalize pipeline）；等待 AA4-005 Porter 修复。 |
+| AA4-002 | Investigator：CL6（ChangeBuffer/CRLF/large edits）对照，输出差异清单 | Investigator-TS | `ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts`<br>`src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs`<br>`docs/reports/audit-checklist-aa4.md#cl6`<br>`agent-team/handoffs/AA4-002-Audit.md` | 2 | Planned | 聚焦 `_lastChangeBufferPos`、CRLF 修复、AverageBufferSize 拆 chunk、SearchCache 失效策略。 |
+| AA4-003 | Investigator：CL7（Cursor word/snippet/multi-selection 语义）对照 | Investigator-TS | `ts/src/vs/editor/common/controller/cursor.ts`<br>`ts/src/vs/editor/common/controller/cursorWordOperations.ts`<br>`src/PieceTree.TextBuffer/Cursor/Cursor.cs`<br>`docs/reports/audit-checklist-aa4.md#cl7`<br>`agent-team/handoffs/AA4-003-Audit.md` | 2 | Planned | 需记录 word 左右移动、expand select、column selection、snippet tabstop stickiness 等缺口。 |
+| AA4-004 | Investigator：CL8（DocUI Find/Replace + Decorations 管线）对照 | Investigator-TS | `ts/src/vs/editor/contrib/find/browser/findController.ts`<br>`ts/src/vs/editor/contrib/find/browser/findDecorations.ts`<br>`src/PieceTree.TextBuffer/TextModelSearch.cs`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`docs/reports/audit-checklist-aa4.md#cl8`<br>`agent-team/handoffs/AA4-004-Audit.md` | 2 | Planned | 目标：梳理 TS FindController 的 delta decorations / owner 策略与 C# DocUI 的缺口，含 captureMatches overlays。 |
+| AA4-005 | Porter：落实 CL5 修复（Builder/Factory 元数据 + getFirstLineText API），同步迁移日志 | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs`<br>`src/PieceTree.TextBuffer/Core/ChunkBuffer.cs`<br>`docs/reports/audit-checklist-aa4.md#cl5`<br>`agent-team/handoffs/AA4-005-Result.md` | 3 | Planned | 依 `AA4-001` findings 补齐 chunk 分片、`containsRTL`/BOM/normalizeEOL 选项与结果验证。 |
+| AA4-006 | Porter：落实 CL6 修复（ChangeBuffer/CRLF/大文本拆分） | Porter-CS | `src/PieceTree.TextBuffer/Core/PieceTreeModel.*`<br>`src/PieceTree.TextBuffer/Core/PieceTreeNormalizer.cs`<br>`docs/reports/audit-checklist-aa4.md#cl6`<br>`agent-team/handoffs/AA4-006-Result.md` | 3 | Planned | 目标：复刻 TS `_lastChangeBufferPos`、AverageBufferSize、`nodeAcceptEdit` CRLF 修复，完善 SearchCache + metadata。 |
+| AA4-007 | Porter：落实 CL7 修复（Cursor word/snippet/multi-select） | Porter-CS | `src/PieceTree.TextBuffer/Cursor`<br>`src/PieceTree.TextBuffer/TextModel.cs`<br>`docs/reports/audit-checklist-aa4.md#cl7`<br>`agent-team/handoffs/AA4-007-Result.md` | 3 | Planned | 按 Investigator 输出扩展 Cursor API（word 左右、选词/选行、column 选择、snippet stickiness）并新增测试。 |
+| AA4-008 | Porter：落实 CL8 修复（DocUI Find/Replace & Decorations） | Porter-CS | `src/PieceTree.TextBuffer/TextModelSearch.cs`<br>`src/PieceTree.TextBuffer/Decorations`<br>`src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`<br>`docs/reports/audit-checklist-aa4.md#cl8`<br>`agent-team/handoffs/AA4-008-Result.md` | 3 | Planned | 负责 run-range 搜索高亮、owner 分层、DocUI Markdown overlays 及 captureMatches 注入。 |
+| AA4-009 | QA：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试矩阵，记录最新 `dotnet test` 基线 | QA-Automation | `src/PieceTree.TextBuffer.Tests/`<br>`docs/reports/audit-checklist-aa4.md`<br>`agent-team/handoffs/AA4-009-QA.md` | 2 | Planned | 需新增 Builder chunk/factory、ChangeBuffer CRLF、Cursor wordOps、DocUI Find 渲染测试并登记 90+ 测试绿线。 |
+| OI-011 | Info-Indexer：AA4 changefeed & 索引同步，确保 AGENTS/Sprint/Task Board 对齐 | Info-Indexer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-02.md`<br>`docs/reports/migration-log.md` | 1 | Planned | 新增 `#delta-2025-11-20` 之后的 AA4 delta，广播到 AGENTS / Sprint 02 / Task Board。 |
 
 ## Reference & Logs
 
-- `agent-team/task-board-v5-archive.md` – Phase 5 (Alignment & Audit R2) 历史。
-- `agent-team/task-board-v4-archive.md` – Phase 4 历史。
-- `agent-team/task-board-v3-archive.md` – Phase 3 历史。
-- `agent-team/task-board-v2-archive.md` – Phase 2 历史。
-- `agent-team/task-board-v1-archive.md` – Phase 1 历史。
-- `docs/sprints/sprint-01.md` – Sprint 01 目标/计划。
-- `docs/reports/audit-checklist-aa3.md` – CL1~CL4 清单。
+- `agent-team/task-board-v6-archive.md` – Phase 6 (Alignment & Audit R3) 历史。
+- `agent-team/task-board-v5-archive.md` – Phase 5 历史。
+- `agent-team/task-board-v4-archive.md` / `-v3` / `-v2` / `-v1` – 更早阶段历史。
+- `docs/sprints/sprint-02.md` – Sprint 02 目标/计划（新建）。
+- `docs/reports/audit-checklist-aa4.md` – CL5~CL8 清单（新建）。
 - `agent-team/indexes/README.md` – canonical Info-Indexer changefeed。
 - `docs/reports/migration-log.md` – full migration audit trail。
 - `AGENTS.md` – cross-session log。
