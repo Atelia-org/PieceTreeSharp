@@ -1,142 +1,112 @@
 using System;
-using System.Collections.Generic;
-using Xunit;
+using System.Text;
 using PieceTree.TextBuffer.Diff;
+using Xunit;
 
-namespace PieceTree.TextBuffer.Tests
+namespace PieceTree.TextBuffer.Tests;
+
+public class DiffTests
 {
-    public class DiffTests
+    [Fact]
+    public void WordDiffProducesInnerChanges()
     {
-        [Fact]
-        public void TestInsert()
+        var original = "import { Baz, Bar } from \"foo\";";
+        var modified = "import { Baz, Bar, Foo } from \"foo\";";
+
+        var result = DiffComputer.Compute(original, modified);
+
+        var change = Assert.Single(result.Changes);
+        var inner = Assert.Single(change.InnerChanges);
+
+        var insertionColumn = original.IndexOf(" } from", StringComparison.Ordinal);
+        Assert.True(insertionColumn >= 0);
+        Assert.Equal(insertionColumn + 1, inner.OriginalRange.StartColumn);
+        Assert.Equal(inner.OriginalRange.StartColumn, inner.ModifiedRange.StartColumn);
+        Assert.Equal(inner.OriginalRange.StartColumn, inner.OriginalRange.EndColumn);
+        Assert.Equal(", Foo".Length, inner.ModifiedRange.EndColumn - inner.ModifiedRange.StartColumn);
+    }
+
+    [Fact]
+    public void IgnoreTrimWhitespaceTreatsTrailingSpacesAsEqual()
+    {
+        var original = "alpha\nbeta\n";
+        var modified = "alpha   \nbeta\t\n";
+
+        var result = DiffComputer.Compute(original, modified, new DiffComputerOptions
         {
-            var original = "abc";
-            var modified = "abxc";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            
-            Assert.Single(changes);
-            Assert.Equal(2, changes[0].OriginalStart);
-            Assert.Equal(0, changes[0].OriginalLength);
-            Assert.Equal(2, changes[0].ModifiedStart);
-            Assert.Equal(1, changes[0].ModifiedLength);
+            IgnoreTrimWhitespace = true,
+        });
+
+        Assert.Empty(result.Changes);
+        Assert.False(result.HitTimeout);
+    }
+
+    [Fact]
+    public void MoveDetectionEmitsNestedMappings()
+    {
+        var original = string.Join('\n', new[]
+        {
+            "header();",
+            "console.log(\"one\");",
+            "console.log(\"two\");",
+            "console.log(\"three\");",
+            "footer();",
+        });
+
+        var modified = string.Join('\n', new[]
+        {
+            "header();",
+            "footer();",
+            "console.log(\"one\");",
+            "console.log(\"TWO\");",
+            "console.log(\"three\");",
+        });
+
+        var result = DiffComputer.Compute(original, modified, new DiffComputerOptions { ComputeMoves = true });
+
+        var move = Assert.Single(result.Moves);
+        Assert.Equal(2, move.Original.StartLineNumber);
+        Assert.Equal(5, move.Original.EndLineNumberExclusive);
+        Assert.Equal(3, move.Modified.StartLineNumber);
+        Assert.Equal(6, move.Modified.EndLineNumberExclusive);
+
+        var nestedMapping = Assert.Single(move.Changes);
+        var inner = Assert.Single(nestedMapping.InnerChanges);
+        Assert.Equal(3, inner.OriginalRange.StartLineNumber);
+        Assert.Equal(4, inner.ModifiedRange.StartLineNumber);
+        Assert.Equal(inner.OriginalRange.StartColumn, inner.ModifiedRange.StartColumn);
+        Assert.True(inner.ModifiedRange.EndColumn - inner.ModifiedRange.StartColumn > 0);
+    }
+
+    [Fact]
+    public void DiffRespectsTimeoutFlag()
+    {
+        const int lineCount = 12000;
+        var original = BuildLargeDocument(lineCount, 'a');
+        var modified = BuildLargeDocument(lineCount, 'b');
+
+        var result = DiffComputer.Compute(original, modified, new DiffComputerOptions
+        {
+            MaxComputationTimeMs = 1,
+            ComputeMoves = false,
+        });
+
+        Assert.True(result.HitTimeout);
+    }
+
+    private static string BuildLargeDocument(int lineCount, char payload)
+    {
+        var builder = new StringBuilder(lineCount * 64);
+        for (var i = 0; i < lineCount; i++)
+        {
+            builder
+                .Append("line ")
+                .Append(i)
+                .Append(' ')
+                .Append(payload, 64)
+                .Append('\n');
         }
 
-        [Fact]
-        public void TestDelete()
-        {
-            var original = "abc";
-            var modified = "ac";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            
-            Assert.Single(changes);
-            Assert.Equal(1, changes[0].OriginalStart);
-            Assert.Equal(1, changes[0].OriginalLength);
-            Assert.Equal(1, changes[0].ModifiedStart);
-            Assert.Equal(0, changes[0].ModifiedLength);
-        }
-
-        [Fact]
-        public void TestReplace()
-        {
-            var original = "abc";
-            var modified = "axc";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            
-            Assert.Single(changes);
-            Assert.Equal(1, changes[0].OriginalStart);
-            Assert.Equal(1, changes[0].OriginalLength);
-            Assert.Equal(1, changes[0].ModifiedStart);
-            Assert.Equal(1, changes[0].ModifiedLength);
-        }
-
-        [Fact]
-        public void TestEmpty()
-        {
-            var original = "";
-            var modified = "";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            
-            Assert.Empty(changes);
-        }
-
-        [Fact]
-        public void TestIdentical()
-        {
-            var original = "abc";
-            var modified = "abc";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            
-            Assert.Empty(changes);
-        }
-        
-        [Fact]
-        public void TestComplex()
-        {
-            var original = "abcdef";
-            var modified = "dacfe";
-            var changes = DiffComputer.ComputeDiff(original, modified);
-            VerifyChanges(original, modified, changes);
-        }
-
-        [Fact]
-        public void PrettyDiffMergesCommaInsertion()
-        {
-            var original = "import { Baz, Bar } from \"foo\";";
-            var modified = "import { Baz, Bar, Foo } from \"foo\";";
-            var result = DiffComputer.Compute(original, modified);
-
-            Assert.Single(result.Changes);
-            var change = result.Changes[0];
-            Assert.Equal(0, change.OriginalLength);
-            Assert.Equal(", Foo".Length, change.ModifiedLength);
-            Assert.Equal(", Foo", modified.Substring(change.ModifiedStart, change.ModifiedLength));
-        }
-
-        [Fact]
-        public void MoveDetectionFindsRelocatedBlock()
-        {
-            var original = "alpha\nbeta\ngamma\ndelta";
-            var modified = "gamma\ndelta\nalpha\nbeta";
-            var result = DiffComputer.Compute(original, modified, new DiffComputerOptions { MoveDetectionMinMatchLength = 4 });
-
-            Assert.NotEmpty(result.Moves);
-            Assert.True(result.Summary.MoveCount > 0);
-            Assert.Contains(result.Moves, move => move.Text.Contains("alpha", StringComparison.Ordinal));
-        }
-
-        private void VerifyChanges(string original, string modified, DiffChange[] changes)
-        {
-            int originalIndex = 0;
-            int modifiedIndex = 0;
-            
-            foreach (var change in changes)
-            {
-                // Check unchanged part before this change
-                int unchangedLen = change.OriginalStart - originalIndex;
-                Assert.Equal(unchangedLen, change.ModifiedStart - modifiedIndex); // "Unchanged length mismatch"
-                
-                if (unchangedLen > 0)
-                {
-                    var s1 = original.Substring(originalIndex, unchangedLen);
-                    var s2 = modified.Substring(modifiedIndex, unchangedLen);
-                    Assert.Equal(s1, s2); // "Unchanged content mismatch"
-                }
-                
-                originalIndex = change.OriginalEnd;
-                modifiedIndex = change.ModifiedEnd;
-            }
-            
-            // Check remaining tail
-            int remainingOriginal = original.Length - originalIndex;
-            int remainingModified = modified.Length - modifiedIndex;
-            Assert.Equal(remainingOriginal, remainingModified); // "Tail length mismatch"
-            
-            if (remainingOriginal > 0)
-            {
-                var s1 = original.Substring(originalIndex, remainingOriginal);
-                var s2 = modified.Substring(modifiedIndex, remainingModified);
-                Assert.Equal(s1, s2); // "Tail content mismatch"
-            }
-        }
+        return builder.ToString();
     }
 }

@@ -1,19 +1,18 @@
+using System.Collections.Generic;
+
 namespace PieceTree.TextBuffer.Diff;
 
 public sealed class DiffMove
 {
-    public DiffMove(int originalStart, int originalLength, int modifiedStart, int modifiedLength, string text)
+    public DiffMove(LineRangeMapping lineRangeMapping, IReadOnlyList<DetailedLineRangeMapping> changes)
     {
-        OriginalStart = originalStart;
-        OriginalLength = originalLength;
-        ModifiedStart = modifiedStart;
-        ModifiedLength = modifiedLength;
-        Text = text;
+        LineRangeMapping = lineRangeMapping;
+        Changes = changes;
     }
 
-    public int OriginalStart { get; }
-    public int OriginalLength { get; }
-    public int ModifiedStart { get; }
-    public int ModifiedLength { get; }
-    public string Text { get; }
+    public LineRangeMapping LineRangeMapping { get; }
+    public IReadOnlyList<DetailedLineRangeMapping> Changes { get; }
+
+    public LineRange Original => LineRangeMapping.Original;
+    public LineRange Modified => LineRangeMapping.Modified;
 }

@@ -2,23 +2,26 @@ using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Diff;
 
-public sealed class DiffResult
+public class LinesDiff
 {
-    public DiffResult(IReadOnlyList<DiffChange> changes, IReadOnlyList<DiffMove> moves, DiffSummary summary)
+    public LinesDiff(IReadOnlyList<DetailedLineRangeMapping> changes, IReadOnlyList<DiffMove> moves, bool hitTimeout)
     {
         Changes = changes;
         Moves = moves;
-        Summary = summary;
+        HitTimeout = hitTimeout;
     }
 
-    public IReadOnlyList<DiffChange> Changes { get; }
+    public IReadOnlyList<DetailedLineRangeMapping> Changes { get; }
     public IReadOnlyList<DiffMove> Moves { get; }
-    public DiffSummary Summary { get; }
+    public bool HitTimeout { get; }
+
+    public bool IsIdentical => Changes.Count == 0 && Moves.Count == 0;
 }
 
-public sealed class DiffSummary
+public sealed class DiffResult : LinesDiff
 {
-    public bool UsedPrettify { get; internal set; }
-    public int MergeCount { get; internal set; }
-    public int MoveCount { get; internal set; }
+    public DiffResult(IReadOnlyList<DetailedLineRangeMapping> changes, IReadOnlyList<DiffMove> moves, bool hitTimeout)
+        : base(changes, moves, hitTimeout)
+    {
+    }
 }

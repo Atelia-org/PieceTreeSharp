@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace PieceTree.TextBuffer.Core;
 
-public readonly record struct Range(TextPosition Start, TextPosition End)
+public readonly partial record struct Range(TextPosition Start, TextPosition End)
 {
     public Range(int startLine, int startColumn, int endLine, int endColumn)
         : this(new TextPosition(startLine, startColumn), new TextPosition(endLine, endColumn))
