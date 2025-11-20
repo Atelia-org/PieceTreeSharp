@@ -1,101 +1,88 @@
 using System;
 using System.Collections.Generic;
+using PieceTree.TextBuffer.Services;
 
 namespace PieceTree.TextBuffer;
 
 internal sealed class EditStack
 {
     private readonly TextModel _model;
-    private readonly List<EditStackElement> _undoStack = new();
-    private readonly List<EditStackElement> _redoStack = new();
-    private EditStackElement? _openElement;
+    private readonly IUndoRedoService _undoRedoService;
+    private TextModelUndoRedoElement? _openElement;
 
-    public EditStack(TextModel model)
+    public EditStack(TextModel model, IUndoRedoService undoRedoService)
     {
         _model = model ?? throw new ArgumentNullException(nameof(model));
+        _undoRedoService = undoRedoService ?? InProcUndoRedoService.Instance;
     }
 
-    public bool CanUndo => _undoStack.Count > 0;
-    public bool CanRedo => _redoStack.Count > 0;
+    public bool CanUndo => _undoRedoService.CanUndo(_model);
+    public bool CanRedo => _undoRedoService.CanRedo(_model);
 
-    public EditStackElement GetOrCreateElement()
+    public EditStackElement GetOrCreateElement(string? label, IReadOnlyList<TextPosition>? beforeCursorState)
     {
         if (_openElement is null)
         {
-            var element = new EditStackElement(_model.AlternativeVersionId, _model.Eol);
-            _undoStack.Add(element);
-            _openElement = element;
-            _redoStack.Clear();
+            var element = new EditStackElement(_model.AlternativeVersionId, _model.Eol, label, beforeCursorState);
+            _openElement = new TextModelUndoRedoElement(_model, element);
+            _undoRedoService.PushElement(_openElement);
+        }
+        else
+        {
+            _openElement.Element.UpdateLabel(label);
+            _openElement.Element.CaptureBeforeCursorState(beforeCursorState);
         }
 
-        return _openElement;
+        return _openElement.Element;
     }
 
     public void PushStackElement()
-    {
-        CloseOpenElement();
-    }
-
-    public void PopStackElement()
-    {
-        if (_openElement is null && _undoStack.Count > 0)
-        {
-            _openElement = _undoStack[_undoStack.Count - 1];
-        }
-    }
-
-    public void Clear()
-    {
-        _openElement = null;
-        _undoStack.Clear();
-        _redoStack.Clear();
-    }
-
-    public EditStackElement? PopUndo()
-    {
-        CloseOpenElement();
-        if (_undoStack.Count == 0)
-        {
-            return null;
-        }
-
-        var element = _undoStack[_undoStack.Count - 1];
-        _undoStack.RemoveAt(_undoStack.Count - 1);
-        _redoStack.Add(element);
-        return element;
-    }
-
-    public EditStackElement? PopRedoForApply()
-    {
-        CloseOpenElement();
-        if (_redoStack.Count == 0)
-        {
-            return null;
-        }
-
-        var element = _redoStack[_redoStack.Count - 1];
-        _redoStack.RemoveAt(_redoStack.Count - 1);
-        return element;
-    }
-
-    public void PushRedoResult(EditStackElement element)
-    {
-        _undoStack.Add(element);
-    }
-
-    private void CloseOpenElement()
     {
         if (_openElement is null)
         {
             return;
         }
 
-        if (_undoStack.Count > 0 && ReferenceEquals(_undoStack[_undoStack.Count - 1], _openElement) && !_openElement.HasEffect)
+        _undoRedoService.CloseOpenElement(_model);
+        _openElement = null;
+    }
+
+    public void PopStackElement()
+    {
+        if (_openElement != null)
         {
-            _undoStack.RemoveAt(_undoStack.Count - 1);
+            return;
         }
 
+        _openElement = _undoRedoService.TryReopenLastElement(_model);
+    }
+
+    public void Clear()
+    {
         _openElement = null;
+        _undoRedoService.Clear(_model);
+    }
+
+    public TextModelUndoRedoElement? PopUndo()
+    {
+        PushStackElement();
+        return _undoRedoService.PopUndo(_model);
+    }
+
+    public TextModelUndoRedoElement? PopRedo()
+    {
+        PushStackElement();
+        return _undoRedoService.PopRedo(_model);
+    }
+
+    public void PushRedoResult(TextModelUndoRedoElement element)
+    {
+        _undoRedoService.PushRedoResult(element);
+    }
+
+    public void CloseOpenElement()
+    {
+        PushStackElement();
     }
 }
 
@@ -103,12 +90,14 @@ internal sealed class EditStackElement
 {
     private readonly List<RecordedEdit> _edits = new();
 
-    public EditStackElement(int beforeVersionId, string beforeEol)
+    public EditStackElement(int beforeVersionId, string beforeEol, string? label, IReadOnlyList<TextPosition>? beforeCursorState)
     {
         BeforeVersionId = beforeVersionId;
         AfterVersionId = beforeVersionId;
         BeforeEol = beforeEol;
         AfterEol = beforeEol;
+        Label = label;
+        BeforeCursorState = beforeCursorState;
     }
 
     public IReadOnlyList<RecordedEdit> Edits => _edits;
@@ -116,14 +105,37 @@ internal sealed class EditStackElement
     public int AfterVersionId { get; private set; }
     public string BeforeEol { get; }
     public string AfterEol { get; private set; }
+    public string? Label { get; private set; }
+    public IReadOnlyList<TextPosition>? BeforeCursorState { get; private set; }
+    public IReadOnlyList<TextPosition>? AfterCursorState { get; private set; }
 
     public bool HasEffect => _edits.Count > 0 || !string.Equals(BeforeEol, AfterEol, StringComparison.Ordinal);
 
-    public void AppendEdits(IEnumerable<RecordedEdit> edits, string currentEol, int alternativeVersionId)
+    public void UpdateLabel(string? label)
+    {
+        if (!string.IsNullOrEmpty(label) && string.IsNullOrEmpty(Label))
+        {
+            Label = label;
+        }
+    }
+
+    public void CaptureBeforeCursorState(IReadOnlyList<TextPosition>? cursorState)
+    {
+        if (cursorState != null && BeforeCursorState == null)
+        {
+            BeforeCursorState = cursorState;
+        }
+    }
+
+    public void AppendEdits(IEnumerable<RecordedEdit> edits, string currentEol, int alternativeVersionId, IReadOnlyList<TextPosition>? afterCursorState)
     {
         _edits.AddRange(edits);
         AfterEol = currentEol;
         AfterVersionId = alternativeVersionId;
+        if (afterCursorState != null)
+        {
+            AfterCursorState = afterCursorState;
+        }
     }
 
     public void RecordEolChange(string eol, int alternativeVersionId)

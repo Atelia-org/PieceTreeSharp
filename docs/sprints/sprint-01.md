@@ -12,11 +12,11 @@
 ## Backlog Snapshot
 | Priority | Task | Description & Deliverables | runSubAgent Budget | Owner | Target Date | Dependencies | Status / Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | AA3-001 | Investigator-TS：完成 CL1（TextModel options / metadata / events）对照，输出 `agent-team/handoffs/AA3-001-Audit.md` 并更新 `docs/reports/audit-checklist-aa3.md#cl1`。 | 2 | Investigator-TS | 2025-11-22 | Sprint 01 kickoff、changefeed checkpoint | Planned |
-| P0 | AA3-002 | Investigator-TS：完成 CL2（Search/Replace & regex captures）对照，输出 `agent-team/handoffs/AA3-002-Audit.md` + checklist更新。 | 2 | Investigator-TS | 2025-11-22 | 同上 | Planned |
+| P0 | AA3-001 | Investigator-TS：完成 CL1（TextModel options / metadata / events）对照，输出 `agent-team/handoffs/AA3-001-Audit.md` 并更新 `docs/reports/audit-checklist-aa3.md#cl1`。 | 2 | Investigator-TS | 2025-11-22 | Sprint 01 kickoff、changefeed checkpoint | Done – `AA3-001-Audit.md` merged |
+| P0 | AA3-002 | Investigator-TS：完成 CL2（Search/Replace & regex captures）对照，输出 `agent-team/handoffs/AA3-002-Audit.md` + checklist更新。 | 2 | Investigator-TS | 2025-11-22 | 同上 | Done – `AA3-002-Audit.md` merged |
 | P1 | AA3-005 | Investigator-TS：完成 CL3（Diff prettify & move metadata）对照，输出 `agent-team/handoffs/AA3-005-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL1/CL2 context | Planned |
 | P1 | AA3-007 | Investigator-TS：完成 CL4（Decorations & Markdown DocUI）对照，输出 `agent-team/handoffs/AA3-007-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL1/CL2 context | Planned |
-| P0 | AA3-003 | Porter-CS：根据 CL1 结论执行 TextModel/Options 修复，记录在 `agent-team/handoffs/AA3-003-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-24 | AA3-001 | Planned |
+| P0 | AA3-003 | Porter-CS：根据 CL1 结论执行 TextModel/Options 修复，记录在 `agent-team/handoffs/AA3-003-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-24 | AA3-001 | In Review – result doc + `dotnet test ...` 79/79 |
 | P0 | AA3-004 | Porter-CS：根据 CL2 结论执行 Search/Replace 修复，记录在 `agent-team/handoffs/AA3-004-Result.md`。 | 3 | Porter-CS | 2025-11-24 | AA3-002 | Planned |
 | P1 | AA3-006 | Porter-CS：根据 CL3 结论修复 Diff/move metadata（`DiffComputer`, `MarkdownRenderer` consumers）。 | 3 | Porter-CS | 2025-11-25 | AA3-005 | Planned |
 | P1 | AA3-008 | Porter-CS：根据 CL4 结论修复 Decorations/DocUI。 | 3 | Porter-CS | 2025-11-25 | AA3-007 | Planned |
@@ -53,3 +53,5 @@
 ## Progress Log
 - 2025-11-20：Sprint 01 立项 —— 创建 `docs/reports/audit-checklist-aa3.md` 作为 CL1~CL4 清单，并刷新 `agent-team/task-board.md`（Phase 6）。
 - 2025-11-20：AA3-001（CL1 Investigator）完成 —— 生成 `agent-team/handoffs/AA3-001-Audit.md`，在 `docs/reports/audit-checklist-aa3.md#cl1` 登记 F1~F5，Task Board 标记 Done，等待 Porter-CS 接手 AA3-003。
+- 2025-11-20：AA3-002（CL2 Investigator）完成 —— 生成 `agent-team/handoffs/AA3-002-Audit.md`，总结 ECMAScript regex、word separator、surrogate 差异；`docs/reports/audit-checklist-aa3.md#cl2` 与 Task Board 已更新，待 AA3-004 修复。
+- 2025-11-20：AA3-003（CL1 Porter）完成实现 —— `TextModel` 创建选项、语言配置事件、Undo 服务桥接与 multi-range 搜索全部对齐 TS；`agent-team/handoffs/AA3-003-Result.md` + `docs/reports/migration-log.md` 已登记，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（79/79）验证通过。

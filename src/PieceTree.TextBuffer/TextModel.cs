@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.Services;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer;
@@ -55,32 +56,75 @@ public class TextModelContentChangedEventArgs : EventArgs
     }
 }
 
+public delegate IReadOnlyList<TextPosition>? CursorStateComputer(IReadOnlyList<TextChange> inverseChanges);
+
+public class TextModelLanguageConfigurationChangedEventArgs : EventArgs
+{
+    public TextModelLanguageConfigurationChangedEventArgs(string languageId)
+    {
+        LanguageId = string.IsNullOrWhiteSpace(languageId) ? "plaintext" : languageId;
+    }
+
+    public string LanguageId { get; }
+}
+
+public class TextModelAttachedChangedEventArgs : EventArgs
+{
+    public TextModelAttachedChangedEventArgs(bool isAttached)
+    {
+        IsAttached = isAttached;
+    }
+
+    public bool IsAttached { get; }
+}
+
 public class TextModel : ITextSearchAccess
 {
+    private const string DefaultUndoLabel = "Edit";
     private readonly PieceTreeBuffer _buffer;
     private readonly IntervalTree _decorations = new();
     private readonly Dictionary<int, HashSet<string>> _decorationIdsByOwner = new();
+    private readonly IUndoRedoService _undoRedoService;
+    private readonly ILanguageConfigurationService _languageConfigurationService;
     private readonly EditStack _editStack;
     private TextModelResolvedOptions _options;
+    private TextModelCreationOptions _creationOptions;
     private string _languageId;
     private int _versionId = 1;
     private int _alternativeVersionId = 1;
     private string _eol;
     private bool _isUndoing;
     private bool _isRedoing;
+    private int _attachedEditorCount;
+    private IDisposable? _languageConfigurationSubscription;
     private int _nextDecorationOwnerId = DecorationOwnerIds.SearchHighlights + 1;
 
     public event EventHandler<TextModelContentChangedEventArgs>? OnDidChangeContent;
     public event EventHandler<TextModelOptionsChangedEventArgs>? OnDidChangeOptions;
     public event EventHandler<TextModelLanguageChangedEventArgs>? OnDidChangeLanguage;
     public event EventHandler<TextModelDecorationsChangedEventArgs>? OnDidChangeDecorations;
+    public event EventHandler<TextModelLanguageConfigurationChangedEventArgs>? OnDidChangeLanguageConfiguration;
+    public event EventHandler<TextModelAttachedChangedEventArgs>? OnDidChangeAttached;
 
     public TextModel(string text, string defaultEol = "\n", string languageId = "plaintext")
+        : this(text, TextModelCreationOptions.Default with { DefaultEol = StringToDefaultEol(defaultEol) }, languageId)
     {
+    }
+
+    public TextModel(
+        string text,
+        TextModelCreationOptions? creationOptions,
+        string languageId = "plaintext",
+        ILanguageConfigurationService? languageConfigurationService = null)
+    {
+        _languageConfigurationService = languageConfigurationService ?? LanguageConfigurationService.Instance;
+        _undoRedoService = InProcUndoRedoService.Instance;
+        _creationOptions = creationOptions ?? TextModelCreationOptions.Default;
+
         _buffer = new PieceTreeBuffer(text);
         _languageId = string.IsNullOrWhiteSpace(languageId) ? "plaintext" : languageId;
 
-        var normalizedEol = NormalizeEol(defaultEol);
+        var normalizedEol = NormalizeEol(_creationOptions.DefaultEol == DefaultEndOfLine.CRLF ? "\r\n" : "\n");
         if (_buffer.Length == 0)
         {
             _buffer.SetEol(normalizedEol);
@@ -91,8 +135,17 @@ public class TextModel : ITextSearchAccess
             _eol = _buffer.GetEol();
         }
 
-        _options = TextModelResolvedOptions.CreateDefault(_eol == "\r\n" ? DefaultEndOfLine.CRLF : DefaultEndOfLine.LF);
-        _editStack = new EditStack(this);
+        var defaultEol = _eol == "\r\n" ? DefaultEndOfLine.CRLF : DefaultEndOfLine.LF;
+        _options = TextModelResolvedOptions.Resolve(_creationOptions, defaultEol);
+        _creationOptions = _options.CreationOptions;
+        _editStack = new EditStack(this, _undoRedoService);
+
+        if (_creationOptions.DetectIndentation && _buffer.Length > 0)
+        {
+            DetectIndentation(_creationOptions.InsertSpaces, _creationOptions.TabSize);
+        }
+
+        SubscribeToLanguageConfiguration(_languageId);
     }
 
     public int VersionId => _versionId;
@@ -164,6 +217,20 @@ public class TextModel : ITextSearchAccess
         return FindMatches(searchParams, searchRange, captureMatches, limitResultCount);
     }
 
+    public IReadOnlyList<FindMatch> FindMatches(
+        string searchString,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool isRegex,
+        bool matchCase,
+        string? wordSeparators,
+        bool captureMatches,
+        int limitResultCount = TextModelSearch.DefaultLimit)
+    {
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindMatches(searchParams, searchRanges, findInSelection, captureMatches, limitResultCount);
+    }
+
     public IReadOnlyList<FindMatch> FindMatches(SearchParams searchParams, Range? searchRange = null, bool captureMatches = false, int limitResultCount = TextModelSearch.DefaultLimit)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
@@ -174,13 +241,46 @@ public class TextModel : ITextSearchAccess
         }
 
         var range = searchRange ?? GetDocumentRange();
-        return TextModelSearch.FindMatches(this, searchData, range, captureMatches, limitResultCount);
+        var rangeSet = SearchRangeSet.FromRange(this, range);
+        return TextModelSearch.FindMatches(this, searchData, rangeSet, captureMatches, limitResultCount);
+    }
+
+    public IReadOnlyList<FindMatch> FindMatches(
+        SearchParams searchParams,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool captureMatches = false,
+        int limitResultCount = TextModelSearch.DefaultLimit)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return Array.Empty<FindMatch>();
+        }
+
+        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        return TextModelSearch.FindMatches(this, searchData, rangeSet, captureMatches, limitResultCount);
     }
 
     public FindMatch? FindNextMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
     {
         var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
         return FindNextMatch(searchParams, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindNextMatch(
+        string searchString,
+        TextPosition searchStart,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool isRegex,
+        bool matchCase,
+        string? wordSeparators,
+        bool captureMatches = false)
+    {
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindNextMatch(searchParams, searchStart, searchRanges, findInSelection, captureMatches);
     }
 
     public FindMatch? FindNextMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
@@ -195,10 +295,42 @@ public class TextModel : ITextSearchAccess
         return TextModelSearch.FindNextMatch(this, searchData, searchStart, captureMatches);
     }
 
+    public FindMatch? FindNextMatch(
+        SearchParams searchParams,
+        TextPosition searchStart,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool captureMatches = false)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return null;
+        }
+
+        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        return TextModelSearch.FindNextMatch(this, searchData, searchStart, captureMatches, rangeSet);
+    }
+
     public FindMatch? FindPreviousMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
     {
         var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
         return FindPreviousMatch(searchParams, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindPreviousMatch(
+        string searchString,
+        TextPosition searchStart,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool isRegex,
+        bool matchCase,
+        string? wordSeparators,
+        bool captureMatches = false)
+    {
+        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        return FindPreviousMatch(searchParams, searchStart, searchRanges, findInSelection, captureMatches);
     }
 
     public FindMatch? FindPreviousMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
@@ -211,6 +343,24 @@ public class TextModel : ITextSearchAccess
         }
 
         return TextModelSearch.FindPreviousMatch(this, searchData, searchStart, captureMatches);
+    }
+
+    public FindMatch? FindPreviousMatch(
+        SearchParams searchParams,
+        TextPosition searchStart,
+        IReadOnlyList<Range>? searchRanges,
+        bool findInSelection,
+        bool captureMatches = false)
+    {
+        ArgumentNullException.ThrowIfNull(searchParams);
+        var searchData = searchParams.ParseSearchRequest();
+        if (searchData == null)
+        {
+            return null;
+        }
+
+        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        return TextModelSearch.FindPreviousMatch(this, searchData, searchStart, captureMatches, rangeSet);
     }
 
     public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Default)
@@ -309,14 +459,49 @@ public class TextModel : ITextSearchAccess
 
     public void PopStackElement() => _editStack.PopStackElement();
 
-    public IReadOnlyList<TextChange> PushEditOperations(TextEdit[] edits)
+    public void AttachEditor()
+    {
+        var previous = _attachedEditorCount;
+        _attachedEditorCount++;
+        if (previous == 0 && _attachedEditorCount == 1)
+        {
+            OnDidChangeAttached?.Invoke(this, new TextModelAttachedChangedEventArgs(true));
+        }
+    }
+
+    public void DetachEditor()
+    {
+        if (_attachedEditorCount == 0)
+        {
+            return;
+        }
+
+        _attachedEditorCount--;
+        if (_attachedEditorCount == 0)
+        {
+            OnDidChangeAttached?.Invoke(this, new TextModelAttachedChangedEventArgs(false));
+        }
+    }
+
+    public IReadOnlyList<TextChange> PushEditOperations(
+        TextEdit[] edits,
+        IReadOnlyList<TextPosition>? beforeCursorState = null,
+        CursorStateComputer? cursorStateComputer = null,
+        string? undoLabel = null)
     {
         if (edits is null)
         {
             throw new ArgumentNullException(nameof(edits));
         }
 
-        return ApplyEditsInternal(edits, recordInUndoStack: true, isUndo: false, isRedo: false);
+        return ApplyEditsInternal(
+            edits,
+            recordInUndoStack: true,
+            isUndo: false,
+            isRedo: false,
+            undoLabel,
+            beforeCursorState,
+            cursorStateComputer);
     }
 
     public void ApplyEdits(TextEdit[] edits)
@@ -332,19 +517,19 @@ public class TextModel : ITextSearchAccess
             return false;
         }
 
-        ApplyRecordedEdits(element, isUndo: true);
+        ApplyRecordedEdits(element.Element, isUndo: true);
         return true;
     }
 
     public bool Redo()
     {
-        var element = _editStack.PopRedoForApply();
+        var element = _editStack.PopRedo();
         if (element is null)
         {
             return false;
         }
 
-        ApplyRecordedEdits(element, isUndo: false);
+        ApplyRecordedEdits(element.Element, isUndo: false);
         _editStack.PushRedoResult(element);
         return true;
     }
@@ -357,7 +542,7 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        var element = _editStack.GetOrCreateElement();
+        var element = _editStack.GetOrCreateElement(null, null);
         SetEolInternal(target, recordStackDelta: false, isUndo: false, isRedo: false);
         element.RecordEolChange(target, _alternativeVersionId);
     }
@@ -377,6 +562,7 @@ public class TextModel : ITextSearchAccess
 
         var diff = _options.Diff(updated);
         _options = updated;
+        _creationOptions = updated.CreationOptions;
         OnDidChangeOptions?.Invoke(this, diff);
     }
 
@@ -449,10 +635,18 @@ public class TextModel : ITextSearchAccess
 
         var previous = _languageId;
         _languageId = languageId;
+        SubscribeToLanguageConfiguration(_languageId);
         OnDidChangeLanguage?.Invoke(this, new TextModelLanguageChangedEventArgs(previous, languageId));
     }
 
-    private IReadOnlyList<TextChange> ApplyEditsInternal(TextEdit[] edits, bool recordInUndoStack, bool isUndo, bool isRedo)
+    private IReadOnlyList<TextChange> ApplyEditsInternal(
+        TextEdit[] edits,
+        bool recordInUndoStack,
+        bool isUndo,
+        bool isRedo,
+        string? undoLabel = null,
+        IReadOnlyList<TextPosition>? beforeCursorState = null,
+        CursorStateComputer? cursorStateComputer = null)
     {
         if (edits.Length == 0)
         {
@@ -506,8 +700,21 @@ public class TextModel : ITextSearchAccess
 
         if (recordInUndoStack && !_isUndoing && !_isRedoing)
         {
-            var element = _editStack.GetOrCreateElement();
-            element.AppendEdits(recordedEdits, _eol, _alternativeVersionId);
+            IReadOnlyList<TextPosition>? afterCursorState = null;
+            if (cursorStateComputer != null)
+            {
+                try
+                {
+                    afterCursorState = cursorStateComputer(changes);
+                }
+                catch
+                {
+                    afterCursorState = null;
+                }
+            }
+
+            var element = _editStack.GetOrCreateElement(undoLabel ?? DefaultUndoLabel, beforeCursorState);
+            element.AppendEdits(recordedEdits, _eol, _alternativeVersionId, afterCursorState);
         }
 
         return changes;
@@ -630,11 +837,12 @@ public class TextModel : ITextSearchAccess
 
         if (recordStackDelta)
         {
-            var element = _editStack.GetOrCreateElement();
+            var element = _editStack.GetOrCreateElement(null, null);
             element.RecordEolChange(newEol, _alternativeVersionId);
         }
 
         _options = _options.WithDefaultEol(newEol == "\r\n" ? DefaultEndOfLine.CRLF : DefaultEndOfLine.LF);
+        _creationOptions = _options.CreationOptions;
     }
 
     private TextPosition GetDocumentEndPosition()
@@ -747,6 +955,13 @@ public class TextModel : ITextSearchAccess
 
     private static string NormalizeEol(string value) => string.Equals(value, "\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
 
+    private static DefaultEndOfLine StringToDefaultEol(string value)
+    {
+        return string.Equals(NormalizeEol(value), "\r\n", StringComparison.Ordinal)
+            ? DefaultEndOfLine.CRLF
+            : DefaultEndOfLine.LF;
+    }
+
     private static int GreatestCommonDivisor(int left, int right)
     {
         left = Math.Abs(left);
@@ -839,6 +1054,17 @@ public class TextModel : ITextSearchAccess
         }
 
         return changes;
+    }
+
+    private void SubscribeToLanguageConfiguration(string languageId)
+    {
+        _languageConfigurationSubscription?.Dispose();
+        _languageConfigurationSubscription = _languageConfigurationService.Subscribe(languageId, HandleLanguageConfigurationChanged);
+    }
+
+    private void HandleLanguageConfigurationChanged(object? sender, LanguageConfigurationChangedEventArgs args)
+    {
+        OnDidChangeLanguageConfiguration?.Invoke(this, new TextModelLanguageConfigurationChangedEventArgs(args.LanguageId));
     }
 
         private bool UpdateDecorationRange(ModelDecoration decoration, int offset, int removedLength, int insertedLength)

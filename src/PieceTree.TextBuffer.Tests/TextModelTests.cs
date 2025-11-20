@@ -1,9 +1,11 @@
 using System;
-using Xunit;
+using System.Collections.Generic;
+using System.Linq;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using System.Linq;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.Services;
+using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -187,13 +189,14 @@ public class TextModelTests
         {
             TabSize = 2,
             InsertSpaces = false,
-            TrimAutoWhitespace = true,
+            TrimAutoWhitespace = false,
         });
 
         Assert.NotNull(captured);
         Assert.True(captured!.TabSizeChanged);
         Assert.True(captured.InsertSpacesChanged);
         Assert.True(captured.TrimAutoWhitespaceChanged);
+        Assert.False(model.GetOptions().TrimAutoWhitespace);
         Assert.Equal(2, model.GetOptions().TabSize);
     }
 
@@ -244,5 +247,156 @@ public class TextModelTests
         newLanguage = null;
         model.SetLanguage("csharp");
         Assert.Null(newLanguage);
+    }
+
+    [Fact]
+    public void CreationOptionsAreApplied()
+    {
+        var creation = new TextModelCreationOptions
+        {
+            DetectIndentation = false,
+            TabSize = 2,
+            IndentSize = 2,
+            InsertSpaces = false,
+            TrimAutoWhitespace = true,
+            DefaultEol = DefaultEndOfLine.CRLF,
+            LargeFileOptimizations = false,
+            BracketPairColorizationOptions = new BracketPairColorizationOptions(false, true),
+        };
+
+        var model = new TextModel("line1\r\nline2", creation, "plaintext");
+        var options = model.GetOptions();
+
+        Assert.Equal(2, options.TabSize);
+        Assert.Equal(2, options.IndentSize);
+        Assert.False(options.InsertSpaces);
+        Assert.True(options.TrimAutoWhitespace);
+        Assert.Equal(DefaultEndOfLine.CRLF, options.DefaultEol);
+        Assert.False(options.LargeFileOptimizations);
+        Assert.False(options.BracketPairColorizationOptions.Enabled);
+        Assert.True(options.BracketPairColorizationOptions.IndependentColorPoolPerBracketType);
+    }
+
+    [Fact]
+    public void DetectIndentationRunsDuringConstruction()
+    {
+        var creation = new TextModelCreationOptions
+        {
+            DetectIndentation = true,
+            TabSize = 4,
+            IndentSize = 4,
+            InsertSpaces = true,
+        };
+
+        var model = new TextModel("\tline\n\tindent", creation, "plaintext");
+        var options = model.GetOptions();
+
+        Assert.False(options.InsertSpaces);
+        Assert.Equal(4, options.TabSize);
+    }
+
+    [Fact]
+    public void CursorStateComputerIsInvoked()
+    {
+        var model = new TextModel("abc");
+        bool invoked = false;
+
+        CursorStateComputer computer = inverseChanges =>
+        {
+            invoked = inverseChanges.Count > 0;
+            return null;
+        };
+
+        model.PushEditOperations(
+            new[] { new TextEdit(new TextPosition(1, 4), new TextPosition(1, 4), "!") },
+            beforeCursorState: null,
+            cursorStateComputer: computer,
+            undoLabel: "exclaim");
+
+        Assert.True(invoked);
+    }
+
+    [Fact]
+    public void LanguageConfigurationEventsFire()
+    {
+        var service = new TestLanguageConfigurationService();
+        var model = new TextModel("text", TextModelCreationOptions.Default, "langA", service);
+        string? observed = null;
+        model.OnDidChangeLanguageConfiguration += (_, args) => observed = args.LanguageId;
+
+        service.Raise("langA");
+        Assert.Equal("langA", observed);
+
+        observed = null;
+        model.SetLanguage("langB");
+
+        service.Raise("langA");
+        Assert.Null(observed);
+
+        service.Raise("langB");
+        Assert.Equal("langB", observed);
+    }
+
+    [Fact]
+    public void AttachedEventsFireOnTransitions()
+    {
+        var model = new TextModel("text");
+        var events = new System.Collections.Generic.List<bool>();
+        model.OnDidChangeAttached += (_, args) => events.Add(args.IsAttached);
+
+        model.AttachEditor();
+        model.AttachEditor();
+        model.DetachEditor();
+        model.DetachEditor();
+
+        Assert.Equal(new[] { true, false }, events);
+    }
+
+    private sealed class TestLanguageConfigurationService : ILanguageConfigurationService
+    {
+        private readonly List<(string LanguageId, EventHandler<LanguageConfigurationChangedEventArgs> Handler)> _handlers = new();
+
+        public event EventHandler<LanguageConfigurationChangedEventArgs>? OnDidChange;
+
+        public IDisposable Subscribe(string languageId, EventHandler<LanguageConfigurationChangedEventArgs> callback)
+        {
+            _handlers.Add((languageId, callback));
+            return new DelegateDisposable(() => _handlers.RemoveAll(tuple => tuple.LanguageId == languageId && tuple.Handler == callback));
+        }
+
+        public void Raise(string languageId)
+        {
+            var args = new LanguageConfigurationChangedEventArgs(languageId);
+            OnDidChange?.Invoke(this, args);
+            foreach (var entry in _handlers.ToArray())
+            {
+                if (string.Equals(entry.LanguageId, languageId, StringComparison.Ordinal))
+                {
+                    entry.Handler(this, args);
+                }
+            }
+        }
+
+        private sealed class DelegateDisposable : IDisposable
+        {
+            private readonly Action _dispose;
+            private bool _isDisposed;
+
+            public DelegateDisposable(Action dispose)
+            {
+                _dispose = dispose;
+            }
+
+            public void Dispose()
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+
+                _isDisposed = true;
+                _dispose();
+            }
+        }
     }
 }

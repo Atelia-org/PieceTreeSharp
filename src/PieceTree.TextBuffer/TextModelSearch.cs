@@ -6,6 +6,166 @@ using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer;
 
+internal sealed class SearchRangeSet
+{
+    private readonly List<Range> _ranges;
+
+    private SearchRangeSet(List<Range> ranges, bool isWholeDocument)
+    {
+        _ranges = ranges;
+        IsWholeDocument = isWholeDocument;
+    }
+
+    public bool IsWholeDocument { get; }
+    public int Count => _ranges.Count;
+    public IReadOnlyList<Range> Ranges => _ranges;
+    public bool IsEmpty => _ranges.Count == 0;
+
+    public Range this[int index] => _ranges[index];
+
+    public static SearchRangeSet EntireDocument(ITextSearchAccess model)
+    {
+        var lineCount = Math.Max(1, model.LineCount);
+        var end = new TextPosition(lineCount, model.GetLineMaxColumn(lineCount));
+        return new SearchRangeSet(new List<Range> { new Range(new TextPosition(1, 1), end) }, true);
+    }
+
+    public static SearchRangeSet FromRange(ITextSearchAccess model, Range range)
+    {
+        return new SearchRangeSet(new List<Range> { NormalizeRange(model, range) }, false);
+    }
+
+    public static SearchRangeSet FromRanges(ITextSearchAccess model, IReadOnlyList<Range>? ranges, bool findInSelection)
+    {
+        if (!findInSelection || ranges == null || ranges.Count == 0)
+        {
+            return EntireDocument(model);
+        }
+
+        var merged = MergeRanges(model, ranges);
+        if (merged.Count == 0)
+        {
+            return EntireDocument(model);
+        }
+
+        return new SearchRangeSet(merged, false);
+    }
+
+    public int FindContainingRange(TextPosition position)
+    {
+        for (int i = 0; i < _ranges.Count; i++)
+        {
+            if (Contains(_ranges[i], position, includeEnd: false))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public int FindFirstRangeStartingAfter(TextPosition position)
+    {
+        for (int i = 0; i < _ranges.Count; i++)
+        {
+            if (Compare(_ranges[i].Start, position) >= 0)
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    public int FindLastRangeEndingBefore(TextPosition position)
+    {
+        for (int i = _ranges.Count - 1; i >= 0; i--)
+        {
+            if (Compare(_ranges[i].End, position) <= 0)
+            {
+                return i;
+            }
+        }
+
+        return _ranges.Count - 1;
+    }
+
+    private static List<Range> MergeRanges(ITextSearchAccess model, IReadOnlyList<Range> ranges)
+    {
+        var normalized = new List<Range>(ranges.Count);
+        foreach (var range in ranges)
+        {
+            normalized.Add(NormalizeRange(model, range));
+        }
+
+        normalized.Sort((a, b) => Compare(a.Start, b.Start));
+        var merged = new List<Range>();
+        foreach (var range in normalized)
+        {
+            if (merged.Count == 0)
+            {
+                merged.Add(range);
+                continue;
+            }
+
+            var last = merged[merged.Count - 1];
+            if (Compare(range.Start, last.End) <= 0)
+            {
+                var newEnd = Compare(range.End, last.End) > 0 ? range.End : last.End;
+                merged[merged.Count - 1] = new Range(last.Start, newEnd);
+            }
+            else
+            {
+                merged.Add(range);
+            }
+        }
+
+        return merged;
+    }
+
+    private static Range NormalizeRange(ITextSearchAccess model, Range range)
+    {
+        var start = Clamp(model, range.Start);
+        var end = Clamp(model, range.End);
+        if (Compare(end, start) < 0)
+        {
+            (start, end) = (end, start);
+        }
+
+        return new Range(start, end);
+    }
+
+    private static TextPosition Clamp(ITextSearchAccess model, TextPosition position)
+    {
+        var lineCount = Math.Max(1, model.LineCount);
+        var line = Math.Clamp(position.LineNumber, 1, lineCount);
+        var column = Math.Clamp(position.Column, 1, Math.Max(1, model.GetLineMaxColumn(line)));
+        return new TextPosition(line, column);
+    }
+
+    internal static int Compare(TextPosition left, TextPosition right)
+    {
+        if (left.LineNumber != right.LineNumber)
+        {
+            return left.LineNumber.CompareTo(right.LineNumber);
+        }
+
+        return left.Column.CompareTo(right.Column);
+    }
+
+    internal static bool Contains(Range range, TextPosition position, bool includeEnd)
+    {
+        var startComparison = Compare(range.Start, position);
+        var endComparison = Compare(position, range.End);
+        if (includeEnd)
+        {
+            return startComparison <= 0 && endComparison <= 0;
+        }
+
+        return startComparison <= 0 && endComparison < 0;
+    }
+}
+
 internal static class TextModelSearch
 {
     public const int DefaultLimit = 999;
@@ -30,6 +190,36 @@ internal static class TextModelSearch
         return DoFindMatchesLineByLine(model, normalizedRange, searchData, captureMatches, limitResultCount);
     }
 
+    public static IReadOnlyList<FindMatch> FindMatches(ITextSearchAccess model, SearchData searchData, SearchRangeSet rangeSet, bool captureMatches, int limitResultCount)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(searchData);
+        ArgumentNullException.ThrowIfNull(rangeSet);
+
+        if (rangeSet.Count == 0)
+        {
+            return Array.Empty<FindMatch>();
+        }
+
+        if (rangeSet.IsWholeDocument && rangeSet.Count == 1)
+        {
+            return FindMatches(model, searchData, rangeSet[0], captureMatches, limitResultCount);
+        }
+
+        var results = new List<FindMatch>();
+        for (int i = 0; i < rangeSet.Count && results.Count < limitResultCount; i++)
+        {
+            var range = rangeSet[i];
+            var matches = FindMatches(model, searchData, range, captureMatches, limitResultCount - results.Count);
+            if (matches.Count > 0)
+            {
+                results.AddRange(matches);
+            }
+        }
+
+        return results;
+    }
+
     public static FindMatch? FindNextMatch(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -45,6 +235,17 @@ internal static class TextModelSearch
         return DoFindNextMatchLineByLine(model, clampedStart, searcher, captureMatches);
     }
 
+    public static FindMatch? FindNextMatch(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches, SearchRangeSet rangeSet)
+    {
+        ArgumentNullException.ThrowIfNull(rangeSet);
+        if (rangeSet.IsWholeDocument)
+        {
+            return FindNextMatch(model, searchData, searchStart, captureMatches);
+        }
+
+        return FindNextMatchWithinRangeSet(model, searchData, searchStart, captureMatches, rangeSet);
+    }
+
     public static FindMatch? FindPreviousMatch(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -58,6 +259,17 @@ internal static class TextModelSearch
         }
 
         return DoFindPreviousMatchLineByLine(model, clampedStart, searcher, captureMatches);
+    }
+
+    public static FindMatch? FindPreviousMatch(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches, SearchRangeSet rangeSet)
+    {
+        ArgumentNullException.ThrowIfNull(rangeSet);
+        if (rangeSet.IsWholeDocument)
+        {
+            return FindPreviousMatch(model, searchData, searchStart, captureMatches);
+        }
+
+        return FindPreviousMatchWithinRangeSet(model, searchData, searchStart, captureMatches, rangeSet);
     }
 
     private static IReadOnlyList<FindMatch> DoFindMatchesMultiline(ITextSearchAccess model, Range searchRange, PieceTreeSearcher searcher, bool captureMatches, int limitResultCount)
@@ -276,6 +488,108 @@ internal static class TextModelSearch
         }
 
         return best;
+    }
+
+    private static FindMatch? FindFirstMatchInRange(ITextSearchAccess model, SearchData searchData, Range searchRange, bool captureMatches)
+    {
+        var matches = FindMatches(model, searchData, searchRange, captureMatches, 1);
+        return matches.Count > 0 ? matches[0] : null;
+    }
+
+    private static FindMatch? FindLastMatchInRange(ITextSearchAccess model, SearchData searchData, Range searchRange, bool captureMatches)
+    {
+        var matches = FindMatches(model, searchData, searchRange, captureMatches, int.MaxValue);
+        return matches.Count > 0 ? matches[matches.Count - 1] : null;
+    }
+
+    private static FindMatch? FindNextMatchWithinRangeSet(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches, SearchRangeSet rangeSet)
+    {
+        if (rangeSet.IsEmpty)
+        {
+            return null;
+        }
+
+        var clampedStart = ClampPosition(model, searchStart);
+        var index = rangeSet.FindContainingRange(clampedStart);
+        var visited = 0;
+
+        if (index >= 0)
+        {
+            var range = rangeSet[index];
+            if (SearchRangeSet.Compare(clampedStart, range.End) < 0)
+            {
+                var partial = new Range(clampedStart, range.End);
+                var match = FindFirstMatchInRange(model, searchData, partial, captureMatches);
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            index = (index + 1) % rangeSet.Count;
+            visited++;
+        }
+        else
+        {
+            index = rangeSet.FindFirstRangeStartingAfter(clampedStart);
+        }
+
+        for (; visited < rangeSet.Count; visited++, index = (index + 1) % rangeSet.Count)
+        {
+            var range = rangeSet[index];
+            var match = FindFirstMatchInRange(model, searchData, range, captureMatches);
+            if (match != null)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static FindMatch? FindPreviousMatchWithinRangeSet(ITextSearchAccess model, SearchData searchData, TextPosition searchStart, bool captureMatches, SearchRangeSet rangeSet)
+    {
+        if (rangeSet.IsEmpty)
+        {
+            return null;
+        }
+
+        var clampedStart = ClampPosition(model, searchStart);
+        var index = rangeSet.FindContainingRange(clampedStart);
+        var visited = 0;
+
+        if (index >= 0)
+        {
+            var range = rangeSet[index];
+            if (SearchRangeSet.Compare(clampedStart, range.Start) > 0)
+            {
+                var partial = new Range(range.Start, clampedStart);
+                var match = FindLastMatchInRange(model, searchData, partial, captureMatches);
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            index = (index - 1 + rangeSet.Count) % rangeSet.Count;
+            visited++;
+        }
+        else
+        {
+            index = rangeSet.FindLastRangeEndingBefore(clampedStart);
+        }
+
+        for (; visited < rangeSet.Count; visited++, index = (index - 1 + rangeSet.Count) % rangeSet.Count)
+        {
+            var range = rangeSet[index];
+            var match = FindLastMatchInRange(model, searchData, range, captureMatches);
+            if (match != null)
+            {
+                return match;
+            }
+        }
+
+        return null;
     }
 
     private static Range GetMultilineMatchRange(ITextSearchAccess model, int deltaOffset, string text, LineFeedCounter? lineFeedCounter, int matchIndex, int matchLength)
