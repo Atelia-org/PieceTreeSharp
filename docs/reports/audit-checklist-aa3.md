@@ -13,8 +13,8 @@ Purpose: 为 Sprint 01 建立“发现 → 修复 → 验证”流水线，把 I
 | --- | --- | --- | --- | --- | --- | --- |
 | CL1 | TextModel options、语言/缩进元数据、Content change events（TS `textModel.ts` vs C# `TextModel.cs`） | `agent-team/handoffs/AA3-001-Audit.md` | `agent-team/handoffs/AA3-003-Result.md` | `TextModelTests` + `TextModelSearchTests`（CreationOptions/Undo/Language/多选区搜索） | Audit Complete – Fixes Landed | [`AA3-001-Audit`](../../agent-team/handoffs/AA3-001-Audit.md)<br>[`AA3-003-Result`](../../agent-team/handoffs/AA3-003-Result.md) |
 | CL2 | TextModel search/replace + regex captures/backreferences（TS `textModelSearch.ts`、`pieceTreeTextBufferSearcher.ts`） | `agent-team/handoffs/AA3-002-Audit.md` | `agent-team/handoffs/AA3-004-Result.md` | `PieceTreeSearchTests`、`TextModelSearchTests` | Audit Complete | [`AA3-002-Audit`](../../agent-team/handoffs/AA3-002-Audit.md) |
-| CL3 | Diff prettify、move detection、word diff metadata（TS `diffComputer.ts`、`linesDecorations.ts`） | `agent-team/handoffs/AA3-005-Audit.md` | `agent-team/handoffs/AA3-006-Result.md` | `DiffTests` / 新增 word move 覆盖 | Planned | - |
-| CL4 | Decorations、IntervalTree stickiness、Markdown DocUI rendering semantics（TS `textModelDecorations.ts`、`modelDecorations.ts`、`markdownRenderer.ts`） | `agent-team/handoffs/AA3-007-Audit.md` | `agent-team/handoffs/AA3-008-Result.md` | `DecorationTests`、`MarkdownRendererTests` | Planned | - |
+| CL3 | Diff prettify、move detection、word diff metadata（TS `defaultLinesDiffComputer/*.ts`、`rangeMapping.ts`） | `agent-team/handoffs/AA3-005-Audit.md` | `agent-team/handoffs/AA3-006-Result.md` | `DiffTests` / 新增 word move 覆盖 | Audit Complete – Fixes Pending | [`AA3-005-Audit`](../../agent-team/handoffs/AA3-005-Audit.md) |
+| CL4 | Decorations、IntervalTree stickiness、Markdown DocUI rendering semantics（TS `textModelDecorations.ts`、`modelDecorations.ts`、`markdownRenderer.ts`） | `agent-team/handoffs/AA3-007-Audit.md` | `agent-team/handoffs/AA3-008-Result.md` | `DecorationTests`、`MarkdownRendererTests` | Audit Complete – Fixes Pending | [`AA3-007-Audit`](../../agent-team/handoffs/AA3-007-Audit.md) |
 
 ## Detail Sections
 
@@ -29,11 +29,11 @@ Purpose: 为 Sprint 01 建立“发现 → 修复 → 验证”流水线，把 I
 - **Validation Hooks:** `PieceTreeSearchTests` / `TextModelSearchTests`.
 
 ### CL3 – Diff Prettify & Move Metadata
-- **Investigator Notes:** _TBD_
-- **Proposed Fixes:** _TBD_
-- **Validation Hooks:** `DiffTests`.
+- **Investigator Notes:** See `agent-team/handoffs/AA3-005-Audit.md` (F1–F4). The current C# `DiffComputer` only emits char-level `DiffChange`s, lacks `DetailedLineRangeMapping`/`hitTimeout`, performs move detection via trimmed string equality, and exposes no whitespace/subword options. Decorations/`MarkdownRenderer` cannot consume diff metadata, so DocUI cannot render word-level diffs or moves.
+- **Proposed Fixes:** Port the TS `LinesDiff` pipeline (line hashing, heuristics, timeout-aware options), implement `computeMovedLines` + nested mappings, and extend decorations/renderer types so diff/move metadata can flow through `TextModel`. Align `DiffComputerOptions` with TS `ILinesDiffComputerOptions` (`ignoreTrimWhitespace`, `maxComputationTimeMs`, `extendToSubwords`).
+- **Validation Hooks:** Expand `DiffTests` with TS parity fixtures (word diff, whitespace ignore, move detection, timeout flag) and ensure DocUI consumers (`MarkdownRendererTests`) cover diff renderings once Porter lands AA3-006.
 
 ### CL4 – Decorations & Markdown Rendering
-- **Investigator Notes:** _TBD_
-- **Proposed Fixes:** _TBD_
-- **Validation Hooks:** `DecorationTests` / `MarkdownRendererTests`.
+- **Investigator Notes:** See `agent-team/handoffs/AA3-007-Audit.md` (F1–F4). Key gaps: `ModelDecorationOptions` drops overview/minimap/glyph/injected-text metadata, the single-tree storage/event pipeline cannot flag minimap/overview/glyph changes, stickiness/update math diverges from TS `nodeAcceptEdit`, and `MarkdownRenderer` only renders cursor/selection/search so diff/move metadata from AA3-006 never shows up.
+- **Proposed Fixes:** Port TS `ModelDecorationOptions`, `DecorationsTrees`, and `DidChangeDecorationsEmitter`, adopt `nodeAcceptEdit`/`acceptReplace` semantics (with `forceMoveMarkers`), and upgrade `MarkdownRenderer` to consume the expanded decoration set (z-index ordering, injected text, diff overlays, glyph/minimap stripes) per AA3-007 findings.
+- **Validation Hooks:** `DecorationTests` (options parity, stickiness, event flags) / `MarkdownRendererTests` (diff/injected-text snapshots, glyph & overview rendering).

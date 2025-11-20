@@ -54,6 +54,14 @@
       - 方法：更新 `GetLineContent` 以使用缓存。
       - 失效：在 `Insert` 和 `Delete` 方法中重置缓存。
       - 测试：建议添加访问同一行多次、修改后访问的测试用例。
+  - 2025-11-20: 完成 AA3-005 CL3 审计（Diff prettify & move metadata）。
+    - 对比 `ts/src/vs/editor/common/diff/defaultLinesDiffComputer/*.ts` / `rangeMapping.ts` 与 C# `src/PieceTree.TextBuffer/Diff/*`，梳理缺失的 `LinesDiff`/`DetailedLineRangeMapping` 数据、move detection 与 heuristics/timeout 选项差异。
+    - 评估 `TextModel`/`Decorations`/`MarkdownRenderer` 消费路径，确认 DocUI 目前无法携带 diff/move 元数据，并在 `agent-team/handoffs/AA3-005-Audit.md` 给出 F1–F4 建议与 QA 钩子。
+    - 更新 `docs/reports/audit-checklist-aa3.md` CL3 行状态，提示 Porter/QA 后续依赖。
+  - 2025-11-20: 完成 AA3-007 CL4 审计（Decorations & DocUI）。
+    - 对比 TS `textModel.ts`/`intervalTree.ts`/`textModelTokens.ts` 与 C# `Decorations/*`、`TextModel.cs`、`Rendering/MarkdownRenderer.cs`，梳理装饰元数据、stickiness、DocUI 渲染缺口，写入 `agent-team/handoffs/AA3-007-Audit.md`（F1–F4）。
+    - 标记 DocUI/MarkdownRenderer 对 AA3-006 diff metadata 与 AA3-008 Porter 修复的依赖，并整理 Porter next steps + QA hooks。
+    - 更新 `docs/reports/audit-checklist-aa3.md` CL4 行（状态改为 “Audit Complete – Fixes Pending”）。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。

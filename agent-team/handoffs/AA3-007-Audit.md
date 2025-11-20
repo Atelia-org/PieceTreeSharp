@@ -1,0 +1,64 @@
+# AA3-007 Audit – CL4 Decorations & DocUI Rendering
+
+**Date:** 2025-11-20  
+**Investigator:** GitHub Copilot  
+**Scope:** TS `ts/src/vs/editor/common/model/textModel.ts` (decorations APIs/events), `ts/src/vs/editor/common/model/intervalTree.ts`, `ts/src/vs/editor/common/model/textModelTokens.ts`, DocUI hooks (`LineInjectedText`, overview/minimap, markdown renderers). Compared against C# `src/PieceTree.TextBuffer/Decorations/*`, `src/PieceTree.TextBuffer/TextModel.cs`, `src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`, and `Cursor/Cursor.cs`.
+
+**Baseline Dependencies:** Requires CL1 option parity and CL3 diff metadata (`AA3-005`) so DocUI can consume diff/move annotations once Porter (AA3-006/AA3-008) lands fixes.
+
+## Overview
+TypeScript keeps decoration metadata, stickiness, injected text, overview/minimap state, and font/line-height deltas inside `ModelDecorationOptions`, stores them in three specialized interval trees, and fans that data out through `DidChangeDecorationsEmitter` so DocUI renderers (inline views, Markdown snapshots, diff overlays) can repaint only the affected lanes. The C# port collapsed the model to a single `IntervalTree` plus three `DecorationRenderKind`s (cursor/selection/search). There is no notion of overview rulers, glyph or margin classes, z-index ordering, injected text, custom font/line height, or owner-specific change notifications. Markdown rendering therefore has no data to visualize diff metadata from AA3-006 or even basic validation squiggles, and QA cannot add parity tests because the storage model discards the required fields.
+
+## Findings
+
+### F1 – Decoration options drop most metadata (High)
+- **TS Reference:** `ts/src/vs/editor/common/model/textModel.ts#L2265-L2465` (`ModelDecorationOptions` exposes block/inline class names, z-index, glyph/minimap/overviewRuler lanes, line height, font overrides, injected text `before`/`after`, hover text, textDirection, etc.).
+- **C# Reference:** `src/PieceTree.TextBuffer/Decorations/ModelDecoration.cs#L9-L57` only keeps `ClassName`, `Stickiness`, a few booleans, and a coarse `DecorationRenderKind`; `ModelDeltaDecoration` cannot carry any extra metadata.
+- **Impact:** Diagnostics, minimap markers, glyph-margin icons, inline diff coloring, injected text (for cursors/diff hunks), and overview ruler stripes simply cannot be represented or serialized by C#. Porter-AA3-006 cannot thread diff decorations into DocUI, and QA-AA3-009 has nothing to assert against. Markdown snapshots have no notion of z-index or render lanes, so future DocUI work (AA3-008) would need another bespoke store.
+- **Suggested Fix:** Port `ModelDecorationOptions` verbatim (including `ModelDecorationOverviewRulerOptions`, `ModelDecorationMinimapOptions`, `ModelDecorationGlyphMarginOptions`, `ModelDecorationInjectedTextOptions`, hover payloads, `linesDecorations*`, `lineHeight`, `fontSize`, `zIndex`, `block*`, `inlineClassName`, `textDirection`). Extend `ModelDeltaDecoration` and `ModelDecoration` to hold these options, and teach `DeltaDecorations` to normalize options the same way TS does. This unblocks diff/move decorations flowing from AA3-006.
+- **Test Hooks:** Add `DecorationTests.DecorationOptionsParity` to round-trip overview/minimap/glyph metadata and `MarkdownRendererTests.InjectedTextAndGlyphs` to verify DocUI respects inline injected text and glyph marker ordering.
+
+### F2 – Decorations tree & events omit overview/minimap/injected text state (High)
+- **TS Reference:** `ts/src/vs/editor/common/model/textModel.ts#L1810-L2095` exposes `getInjectedTextInLine`, `getFontDecorationsInRange`, `getAllMarginDecorations`, and the `DecorationsTrees` helper that keeps three interval trees (normal, overview ruler, injected text). `DidChangeDecorationsEmitter` (`textModel.ts#L2465-L2655`) tracks `affectsMinimap`, `affectsOverviewRuler`, glyph margins, line-number classes, injected text lines, line-height/font changes, and fires dedicated events before `IModelDecorationsChangedEvent` so DocUI updates only affected surfaces.
+- **C# Reference:** `TextModel` stores everything in a single `IntervalTree` (`src/PieceTree.TextBuffer/TextModel.cs#L82-L117`) and `TextModelDecorationsChangedEventArgs` (`src/PieceTree.TextBuffer/TextModelDecorationsChangedEventArgs.cs`) only relays a flat list of `{Id, Range, Kind}` changes; `Decorations/IntervalTree.cs` lacks any understanding of overview/minimap lanes, glyph margins, validation filtering, or injected text buckets.
+- **Impact:** Cursor, minimap, overview ruler, font-override, and injected-text consumers cannot determine which lines changed, so DocUI must repaint everything on every edit. There is no hook to surface `LineInjectedText` or `ModelLineHeightChanged` events, so Markdown snapshots cannot emulate block decorations or inline diff hunks. Porter cannot consume AA3-006 diff metadata even after F1 because the storage/type system drops the per-lane flags, and QA cannot assert `affectsMinimap/affectsGlyphMargin` parity.
+- **Suggested Fix:** Port `DecorationsTrees` wholesale (three interval trees plus `ensure nodes have ranges`, `getFontDecorationsInInterval`, `getAllMarginDecorations`, `acceptReplace`). Mirror `DidChangeDecorationsEmitter` so `OnDidChangeDecorations` carries the same booleans and helper sets that TS surfaces (`affectedInjectedTextLines`, `affectedLineHeights`, `affectedFontLines`). Reintroduce `TextModel.getInjectedTextInLine`/`getAllDecorations` helpers so DocUI (MarkdownRenderer) and Porter consumers can request lane-specific subsets.
+- **Test Hooks:** Expand `DecorationTests.DecorationEventsIncludeFlags` to assert `TextModelDecorationsChangedEventArgs` toggles minimap/overview/glyph flags and inject custom line-height/font decorations. Add `TextModelTests.InjectedTextRangeQuery` to check the new helpers return the same ranges TS does.
+
+### F3 – Stickiness & acceptReplace semantics drift (Medium)
+- **TS Reference:** `ts/src/vs/editor/common/model/intervalTree.ts#L405-L520` (`nodeAcceptEdit`, `MarkerMoveSemantics`, `TrackedRangeStickiness` defaulting to `AlwaysGrowsWhenTypingAtEdges`). Edits call `DecorationsTrees.acceptReplace(..., forceMoveMarkers)` so deletions vs insertions honor before/after stickiness and collapse-on-replace semantics identically to VS Code.
+- **C# Reference:** `ModelDecorationOptions` defaults to `TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges` (`ModelDecoration.cs#L14-L32`) and `TextModel.UpdateDecorationRange` (`TextModel.cs#L1042-L1143`) reimplements the math without `forceMoveMarkers`, `MarkerMoveSemantics`, or the multi-stage comparisons TS uses (start/end before edit, within deleted span, after edit). The helper walks the tree twice and updates nodes in-place, so overlapping edits often double-adjust.
+- **Impact:** Selections, cursors, and diff decorations drift or collapse when typing at their edges, which makes DocUI snapshots diverge from VS Code baselines. Because AA3-006 relies on tracked ranges surviving prettify/move rewrites, Porter cannot trust decoration ranges until stickiness is aligned. The Markdown snapshots rendered in AA3-008 would show misplaced brackets/diff glyphs relative to TS.
+- **Suggested Fix:** Adopt TS’s `nodeAcceptEdit` implementation (including `MarkerMoveSemantics`, collapse-on-replace handling, and the edit batching done in `DecorationsTrees.acceptReplace`). Default `ModelDecorationOptions.Stickiness` to `AlwaysGrowsWhenTypingAtEdges` and only override when callers ask. Pipe the per-edit `forceMoveMarkers` flag through `ApplyEdit` so snippet controllers and delta decorations can force markers to move.
+- **Test Hooks:** Port the VS Code tracked-range fixtures into `DecorationTests.StickinessParity` (covering grow/shrink-on-insert/delete, collapse-on-replace, force-move). Add `CursorTests.MultiCursorTypingStaysAligned` to demonstrate parity with the TS cursor controller.
+
+### F4 – MarkdownRenderer ignores decoration metadata & diff hooks (Medium)
+- **TS Reference:** `textModel.ts#L1810-L1905` exposes `getInjectedTextInLine`, `getFontDecorationsInRange`, `getAllMarginDecorations`, which feed DocUI renderers so they can layer cursors, selections, diff overlays, glyph/margin icons, and injected text with z-index ordering. Diff metadata from `LinesDiff` (AA3-005/006) is emitted as decorations and rendered the same way.
+- **C# Reference:** `Rendering/MarkdownRenderer.cs` renders only three `DecorationRenderKind`s (cursor/selection/search) and re-runs `FindMatches` each time instead of consuming search/diff decorations. There is no support for owner lanes, injected text, glyph/margin spans, overview rulers, or z-index ordering, so diff/move metadata from AA3-006 has nowhere to render. `MarkdownRenderOptions` lacks hooks for diff overlays or decoration subsets beyond a single owner filter.
+- **Impact:** DocUI snapshots cannot include diff blocks, overview ruler glyphs, diagnostic squiggles, injected text cursors, or move callouts, so AA3-006 fixes remain invisible and AA3-008 (Porter) has no rendering target. QA cannot extend `MarkdownRendererTests` beyond simple bracket insertion, meaning we lose coverage for the DocUI contract entirely.
+- **Suggested Fix:** Replace the hard-coded `DecorationRenderKind` switch with a renderer that sorts by `zIndex`, respects all decoration options (inline/before/after content, glyph/margin classes, overview/minimap, diff metadata), and consumes diff decorations emitted by AA3-006. Teach the renderer to honor owner filters plus `affectsMinimap/affectsOverviewRuler` flags so DocUI snapshots match VS Code’s Markdown rendering.
+- **Test Hooks:** Extend `MarkdownRendererTests` with fixtures that include injected text, diff decorations (add/delete/move), glyph-margin icons, and overview ruler stripes. Add snapshots comparing TS output (via recorded fixtures) with the C# renderer to guarantee parity.
+
+## Changefeed Impact
+- `src/PieceTree.TextBuffer/Decorations/*` – Replace the simplified options/interval tree with TS-equivalent `ModelDecorationOptions`, injected-text options, overview/minimap metadata, and the three-tree `DecorationsTrees` abstraction.
+- `src/PieceTree.TextBuffer/TextModel.cs` – Rewire decoration storage to the new trees, surface `getInjectedText*`/`getFontDecorations*` helpers, emit TS-style `OnDidChangeDecorations` events (with minimap/overview/glyph flags and line-height/font deltas), and call `acceptReplace` during edits.
+- `src/PieceTree.TextBuffer/Cursor/Cursor.cs` – Update cursor/selection decoration creation to the expanded options and ensure stickiness defaults align with TS controllers.
+- `src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs` & `Rendering/MarkdownRenderOptions.cs` – Teach DocUI rendering to consume the full decoration metadata (including diff/injected text) and expose options for diff overlays required by AA3-006.
+- `src/PieceTree.TextBuffer.Tests/{DecorationTests,MarkdownRendererTests}.cs` – Add parity suites mirroring VS Code fixtures (stickiness, injected text, overview/minimap lanes, diff snapshots).
+
+## References
+- `ts/src/vs/editor/common/model/textModel.ts`
+- `ts/src/vs/editor/common/model/intervalTree.ts`
+- `ts/src/vs/editor/common/model/textModelTokens.ts`
+- `src/PieceTree.TextBuffer/Decorations/ModelDecoration.cs`
+- `src/PieceTree.TextBuffer/Decorations/IntervalTree.cs`
+- `src/PieceTree.TextBuffer/TextModel.cs`
+- `src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`
+- `src/PieceTree.TextBuffer.Tests/DecorationTests.cs`, `MarkdownRendererTests.cs`
+
+## Next Steps for Porter-CS (AA3-008)
+1. **Model Decoration Parity:** Port `ModelDecorationOptions` (overview/minimap/glyph/inline/before-after/z-index/textDirection) plus normalization logic, and update all call sites (`AddDecoration`, `DeltaDecorations`, cursor controller) to use them.
+2. **DecorationsTrees & Events:** Implement the TS `DecorationsTrees` helper and `DidChangeDecorationsEmitter`, emit minimap/overview/glyph/injected-text change info, and expose the helper queries DocUI needs (`getInjectedTextInLine`, `getAllMarginDecorations`, etc.).
+3. **Stickiness & Edit Semantics:** Replace `UpdateDecorationRange` with TS’s `nodeAcceptEdit`/`acceptReplace`, default stickiness to `AlwaysGrowsWhenTypingAtEdges`, and ensure edits pass the `forceMoveMarkers` flag so tracked ranges survive AA3-006 diff rewrites.
+4. **DocUI Renderer Upgrade:** Teach `MarkdownRenderer` (and future DocUI consumers) to render the expanded decoration set—including diff/move metadata from AA3-006—respecting z-index, owner filters, injected text, glyph/margin icons, and overview/minimap stripes. Add the corresponding QA fixtures.
+5. **QA Alignment:** Coordinate with QA-AA3-009 to import VS Code decoration/diff fixtures so `DecorationTests` and `MarkdownRendererTests` can validate parity before diff/move fixes merge.
