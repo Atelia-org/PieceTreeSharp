@@ -13,7 +13,7 @@
 | Priority | Task | Description & Deliverables | runSubAgent Budget | Owner | Target Date | Dependencies | Status / Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0 | AA4-001 | Investigator-TS：完成 CL5（PieceTree Builder & Factory）对照，输出 `agent-team/handoffs/AA4-001-Audit.md` 并更新 checklist。 | 2 | Investigator-TS | 2025-11-22 | Sprint 02 kickoff、changefeed checkpoint | Done – `AA4-001-Audit.md` 记录 F1~F6，CL5 checklist 更新待 AA4-005 落地 |
-| P0 | AA4-002 | Investigator-TS：完成 CL6（ChangeBuffer/CRLF/large edits）对照，输出 `agent-team/handoffs/AA4-002-Audit.md`。 | 2 | Investigator-TS | 2025-11-22 | 同上 | Planned |
+| P0 | AA4-002 | Investigator-TS：完成 CL6（ChangeBuffer/CRLF/large edits）对照，输出 `agent-team/handoffs/AA4-002-Audit.md`。 | 2 | Investigator-TS | 2025-11-22 | 同上 | Done – `AA4-002-Audit.md` 捕捉 change buffer/CRLF/metadata 缺口，CL6 checklist 更新 |
 | P1 | AA4-003 | Investigator-TS：完成 CL7（Cursor word/snippet/multi-selection）对照，输出 `agent-team/handoffs/AA4-003-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL5/CL6 context | Planned |
 | P1 | AA4-004 | Investigator-TS：完成 CL8（DocUI Find/Replace + Decorations）对照，输出 `agent-team/handoffs/AA4-004-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL5~CL7 context | Planned |
 | P0 | AA4-005 | Porter-CS：根据 CL5 差异实现 PieceTree Builder/Factory parity，记录在 `agent-team/handoffs/AA4-005-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-25 | AA4-001 | Planned |

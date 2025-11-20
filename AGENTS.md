@@ -50,5 +50,6 @@
 - 2025-11-20：AA3-003 / AA3-008 状态以 AA3-009 QA changefeed (`agent-team/indexes/README.md#delta-2025-11-20`) 为准正式切换为 Done，AGENTS / Sprint 01 / Task Board 现共用该 DocUI canonical pointer。 
 - 2025-11-20：Sprint 02（AA4）立项 —— `agent-team/task-board.md` 切换至 Phase 7，新增 `docs/sprints/sprint-02.md` 与 `docs/reports/audit-checklist-aa4.md` 规划 CL5（Builder/Factory）、CL6（ChangeBuffer/CRLF/large edits）、CL7（Cursor word/snippet）、CL8（DocUI Find/Replace）；等待 Investigator runSubAgent (`AA4-001~004`) 输出 handoff。
 - 2025-11-20：AA4-001（CL5 Investigator）完成 —— `agent-team/handoffs/AA4-001-Audit.md` 列出 F1~F6（chunk split/CRLF、BOM、metadata flags、factory API、DefaultEOL、normalize pipeline），`docs/reports/audit-checklist-aa4.md#cl5`/`agent-team/task-board.md`/`docs/sprints/sprint-02.md` 均更新为“Audit Complete – Awaiting Fix”，等待 AA4-005 Porter 实施。 
+- 2025-11-20：AA4-002（CL6 Investigator）完成 —— `agent-team/handoffs/AA4-002-Audit.md` 汇总 change buffer reuse、`_lastChangeBufferPos`、CRLF repair、AverageBufferSize、LineFeed metadata、SearchCache 六项缺口，`docs/reports/audit-checklist-aa4.md#cl6`、`agent-team/task-board.md`、`docs/sprints/sprint-02.md` 同步为 “Audit Complete – Awaiting Fix”，后续交由 AA4-006 Porter 修复。
 
 **状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19` / `#delta-2025-11-20`，并在条目中附上两者的链接。

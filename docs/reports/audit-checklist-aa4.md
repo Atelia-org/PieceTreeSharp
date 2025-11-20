@@ -12,7 +12,7 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 | ID | Scope | Investigator Output | Porter Output | QA Hooks | Status | Links |
 | --- | --- | --- | --- | --- | --- | --- |
 | CL5 | PieceTree Builder & Factory parity（TS `pieceTreeTextBufferBuilder.ts`、`pieceTreeBase.ts` vs C# `PieceTreeBuilder`/`ChunkBuffer`/`LineStartBuilder`） | `agent-team/handoffs/AA4-001-Audit.md` | `agent-team/handoffs/AA4-005-Result.md` | Builder chunk tests、factory/EOL heuristics（`PieceTreeBuilderTests` TBD） | Audit Complete – Awaiting Fix | [`AA4-001-Audit`](../../agent-team/handoffs/AA4-001-Audit.md) |
-| CL6 | ChangeBuffer/CRLF/large edits（TS `_insert/_delete` logic、`_lastChangeBufferPos`、AverageBufferSize） vs `PieceTreeModel.Edit.cs` | `agent-team/handoffs/AA4-002-Audit.md` | `agent-team/handoffs/AA4-006-Result.md` | `PieceTreeBaseTests` / 新增 ChangeBuffer fuzz & CRLF bridging cases | Planned | `AA4-002-Audit` (tbd) |
+| CL6 | ChangeBuffer/CRLF/large edits（TS `_insert/_delete` logic、`_lastChangeBufferPos`、AverageBufferSize） vs `PieceTreeModel.Edit.cs` | `agent-team/handoffs/AA4-002-Audit.md` | `agent-team/handoffs/AA4-006-Result.md` | `PieceTreeBaseTests` / 新增 ChangeBuffer fuzz & CRLF bridging cases | Audit Complete – Awaiting Fix | [`AA4-002-Audit`](../../agent-team/handoffs/AA4-002-Audit.md) |
 | CL7 | Cursor word/snippet/multi-selection semantics（TS `cursor.ts`、`cursorWordOperations.ts`、`cursorCommon.ts`） vs `Cursor/Cursor.cs` | `agent-team/handoffs/AA4-003-Audit.md` | `agent-team/handoffs/AA4-007-Result.md` | `CursorTests` / `MarkdownRendererTests`（word mark、column select、snippet tabstop） | Planned | `AA4-003-Audit` (tbd) |
 | CL8 | DocUI Find/Replace overlays + Decorations（TS `findController.ts`、`findDecorations.ts`、`textModelSearch.ts`） vs `TextModelSearch` + `MarkdownRenderer` | `agent-team/handoffs/AA4-004-Audit.md` | `agent-team/handoffs/AA4-008-Result.md` | `TextModelSearchTests`、`MarkdownRendererTests`（capture markers、owner filters、search overlays） | Planned | `AA4-004-Audit` (tbd) |
 
@@ -24,13 +24,9 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 - **Validation Hooks:** 新增 `PieceTreeBuilderParityTests`（chunk split）、`PieceTreeBuilderMetadataTests`（BOM/flags）、`PieceTreeBuilderDefaultEolTests`、`PieceTreeModelNormalizeEolTests`、`PieceTreeTextBufferFactoryTests.GetFirstLineText`；最终回归 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` ≥92。 
 
 ### CL6 – ChangeBuffer / CRLF / Large Edits
-- **Investigator Notes:** 待 `AA4-002-Audit`。目标覆盖：
-  - `_lastChangeBufferPos` 缓存与 change buffer 合并策略
-  - `AverageBufferSize` 拆 chunk + change buffer append 逻辑
-  - `InsertContentToNodeLeft/Right`、`Delete` 中 CRLF 检查 TODOs
-  - SearchCache 失效、metadata recompute parity
-- **Proposed Fixes:** 复刻 TS `_insert`/`_delete`、`nodeAcceptEdit`、`validateCRLF`、`PiecesBucket` 逻辑；确保 `PieceTreeNormalizer` 与 builder 配合。
-- **Validation Hooks:** `PieceTreeBaseTests` add fuzz cases、`AA005Tests` 扩展 CRLF 分割、`PieceTreeSearchTests` 验证 cache invalidation。
+- **Investigator Notes:** 详见 `agent-team/handoffs/AA4-002-Audit.md`。F1~F6 覆盖 change buffer append heuristics 缺失、 `_lastChangeBufferPos` 状态缺口、CRLF repair stub、`AverageBufferSize` 拆 chunk缺失、`GetLineFeedCnt` metadata 偏差与 SearchCache 粒度失配。
+- **Proposed Fixes:** 恢复 change buffer 语义（复用 buffer0、跟踪 `_lastChangeBufferPos`）、完整移植 TS CRLF/linefeed 逻辑、实现 chunk splitting + metadata recompute + cache validate（`ComputeBufferMetadata`）。
+- **Validation Hooks:** `PieceTreeBaseTests`（change buffer fuzz）、`PieceTreeNormalizationTests`（CRLF insert/delete）、`PieceTreeBuilderTests`/`PieceTreeSearchTests`（AverageBufferSize + cache reuse）、`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`。
 
 ### CL7 – Cursor WordOps & Snippet Semantics
 - **Investigator Notes:** 待 `AA4-003-Audit`。需比较：
