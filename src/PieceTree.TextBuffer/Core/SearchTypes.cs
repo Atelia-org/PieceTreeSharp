@@ -82,6 +82,8 @@ public sealed class SearchParams
     public bool MatchCase { get; }
     public string? WordSeparators { get; }
 
+    private const string UnicodeWildcardPattern = @"(?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\u000A\u000D\u2028\u2029])";
+
     public SearchData? ParseSearchRequest()
     {
         if (string.IsNullOrEmpty(SearchString))
@@ -93,14 +95,15 @@ public sealed class SearchParams
         string pattern;
         if (IsRegex)
         {
-            pattern = ExpandUnicodeEscapes(SearchString);
+            var expanded = ExpandUnicodeEscapes(SearchString);
+            pattern = ApplyUnicodeWildcardCompatibility(expanded);
         }
         else
         {
             pattern = Regex.Escape(SearchString);
         }
 
-        var options = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        var options = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ECMAScript;
         if (!MatchCase)
         {
             options |= RegexOptions.IgnoreCase;
@@ -132,6 +135,63 @@ public sealed class SearchParams
 
         var classifier = string.IsNullOrEmpty(WordSeparators) ? null : new WordCharacterClassifier(WordSeparators!);
         return new SearchData(regex, classifier, simpleSearch, isMultiline, MatchCase);
+    }
+
+    private static string ApplyUnicodeWildcardCompatibility(string pattern)
+    {
+        if (string.IsNullOrEmpty(pattern) || pattern.IndexOf('.') < 0)
+        {
+            return pattern;
+        }
+
+        var builder = new StringBuilder(pattern.Length);
+        var inCharClass = false;
+        var escaping = false;
+        for (var i = 0; i < pattern.Length; i++)
+        {
+            var ch = pattern[i];
+            if (escaping)
+            {
+                builder.Append('\\').Append(ch);
+                escaping = false;
+                continue;
+            }
+
+            if (ch == '\\')
+            {
+                escaping = true;
+                continue;
+            }
+
+            if (ch == '[' && !inCharClass)
+            {
+                inCharClass = true;
+                builder.Append(ch);
+                continue;
+            }
+
+            if (ch == ']' && inCharClass)
+            {
+                inCharClass = false;
+                builder.Append(ch);
+                continue;
+            }
+
+            if (!inCharClass && ch == '.')
+            {
+                builder.Append(UnicodeWildcardPattern);
+                continue;
+            }
+
+            builder.Append(ch);
+        }
+
+        if (escaping)
+        {
+            builder.Append('\\');
+        }
+
+        return builder.ToString();
     }
 
     private static bool HasCaseVariance(string value)
@@ -276,6 +336,8 @@ public sealed class WordCharacterClassifier
 
         SetClass(' ', WordCharacterClass.Whitespace);
         SetClass('\t', WordCharacterClass.Whitespace);
+        SetClass('\r', WordCharacterClass.Whitespace);
+        SetClass('\n', WordCharacterClass.Whitespace);
     }
 
     private void SetClass(int codePoint, WordCharacterClass @class)
@@ -285,17 +347,7 @@ public sealed class WordCharacterClassifier
 
     public WordCharacterClass GetClass(int codePoint)
     {
-        if (_classes.TryGetValue(codePoint, out var @class))
-        {
-            return @class;
-        }
-
-        if (UnicodeUtility.IsWhitespace(codePoint))
-        {
-            return WordCharacterClass.Whitespace;
-        }
-
-        return WordCharacterClass.Regular;
+        return _classes.TryGetValue(codePoint, out var @class) ? @class : WordCharacterClass.Regular;
     }
 
     public bool IsValidMatch(string text, int matchStartIndex, int matchLength)
@@ -366,7 +418,12 @@ public sealed class WordCharacterClassifier
 
     private bool IsSeparatorOrLineBreak(int codePoint)
     {
-        return GetClass(codePoint) != WordCharacterClass.Regular || UnicodeUtility.IsLineBreak(codePoint);
+        if (codePoint == '\n' || codePoint == '\r')
+        {
+            return true;
+        }
+
+        return GetClass(codePoint) != WordCharacterClass.Regular;
     }
 }
 

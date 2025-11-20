@@ -71,6 +71,12 @@
   - 在 `PieceTreeBuffer` 中暴露 `GetLineContent` 以供测试。
   - 新增 `PieceTreeBaseTests.cs` 测试用例 `GetLineContent_Cache_Invalidation_Insert` 和 `GetLineContent_Cache_Invalidation_Delete`，验证缓存失效逻辑。
   - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 20 tests)。
+- **2025-11-20 – AA3-004 CL2 Search Fixes**
+  - 将 `SearchTypes.ParseSearchRequest` 切换为 `RegexOptions.ECMAScript` 并添加 Unicode wildcard 改写辅助，`PieceTreeSearcher` 也确保 Regex 处于 ECMAScript 模式。
+  - 收紧 `WordCharacterClassifier`（仅接受配置的符号 + SPACE/TAB/CR/LF），恢复 TS word-boundary 行为并避免 NBSP/EN SPACE 误判。
+  - 新增 AA3 审计覆盖：`\bcaf\b` 边界、ASCII-only digits、Unicode 分隔符、emoji 量词、多选区 regex；记录于 `PieceTreeSearchTests.cs` 与 `TextModelSearchTests.cs`。
+  - 文档：创建 `agent-team/handoffs/AA3-004-Result.md`，更新 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-20`。
+  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。
 
 - **Upcoming Goals (runSubAgent 粒度):**
   1. **PT-005.Search**：实现 `PieceTreeSearch` 逻辑，支持 Find/Match 等操作。

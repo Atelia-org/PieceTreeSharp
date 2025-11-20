@@ -13,8 +13,20 @@ public class PieceTreeSearcher
 
     public PieceTreeSearcher(WordCharacterClassifier? wordSeparators, Regex searchRegex)
     {
+        ArgumentNullException.ThrowIfNull(searchRegex);
         _wordSeparators = wordSeparators;
-        _searchRegex = searchRegex;
+        _searchRegex = EnsureEcmaRegex(searchRegex);
+    }
+
+    private static Regex EnsureEcmaRegex(Regex regex)
+    {
+        if ((regex.Options & RegexOptions.ECMAScript) != 0)
+        {
+            return regex;
+        }
+
+        var options = regex.Options | RegexOptions.ECMAScript;
+        return new Regex(regex.ToString(), options, regex.MatchTimeout);
     }
 
     public void Reset(int lastIndex)

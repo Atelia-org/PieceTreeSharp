@@ -12,7 +12,7 @@ Purpose: 为 Sprint 01 建立“发现 → 修复 → 验证”流水线，把 I
 | ID | Scope | Investigator Output | Porter Output | QA Hooks | Status | Links |
 | --- | --- | --- | --- | --- | --- | --- |
 | CL1 | TextModel options、语言/缩进元数据、Content change events（TS `textModel.ts` vs C# `TextModel.cs`） | `agent-team/handoffs/AA3-001-Audit.md` | `agent-team/handoffs/AA3-003-Result.md` | `TextModelTests` + `TextModelSearchTests`（CreationOptions/Undo/Language/多选区搜索） | Audit Complete – Fixes Landed | [`AA3-001-Audit`](../../agent-team/handoffs/AA3-001-Audit.md)<br>[`AA3-003-Result`](../../agent-team/handoffs/AA3-003-Result.md) |
-| CL2 | TextModel search/replace + regex captures/backreferences（TS `textModelSearch.ts`、`pieceTreeTextBufferSearcher.ts`） | `agent-team/handoffs/AA3-002-Audit.md` | `agent-team/handoffs/AA3-004-Result.md` | `PieceTreeSearchTests`、`TextModelSearchTests` | Audit Complete | [`AA3-002-Audit`](../../agent-team/handoffs/AA3-002-Audit.md) |
+| CL2 | TextModel search/replace + regex captures/backreferences（TS `textModelSearch.ts`、`pieceTreeTextBufferSearcher.ts`） | `agent-team/handoffs/AA3-002-Audit.md` | `agent-team/handoffs/AA3-004-Result.md` | `PieceTreeSearchTests`、`TextModelSearchTests` | Audit Complete – Fixes Landed | [`AA3-002-Audit`](../../agent-team/handoffs/AA3-002-Audit.md)<br>[`AA3-004-Result`](../../agent-team/handoffs/AA3-004-Result.md) |
 | CL3 | Diff prettify、move detection、word diff metadata（TS `defaultLinesDiffComputer/*.ts`、`rangeMapping.ts`） | `agent-team/handoffs/AA3-005-Audit.md` | `agent-team/handoffs/AA3-006-Result.md` | `DiffTests` / 新增 word move 覆盖 | Audit Complete – Fixes Pending | [`AA3-005-Audit`](../../agent-team/handoffs/AA3-005-Audit.md) |
 | CL4 | Decorations、IntervalTree stickiness、Markdown DocUI rendering semantics（TS `textModelDecorations.ts`、`modelDecorations.ts`、`markdownRenderer.ts`） | `agent-team/handoffs/AA3-007-Audit.md` | `agent-team/handoffs/AA3-008-Result.md` | `DecorationTests`、`MarkdownRendererTests` | Audit Complete – Fixes Pending | [`AA3-007-Audit`](../../agent-team/handoffs/AA3-007-Audit.md) |
 
@@ -25,7 +25,7 @@ Purpose: 为 Sprint 01 建立“发现 → 修复 → 验证”流水线，把 I
 
 ### CL2 – Search & Replace Advanced Features
 - **Investigator Notes:** See `agent-team/handoffs/AA3-002-Audit.md` (F1–F3). Current C# search stack uses default .NET regex semantics instead of ECMAScript, treats all Unicode whitespace as word separators (so whole-word matches diverge), and splits surrogate pairs because the regex engine lacks Unicode code-point mode.
-- **Proposed Fixes:** (1) run regexes with ECMAScript semantics (or wrap an ECMAScript engine) so `\b/\w/\d` align with VS Code; (2) align `WordCharacterClassifier` with the TS separator table; (3) introduce surrogate-aware token rewriting so `.`/quantifiers consume emoji as single logical characters.
+- **Porter Result:** `agent-team/handoffs/AA3-004-Result.md` describes the landed fix (ECMAScript regex compilation, TS word separator parity, surrogate-aware wildcard rewrites, and new AA3 regression tests).
 - **Validation Hooks:** `PieceTreeSearchTests` / `TextModelSearchTests`.
 
 ### CL3 – Diff Prettify & Move Metadata

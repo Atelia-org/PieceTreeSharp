@@ -17,7 +17,7 @@
 | P1 | AA3-005 | Investigator-TS：完成 CL3（Diff prettify & move metadata）对照，输出 `agent-team/handoffs/AA3-005-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL1/CL2 context | Done – `AA3-005-Audit.md`(F1–F4) |
 | P1 | AA3-007 | Investigator-TS：完成 CL4（Decorations & Markdown DocUI）对照，输出 `agent-team/handoffs/AA3-007-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL1/CL2 context | Done – `AA3-007-Audit.md`(F1–F4) |
 | P0 | AA3-003 | Porter-CS：根据 CL1 结论执行 TextModel/Options 修复，记录在 `agent-team/handoffs/AA3-003-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-24 | AA3-001 | In Review – result doc + `dotnet test ...` 79/79 |
-| P0 | AA3-004 | Porter-CS：根据 CL2 结论执行 Search/Replace 修复，记录在 `agent-team/handoffs/AA3-004-Result.md`。 | 3 | Porter-CS | 2025-11-24 | AA3-002 | Planned |
+| P0 | AA3-004 | Porter-CS：根据 CL2 结论执行 Search/Replace 修复，记录在 `agent-team/handoffs/AA3-004-Result.md`。 | 3 | Porter-CS | 2025-11-24 | AA3-002 | Done – ECMAScript regex + emoji parity landed |
 | P1 | AA3-006 | Porter-CS：根据 CL3 结论修复 Diff/move metadata（`DiffComputer`, `MarkdownRenderer` consumers）。 | 3 | Porter-CS | 2025-11-25 | AA3-005 | Planned |
 | P1 | AA3-008 | Porter-CS：根据 CL4 结论修复 Decorations/DocUI。 | 3 | Porter-CS | 2025-11-25 | AA3-007 | Planned |
 | P0 | AA3-009 | QA-Automation：扩展 `TextModelTests`/`PieceTreeSearchTests`/`DiffTests`/`DecorationTests`/`MarkdownRendererTests` 以覆盖新语义，并记录 `dotnet test ...` 最新基线。 | 2 | QA-Automation | 2025-11-26 | AA3-003~008 | Planned |
@@ -57,3 +57,4 @@
 - 2025-11-20：AA3-003（CL1 Porter）完成实现 —— `TextModel` 创建选项、语言配置事件、Undo 服务桥接与 multi-range 搜索全部对齐 TS；`agent-team/handoffs/AA3-003-Result.md` + `docs/reports/migration-log.md` 已登记，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（79/79）验证通过。
 - 2025-11-20：AA3-005（CL3 Investigator）交付 Diff/move 审计 —— `agent-team/handoffs/AA3-005-Audit.md` 记录 F1（LinesDiff/innerChanges 差异）、F2（move detection）、F3（options/timeout/subword heuristics）、F4（DocUI diff plumbing），`docs/reports/audit-checklist-aa3.md#cl3` 与 Task Board 均已更新。
 - 2025-11-20：AA3-007（CL4 Investigator）交付 Decorations/DocUI 审计 —— `agent-team/handoffs/AA3-007-Audit.md` 收敛 ModelDecorationOptions、DecorationsTrees/stickiness、MarkdownRenderer 渲染缺口，并将 CL4 状态和 Task Board 更新为“Done”。
+- 2025-11-20：AA3-004（CL2 Porter）完成 —— `SearchTypes`/`PieceTreeSearcher`/`TextModelSearch` 现运行 ECMAScript Regex + surrogate-safe wildcard，`PieceTreeSearchTests`/`TextModelSearchTests` 新增 audit 案例，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。

@@ -42,6 +42,7 @@
 - 2025-11-20：AA3-002（CL2 Investigator）完成。`agent-team/handoffs/AA3-002-Audit.md` 记录 F1~F3（ECMAScript regex、whole-word separators、surrogate pairs），`docs/reports/audit-checklist-aa3.md#cl2` / Task Board 已同步，等待 AA3-004 Porter 修复。
 - 2025-11-20：AA3-005（CL3 Investigator）完成。`agent-team/handoffs/AA3-005-Audit.md` 梳理 Diff `LinesDiff` 数据模型、move detection、prettify/whitespace/timeout选项与 DocUI diff 装饰缺口，`docs/reports/audit-checklist-aa3.md#cl3`、Task Board 与 Sprint Log 均已更新，等待 AA3-006 Porter 修复。
 - 2025-11-20：AA3-007（CL4 Investigator）完成。`agent-team/handoffs/AA3-007-Audit.md` 归档 DecorationOptions/DecorationsTrees/stickiness/MarkdownRenderer 的缺口，`docs/reports/audit-checklist-aa3.md#cl4`、Task Board 与 Sprint Log 均已同步，等待 AA3-008 Porter 修复。
+- 2025-11-20：AA3-004（CL2 Porter）完成。`SearchTypes`/`PieceTreeSearcher`/`TextModelSearch` 现以 ECMAScript Regex + surrogate-safe wildcard/word separator parity运行，`agent-team/handoffs/AA3-004-Result.md`、`docs/reports/migration-log.md`、`agent-team/indexes/README.md#delta-2025-11-20` 均已登记，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）为最新基线。
 - 2025-11-20：AA3-003（CL1 Porter）交付 TextModel 选项/语言/Undo/multi-range 搜索补丁，详情见 `agent-team/handoffs/AA3-003-Result.md`，`docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-20` 均已登记；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（79/79）保持绿色。
 
 **状态更新提示：** 编辑本文件或引用 PT/OI 进度前，请先核对 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-19` / `#delta-2025-11-20`，并在条目中附上两者的链接。

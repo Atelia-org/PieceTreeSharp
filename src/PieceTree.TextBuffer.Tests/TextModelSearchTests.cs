@@ -100,4 +100,28 @@ public class TextModelRangeSearchTests
         Assert.NotNull(wrapped);
         Assert.Equal(1, wrapped!.Range.StartLineNumber);
     }
+
+    [Fact]
+    public void MultiRangeRegexSearchFindsCafeWithinSelection()
+    {
+        var model = new TextModel("café\ncaf\ncafé\n");
+        PieceTreeRange[] ranges =
+        {
+            new PieceTreeRange(new TextPosition(1, 1), new TextPosition(1, model.GetLineMaxColumn(1))),
+            new PieceTreeRange(new TextPosition(3, 1), new TextPosition(3, model.GetLineMaxColumn(3))),
+        };
+
+        var matches = model.FindMatches(
+            "\\bcaf\\b",
+            ranges,
+            findInSelection: true,
+            isRegex: true,
+            matchCase: true,
+            wordSeparators: null,
+            captureMatches: false);
+
+        Assert.Equal(2, matches.Count);
+        Assert.Equal(1, matches[0].Range.StartLineNumber);
+        Assert.Equal(3, matches[1].Range.StartLineNumber);
+    }
 }
