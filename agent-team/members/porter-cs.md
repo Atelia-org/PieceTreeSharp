@@ -78,6 +78,12 @@
   - 文档：创建 `agent-team/handoffs/AA3-004-Result.md`，更新 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-20`。
   - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。
 
+- **2025-11-20 – AA3-008 Decorations/DocUI**
+  - 复刻 TS decoration 存储：引入 `DecorationsTrees`（regular/overview/injected）与共享 `DecorationRangeUpdater` stickiness 逻辑，`TextModel` 现可查询字体/注入文本/边距装饰并在 `OnDidChangeDecorations` 事件中输出 minimap/overview/glyph/line号/行高/字体元数据。
+  - 升级 `MarkdownRenderer` 与选项结构，支持多 owner filter、z-index 排序、注入文本 markers、glyph/margin/overview/minimap 注记，DocUI 行尾附带注解标签。
+  - Tests：在 `DecorationTests` 添加 metadata round-trip & 事件断言，在 `MarkdownRendererTests` 覆盖 owner filter 列表、注入文本、glyph/minimap 注解；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（85/85）。
+  - 文档：创建 `agent-team/handoffs/AA3-008-Result.md`，更新 Task Board / Sprint / AGENTS / Migration Log / Changefeed。
+
 - **Upcoming Goals (runSubAgent 粒度):**
   1. **PT-005.Search**：实现 `PieceTreeSearch` 逻辑，支持 Find/Match 等操作。
   2. **PT-004.G3**：实现长度/位置互转与 chunk-based slicing 的额外断言，扩充 xUnit 覆盖（CR-only、BOM、跨 chunk ranges）。

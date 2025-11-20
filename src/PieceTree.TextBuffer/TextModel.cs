@@ -82,7 +82,8 @@ public class TextModel : ITextSearchAccess
 {
     private const string DefaultUndoLabel = "Edit";
     private readonly PieceTreeBuffer _buffer;
-    private readonly IntervalTree _decorations = new();
+    private readonly DecorationsTrees _decorationTrees = new();
+    private readonly Dictionary<string, ModelDecoration> _decorationsById = new(StringComparer.Ordinal);
     private readonly Dictionary<int, HashSet<string>> _decorationIdsByOwner = new();
     private readonly IUndoRedoService _undoRedoService;
     private readonly ILanguageConfigurationService _languageConfigurationService;
@@ -366,14 +367,13 @@ public class TextModel : ITextSearchAccess
     public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Default)
     {
         var decoration = CreateDecoration(range, options ?? ModelDecorationOptions.Default, ownerId);
-        _decorations.Insert(decoration);
-        TrackDecoration(decoration);
+        RegisterDecoration(decoration);
         RaiseDecorationsChanged(new[] { new DecorationChange(decoration, DecorationDeltaKind.Added) });
         return decoration;
     }
 
     public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
-        => _decorations.Search(range, ownerIdFilter);
+        => _decorationTrees.Search(range, ownerIdFilter);
 
     public IReadOnlyList<ModelDecoration> DeltaDecorations(int ownerId, IReadOnlyList<string>? oldDecorationIds, IReadOnlyList<ModelDeltaDecoration>? newDecorations)
     {
@@ -388,10 +388,9 @@ public class TextModel : ITextSearchAccess
                     continue;
                 }
 
-                if (_decorations.TryGet(id, out var existing) && existing.OwnerId == ownerId)
+                if (_decorationsById.TryGetValue(id, out var existing) && existing.OwnerId == ownerId)
                 {
-                    _decorations.Remove(id);
-                    UntrackDecoration(existing);
+                    UnregisterDecoration(existing);
                     changes.Add(new DecorationChange(existing, DecorationDeltaKind.Removed));
                 }
             }
@@ -403,8 +402,7 @@ public class TextModel : ITextSearchAccess
             foreach (var descriptor in newDecorations)
             {
                 var decoration = CreateDecoration(descriptor.Range, descriptor.Options, ownerId);
-                _decorations.Insert(decoration);
-                TrackDecoration(decoration);
+                RegisterDecoration(decoration);
                 added.Add(decoration);
                 changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Added));
             }
@@ -455,6 +453,87 @@ public class TextModel : ITextSearchAccess
         return DeltaDecorations(options.OwnerId, previous, projections);
     }
 
+    public IReadOnlyList<ModelDecoration> GetInjectedTextInLine(int lineNumber, int ownerIdFilter = DecorationOwnerIds.Any)
+    {
+        if (lineNumber < 1 || lineNumber > GetLineCount())
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var lineStart = GetOffsetAt(new TextPosition(lineNumber, 1));
+        var lineEnd = lineNumber == GetLineCount()
+            ? _buffer.Length
+            : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
+
+        var range = new TextRange(lineStart, lineEnd);
+        var decorations = _decorationTrees.Search(range, ownerIdFilter, DecorationTreeScope.InjectedText);
+        if (decorations.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var filtered = new List<ModelDecoration>(decorations.Count);
+        foreach (var decoration in decorations)
+        {
+            if (decoration.IsCollapsed && !decoration.Options.ShowIfCollapsed)
+            {
+                continue;
+            }
+
+            filtered.Add(decoration);
+        }
+
+        return filtered;
+    }
+
+    public IReadOnlyList<ModelDecoration> GetFontDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
+    {
+        var decorations = _decorationTrees.Search(range, ownerIdFilter);
+        if (decorations.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var result = new List<ModelDecoration>();
+        foreach (var decoration in decorations)
+        {
+            if (decoration.Options.AffectsFont || decoration.Options.LineHeight.HasValue)
+            {
+                result.Add(decoration);
+            }
+        }
+
+        return result;
+    }
+
+    public IReadOnlyList<ModelDecoration> GetAllMarginDecorations(int ownerIdFilter = DecorationOwnerIds.Any)
+    {
+        if (_decorationTrees.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var result = new List<ModelDecoration>();
+        foreach (var decoration in _decorationTrees.EnumerateAll())
+        {
+            if (ownerIdFilter != DecorationOwnerIds.Any && decoration.OwnerId != ownerIdFilter)
+            {
+                continue;
+            }
+
+            var options = decoration.Options;
+            if (options.AffectsGlyphMargin ||
+                !string.IsNullOrWhiteSpace(options.MarginClassName) ||
+                !string.IsNullOrWhiteSpace(options.LinesDecorationsClassName) ||
+                !string.IsNullOrWhiteSpace(options.LineNumberClassName))
+            {
+                result.Add(decoration);
+            }
+        }
+
+        return result;
+    }
+
     public void PushStackElement() => _editStack.PushStackElement();
 
     public void PopStackElement() => _editStack.PopStackElement();
@@ -487,7 +566,8 @@ public class TextModel : ITextSearchAccess
         TextEdit[] edits,
         IReadOnlyList<TextPosition>? beforeCursorState = null,
         CursorStateComputer? cursorStateComputer = null,
-        string? undoLabel = null)
+        string? undoLabel = null,
+        bool forceMoveMarkers = false)
     {
         if (edits is null)
         {
@@ -501,12 +581,13 @@ public class TextModel : ITextSearchAccess
             isRedo: false,
             undoLabel,
             beforeCursorState,
-            cursorStateComputer);
+            cursorStateComputer,
+            forceMoveMarkers);
     }
 
-    public void ApplyEdits(TextEdit[] edits)
+    public void ApplyEdits(TextEdit[] edits, bool forceMoveMarkers = false)
     {
-        PushEditOperations(edits ?? Array.Empty<TextEdit>());
+        PushEditOperations(edits ?? Array.Empty<TextEdit>(), forceMoveMarkers: forceMoveMarkers);
     }
 
     public bool Undo()
@@ -646,7 +727,8 @@ public class TextModel : ITextSearchAccess
         bool isRedo,
         string? undoLabel = null,
         IReadOnlyList<TextPosition>? beforeCursorState = null,
-        CursorStateComputer? cursorStateComputer = null)
+        CursorStateComputer? cursorStateComputer = null,
+        bool forceMoveMarkers = false)
     {
         if (edits.Length == 0)
         {
@@ -659,7 +741,7 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<TextChange>();
         }
 
-        var decorationChanges = ApplyPendingEdits(pending);
+        var decorationChanges = ApplyPendingEdits(pending, forceMoveMarkers);
 
         foreach (var edit in pending)
         {
@@ -755,7 +837,7 @@ public class TextModel : ITextSearchAccess
         return pending;
     }
 
-    private List<DecorationChange> ApplyPendingEdits(List<PendingEdit> pending)
+    private List<DecorationChange> ApplyPendingEdits(List<PendingEdit> pending, bool forceMoveMarkers)
     {
         var applyOrder = new List<PendingEdit>(pending);
         applyOrder.Sort((a, b) =>
@@ -773,7 +855,7 @@ public class TextModel : ITextSearchAccess
         foreach (var edit in applyOrder)
         {
             var removedLength = edit.OldEndOffset - edit.OldStartOffset;
-            var deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length);
+            var deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length, forceMoveMarkers);
             if (deltas.Count > 0)
             {
                 decorationChanges.AddRange(deltas);
@@ -983,6 +1065,20 @@ public class TextModel : ITextSearchAccess
         return decoration;
     }
 
+    private void RegisterDecoration(ModelDecoration decoration)
+    {
+        _decorationsById[decoration.Id] = decoration;
+        _decorationTrees.Insert(decoration);
+        TrackDecoration(decoration);
+    }
+
+    private void UnregisterDecoration(ModelDecoration decoration)
+    {
+        _decorationTrees.Remove(decoration);
+        _decorationsById.Remove(decoration.Id);
+        UntrackDecoration(decoration);
+    }
+
     private void TrackDecoration(ModelDecoration decoration)
     {
         if (!_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out var ids))
@@ -1013,12 +1109,98 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        OnDidChangeDecorations?.Invoke(this, new TextModelDecorationsChangedEventArgs(changes, _versionId));
+        var args = BuildDecorationsChangedEventArgs(changes);
+        OnDidChangeDecorations?.Invoke(this, args);
     }
 
-    private IReadOnlyList<DecorationChange> AdjustDecorationsForEdit(int offset, int removedLength, int insertedLength)
+    private TextModelDecorationsChangedEventArgs BuildDecorationsChangedEventArgs(IReadOnlyList<DecorationChange> changes)
     {
-        if (_decorations.Count == 0 || (removedLength == 0 && insertedLength == 0))
+        var affectsMinimap = false;
+        var affectsOverviewRuler = false;
+        var affectsGlyphMargin = false;
+        var affectsLineNumber = false;
+        var injectedLines = new SortedSet<int>();
+        var lineHeightChanges = new HashSet<LineHeightChange>();
+        var fontLineChanges = new HashSet<LineFontChange>();
+
+        foreach (var change in changes)
+        {
+            var options = change.Options;
+            affectsMinimap |= options.AffectsMinimap;
+            affectsOverviewRuler |= options.AffectsOverviewRuler;
+            affectsGlyphMargin |= options.AffectsGlyphMargin;
+            affectsLineNumber |= options.AffectsLineNumber || !string.IsNullOrWhiteSpace(options.LineNumberClassName);
+
+            RecordDecorationRange(change.OwnerId, change.Id, change.Range, options, injectedLines, lineHeightChanges, fontLineChanges);
+            if (change.OldRange.HasValue)
+            {
+                RecordDecorationRange(change.OwnerId, change.Id, change.OldRange.Value, options, injectedLines, lineHeightChanges, fontLineChanges);
+            }
+        }
+
+        return new TextModelDecorationsChangedEventArgs(
+            changes,
+            _versionId,
+            affectsMinimap,
+            affectsOverviewRuler,
+            affectsGlyphMargin,
+            affectsLineNumber,
+            injectedLines.ToArray(),
+            lineHeightChanges.ToArray(),
+            fontLineChanges.ToArray());
+    }
+
+    private void RecordDecorationRange(
+        int ownerId,
+        string decorationId,
+        TextRange range,
+        ModelDecorationOptions options,
+        SortedSet<int> injectedLines,
+        HashSet<LineHeightChange> lineHeightChanges,
+        HashSet<LineFontChange> fontLineChanges)
+    {
+        if (!options.HasInjectedText && !options.LineHeight.HasValue && !options.AffectsFont)
+        {
+            return;
+        }
+
+        var startOffset = range.StartOffset;
+        var endOffset = range.EndOffset;
+        var startLine = GetPositionAt(startOffset).LineNumber;
+        var endLine = GetPositionAt(endOffset).LineNumber;
+        if (endLine < startLine)
+        {
+            endLine = startLine;
+        }
+
+        if (options.HasInjectedText)
+        {
+            for (int line = startLine; line <= endLine; line++)
+            {
+                injectedLines.Add(line);
+            }
+        }
+
+        if (options.LineHeight.HasValue)
+        {
+            for (int line = startLine; line <= endLine; line++)
+            {
+                lineHeightChanges.Add(new LineHeightChange(ownerId, decorationId, line, options.LineHeight));
+            }
+        }
+
+        if (options.AffectsFont)
+        {
+            for (int line = startLine; line <= endLine; line++)
+            {
+                fontLineChanges.Add(new LineFontChange(ownerId, decorationId, line));
+            }
+        }
+    }
+
+    private IReadOnlyList<DecorationChange> AdjustDecorationsForEdit(int offset, int removedLength, int insertedLength, bool forceMoveMarkers)
+    {
+        if (_decorationTrees.Count == 0 || (removedLength == 0 && insertedLength == 0))
         {
             return Array.Empty<DecorationChange>();
         }
@@ -1026,34 +1208,30 @@ public class TextModel : ITextSearchAccess
         var processed = new HashSet<string>(StringComparer.Ordinal);
         var changes = new List<DecorationChange>();
         var searchEnd = removedLength > 0 ? offset + removedLength : offset + insertedLength;
-        var overlaps = _decorations.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
-        foreach (var decoration in overlaps)
-        {
-            if (!processed.Add(decoration.Id))
-            {
-                continue;
-            }
-
-            if (UpdateDecorationRange(decoration, offset, removedLength, insertedLength))
-            {
-                changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated));
-            }
-        }
-
-        foreach (var decoration in _decorations.EnumerateFrom(offset))
-        {
-            if (!processed.Add(decoration.Id))
-            {
-                continue;
-            }
-
-            if (UpdateDecorationRange(decoration, offset, removedLength, insertedLength))
-            {
-                changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated));
-            }
-        }
+        var overlaps = _decorationTrees.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
+        ProcessDecorations(overlaps);
+        ProcessDecorations(_decorationTrees.EnumerateFrom(offset));
 
         return changes;
+
+        void ProcessDecorations(IEnumerable<ModelDecoration> decorations)
+        {
+            foreach (var decoration in decorations)
+            {
+                if (!processed.Add(decoration.Id))
+                {
+                    continue;
+                }
+
+                var previousRange = decoration.Range;
+                if (DecorationRangeUpdater.ApplyEdit(decoration, offset, removedLength, insertedLength, forceMoveMarkers))
+                {
+                    decoration.VersionId = _versionId;
+                    _decorationTrees.Reinsert(decoration);
+                    changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated, previousRange));
+                }
+            }
+        }
     }
 
     private void SubscribeToLanguageConfiguration(string languageId)
@@ -1067,95 +1245,7 @@ public class TextModel : ITextSearchAccess
         OnDidChangeLanguageConfiguration?.Invoke(this, new TextModelLanguageConfigurationChangedEventArgs(args.LanguageId));
     }
 
-        private bool UpdateDecorationRange(ModelDecoration decoration, int offset, int removedLength, int insertedLength)
-        {
-            var range = decoration.Range;
-            var start = range.StartOffset;
-            var end = range.EndOffset;
-            var originalStart = start;
-            var originalEnd = end;
-            var deleteEnd = offset + removedLength;
-            var collapsedByReplace = false;
-
-            if (removedLength > 0)
-            {
-                if (decoration.Options.CollapseOnReplaceEdit && start >= offset && end <= deleteEnd)
-                {
-                    start = offset;
-                    end = offset;
-                    collapsedByReplace = true;
-                }
-            else
-            {
-                if (start >= deleteEnd)
-                {
-                    start -= removedLength;
-                }
-                else if (start >= offset)
-                {
-                    start = offset;
-                }
-
-                if (end >= deleteEnd)
-                {
-                    end -= removedLength;
-                }
-                else if (end >= offset)
-                {
-                    end = offset;
-                }
-            }
-        }
-
-            if (insertedLength > 0)
-        {
-            var growStart = !decoration.Options.ForceMoveMarkers &&
-                (decoration.Options.Stickiness == TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges ||
-                 decoration.Options.Stickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingBefore);
-
-            var growEnd = !decoration.Options.ForceMoveMarkers &&
-                (decoration.Options.Stickiness == TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges ||
-                 decoration.Options.Stickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingAfter);
-
-            if (offset < start)
-            {
-                start += insertedLength;
-            }
-                else if (offset == start && !growStart && !collapsedByReplace)
-            {
-                start += insertedLength;
-            }
-
-            if (offset < end)
-            {
-                end += insertedLength;
-            }
-                else if (offset == end && growEnd && !collapsedByReplace)
-            {
-                end += insertedLength;
-            }
-        }
-
-        if (start < 0)
-        {
-            start = 0;
-        }
-
-        if (end < start)
-        {
-            end = start;
-        }
-
-        if (start == originalStart && end == originalEnd)
-        {
-            return false;
-        }
-
-        decoration.Range = new TextRange(start, end);
-        decoration.VersionId = _versionId;
-        _decorations.Reinsert(decoration);
-        return true;
-    }
+    
 
     private sealed class PendingEdit
     {

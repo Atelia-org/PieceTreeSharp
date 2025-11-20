@@ -137,5 +137,107 @@ Hello <World>
             Assert.DoesNotContain("|", filtered);
             Assert.Contains("[ll", filtered);
         }
+
+        [Fact]
+        public void TestRender_OwnerFilterList()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+
+            var cursorOffset = model.GetOffsetAt(new TextPosition(1, 1));
+            model.AddDecoration(new TextRange(cursorOffset, cursorOffset), ModelDecorationOptions.CreateCursorOptions());
+
+            var selectionOwner = model.AllocateDecorationOwnerId();
+            model.DeltaDecorations(selectionOwner, null, new[]
+            {
+                new ModelDeltaDecoration(new TextRange(0, model.GetLength()), ModelDecorationOptions.CreateSelectionOptions()),
+            });
+
+            var filtered = renderer.Render(model, new MarkdownRenderOptions
+            {
+                OwnerIdFilters = new[] { selectionOwner },
+            });
+
+            Assert.Contains("[Hello World]", filtered);
+            Assert.DoesNotContain("|", filtered);
+        }
+
+        [Fact]
+        public void TestRender_IncludesInjectedText()
+        {
+            var model = new TextModel("Hello Earth");
+            var renderer = new MarkdownRenderer();
+
+            var wordStart = model.GetOffsetAt(new TextPosition(1, 7));
+            var wordEnd = model.GetOffsetAt(new TextPosition(1, 12));
+            var options = new ModelDecorationOptions
+            {
+                RenderKind = DecorationRenderKind.Generic,
+                Before = new ModelDecorationInjectedTextOptions { Content = "BEF" },
+                After = new ModelDecorationInjectedTextOptions { Content = "AFT" },
+                ShowIfCollapsed = true,
+            };
+
+            model.AddDecoration(new TextRange(wordStart, wordEnd), options);
+
+            var output = renderer.Render(model);
+
+            Assert.Contains("<<before:BEF>>", output);
+            Assert.Contains("<<after:AFT>>", output);
+        }
+
+        [Fact]
+        public void TestRender_RendersGlyphAndMinimapAnnotations()
+        {
+            var model = new TextModel("abc");
+            var renderer = new MarkdownRenderer();
+
+            var options = new ModelDecorationOptions
+            {
+                Description = "diff-add",
+                RenderKind = DecorationRenderKind.Generic,
+                GlyphMarginClassName = "git-add",
+                GlyphMargin = new ModelDecorationGlyphMarginOptions
+                {
+                    Position = GlyphMarginLane.Left,
+                    PersistLane = true,
+                },
+                MarginClassName = "margin-add",
+                LinesDecorationsClassName = "line-add",
+                LineNumberClassName = "line-number-add",
+                OverviewRuler = new ModelDecorationOverviewRulerOptions
+                {
+                    Color = "#00ff00",
+                    Position = OverviewRulerLane.Right,
+                },
+                Minimap = new ModelDecorationMinimapOptions
+                {
+                    Color = "#00ff00",
+                    Position = MinimapPosition.Gutter,
+                    SectionHeaderText = "Add",
+                    SectionHeaderStyle = "solid",
+                },
+                InlineClassName = "inline-add",
+                LineHeight = 24,
+                FontFamily = "Fira Code",
+                FontStyle = "italic",
+                ShowIfCollapsed = true,
+            };
+
+            model.AddDecoration(new TextRange(0, model.GetLength()), options);
+
+            var output = renderer.Render(model);
+
+            Assert.Contains("{glyph:git-add@left!}", output);
+            Assert.Contains("{margin:margin-add}", output);
+            Assert.Contains("{lines:line-add}", output);
+            Assert.Contains("{line-number:line-number-add}", output);
+            Assert.Contains("{inline:inline-add}", output);
+            Assert.Contains("{decor:diff-add}", output);
+            Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
+            Assert.Contains("{overview:right:#00ff00}", output);
+            Assert.Contains("{font:family=Fira Code,style=italic}", output);
+            Assert.Contains("{line-height:24}", output);
+        }
     }
 }

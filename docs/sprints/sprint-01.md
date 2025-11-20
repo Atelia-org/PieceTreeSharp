@@ -19,7 +19,7 @@
 | P0 | AA3-003 | Porter-CS：根据 CL1 结论执行 TextModel/Options 修复，记录在 `agent-team/handoffs/AA3-003-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-24 | AA3-001 | In Review – result doc + `dotnet test ...` 79/79 |
 | P0 | AA3-004 | Porter-CS：根据 CL2 结论执行 Search/Replace 修复，记录在 `agent-team/handoffs/AA3-004-Result.md`。 | 3 | Porter-CS | 2025-11-24 | AA3-002 | Done – ECMAScript regex + emoji parity landed |
 | P1 | AA3-006 | Porter-CS：根据 CL3 结论修复 Diff/move metadata（`DiffComputer`, `MarkdownRenderer` consumers）。 | 3 | Porter-CS | 2025-11-25 | AA3-005 | Done – LinesDiff/move parity + tests landed |
-| P1 | AA3-008 | Porter-CS：根据 CL4 结论修复 Decorations/DocUI。 | 3 | Porter-CS | 2025-11-25 | AA3-007 | Planned |
+| P1 | AA3-008 | Porter-CS：根据 CL4 结论修复 Decorations/DocUI。 | 3 | Porter-CS | 2025-11-25 | AA3-007 | In Review – `agent-team/handoffs/AA3-008-Result.md` 发布，DocUI renderer + decoration trees landed (`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 85/85). |
 | P0 | AA3-009 | QA-Automation：扩展 `TextModelTests`/`PieceTreeSearchTests`/`DiffTests`/`DecorationTests`/`MarkdownRendererTests` 以覆盖新语义，并记录 `dotnet test ...` 最新基线。 | 2 | QA-Automation | 2025-11-26 | AA3-003~008 | Planned |
 | P0 | OI-010 | Info-Indexer：整理 Sprint 01 产物，更新 changefeed + 索引目录，确保 DocMaintainer/Task Board 可引用。 | 1 | Info-Indexer | 2025-11-27 | All AA3 deliverables | Planned |
 
@@ -59,3 +59,4 @@
 - 2025-11-20：AA3-007（CL4 Investigator）交付 Decorations/DocUI 审计 —— `agent-team/handoffs/AA3-007-Audit.md` 收敛 ModelDecorationOptions、DecorationsTrees/stickiness、MarkdownRenderer 渲染缺口，并将 CL4 状态和 Task Board 更新为“Done”。
 - 2025-11-20：AA3-004（CL2 Porter）完成 —— `SearchTypes`/`PieceTreeSearcher`/`TextModelSearch` 现运行 ECMAScript Regex + surrogate-safe wildcard，`PieceTreeSearchTests`/`TextModelSearchTests` 新增 audit 案例，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。
 - 2025-11-20：AA3-006（CL3 Porter）完成 —— `DiffComputer` 替换为 TS `LinesDiff` 管线，`DiffMove`/`DiffResult` 暴露 inner changes + timeout，`DiffTests` 覆盖 word diff、whitespace ignore、move detection、timeout；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（80/80）。
+- 2025-11-20：AA3-008（CL4 Porter）完成 —— `DecorationsTrees` + `DecorationRangeUpdater` 复刻 TS stickiness，`TextModel` 事件输出 minimap/overview/glyph/line-height/font 元数据，`MarkdownRenderer` 渲染 owner filter / injected text / glyph & minimap 注解；`agent-team/handoffs/AA3-008-Result.md` 发布，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（85/85）。

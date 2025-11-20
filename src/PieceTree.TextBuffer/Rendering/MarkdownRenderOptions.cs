@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Rendering;
@@ -6,6 +7,7 @@ public sealed class MarkdownRenderOptions
 {
     public MarkdownSearchOptions? Search { get; init; }
     public int OwnerIdFilter { get; init; } = DecorationOwnerIds.Any;
+    public IReadOnlyList<int>? OwnerIdFilters { get; init; }
 }
 
 public sealed class MarkdownSearchOptions
