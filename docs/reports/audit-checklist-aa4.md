@@ -11,17 +11,18 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 ## Checklist Overview
 | ID | Scope | Investigator Output | Porter Output | QA Hooks | Status | Links |
 | --- | --- | --- | --- | --- | --- | --- |
-| CL5 | PieceTree Builder & Factory parity（TS `pieceTreeTextBufferBuilder.ts`、`pieceTreeBase.ts` vs C# `PieceTreeBuilder`/`ChunkBuffer`/`LineStartBuilder`） | `agent-team/handoffs/AA4-001-Audit.md` | `agent-team/handoffs/AA4-005-Result.md` | Builder chunk tests、factory/EOL heuristics（`PieceTreeBuilderTests` TBD） | Audit Complete – Awaiting Fix | [`AA4-001-Audit`](../../agent-team/handoffs/AA4-001-Audit.md) |
+| CL5 | PieceTree Builder & Factory parity（TS `pieceTreeTextBufferBuilder.ts`、`pieceTreeBase.ts` vs C# `PieceTreeBuilder`/`ChunkBuffer`/`LineStartBuilder`） | `agent-team/handoffs/AA4-001-Audit.md` | `agent-team/handoffs/AA4-005-Result.md` | `PieceTreeBuilderTests`、`PieceTreeFactoryTests`、`AA005Tests`（CRLF carryover） | Porter Complete – Pending QA | [`AA4-001-Audit`](../../agent-team/handoffs/AA4-001-Audit.md) |
 | CL6 | ChangeBuffer/CRLF/large edits（TS `_insert/_delete` logic、`_lastChangeBufferPos`、AverageBufferSize） vs `PieceTreeModel.Edit.cs` | `agent-team/handoffs/AA4-002-Audit.md` | `agent-team/handoffs/AA4-006-Result.md` | `PieceTreeBaseTests` / 新增 ChangeBuffer fuzz & CRLF bridging cases | Audit Complete – Awaiting Fix | [`AA4-002-Audit`](../../agent-team/handoffs/AA4-002-Audit.md) |
-| CL7 | Cursor word/snippet/multi-selection semantics（TS `cursor.ts`、`cursorWordOperations.ts`、`cursorCommon.ts`） vs `Cursor/Cursor.cs` | `agent-team/handoffs/AA4-003-Audit.md` | `agent-team/handoffs/AA4-007-Result.md` | `CursorTests` / `MarkdownRendererTests`（word mark、column select、snippet tabstop） | Planned | `AA4-003-Audit` (tbd) |
-| CL8 | DocUI Find/Replace overlays + Decorations（TS `findController.ts`、`findDecorations.ts`、`textModelSearch.ts`） vs `TextModelSearch` + `MarkdownRenderer` | `agent-team/handoffs/AA4-004-Audit.md` | `agent-team/handoffs/AA4-008-Result.md` | `TextModelSearchTests`、`MarkdownRendererTests`（capture markers、owner filters、search overlays） | Planned | `AA4-004-Audit` (tbd) |
+| CL7 | Cursor word/snippet/multi-selection semantics（TS `cursor.ts`、`cursorWordOperations.ts`、`cursorCommon.ts`） vs `Cursor/Cursor.cs` | `agent-team/handoffs/AA4-003-Audit.md` | `agent-team/handoffs/AA4-007-Result.md` | `CursorTests` / `MarkdownRendererTests`（word mark、column select、snippet tabstop） | Audit Complete – Awaiting Fix | [`AA4-003-Audit`](../../agent-team/handoffs/AA4-003-Audit.md) |
+| CL8 | DocUI Find/Replace overlays + Decorations（TS `findController.ts`、`findDecorations.ts`、`textModelSearch.ts`） vs `TextModelSearch` + `MarkdownRenderer` | `agent-team/handoffs/AA4-004-Audit.md` | `agent-team/handoffs/AA4-008-Result.md` | `TextModelSearchTests`、`MarkdownRendererTests`（capture markers、owner filters、search overlays） | Audit Complete – Awaiting Fix | [`AA4-004-Audit`](../../agent-team/handoffs/AA4-004-Audit.md) |
 
 ## Detail Sections
 
 ### CL5 – PieceTree Builder & Factory
 - **Investigator Notes:** 详见 `agent-team/handoffs/AA4-001-Audit.md`。关键缺口：chunk splitting/CRLF 修复（carryover + AverageBufferSize）、BOM 丢失、`containsRTL/containsUnusualLineTerminators/isBasicASCII` 未暴露、缺少 `PieceTreeTextBufferFactory`（含 `Create(defaultEOL)` / `GetFirstLineText`）、`DefaultEndOfLine` 选举与 Normalize-EOL 流程均偏离 TS。共列出 6 条 F1~F6（High×2、Medium×4）。
 - **Proposed Fixes:** 增补 builder/factory 管线、在 `PieceTreeBuildResult` 保留 BOM+metadata、复刻 `_getEOL` 与 normalize window、将 chunk 分片 helper 复用至 `CreateNewPieces`。Porter 交付记录 `agent-team/handoffs/AA4-005-Result.md`。
-- **Validation Hooks:** 新增 `PieceTreeBuilderParityTests`（chunk split）、`PieceTreeBuilderMetadataTests`（BOM/flags）、`PieceTreeBuilderDefaultEolTests`、`PieceTreeModelNormalizeEolTests`、`PieceTreeTextBufferFactoryTests.GetFirstLineText`；最终回归 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` ≥92。 
+- **Porter Status (2025-11-20):** `PieceTreeBuilder` 现通过 `ChunkUtilities.SplitText/NormalizeChunks` 分片，`PieceTreeTextBufferFactory` 负责 BOM/EOL/metadata 输出，`PieceTreeBuffer` 缓存 builder 选项并在 `PieceTreeModel.Insert` 中复用新 helper。新增 `PieceTreeBuilderTests`（chunk + BOM + CR carryover）、`PieceTreeFactoryTests`（preview/EOL heuristics）、`PieceTreeTestHelpers` 以及扩展的 `AA005Tests`（CRLF 修复）。
+- **Validation Hooks:** `PieceTreeBuilderTests`, `PieceTreeFactoryTests`, `AA005Tests` 均纳入 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（95/95）。QA-AA4-009 需在回归中扩展 builder/metadata fuzz cases后再行收口。 
 
 ### CL6 – ChangeBuffer / CRLF / Large Edits
 - **Investigator Notes:** 详见 `agent-team/handoffs/AA4-002-Audit.md`。F1~F6 覆盖 change buffer append heuristics 缺失、 `_lastChangeBufferPos` 状态缺口、CRLF repair stub、`AverageBufferSize` 拆 chunk缺失、`GetLineFeedCnt` metadata 偏差与 SearchCache 粒度失配。
@@ -29,18 +30,11 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 - **Validation Hooks:** `PieceTreeBaseTests`（change buffer fuzz）、`PieceTreeNormalizationTests`（CRLF insert/delete）、`PieceTreeBuilderTests`/`PieceTreeSearchTests`（AverageBufferSize + cache reuse）、`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`。
 
 ### CL7 – Cursor WordOps & Snippet Semantics
-- **Investigator Notes:** 待 `AA4-003-Audit`。需比较：
-  - Word 左右/上一/下一跳、`wordPartLeft/Right`、`skipWordPart` 等 API
-  - `columnSelect` & `selectionGrow/shrink` 行为
-  - Snippet tabstop stickiness、InjectedText 对 cursor 的影响
-  - 多光标 (primary + secondary) 与装饰 owner 协同
-- **Proposed Fixes:** 扩展 `Cursor` 类为多状态机，加入 `WordOperations` 辅助层、`Selection` 批量更新、DocUI renderer 额外标记。
-- **Validation Hooks:** `CursorTests` (word、column、snippet)、`MarkdownRendererTests` (multi cursor markers)、DocUI snapshot。
+- **Investigator Notes:** `agent-team/handoffs/AA4-003-Audit.md` 登记 F1–F4：①缺失 `CursorsController`/`CursorCollection`/`CursorContext` 等多光标基建，DocUI 只有一个光标；②没有 `WordOperations`/`WordCharacterClassifier`，Ctrl+Arrow/删除/wordPart 均退化为逐字符；③未实现 `ColumnSelection`、`CursorConfiguration`、可见列换算以及 `TextModel` 的行辅助接口，导致 Alt+拖拽/垂直移动无法对齐；④完全缺少 `SnippetController2`/`SnippetSession`，`Cursor.cs` 里仍是 TODO，DocUI 也无法渲染 tabstop/choice 装饰。
+- **Proposed Fixes:** 按 `AA4-003-Audit` 的主题顺序推进：先复刻 TS 多光标管线（含 `CursorState`、事件恢复、MarkdownRenderer owner），再移植 `WordOperations` + `WordNavigationType` + 分词器，随后补齐列选择/垂直移动所需的 `CursorConfiguration` 与 `TextModel` 行级 helper，最后实现 snippet session/controller 并暴露占位符装饰。
+- **Validation Hooks:** 新增 `CursorMultiSelectionTests`、`CursorWordOperationsTests`、`ColumnSelectionTests`、`SnippetControllerTests` 以及 `MarkdownRendererTests.MultiCursorAndSnippet`，外加 DocUI snapshot 样例以覆盖多光标 + snippet 输出。
 
 ### CL8 – DocUI Find/Replace & Decorations
-- **Investigator Notes:** 待 `AA4-004-Audit`。需覆盖：
-  - TS `FindController` 的 delta decorations（overview/minimap/glyph lanes）与 `findDecorations.ts` 管线
-  - Capture matches、Replace preview、owner 分层策略
-  - DocUI MarkdownRenderer / Search overlay 之间的差异（multi-range highlight、limitResultCount、InjectedText interplay）
-- **Proposed Fixes:** 扩展 `TextModelSearch` 公开 `FindController` 风格的 `FindDecorations` 数据，升级 `MarkdownRenderer` 以渲染 capture markers/replace preview/glyph/minimap hints。
-- **Validation Hooks:** `TextModelSearchTests` (capture + owner filters)、`MarkdownRendererTests` (search overlay & replace preview)、DocUI diff snapshot。
+- **Investigator Notes:** `AA4-004-Audit.md` 记录 F1–F4：① `HighlightSearchMatches` 仅生成裸 `SearchMatch` 装饰，缺少 TS `FindDecorations` 的 current-match/range-highlight/overview-only 语义，也不在 1k+ 命中时降级，从而没有 minimap/glyph lanes；② 没有持久化的 `FindModel`/search-scope 状态，`SearchHighlightOptions` 也缺少 `wholeWord/preserveCase/findInSelection` 等字段，DocUI 无法呈现 scope overlay 与 match index；③ `ReplacePattern`/`ReplaceCommand` 尚未移植，captureMatches 虽由 `TextModelSearch` 产出却被丢弃，导致 replace preview/preserveCase/backreference 缺失；④ `MarkdownRenderer` 重新执行查找并无视 owner filters/capture 数据，因此 DocUI 无法叠加 search owner、replace 预览或 capture 注释。
+- **Proposed Fixes:** （a）移植 `FindDecorations` 选项与降级策略，新增 current-match/overview-only/find-scope/range highlight decorations，并让 DocUI 直接消费 `DecorationOwnerIds.SearchHighlights`；（b）实现 C# 版 `FindModel` + 扩展 `SearchHighlightOptions`（whole word、PreserveCase、loop、scope ranges），以便维护 `_startPosition`、match index、find-in-selection；（c）引入 `ReplacePattern`/`ReplaceAllCommand` 等替换管线，将 capture 数组附加到装饰元数据供 DocUI 呈现；（d）让 `MarkdownRenderer` 读取 search owner 装饰并渲染 minimap/overview/glyph 注解与 replace preview，而非重复 Find。
+- **Validation Hooks:** `TextModelSearchTests.SearchDecorationsIncludeMetadata`（overview/minimap/owner 过滤）、`FindControllerTests.ScopeAndReplaceParity`、`MarkdownRendererTests.SearchScopeAndReplacePreview`、DocUI 快照涵盖 owner filter/replace 预览/limit≥1000 场景。

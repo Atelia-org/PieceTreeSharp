@@ -62,6 +62,14 @@
     - 对比 TS `textModel.ts`/`intervalTree.ts`/`textModelTokens.ts` 与 C# `Decorations/*`、`TextModel.cs`、`Rendering/MarkdownRenderer.cs`，梳理装饰元数据、stickiness、DocUI 渲染缺口，写入 `agent-team/handoffs/AA3-007-Audit.md`（F1–F4）。
     - 标记 DocUI/MarkdownRenderer 对 AA3-006 diff metadata 与 AA3-008 Porter 修复的依赖，并整理 Porter next steps + QA hooks。
     - 更新 `docs/reports/audit-checklist-aa3.md` CL4 行（状态改为 “Audit Complete – Fixes Pending”）。
+  - 2025-11-20: 完成 AA4-003 CL7 审计（Cursor word/snippet/multi-selection parity）。
+    - 研读 TS `cursor.ts`/`cursorCollection.ts`/`cursorWordOperations.ts`/`cursorColumnSelection.ts` 与 `snippetController2.ts`，对比 C# `Cursor.cs`、`TextModel.cs`、`MarkdownRenderer.cs`。
+    - 在 `agent-team/handoffs/AA4-003-Audit.md` 写入 F1–F4（多光标基建缺失、WordOperations 缺口、列选择/可见列 helper 缺口、Snippet session 缺口）+ Blockers/Validation hooks，作为 Porter-CS AA4-007 的输入。
+    - 更新 `docs/reports/audit-checklist-aa4.md#cl7`（状态改为 “Audit Complete – Awaiting Fix” 并填充要点）。
+  - 2025-11-20: 完成 AA4-004 CL8 审计（DocUI Find/Replace + Decorations parity）。
+    - 复盘 TS `findController.ts`/`findModel.ts`/`findDecorations.ts`/`replacePattern.ts` 与 `textModelSearch.ts`，比对 C# `TextModelSearch`、`TextModel.HighlightSearchMatches`、`MarkdownRenderer`、`SearchHighlightOptions`。
+    - 在 `agent-team/handoffs/AA4-004-Audit.md` 写入 F1–F4（search overlay metadata、FindModel state、replace preview/captureMatches、MarkdownRenderer owner filtering）并列出 Porter/QA 依赖。
+    - 更新 `docs/reports/audit-checklist-aa4.md#cl8`（状态切换为 “Audit Complete – Awaiting Fix”，同步主要差异与测试钩子）。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。

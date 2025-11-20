@@ -87,7 +87,9 @@ public class AA005Tests
     {
         var builder = new PieceTreeBuilder();
         builder.AcceptChunk(text);
-        return builder.Finish(false).Model;
+        var options = PieceTreeBuilderOptions.Default with { NormalizeEol = false };
+        var buildResult = builder.Finish(options).Create(options.DefaultEndOfLine);
+        return buildResult.Model;
     }
 
     private string GetText(PieceTreeModel model)

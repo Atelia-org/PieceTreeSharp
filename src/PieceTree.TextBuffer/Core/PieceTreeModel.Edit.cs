@@ -550,24 +550,53 @@ internal sealed partial class PieceTreeModel
 
     private List<PieceSegment> CreateNewPieces(string text)
     {
-        // TODO: Handle large text splitting (AverageBufferSize)
-        var bufferIndex = _buffers.Count; // New buffer index? 
-        // Wait, we should reuse buffer 0 (ChangeBuffer) if possible, or add new buffer.
-        // For now, let's just add a new buffer for every insert (inefficient but correct for porting logic).
-        // TS implementation tries to append to buffer 0.
-        
+        var pieces = new List<PieceSegment>();
+        if (string.IsNullOrEmpty(text))
+        {
+            return pieces;
+        }
+
+        var remaining = text.AsSpan();
+        var maxChunk = ChunkUtilities.DefaultChunkSize;
+        while (remaining.Length > maxChunk)
+        {
+            var sliceLength = maxChunk;
+            var lastChar = remaining[sliceLength - 1];
+            if (lastChar == '\r' || char.IsHighSurrogate(lastChar))
+            {
+                sliceLength--;
+            }
+
+            if (sliceLength <= 0)
+            {
+                sliceLength = Math.Min(maxChunk, remaining.Length);
+            }
+
+            pieces.Add(CreatePieceFromNewBuffer(new string(remaining.Slice(0, sliceLength))));
+            remaining = remaining.Slice(sliceLength);
+        }
+
+        if (remaining.Length > 0)
+        {
+            pieces.Add(CreatePieceFromNewBuffer(new string(remaining)));
+        }
+
+        return pieces;
+    }
+
+    private PieceSegment CreatePieceFromNewBuffer(string text)
+    {
+        // TODO (AA4-006): reuse buffer 0/change buffer when possible instead of allocating a new chunk for every insert.
         var chunkBuffer = ChunkBuffer.FromText(text);
         _buffers.Add(chunkBuffer);
-        
-        var piece = new PieceSegment(
+        var bufferIndex = _buffers.Count - 1;
+        return new PieceSegment(
             bufferIndex,
             BufferCursor.Zero,
             chunkBuffer.CreateEndCursor(),
             chunkBuffer.LineFeedCount,
             chunkBuffer.Length
         );
-        
-        return new List<PieceSegment> { piece };
     }
 
     private PieceTreeNode RbInsertRight(PieceTreeNode node, PieceSegment p)

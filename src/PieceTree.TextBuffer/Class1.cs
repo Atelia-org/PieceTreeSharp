@@ -14,6 +14,11 @@ public sealed class PieceTreeBuffer
 	private List<ChunkBuffer> _chunkBuffers = null!;
 	private LineStartTable _cachedLineMap = LineStartTable.Empty;
 	private string _cachedSnapshot = string.Empty;
+	private string _bom = string.Empty;
+	private bool _mightContainRtl;
+	private bool _mightContainUnusualLineTerminators;
+	private bool _mightContainNonBasicAscii;
+	private PieceTreeBuilderOptions _builderOptions = PieceTreeBuilderOptions.Default;
 
 	public PieceTreeBuffer(string? text = null)
 		: this(PieceTreeBuilder.BuildFromChunks(new[] { text ?? string.Empty }))
@@ -38,13 +43,24 @@ public sealed class PieceTreeBuffer
 		{
 			builder.AcceptChunk(chunk);
 		}
-		var buildResult = builder.Finish(normalizeEOL);
+		var options = PieceTreeBuilderOptions.Default with { NormalizeEol = normalizeEOL };
+		var buildResult = builder.Finish(options).Create(options.DefaultEndOfLine);
 		return new PieceTreeBuffer(buildResult);
 	}
 
 	public int Length => _model.TotalLength;
 
 	public string GetEol() => _model.Eol;
+
+	public string GetBom() => _bom;
+
+	public bool MightContainRtl() => _mightContainRtl;
+
+	public bool MightContainUnusualLineTerminators() => _mightContainUnusualLineTerminators;
+
+	public void ResetMightContainUnusualLineTerminators() => _mightContainUnusualLineTerminators = false;
+
+	public bool MightContainNonBasicAscii() => _mightContainNonBasicAscii;
 
 	public void SetEol(string eol)
 	{
@@ -126,6 +142,11 @@ public sealed class PieceTreeBuffer
 		_chunkBuffers = buildResult.Buffers;
 		_cachedSnapshot = string.Empty;
 		_cachedLineMap = LineStartTable.Empty;
+		_bom = buildResult.Bom;
+		_mightContainRtl = buildResult.MightContainRtl;
+		_mightContainUnusualLineTerminators = buildResult.MightContainUnusualLineTerminators;
+		_mightContainNonBasicAscii = buildResult.MightContainNonBasicAscii;
+		_builderOptions = buildResult.Options;
 	}
 
 	public TextPosition GetPositionAt(int offset)
