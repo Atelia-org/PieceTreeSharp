@@ -94,6 +94,21 @@
 - QA-Automation 尚未锁定属性测试/基准入口，需其在 PT-005 定稿后提供最小断言集合以验证我们暴露的 API。
 - DocMaintainer 的迁移日志模板（PT-006）与 Main Agent 的“是否 1:1 复刻 TS 红黑树” 决策待定，此前实现需保持开关便于回滚配置。
 
+## Active AA4-006 Worklog
+- **2025-11-21 09:00 UTC**: Start work on AA4-006 (CL6) addressing change buffer append heuristics, AverageBufferSize chunk creation, CRLF repair logic across chunks, and SearchCache invalidation precision. Implemented candidate heuristics and tests; next step refine CRLF handling across chunk boundaries.
+- **2025-11-21 16:30 UTC**: Begin AA4-006 Fix1 Plan (Porter-CS): reproducing failing tests `TestSplitCRLF` and `CRLF_RepairAcrossChunks`; will add debug helpers and iterate on fixes (Update: added debug printing and first reproduction run).
+## End of Worklog (2025-11-21)
+- **2025-11-21 15:40 UTC**: Completed porting `ChangeBuffer` append optimization (`_lastChangeBufferPos` tracking + append to `_buffers[0]`), AverageBufferSize splitting using `ChunkUtilities.SplitText`, and targeted SearchCache invalidation updating. Added unit tests for Append optimization, chunk splitting and SearchCache validation. Ran `dotnet test` and recorded results.
+ - **2025-11-21 18:00 UTC**: Started AA4-007 (CL7) – cursor word/snippet/multi-select parity. Plan: implement `CursorCollection`/`CursorState`/`CursorContext`, `WordCharacterClassifier` + `WordOperations`, `CursorColumns`, `SnippetSession`/`SnippetController`, update `MarkdownRenderer` doc output; add tests and remediations.
+ - **2025-11-21 22:30 UTC**: Completed AA4-007 implementation prototype: added `CursorCollection`, `CursorState`, `CursorContext`, `WordCharacterClassifier`, `WordOperations`, `CursorColumns`, `SnippetSession`, and `SnippetController`. Implemented `Cursor` word methods, integrated `CursorCollection` into the model via `CreateCursorCollection()`, and added unit tests: `CursorMultiSelectionTests`, `CursorWordOperationsTests`, `ColumnSelectionTests`, `SnippetControllerTests`, and updated `MarkdownRendererTests` with `TestRender_MultiCursorAndSnippet`. Ran `dotnet test` and all `PieceTree.TextBuffer` tests passed (113/113). See `agent-team/handoffs/AA4-007-Result.md` for details.
+- **Follow-ups**:
+  - CRLF parity remains flaky across chunk boundaries in a handful of edge cases; `FixCRLF` logic needs additional iterations to correctly convert/migrate CRLF across mixed chunk constructions and ensure line feed counts remain consistent after combos of Insert/Delete across boundaries.
+  - Need to add more `GetLineFeedCnt` invariants, and further metadata re-compute checks when pieces are re-sliced.
+  - Add precise tests referencing TypeScript examples for cross-chunk CRLF pairs & multi-line paste fuzz cases to validate invariants.
+- **Blockers**:
+  - `FixCRLF` behavior interacts with `ChunkUtilities` splitting technique such that initial insertion of `\r\n` as a change-buffer piece or change buffer append clobbers boundaries; need to carefully unify chunk splitting & CRLF rejoin logic. 
+  - Due to time constraints, CRLF fixes require further coordinated test coverage and a detailed review vs TS `pieceTreeTextBufferBase` logic.
+
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。
 - 关键红黑树操作需辅以调试断言（如节点颜色/黑高），计划构建 Debug-only 验证方法供 QA 复用。

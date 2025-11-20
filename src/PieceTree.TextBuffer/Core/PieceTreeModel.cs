@@ -13,6 +13,7 @@ internal sealed partial class PieceTreeModel
     private readonly PieceTreeSearchCache _searchCache = new();
     private struct LastVisitedLine { public int LineNumber; public string Value; }
     private LastVisitedLine _lastVisitedLine;
+    private BufferCursor _lastChangeBufferPos;
     private readonly List<ChunkBuffer> _buffers;
     private PieceTreeNode _root;
     private int _count;
@@ -25,6 +26,7 @@ internal sealed partial class PieceTreeModel
         _root = _sentinel;
         _eolNormalized = eolNormalized;
         _eol = eol;
+        _lastChangeBufferPos = BufferCursor.Zero;
     }
 
     public PieceTreeNode Root => _root;
@@ -131,6 +133,56 @@ internal sealed partial class PieceTreeModel
             
             _eolNormalized = true;
         }
+        // Reset change buffer write pointer when normalizing EOLs
+        _lastChangeBufferPos = BufferCursor.Zero;
+    }
+
+    private IEnumerable<PieceTreeNode> EnumerateNodesPostOrder()
+    {
+        if (ReferenceEquals(_root, _sentinel))
+        {
+            yield break;
+        }
+
+        var stack = new Stack<PieceTreeNode>();
+        var visited = _sentinel;
+        var current = _root;
+        while (!ReferenceEquals(current, _sentinel) || stack.Count > 0)
+        {
+            if (!ReferenceEquals(current, _sentinel))
+            {
+                stack.Push(current);
+                current = current.Left;
+            }
+            else
+            {
+                var peek = stack.Peek();
+                if (!ReferenceEquals(peek.Right, _sentinel) && !ReferenceEquals(peek.Right, visited))
+                {
+                    current = peek.Right;
+                }
+                else
+                {
+                    stack.Pop();
+                    yield return peek;
+                    visited = peek;
+                }
+            }
+        }
+    }
+
+    private void ComputeBufferMetadata()
+    {
+        PieceTreeDebug.Log($"DEBUG ComputeBufferMetadata START: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
+        // Recompute aggregates for the entire tree in post-order so children are computed before parents.
+        foreach (var node in EnumerateNodesPostOrder())
+        {
+            node.RecomputeAggregates(_sentinel);
+        }
+
+        // Re-validate the search cache against the current total length so stale entries get pruned.
+        _searchCache.InvalidateFromOffset(TotalLength);
+        PieceTreeDebug.Log($"DEBUG ComputeBufferMetadata END: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
     }
 
     public PieceTreeNode InsertPieceAtEnd(PieceSegment piece)

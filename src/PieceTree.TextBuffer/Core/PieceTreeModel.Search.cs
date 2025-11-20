@@ -269,6 +269,11 @@ internal sealed partial class PieceTreeModel
 
     private string GetContentFromNode(PieceTreeNode x, int relativeLineNumber, int endOffset)
     {
+#if DEBUG
+        PieceTreeDebug.Log($"DEBUG GetContentFromNode: NodeBufIdx={x.Piece.BufferIndex}, NodeStart={x.Piece.Start}, NodeEnd={x.Piece.End}, NodeLen={x.Piece.Length}, NodeLF={x.Piece.LineFeedCount}, relativeLineNumber={relativeLineNumber}, endOffset={endOffset}");
+        var lineStartsArr = string.Join(",", _buffers[x.Piece.BufferIndex].LineStarts);
+        PieceTreeDebug.Log($"DEBUG GetContentFromNode: buffer[{x.Piece.BufferIndex}].LineStarts=[{lineStartsArr}], bufferLen={_buffers[x.Piece.BufferIndex].Length}");
+#endif
         int prevAccumulatedValue = GetAccumulatedValue(x, relativeLineNumber - 2);
         int accumulatedValue = GetAccumulatedValue(x, relativeLineNumber - 1);
         var buffer = _buffers[x.Piece.BufferIndex].Buffer;
@@ -277,7 +282,12 @@ internal sealed partial class PieceTreeModel
         string ret;
         if (relativeLineNumber - 1 < x.Piece.LineFeedCount)
         {
-             ret = buffer.Substring(startOffset + prevAccumulatedValue, accumulatedValue - prevAccumulatedValue - endOffset);
+            var lenDbg = accumulatedValue - prevAccumulatedValue - endOffset;
+            if (lenDbg < 0)
+            {
+                PieceTreeDebug.Log($"DEBUG GetContentFromNode negative len: nodeBuf={x.Piece.BufferIndex}, startOffset={startOffset}, prevAccum={prevAccumulatedValue}, accum={accumulatedValue}, endOffset={endOffset}, pieceStart={x.Piece.Start}, pieceEnd={x.Piece.End}, pieceLen={x.Piece.Length}, pieceLF={x.Piece.LineFeedCount}, bufferLen={buffer.Length}");
+            }
+            ret = buffer.Substring(startOffset + prevAccumulatedValue, accumulatedValue - prevAccumulatedValue - endOffset);
         }
         else
         {
@@ -291,6 +301,10 @@ internal sealed partial class PieceTreeModel
                 {
                     int acc = GetAccumulatedValue(next, 0);
                     var st = OffsetInBuffer(next.Piece.BufferIndex, next.Piece.Start);
+                    if (acc - endOffset < 0)
+                    {
+                        PieceTreeDebug.Log($"DEBUG GetContentFromNode cross-node negative len: nextBuf={next.Piece.BufferIndex}, start={st}, acc={acc}, endOffset={endOffset}, pieceStart={next.Piece.Start}, pieceEnd={next.Piece.End}, pieceLen={next.Piece.Length}, pieceLF={next.Piece.LineFeedCount}, bufLen={buf.Length}");
+                    }
                     ret += buf.Substring(st, acc - endOffset);
                     break; // Found end of line
                 }

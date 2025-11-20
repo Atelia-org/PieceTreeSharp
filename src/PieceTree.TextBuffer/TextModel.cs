@@ -99,6 +99,8 @@ public class TextModel : ITextSearchAccess
     private int _attachedEditorCount;
     private IDisposable? _languageConfigurationSubscription;
     private int _nextDecorationOwnerId = DecorationOwnerIds.SearchHighlights + 1;
+    private Cursor.CursorCollection? _cursorCollection;
+    private Cursor.SnippetController? _snippetController;
 
     public event EventHandler<TextModelContentChangedEventArgs>? OnDidChangeContent;
     public event EventHandler<TextModelOptionsChangedEventArgs>? OnDidChangeOptions;
@@ -159,6 +161,29 @@ public class TextModel : ITextSearchAccess
     public TextModelResolvedOptions GetOptions() => _options;
 
     public int AllocateDecorationOwnerId() => Interlocked.Increment(ref _nextDecorationOwnerId);
+
+    public Cursor.CursorCollection CreateCursorCollection()
+    {
+        if (_cursorCollection is not null)
+        {
+            return _cursorCollection;
+        }
+
+        _cursorCollection = new Cursor.CursorCollection(this);
+        return _cursorCollection;
+    }
+
+    public Cursor.SnippetController CreateSnippetController()
+    {
+        _snippetController?.Dispose();
+        _snippetController = new Cursor.SnippetController(this);
+        return _snippetController;
+    }
+
+    public IReadOnlyList<TextPosition> ComputeCursorStateAfterChanges(Cursor.CursorContext context, IReadOnlyList<TextChange>? inverseChanges)
+    {
+        return context.ComputeAfterCursorState(inverseChanges);
+    }
 
     public string GetValue() => _buffer.GetText();
 

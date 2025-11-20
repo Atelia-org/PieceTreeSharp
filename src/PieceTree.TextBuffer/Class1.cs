@@ -20,6 +20,10 @@ public sealed class PieceTreeBuffer
 	private bool _mightContainNonBasicAscii;
 	private PieceTreeBuilderOptions _builderOptions = PieceTreeBuilderOptions.Default;
 
+	// Test helpers (internal so tests in the same solution can introspect state)
+	internal PieceTree.TextBuffer.Core.PieceTreeModel InternalModel => _model;
+	internal IReadOnlyList<ChunkBuffer> InternalChunkBuffers => _chunkBuffers;
+
 	public PieceTreeBuffer(string? text = null)
 		: this(PieceTreeBuilder.BuildFromChunks(new[] { text ?? string.Empty }))
 	{

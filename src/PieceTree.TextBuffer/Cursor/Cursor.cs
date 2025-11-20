@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Cursor;
 
@@ -11,6 +12,9 @@ public class Cursor : IDisposable
     private readonly TextModel _model;
     private Selection _selection;
     private int _stickyColumn = -1;
+    private bool _isColumnSelecting = false;
+    private int _columnSelectAnchorVisible = -1;
+    private TextPosition _columnSelectAnchorPosition = new TextPosition(1,1);
     private readonly int _ownerId;
     private string[] _decorationIds = Array.Empty<string>();
     private bool _disposed;
@@ -32,6 +36,37 @@ public class Cursor : IDisposable
         _selection = new Selection(validated, validated);
         _stickyColumn = -1;
         UpdateDecorations();
+    }
+
+    public void StartColumnSelection()
+    {
+        var tabSize = _model.GetOptions().TabSize;
+        _isColumnSelecting = true;
+        _columnSelectAnchorVisible = CursorColumns.GetVisibleColumnFromPosition(_model, _selection.Active, tabSize);
+        _columnSelectAnchorPosition = _selection.Active;
+    }
+
+    public void ColumnSelectTo(TextPosition active)
+    {
+        if (!_isColumnSelecting)
+        {
+            // fall back to normal selection
+            SelectTo(active);
+            return;
+        }
+
+        var tabSize = _model.GetOptions().TabSize;
+        var anchorReal = CursorColumns.GetPositionFromVisibleColumn(_model, _columnSelectAnchorPosition.LineNumber, _columnSelectAnchorVisible, tabSize);
+        var activeVisible = CursorColumns.GetVisibleColumnFromPosition(_model, active, tabSize);
+        var activeReal = CursorColumns.GetPositionFromVisibleColumn(_model, active.LineNumber, activeVisible, tabSize);
+        _selection = new Selection(anchorReal, activeReal);
+        UpdateDecorations();
+    }
+
+    public void EndColumnSelection()
+    {
+        _isColumnSelecting = false;
+        _columnSelectAnchorVisible = -1;
     }
 
     public void SelectTo(TextPosition position)
@@ -104,6 +139,43 @@ public class Cursor : IDisposable
             MoveTo(new TextPosition(newLine, newCol));
             _stickyColumn = sticky;
         }
+    }
+
+    public void MoveWordLeft(string? wordSeparators = null)
+    {
+        var current = _selection.Active;
+        var target = WordOperations.MoveWordLeft(_model, current, wordSeparators);
+        MoveTo(target);
+    }
+
+    public void MoveWordRight(string? wordSeparators = null)
+    {
+        var current = _selection.Active;
+        var target = WordOperations.MoveWordRight(_model, current, wordSeparators);
+        MoveTo(target);
+    }
+
+    public void SelectWordLeft(string? wordSeparators = null)
+    {
+        _selection = WordOperations.SelectWordLeft(_model, _selection, wordSeparators);
+        UpdateDecorations();
+    }
+
+    public void SelectWordRight(string? wordSeparators = null)
+    {
+        _selection = WordOperations.SelectWordRight(_model, _selection, wordSeparators);
+        UpdateDecorations();
+    }
+
+    public void DeleteWordLeft(string? wordSeparators = null)
+    {
+        var sel = WordOperations.DeleteWordLeft(_model, _selection, wordSeparators);
+        var start = sel.Start;
+        var end = sel.End;
+        var edit = new TextEdit(start, end, string.Empty);
+        _model.PushEditOperations(new[] { edit }, null);
+        // Move cursor to start
+        MoveTo(start);
     }
 
     public void Dispose()

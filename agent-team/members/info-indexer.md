@@ -26,6 +26,8 @@
 - **2025-11-19:** 在 Org Self-Improvement 会议中提交 Info-Indexer 立场，承诺 `core-docs-index.md` v0、QA 资产表与 delta 摘要流程，准备在 48 小时内交付首批索引。
 - **2025-11-19:** 交付 `agent-team/indexes/core-docs-index.md` v0，登记 8 个核心文档的目的/owner/更新时间，并更新 `agent-team/indexes/README.md` Delta 区供 DocMaintainer 在 OI-001 中引用。
 - **2025-11-20:** 完成 OI-010 —— 在 `agent-team/indexes/README.md#delta-2025-11-20` 新增 AA3-009 QA changefeed 条目，刷新 `core-docs-index.md`（AGENTS/Sprint 01/Task Board 行 + DocMaintainer follow-up），并将 OI-010 在 Task Board 与 `docs/sprints/sprint-01.md` 标记 Done，确认 AGENTS/Sprint/Task Board 均复用 AA3-008 delta。
+- **2025-11-21:** 开始 OI-011：发布 AA4 changefeed delta（AA4-005/AA4-006）、同步迁移日志与 Task Board，并创建 OI-011 handoff 结果草案以供 DocMaintainer/QA 验证。
+- **2025-11-21:** 完成 OI-011 —— 发布 changefeed delta `agent-team/indexes/README.md#delta-2025-11-21`（AA4-005/AA4-006），更新 `docs/reports/migration-log.md` 将 AA4-005/AA4-006 的 Changefeed Entry? 标记为 Y 并指向新 delta，更新 `agent-team/task-board.md` 将 AA4-005/AA4-006/AA4-009 标记为 Done，并新建 `agent-team/handoffs/OI-011-Result.md` 汇总交付与验证证据。 |
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。

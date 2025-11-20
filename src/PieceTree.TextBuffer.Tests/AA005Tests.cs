@@ -13,6 +13,7 @@ public class AA005Tests
         
         // Insert "A\r"
         model.Insert(0, "A\r");
+        PieceTree.TextBuffer.Tests.Helpers.PieceTreeModelTestHelpers.DebugDumpModel(model);
         Assert.Equal(2, model.TotalLineFeeds + 1); // 1 LF means 2 lines. "A\r" has 1 LF (if \r is break).
         
         // Insert "\nB" at end
