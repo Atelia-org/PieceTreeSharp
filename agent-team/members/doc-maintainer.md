@@ -27,8 +27,9 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-19（PT-006 migration log wiring）
+- **Last Update:** 2025-11-20（AA3 文档对齐 pass）
 - **Recent Actions:**
+  - 2025-11-20：完成 AA3-003 / AA3-008 文档对齐 —— 更新 `agent-team/task-board.md`、`docs/sprints/sprint-01.md`、`AGENTS.md`，引用 `agent-team/indexes/README.md#delta-2025-11-20` 作为 canonical DocUI changefeed，并在记忆档记录该 pass。
   - 2025-11-19：完成 OI-004 Task Board 压缩与分层，添加 changefeed reminder、Key Artifact/Latest Update 引用层，并标记后续需同步 Sprint 状态。
   - 2025-11-19：完成 OI-001 文档正交性稽核，产出 `docs/reports/consistency/consistency-report-20251119.md` 并记录 Info-Indexer changefeed 消费点（AGENTS / Sprints / Meetings / Task Board）。
   - 2025-11-19：启动 changefeed adoption sweep，先复核 Info-Indexer `core-docs-index.md` 与 `agent-team/indexes/README.md` 的 delta，准备在 AGENTS / Sprint / Meeting 文档嵌入引用提示。
