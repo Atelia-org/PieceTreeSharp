@@ -239,5 +239,34 @@ Hello <World>
             Assert.Contains("{font:family=Fira Code,style=italic}", output);
             Assert.Contains("{line-height:24}", output);
         }
+
+        [Fact]
+        public void TestRender_DiffDecorationsExposeGenericMarkers()
+        {
+            var model = new TextModel("foo\nbar");
+            var renderer = new MarkdownRenderer();
+
+            model.AddDecoration(new TextRange(0, 3), new ModelDecorationOptions
+            {
+                Description = "diff-add",
+                RenderKind = DecorationRenderKind.Generic,
+                ShowIfCollapsed = true,
+            });
+
+            var insertOffset = model.GetOffsetAt(new TextPosition(2, 2));
+            model.AddDecoration(new TextRange(insertOffset, insertOffset), new ModelDecorationOptions
+            {
+                Description = "diff-insert",
+                RenderKind = DecorationRenderKind.Generic,
+                ShowIfCollapsed = true,
+                ZIndex = 5,
+            });
+
+            var output = renderer.Render(model);
+
+            Assert.Contains("[[diff-add]]foo[[/diff-add]]", output);
+            Assert.Contains("[[diff-insert]]", output);
+            Assert.Contains("[[/diff-insert]]", output);
+        }
     }
 }

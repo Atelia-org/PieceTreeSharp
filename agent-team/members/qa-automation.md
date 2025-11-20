@@ -24,6 +24,7 @@
 - **2025-11-19:** 完成入职材料审阅、评估现有 xUnit 骨架、确认 PT-005/OI-005 对 QA 的期望输出与文档落点。
 - **2025-11-19:** 参加 Org Self-Improvement 会议，通报测试矩阵/属性测试缺口，确认对 Porter-CS API、Investigator-TS 类型映射与 Info-Indexer 索引结构的依赖，并提出 QA 产物索引化方案。
 - **2025-11-19:** PT-005.G1 落地——创建 `src/PieceTree.TextBuffer.Tests/TestMatrix.md`、扩展 `UnitTest1.cs` 至 7 个覆盖 Plain/CRLF/Multi-chunk/metadata 的 Fact，登记 S8~S10 TODO，并记录 `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（Total: 7, Passed: 7, Failed: 0, Skipped: 0, Duration: 2.1s @ 2025-11-18 22:02:44Z UTC）。
+- **2025-11-20:** AA3-009（CL4 QA）完成——新增 `DecorationTests.InjectedTextQueriesSurfaceLineMetadata`、`DecorationTests.ForceMoveMarkersOverridesStickinessDefaults`、`MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers`；刷新 `src/PieceTree.TextBuffer.Tests/TestMatrix.md`、`docs/reports/audit-checklist-aa3.md#cl4`、`agent-team/task-board.md`、`docs/sprints/sprint-01.md`、`AGENTS.md`；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（88/88，引用 changefeed `agent-team/indexes/README.md#delta-2025-11-20`）。
 
 - **Upcoming Goals (next 1-3 runs):**
 1. **PT-005.S8**：与 Porter-CS 对齐 `PieceTreeBuffer`/`PieceTreeModel` 对外 `EnumeratePieces`/chunk reuse API，并在测试中断言 piece-level 布局。

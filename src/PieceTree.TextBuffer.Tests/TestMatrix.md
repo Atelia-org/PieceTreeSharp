@@ -1,4 +1,4 @@
-# PT-005 QA Matrix (2025-11-19)
+# PT-005 QA Matrix (2025-11-20)
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
 
@@ -24,6 +24,14 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | **Snapshot** | `PieceTreeSnapshot` | Verified | `PieceTreeSnapshotTests.cs` (SnapshotReadsContent, SnapshotIsImmutable) |
 | **Normalization** | `PieceTreeNormalizer` (via Builder) | Verified | `PieceTreeNormalizationTests.cs` (Delete_CR_In_CRLF, Line_Breaks_Replacement) |
 
-**Total Tests Passing**: 23
-**Date**: 2025-11-19
+## AA3-009 – Decorations & DocUI Regression Coverage
+
+| Scenario | Focus | Signals | Status | Reference |
+| --- | --- | --- | --- | --- |
+| CL4.F1 – Decoration metadata round-trip & queries | Injected text line buckets, margin/glyph/font helpers, overview/minimap metadata | `DecorationTests.DecorationOptionsParityRoundTripsMetadata`, `DecorationTests.InjectedTextQueriesSurfaceLineMetadata`, `DecorationTests.DecorationsChangedEventIncludesMetadata` | Covered | `src/PieceTree.TextBuffer.Tests/DecorationTests.cs` |
+| CL4.F3 – Stickiness & `forceMoveMarkers` parity | `DecorationRangeUpdater` honoring TS semantics for collapsed ranges and forced moves | Covered | `DecorationTests.ForceMoveMarkersOverridesStickinessDefaults` |
+| CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
+
+**Total Tests Passing**: 88
+**Date**: 2025-11-20
 

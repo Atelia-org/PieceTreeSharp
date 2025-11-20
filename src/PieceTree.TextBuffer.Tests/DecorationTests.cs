@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
@@ -163,6 +164,84 @@ namespace PieceTree.TextBuffer.Tests
             var fontChange = Assert.Single(captured.AffectedFontLines);
             Assert.Equal(DecorationOwnerIds.Default, fontChange.OwnerId);
             Assert.Equal(1, fontChange.LineNumber);
+        }
+
+        [Fact]
+        public void InjectedTextQueriesSurfaceLineMetadata()
+        {
+            var model = new TextModel("one\ntwo\nthree");
+            IReadOnlyList<int>? injectedLines = null;
+            model.OnDidChangeDecorations += (_, args) =>
+            {
+                if (args.AffectedInjectedTextLines.Count > 0)
+                {
+                    injectedLines = args.AffectedInjectedTextLines;
+                }
+            };
+
+            var start = model.GetOffsetAt(new TextPosition(2, 2));
+            var end = model.GetOffsetAt(new TextPosition(2, 4));
+            var injected = model.AddDecoration(new TextRange(start, end), new ModelDecorationOptions
+            {
+                RenderKind = DecorationRenderKind.Generic,
+                Before = new ModelDecorationInjectedTextOptions { Content = "PRE" },
+                After = new ModelDecorationInjectedTextOptions { Content = "POST" },
+                ShowIfCollapsed = true,
+            });
+
+            var secondLineInjected = model.GetInjectedTextInLine(2);
+            Assert.Contains(secondLineInjected, d => d.Id == injected.Id);
+            Assert.Empty(model.GetInjectedTextInLine(1));
+            Assert.NotNull(injectedLines);
+            Assert.Contains(2, injectedLines!);
+
+            var fontDecoration = model.AddDecoration(new TextRange(0, model.GetLength()), new ModelDecorationOptions
+            {
+                FontFamily = "Fira Code",
+                FontWeight = "600",
+                LineHeight = 28,
+                GlyphMarginClassName = "glyph-info",
+                MarginClassName = "margin-info",
+                LineNumberClassName = "line-info",
+                LinesDecorationsClassName = "lines-info",
+            });
+
+            var fontRange = new TextRange(0, model.GetLength());
+            var fontDecorations = model.GetFontDecorationsInRange(fontRange);
+            Assert.Contains(fontDecorations, d => d.Id == fontDecoration.Id);
+
+            var marginDecorations = model.GetAllMarginDecorations();
+            Assert.Contains(marginDecorations, d => d.Id == fontDecoration.Id);
+        }
+
+        [Fact]
+        public void ForceMoveMarkersOverridesStickinessDefaults()
+        {
+            const string content = "abcdef";
+            const int collapsedOffset = 3;
+            const string inserted = "++";
+
+            var withoutForce = new TextModel(content);
+            var withForce = new TextModel(content);
+
+            static ModelDecorationOptions CreateCollapsedOptions() => new ModelDecorationOptions
+            {
+                Stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges,
+                RenderKind = DecorationRenderKind.Generic,
+                ShowIfCollapsed = true,
+            };
+
+            var decorationWithoutForce = withoutForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
+            var decorationWithForce = withForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
+
+            var editPositionWithoutForce = withoutForce.GetPositionAt(collapsedOffset);
+            withoutForce.ApplyEdits(new[] { new TextEdit(editPositionWithoutForce, editPositionWithoutForce, inserted) }, forceMoveMarkers: false);
+
+            var editPositionWithForce = withForce.GetPositionAt(collapsedOffset);
+            withForce.ApplyEdits(new[] { new TextEdit(editPositionWithForce, editPositionWithForce, inserted) }, forceMoveMarkers: true);
+
+            Assert.Equal(collapsedOffset, decorationWithoutForce.Range.StartOffset);
+            Assert.Equal(collapsedOffset + inserted.Length, decorationWithForce.Range.StartOffset);
         }
     }
 }
