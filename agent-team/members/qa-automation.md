@@ -40,6 +40,47 @@
 - **2025-11-21:** AA4-009 revalidation after Porter-CS drop — Ran `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (119/119, 7.4s), builder/factory spot check `PIECETREE_DEBUG=0 dotnet test ... --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` (7/7, 2.2s), and deterministic fuzz harness `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test ... --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` (1/1, 2.9s, seed 123). Logged results in `src/PieceTree.TextBuffer.Tests/TestMatrix.md`, refreshed `agent-team/handoffs/AA4-009-QA.md`, and documented `/tmp/aa4-009-fuzz-logs` as the standing location for redirected fuzz logs (none emitted due to all tests passing).
 
  - **2025-11-21:** AA4-007 QA start — Initiating CL7 validation: verify multi-cursor, wordOps, column selection, and snippet coverage added by Porter-CS; add CL7 tests to `TestMatrix.md`; run the full test suite baseline twice; run multi-cursor & snippet tests (x3); create a snippet+multi-cursor fuzz harness; record outcomes and file `agent-team/handoffs/AA4-007-QA.md` with findings.
+- **2025-11-21:** AA4-008 QA strategy drafted — Reviewed CL8 remediation memo (Investigator + Porter, findings F1–F4) for DocUI find/replace overlays and produced Sprint-02 QA plan enumerating new DocUI overlay suites, commands, instrumentation, fixture requirements, docs to update, and exit criteria.
+
+## AA4-008 (CL8 DocUI Find/Replace Overlays) QA Strategy — 2025-11-21
+
+### Planned Test Files & Suites (F1–F4)
+- **F1 — Overlay metadata / degrade path:** Add `src/PieceTree.TextBuffer.Tests/DocUI/DocUIOverlayMetadataTests.cs` with Facts `RenderOverlay_WithMissingMetadataFallsBackToDocTheme` and `RenderOverlay_WithStaleRangeTriggersDegradePath`, plus extend `DecorationTests.cs` with `OverlayMetadataSurvivesChunkSplit_F1` to ensure metadata persists across piece splits.
+- **F2 — Find controller & scopes:** New `DocUIFindScopeControllerTests.cs` covering multi-scope selections (line, column, fenced code) and controller pagination using fixture `TestData/docSamples/find-scopes-large.md` (>500 matches) plus `DocUIFindScopes.multi.json` describing nested scopes.
+- **F3 — Replace pattern & capture payload:** Introduce `DocUIReplaceCaptureTests.cs` (Theory) verifying regex capture groups, `$1` substitutions, CRLF payloads, and overlay serialization. Companion fuzz suite `DocUIReplaceCaptureFuzzTests.cs` randomizes patterns/payloads to stress capture metadata integrity.
+- **F4 — MarkdownRenderer owner path:** Extend `MarkdownRendererTests.cs` with `MarkdownRendererDocUIOwnerRouting_F4` and `MarkdownRendererDocUIOverlayMarkdownParity_F4`, backed by fixture `resources/docui/overlay-scenarios/owner-path.md` to ensure DocUI overlays degrade gracefully when renderer ownership swaps or markdown renderers are unavailable.
+
+### dotnet test Baseline + Targeted Commands
+- `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --blame-hang-timeout 5m` (full-suite baseline; run twice pre/post CL8 drop).
+- `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --filter "FullyQualifiedName~DocUIOverlay"` (F1/F4 overlay regression sweep).
+- `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --filter "FullyQualifiedName~DocUIFindScope" --results-directory TestResults/docui-find` (F2 multi-scope stress; retains TRX + doc samples).
+- `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/docui-fuzz dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --filter FullyQualifiedName~DocUIReplaceCaptureFuzzTests --settings tests/RunSettings/Fuzz.runsettings` (F3 fuzz/perf smoke with logged seeds + runtime).
+- `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --filter FullyQualifiedName~MarkdownRendererDocUI` (F4 Markdown owner-path regression guard).
+
+### Instrumentation & Artifact Capture
+- **Snapshot diffs:** Persist overlay snapshots per test under `src/PieceTree.TextBuffer.Tests/__snapshots__/docui/overlay_<TestName>.json` and diff vs. CL7 baseline to validate degrade metadata (F1) and Markdown parity (F4).
+- **Fuzz logs:** Utilize `/tmp/docui-fuzz` for regex seed, capture payload, overlay byte size, and failure stack traces emitted by F3 harness.
+- **Doc samples:** Store large-match markdown + scope descriptors under `resources/docui/` and record SHA256 hashes inside `agent-team/handoffs/AA4-008-QA.md` for reproducibility.
+- **Controller traces:** Execute scoped runs with `DOCUI_DEBUG=overlay,controller` to emit find-controller transitions + overlay lifecycles into `TestResults/docui-overlay-trace.log`, cited for F2/F4 verification.
+
+### Documentation Touchpoints
+- Update `src/PieceTree.TextBuffer.Tests/TestMatrix.md` with F1–F4 coverage rows, linking to new suites and artifact paths.
+- Create/refresh `agent-team/handoffs/AA4-008-QA.md` capturing remediation status, commands, fixture hashes, and Investigator/Porter acknowledgements.
+- Append CL8 coverage to `docs/reports/audit-checklist-aa4.md` and Sprint notes in `docs/sprints/sprint-02.md` enumerating DocUI overlay validation + instrumentation.
+- Register new fixtures/snapshots in `agent-team/indexes/README.md` (QA assets) for Info-Indexer ingestion.
+
+### Data Fixtures & Edge Cases
+- `find-scopes-large.md`: 10k-line markdown with >500 matches to probe overlay batching + pagination (F2).
+- `DocUIFindScopes.multi.json`: nested scopes (block, line, column) confirming degrade path + selection overlays (F1/F2).
+- `replace-capture-cases.json`: regex combos with named groups, lookaheads, CRLF payloads, unicode escapes for capture serialization (F3).
+- Synthetic stale metadata snapshots (missing theme tokens, stale text hash) to assert degrade transitions (F1) and Markdown owner fallback (F4).
+
+### Exit Criteria
+1. All new DocUI suites pass locally + CI twice with instrumentation enabled.
+2. Snapshot diffs confirm overlay metadata + degrade markers (F1) without regressions vs. CL7.
+3. Fuzz harness executes ≥500 seeds, zero failures, logs archived under `/tmp/docui-fuzz` and referenced in handoff doc (F3).
+4. `TestMatrix.md` and `agent-team/handoffs/AA4-008-QA.md` updated with command logs, fixture hashes, and Investigator/Porter reviews of find-controller + owner-path traces (F2/F4).
+5. Audit checklist + Sprint doc entries merged; QA sign-off gated on Markdown owner-path trace review (F4) and controller scope log review (F2).
 
 - **Upcoming Goals (next 1-3 runs):**
 1. **PT-005.S8**：与 Porter-CS 对齐 `PieceTreeBuffer`/`PieceTreeModel` 对外 `EnumeratePieces`/chunk reuse API，并在测试中断言 piece-level 布局。
