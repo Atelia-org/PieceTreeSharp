@@ -15,7 +15,7 @@ This directory contains the starter .NET solution that will eventually host the 
 ## Common commands
 
 ```bash
-cd /mnt/e/repos/microsoft/vscode/src
+cd /repos/PieceTreeSharp/src
 # restore packages
  dotnet restore
 # run the test suite
