@@ -88,4 +88,32 @@ internal sealed class ChunkBuffer
         return _buffer.Substring(startOffset, endOffset - startOffset);
     }
 
+    internal ChunkBuffer Append(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return this;
+        }
+
+        var appended = LineStartBuilder.Build(text);
+        var oldStarts = _lineStarts.RawArray;
+        var appendedStarts = appended.RawArray;
+        var offset = _buffer.Length;
+        var mergedStarts = new int[oldStarts.Length + Math.Max(0, appendedStarts.Length - 1)];
+        Array.Copy(oldStarts, mergedStarts, oldStarts.Length);
+        for (int i = 1; i < appendedStarts.Length; i++)
+        {
+            mergedStarts[oldStarts.Length + i - 1] = appendedStarts[i] + offset;
+        }
+
+        var crCount = _lineStarts.CarriageReturnCount + appended.CarriageReturnCount;
+        var lfCount = _lineStarts.LineFeedCount + appended.LineFeedCount;
+        var crlfCount = _lineStarts.CarriageReturnLineFeedCount + appended.CarriageReturnLineFeedCount;
+
+        var isAscii = _lineStarts.IsBasicAscii && appended.IsBasicAscii;
+        var mergedTable = new LineStartTable(mergedStarts, crCount, lfCount, crlfCount, isAscii);
+
+        return new ChunkBuffer(string.Concat(_buffer, text), mergedTable);
+    }
+
 }

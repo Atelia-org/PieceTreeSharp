@@ -202,18 +202,50 @@ internal sealed partial class PieceTreeModel
 
     private int GetAccumulatedValue(PieceTreeNode node, int index)
     {
-        if (index < 0) return 0;
+        if (index < 0)
+        {
+            return 0;
+        }
+
         var piece = node.Piece;
-        var lineStarts = _buffers[piece.BufferIndex].LineStarts;
-        var expectedLineStartIndex = piece.Start.Line + index + 1;
-        if (expectedLineStartIndex > piece.End.Line)
+        var buffer = _buffers[piece.BufferIndex].Buffer;
+        var startOffset = OffsetInBuffer(piece.BufferIndex, piece.Start);
+        var endOffset = OffsetInBuffer(piece.BufferIndex, piece.End);
+        if (endOffset <= startOffset)
         {
-            return lineStarts[piece.End.Line] + piece.End.Column - lineStarts[piece.Start.Line] - piece.Start.Column;
+            return 0;
         }
-        else
+
+        var span = buffer.AsSpan(startOffset, endOffset - startOffset);
+        var consumed = 0;
+        var lineBreaksSeen = 0;
+
+        while (consumed < span.Length)
         {
-            return lineStarts[expectedLineStartIndex] - lineStarts[piece.Start.Line] - piece.Start.Column;
+            var ch = span[consumed];
+            consumed++;
+
+            if (ch == '\r')
+            {
+                if (consumed < span.Length && span[consumed] == '\n')
+                {
+                    consumed++;
+                }
+
+                lineBreaksSeen++;
+            }
+            else if (ch == '\n')
+            {
+                lineBreaksSeen++;
+            }
+
+            if (lineBreaksSeen >= index + 1)
+            {
+                break;
+            }
         }
+
+        return consumed;
     }
 
     public string GetLineContent(int lineNumber)
@@ -282,12 +314,11 @@ internal sealed partial class PieceTreeModel
         string ret;
         if (relativeLineNumber - 1 < x.Piece.LineFeedCount)
         {
-            var lenDbg = accumulatedValue - prevAccumulatedValue - endOffset;
-            if (lenDbg < 0)
-            {
-                PieceTreeDebug.Log($"DEBUG GetContentFromNode negative len: nodeBuf={x.Piece.BufferIndex}, startOffset={startOffset}, prevAccum={prevAccumulatedValue}, accum={accumulatedValue}, endOffset={endOffset}, pieceStart={x.Piece.Start}, pieceEnd={x.Piece.End}, pieceLen={x.Piece.Length}, pieceLF={x.Piece.LineFeedCount}, bufferLen={buffer.Length}");
-            }
-            ret = buffer.Substring(startOffset + prevAccumulatedValue, accumulatedValue - prevAccumulatedValue - endOffset);
+            var sliceStart = startOffset + prevAccumulatedValue;
+            var pieceEndOffset = OffsetInBuffer(x.Piece.BufferIndex, x.Piece.End);
+            var sliceEnd = FindLineBreakBoundary(buffer, sliceStart, pieceEndOffset);
+            var length = Math.Max(0, sliceEnd - sliceStart - endOffset);
+            ret = length == 0 ? string.Empty : buffer.Substring(sliceStart, length);
         }
         else
         {
@@ -343,5 +374,31 @@ internal sealed partial class PieceTreeModel
         }
 
         return ret;
+    }
+
+    private static int FindLineBreakBoundary(string buffer, int startOffset, int sliceEndExclusive)
+    {
+        var index = startOffset;
+        var limit = Math.Min(sliceEndExclusive, buffer.Length);
+        while (index < limit)
+        {
+            var ch = buffer[index];
+            index++;
+            if (ch == '\r')
+            {
+                if (index < limit && buffer[index] == '\n')
+                {
+                    index++;
+                }
+                break;
+            }
+
+            if (ch == '\n')
+            {
+                break;
+            }
+        }
+
+        return Math.Min(index, limit);
     }
 }

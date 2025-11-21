@@ -77,16 +77,52 @@ internal sealed class PieceTreeSearchCache
         _entries.Add(new CacheEntry(node, nodeStartOffset, nodeStartLineNumber));
     }
 
-    public void InvalidateFromOffset(int offset)
+    public void Clear() => _entries.Clear();
+
+    public void InvalidateFromOffset(int offset) => InvalidateRange(offset, int.MaxValue);
+
+    public void InvalidateRange(int startOffset, int length)
     {
         if (_entries.Count == 0)
         {
             return;
         }
 
+        var normalizedStart = Math.Max(0, startOffset);
+        var normalizedLength = length < 0 ? 0 : length;
+        var normalizedEnd = normalizedLength == int.MaxValue
+            ? int.MaxValue
+            : Math.Min(int.MaxValue, normalizedStart + normalizedLength);
+
         for (var i = _entries.Count - 1; i >= 0; i--)
         {
-            if (!_entries[i].IsValid(offset))
+            if (_entries[i].Intersects(normalizedStart, normalizedEnd))
+            {
+                _entries.RemoveAt(i);
+            }
+        }
+    }
+
+    public void Validate(Func<PieceTreeNode, int> computeOffset, int totalLength)
+    {
+        ArgumentNullException.ThrowIfNull(computeOffset);
+        if (_entries.Count == 0)
+        {
+            return;
+        }
+
+        var maxLength = Math.Max(0, totalLength);
+        for (var i = _entries.Count - 1; i >= 0; i--)
+        {
+            var entry = _entries[i];
+            if (entry.Node.IsSentinel || entry.Node.IsDetached)
+            {
+                _entries.RemoveAt(i);
+                continue;
+            }
+
+            var actualOffset = computeOffset(entry.Node);
+            if (actualOffset != entry.NodeStartOffset || actualOffset >= maxLength)
             {
                 _entries.RemoveAt(i);
             }
@@ -127,14 +163,16 @@ internal sealed class PieceTreeSearchCache
             return startLine < lineNumber && endLine >= lineNumber;
         }
 
-        public bool IsValid(int earliestMutationOffset)
+        public bool Intersects(int rangeStart, int rangeEnd)
         {
-            if (Node.IsDetached)
+            var entryStart = NodeStartOffset;
+            var entryEnd = NodeStartOffset + Math.Max(0, Node.Piece.Length);
+            if (rangeEnd <= rangeStart)
             {
-                return false;
+                return entryStart <= rangeStart && rangeStart <= entryEnd;
             }
 
-            return NodeStartOffset < earliestMutationOffset;
+            return entryStart < rangeEnd && entryEnd > rangeStart;
         }
     }
 }

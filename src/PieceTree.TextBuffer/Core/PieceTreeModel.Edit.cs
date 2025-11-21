@@ -14,7 +14,9 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
-        _searchCache.InvalidateFromOffset(offset);
+        var mutationStart = Math.Max(0, offset - 1);
+        var mutationLength = Math.Max(1, value.Length + 2);
+        _searchCache.InvalidateRange(mutationStart, mutationLength);
 
         if (_eolNormalized)
         {
@@ -49,79 +51,80 @@ internal sealed partial class PieceTreeModel
                 }
             }
         }
-        
-        var prevChangeBufferPos = _lastChangeBufferPos;
+
         if (!ReferenceEquals(_root, _sentinel))
         {
             var hit = NodeAt(offset);
             var node = hit.Node;
-            var remainder = hit.Remainder;
-            var nodeStartOffset = hit.NodeStartOffset;
+            int remainder;
+            int nodeStartOffset;
+            if (node is null)
+            {
+                node = Rightest(_root);
+                nodeStartOffset = GetOffsetOfNode(node);
+                remainder = node.Piece.Length;
+            }
+            else
+            {
+                nodeStartOffset = hit.NodeStartOffset;
+                remainder = hit.Remainder;
+            }
+
             var piece = node.Piece;
             var bufferIndex = piece.BufferIndex;
             var insertPosInBuffer = PositionInBuffer(node, remainder);
-            PieceTreeDebug.Log($"DEBUG Insert position: nodeBufIdx={node.Piece.BufferIndex}, nodeStart={node.Piece.Start}, nodeEnd={node.Piece.End}, remainder={remainder}, insertPosInBuffer={insertPosInBuffer}");
+            if (PieceTreeDebug.IsEnabled)
+            {
+                var nodeText = _buffers[piece.BufferIndex].Slice(piece.Start, piece.End)
+                    .Replace("\n", "\\n").Replace("\r", "\\r");
+                PieceTreeDebug.Log($"DEBUG Insert position: nodeBufIdx={node.Piece.BufferIndex}, nodeStart={node.Piece.Start}, nodeEnd={node.Piece.End}, remainder={remainder}, insertPosInBuffer={insertPosInBuffer}, nodeStartOffset={nodeStartOffset}, nodeText='{nodeText}'");
+            }
 
-            // Optimization: append to the last change buffer node
-            // TODO: Implement _lastChangeBufferPos tracking for this optimization
-            
+            if (TryAppendToChangeBufferNode(node, value, nodeStartOffset, offset))
+            {
+                ComputeBufferMetadata();
+                return;
+            }
+
             if (nodeStartOffset == offset)
             {
                 var prevNode = node.Prev();
-                var tryAppend = false;
-                BufferCursor? appendStart = null;
-                if (!ReferenceEquals(prevNode, _sentinel) && prevNode.Piece.BufferIndex == ChangeBufferId)
+                if (!ReferenceEquals(prevNode, _sentinel))
                 {
-                    var prevEndCursor = prevNode.Piece.End;
-                    var prevEndPos = PositionInBuffer(prevNode, prevNode.Piece.Length);
-                    if (prevEndPos.Line == _lastChangeBufferPos.Line && prevEndPos.Column == _lastChangeBufferPos.Column)
+                    var prevStartOffset = GetOffsetOfNode(prevNode);
+                    if (TryAppendToChangeBufferNode(prevNode, value, prevStartOffset, offset))
                     {
-                        tryAppend = true;
-                        appendStart = prevEndCursor;
+                        ComputeBufferMetadata();
+                        return;
                     }
                 }
 
-                var appendedLeft = InsertContentToNodeLeft(value, node, tryAppend, appendStart);
-                ValidateCRLFWithPrevNode(node);
-                if (!appendedLeft)
-                {
-                    _lastChangeBufferPos = BufferCursor.Zero;
-                }
+                InsertContentToNodeLeft(value, node);
             }
             else if (nodeStartOffset + piece.Length > offset)
             {
-                // Insert into middle
-                var nodesToDel = new List<PieceTreeNode>();
-                
-                // Split node: [Start, InsertPos] ... [InsertPos, End]
-                // We will reuse 'node' for the left part, and insert new node for right part.
-                
-                var newRightPiece = new PieceSegment(
+                var newRightPiece = CreateSegment(
                     piece.BufferIndex,
                     insertPosInBuffer,
                     piece.End,
-                    GetLineFeedCnt(piece.BufferIndex, insertPosInBuffer, piece.End),
-                    OffsetInBuffer(bufferIndex, piece.End) - OffsetInBuffer(bufferIndex, insertPosInBuffer)
+                    GetLineFeedCnt(piece.BufferIndex, insertPosInBuffer, piece.End)
                 );
+                if (PieceTreeDebug.IsEnabled)
+                {
+                    var newRightText = _buffers[newRightPiece.BufferIndex]
+                        .Slice(newRightPiece.Start, newRightPiece.End)
+                        .Replace("\n", "\\n").Replace("\r", "\\r");
+                    PieceTreeDebug.Log($"DEBUG Split right piece len={newRightPiece.Length}, text='{newRightText}'");
+                }
 
                 if (EndWithCR(node.Piece) && StartWithLF(newRightPiece))
                 {
-                    ValidateCRLFWithPrevNode(node); // This might be wrong place or logic.
-                    // Actually, we are splitting 'node'.
-                    // 'node' becomes left part. 'newRightPiece' becomes right part.
-                    // If original 'node' had \r\n split, it was already handled?
-                    // No, we are splitting.
-                    // If we split "A\r\nB" at \r|\n.
-                    // Left: "A\r". Right: "\nB".
-                    // Left LF: 1. Right LF: 1. Total 2.
-                    // We need to fix it.
-                    // ValidateCRLFWithPrevNode(newRightNode) would fix it.
+                    ValidateCRLFWithPrevNode(node);
                 }
 
                 DeleteNodeTail(node, insertPosInBuffer);
 
-                var tryAppend = piece.BufferIndex == ChangeBufferId && insertPosInBuffer.Line == _lastChangeBufferPos.Line && insertPosInBuffer.Column == _lastChangeBufferPos.Column;
-                var newPieces = CreateNewPieces(value, tryAppend, insertPosInBuffer);
+                var newPieces = CreateNewPieces(value);
                 if (newRightPiece.Length > 0)
                 {
                     RbInsertRight(node, newRightPiece);
@@ -132,113 +135,22 @@ internal sealed partial class PieceTreeModel
                 {
                     tmpNode = RbInsertRight(tmpNode, p);
                 }
-                
-                DeleteNodes(nodesToDel);
-                
-                // Validate CRLF after insertions
-                // We inserted newRightPiece (maybe) and newPieces.
-                // We need to validate boundaries.
-                
-                // 1. node vs first inserted piece (or newRightPiece if no newPieces? No, newPieces always has at least 1).
-                // Wait, newPieces comes from 'value'.
-                // We insert newRightPiece FIRST (to the right of node).
-                // Then we insert newPieces to the right of node (pushing newRightPiece further right? No).
-                // RbInsertRight(node, newRightPiece) -> node.Right = newRightPiece.
-                // Then RbInsertRight(tmpNode, p). tmpNode starts as node.
-                // So we insert p1 right of node.
-                // Then p2 right of p1.
-                // So order: node -> p1 -> p2 -> ... -> newRightPiece?
-                // No. RbInsertRight inserts as immediate right child or successor?
-                // RbInsertRight(node, p) inserts p such that it follows node in in-order.
-                
-                // If we do:
-                // RbInsertRight(node, newRightPiece);
-                // tmpNode = node;
-                // RbInsertRight(tmpNode, p); -> inserts p right of node.
-                // So p comes between node and newRightPiece?
-                // Yes.
-                
-                // So order: node -> newPieces -> newRightPiece.
-                
-                // We need to validate:
-                // node vs newPieces[0]
-                // newPieces[last] vs newRightPiece
-                
-                // But we iterate newPieces and insert them.
-                // tmpNode tracks the last inserted node.
-                
-                // Let's look at the loop:
-                // tmpNode = node;
-                // foreach (var p in newPieces) { tmpNode = RbInsertRight(tmpNode, p); }
-                // So tmpNode becomes the last inserted piece from value.
-                
-                // Wait, where is newRightPiece?
-                // We inserted it first: RbInsertRight(node, newRightPiece).
-                // So node -> newRightPiece.
-                // Then we insert p1 right of node.
-                // node -> p1 -> newRightPiece.
-                // Then p2 right of p1.
-                // node -> p1 -> p2 -> newRightPiece.
-                
-                // So correct order.
-                
-                // Validation:
-                // 1. node vs newPieces[0] (which is node.Next())
-                // 2. newPieces[last] vs newRightPiece (which is newPieces[last].Next())
-                
-                // We can just call ValidateCRLFWithPrevNode on the nodes we inserted + newRightPiece.
-                
-                // Actually, simpler:
-                // After all insertions:
-                // ValidateCRLFWithPrevNode(firstInsertedNode);
-                // ...
-                // ValidateCRLFWithPrevNode(newRightPieceNode);
-                
-                // But we don't have easy access to them unless we track them.
-                // But we know the structure.
-                
-                // Let's just call ValidateCRLFWithPrevNode on the specific boundaries.
-                
-                // Boundary 1: node | next (first new piece)
+
                 ValidateCRLFWithPrevNode(node.Next());
-                
-                // Boundary 2: last new piece | next (newRightPiece)
-                // tmpNode is the last new piece.
                 ValidateCRLFWithPrevNode(tmpNode.Next());
-                // If we did not append into the change buffer during this middle insert, reset lastChangeBufferPos.
-                if (prevChangeBufferPos.Line == _lastChangeBufferPos.Line && prevChangeBufferPos.Column == _lastChangeBufferPos.Column)
-                {
-                    _lastChangeBufferPos = BufferCursor.Zero;
-                }
             }
             else
             {
-                var isAppendToChange = piece.BufferIndex == ChangeBufferId && insertPosInBuffer.Line == _lastChangeBufferPos.Line && insertPosInBuffer.Column == _lastChangeBufferPos.Column;
-                InsertContentToNodeRight(value, node, isAppendToChange, insertPosInBuffer);
+                InsertContentToNodeRight(value, node);
                 ValidateCRLFWithPrevNode(node.Next());
             }
         }
         else
         {
-            // Insert new node
-            // Consider append into the change buffer when inserting into an empty tree
-            var changeBufferEnd = _buffers[ChangeBufferId].CreateEndCursor();
-            var tryAppendNew = _buffers[ChangeBufferId].Length + value.Length <= ChunkUtilities.DefaultChunkSize;
-            var pieces = CreateNewPieces(value, tryAppendNew, changeBufferEnd);
-            var node = RbInsertLeft(_sentinel, pieces[0]);
-            for (int k = 1; k < pieces.Count; k++)
-            {
-                node = RbInsertRight(node, pieces[k]);
-            }
-            if (prevChangeBufferPos.Line == _lastChangeBufferPos.Line && prevChangeBufferPos.Column == _lastChangeBufferPos.Column)
-            {
-                _lastChangeBufferPos = BufferCursor.Zero;
-            }
+            InsertIntoEmptyTree(value);
         }
 
-        // Recompute aggregates and revalidate cache only for the affected region.
         ComputeBufferMetadata();
-        _searchCache.InvalidateFromOffset(offset);
         PieceTreeDebug.Log($"DEBUG Insert: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
         PieceTreeDebug.Log("DEBUG Insert: Pieces after insert:");
         foreach (var p in EnumeratePiecesInOrder())
@@ -249,6 +161,117 @@ internal sealed partial class PieceTreeModel
         }
     }
 
+    private void InsertIntoEmptyTree(string value)
+    {
+        var pieces = CreateNewPieces(value);
+        if (pieces.Count == 0)
+        {
+            return;
+        }
+
+        var node = RbInsertLeft(_sentinel, pieces[0]);
+        for (int k = 1; k < pieces.Count; k++)
+        {
+            node = RbInsertRight(node, pieces[k]);
+        }
+    }
+
+    private bool TryAppendToChangeBufferNode(PieceTreeNode node, string value, int nodeStartOffset, int insertOffset)
+    {
+        if (ReferenceEquals(node, _sentinel) || string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        if (value.Length > AverageBufferSize)
+        {
+            return false;
+        }
+
+        if (node.Piece.Length >= AverageBufferSize)
+        {
+            return false;
+        }
+
+        if (node.Piece.Length + value.Length > AverageBufferSize)
+        {
+            return false;
+        }
+
+        if (node.Piece.BufferIndex != ChangeBufferId)
+        {
+            return false;
+        }
+
+        if (node.Piece.End.Line != _lastChangeBufferPos.Line || node.Piece.End.Column != _lastChangeBufferPos.Column)
+        {
+            return false;
+        }
+
+        if (nodeStartOffset + node.Piece.Length != insertOffset)
+        {
+            return false;
+        }
+
+        AppendToChangeBufferNode(node, value);
+        return true;
+    }
+
+    private void AppendToChangeBufferNode(PieceTreeNode node, string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        var adjusted = AdjustCarriageReturnFromNext(value, node);
+        if (string.IsNullOrEmpty(adjusted))
+        {
+            return;
+        }
+
+        var changeBuffer = _buffers[ChangeBufferId];
+        var oldPiece = node.Piece;
+        var startOffset = changeBuffer.GetOffset(oldPiece.Start);
+        var oldEndOffset = changeBuffer.GetOffset(oldPiece.End);
+        var newBuffer = changeBuffer.Append(adjusted);
+        _buffers[ChangeBufferId] = newBuffer;
+        var appendedLength = adjusted.Length;
+        var newEndOffset = oldEndOffset + appendedLength;
+        var newStartCursor = CursorFromOffset(ChangeBufferId, startOffset);
+        var newEndCursor = CursorFromOffset(ChangeBufferId, newEndOffset);
+        var newLineFeeds = GetLineFeedCnt(ChangeBufferId, newStartCursor, newEndCursor);
+        var updatedPiece = CreateSegment(ChangeBufferId, newStartCursor, newEndCursor, newLineFeeds);
+        node.Piece = updatedPiece;
+        var sizeDelta = updatedPiece.Length - oldPiece.Length;
+        var lfDelta = updatedPiece.LineFeedCount - oldPiece.LineFeedCount;
+        UpdateTreeMetadata(node, sizeDelta, lfDelta);
+        RecomputeMetadataUpwards(node);
+        _lastChangeBufferOffset = newBuffer.Length;
+        _lastChangeBufferPos = newEndCursor;
+    }
+
+    private string AdjustCarriageReturnFromNext(string value, PieceTreeNode node)
+    {
+        if (!ShouldCheckCRLF() || string.IsNullOrEmpty(value) || value[^1] != '\r')
+        {
+            return value;
+        }
+
+        var nextNode = node.Next();
+        if (ReferenceEquals(nextNode, _sentinel) || !StartWithLF(nextNode.Piece))
+        {
+            return value;
+        }
+
+        var nextOffset = Math.Max(0, GetOffsetOfNode(nextNode) - 1);
+        _searchCache.InvalidateRange(nextOffset, 2);
+        var nodesToDelete = new List<PieceTreeNode>(1);
+        RemoveLeadingLineFeed(nextNode, nodesToDelete);
+        DeleteNodes(nodesToDelete);
+        return value + "\n";
+    }
+
     public void Delete(int offset, int cnt)
     {
         _lastVisitedLine = default;
@@ -257,7 +280,9 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
-        _searchCache.InvalidateFromOffset(offset);
+        var mutationStart = Math.Max(0, offset - 1);
+        var mutationLength = Math.Max(1, cnt + 2);
+        _searchCache.InvalidateRange(mutationStart, mutationLength);
 
         var startHit = NodeAt(offset);
         var endHit = NodeAt(offset + cnt);
@@ -322,14 +347,27 @@ internal sealed partial class PieceTreeModel
         ValidateCRLFWithNextNode(prev);
         // Recompute aggregates and revalidate cache only for the affected region.
         ComputeBufferMetadata();
-        _searchCache.InvalidateFromOffset(offset);
     }
 
-    private bool InsertContentToNodeLeft(string value, PieceTreeNode node, bool tryAppendToChangeBuffer = false, BufferCursor? appendStart = null)
+    private void InsertContentToNodeLeft(string value, PieceTreeNode node)
     {
-        // TODO: CRLF checks
-        var prevPos = _lastChangeBufferPos;
-        var newPieces = CreateNewPieces(value, tryAppendToChangeBuffer, appendStart);
+        var nodesToDelete = new List<PieceTreeNode>();
+        if (ShouldCheckCRLF() && EndWithCR(value) && StartWithLF(node.Piece))
+        {
+            var piece = node.Piece;
+            var newStart = new BufferCursor(piece.Start.Line + 1, 0);
+            var newPiece = CreateSegment(piece.BufferIndex, newStart, piece.End);
+            node.Piece = newPiece;
+            UpdateTreeMetadata(node, newPiece.Length - piece.Length, newPiece.LineFeedCount - piece.LineFeedCount);
+            RecomputeMetadataUpwards(node);
+            value += "\n";
+            if (node.Piece.Length == 0)
+            {
+                nodesToDelete.Add(node);
+            }
+        }
+
+        var newPieces = CreateNewPieces(value);
         var newNode = RbInsertLeft(node, newPieces[newPieces.Count - 1]);
         for (int k = newPieces.Count - 2; k >= 0; k--)
         {
@@ -337,14 +375,13 @@ internal sealed partial class PieceTreeModel
         }
 
         ValidateCRLFWithPrevNode(newNode);
-        return _lastChangeBufferPos.Line != prevPos.Line || _lastChangeBufferPos.Column != prevPos.Column;
+        DeleteNodes(nodesToDelete);
     }
 
-    private bool InsertContentToNodeRight(string value, PieceTreeNode node, bool tryAppendToChangeBuffer = false, BufferCursor? appendStart = null)
+    private void InsertContentToNodeRight(string value, PieceTreeNode node)
     {
-        // TODO: CRLF checks
-        var prevPos = _lastChangeBufferPos;
-        var newPieces = CreateNewPieces(value, tryAppendToChangeBuffer, appendStart);
+        value = AdjustCarriageReturnFromNext(value, node);
+        var newPieces = CreateNewPieces(value);
         var newNode = RbInsertRight(node, newPieces[0]);
         var tmpNode = newNode;
         for (int k = 1; k < newPieces.Count; k++)
@@ -352,9 +389,7 @@ internal sealed partial class PieceTreeModel
             tmpNode = RbInsertRight(tmpNode, newPieces[k]);
         }
         ValidateCRLFWithPrevNode(newNode);
-        // Also validate the boundary between the last new piece and the next node (if any)
         ValidateCRLFWithPrevNode(tmpNode.Next());
-        return _lastChangeBufferPos.Line != prevPos.Line || _lastChangeBufferPos.Column != prevPos.Column;
     }
 
     private BufferCursor PositionInBuffer(PieceTreeNode node, int remainder)
@@ -476,9 +511,11 @@ internal sealed partial class PieceTreeModel
         {
             return;
         }
+        PieceTreeDebug.Log($"FixCRLF: prevOffset={GetOffsetOfNode(prevNode)}, prevText='{_buffers[prevNode.Piece.BufferIndex].Slice(prevNode.Piece.Start, prevNode.Piece.End).Replace("\n", "\\n").Replace("\r", "\\r")}', nextText='{_buffers[nextNode.Piece.BufferIndex].Slice(nextNode.Piece.Start, nextNode.Piece.End).Replace("\n", "\\n").Replace("\r", "\\r")}'");
         var mutationOffset = GetOffsetOfNode(prevNode);
         
-        _searchCache.InvalidateFromOffset(mutationOffset);
+        var mutationStart = Math.Max(0, mutationOffset - 1);
+        _searchCache.InvalidateRange(mutationStart, 4);
 
         var nodesToDelete = new List<PieceTreeNode>(2);
         RemoveTrailingCarriageReturn(prevNode, nodesToDelete);
@@ -523,12 +560,11 @@ internal sealed partial class PieceTreeModel
             return;
         }
         var newEnd = CursorFromOffset(piece.BufferIndex, endOffset - 1);
-        var newLength = piece.Length - 1;
-        var newLineFeeds = GetLineFeedCnt(piece.BufferIndex, piece.Start, newEnd);
-        node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeeds, newLength);
+        var newPiece = CreateSegment(piece.BufferIndex, piece.Start, newEnd);
+        node.Piece = newPiece;
         RecomputeMetadataUpwards(node);
 
-        if (newLength == 0)
+        if (newPiece.Length == 0)
         {
             nodesToDelete.Add(node);
         }
@@ -556,12 +592,11 @@ internal sealed partial class PieceTreeModel
         }
 
         var newStart = CursorFromOffset(piece.BufferIndex, startOffset + 1);
-        var newLength = piece.Length - 1;
-        var newLineFeeds = GetLineFeedCnt(piece.BufferIndex, newStart, piece.End);
-        node.Piece = new PieceSegment(piece.BufferIndex, newStart, piece.End, newLineFeeds, newLength);
+        var newPiece = CreateSegment(piece.BufferIndex, newStart, piece.End);
+        node.Piece = newPiece;
         RecomputeMetadataUpwards(node);
 
-        if (newLength == 0)
+        if (newPiece.Length == 0)
         {
             nodesToDelete.Add(node);
         }
@@ -578,6 +613,15 @@ internal sealed partial class PieceTreeModel
         return ch == '\r';
     }
 
+    private static bool EndWithCR(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+        return text[^1] == '\r';
+    }
+
     private bool StartWithLF(PieceSegment piece)
     {
         var buffer = _buffers[piece.BufferIndex];
@@ -586,22 +630,24 @@ internal sealed partial class PieceTreeModel
         return buffer.Buffer[startOffset] == '\n';
     }
 
+    private static bool StartWithLF(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        return text[0] == '\n';
+    }
+
     private void DeleteNodeTail(PieceTreeNode node, BufferCursor pos)
     {
         var piece = node.Piece;
-        var originalLFCnt = piece.LineFeedCount;
-        var originalEndOffset = OffsetInBuffer(piece.BufferIndex, piece.End);
-        
         var newEnd = pos;
-        var newEndOffset = OffsetInBuffer(piece.BufferIndex, newEnd);
-        var newLineFeedCnt = GetLineFeedCnt(piece.BufferIndex, piece.Start, newEnd);
-        // Diagnostics removed: do not print slice info during normal test runs
-        
-        var lf_delta = newLineFeedCnt - originalLFCnt;
-        var size_delta = newEndOffset - originalEndOffset;
-        var newLength = piece.Length + size_delta;
-        
-        node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeedCnt, newLength);
+        var newPiece = CreateSegment(piece.BufferIndex, piece.Start, newEnd);
+        var size_delta = newPiece.Length - piece.Length;
+        var lf_delta = newPiece.LineFeedCount - piece.LineFeedCount;
+        node.Piece = newPiece;
         UpdateTreeMetadata(node, size_delta, lf_delta);
         RecomputeMetadataUpwards(node);
     }
@@ -609,18 +655,11 @@ internal sealed partial class PieceTreeModel
     private void DeleteNodeHead(PieceTreeNode node, BufferCursor pos)
     {
         var piece = node.Piece;
-        var originalLFCnt = piece.LineFeedCount;
-        var originalStartOffset = OffsetInBuffer(piece.BufferIndex, piece.Start);
-        
         var newStart = pos;
-        var newLineFeedCnt = GetLineFeedCnt(piece.BufferIndex, newStart, piece.End);
-        var newStartOffset = OffsetInBuffer(piece.BufferIndex, newStart);
-        
-        var lf_delta = newLineFeedCnt - originalLFCnt;
-        var size_delta = originalStartOffset - newStartOffset;
-        var newLength = piece.Length + size_delta;
-        
-        node.Piece = new PieceSegment(piece.BufferIndex, newStart, piece.End, newLineFeedCnt, newLength);
+        var newPiece = CreateSegment(piece.BufferIndex, newStart, piece.End);
+        var size_delta = newPiece.Length - piece.Length;
+        var lf_delta = newPiece.LineFeedCount - piece.LineFeedCount;
+        node.Piece = newPiece;
         UpdateTreeMetadata(node, size_delta, lf_delta);
         RecomputeMetadataUpwards(node);
     }
@@ -628,30 +667,22 @@ internal sealed partial class PieceTreeModel
     private void ShrinkNode(PieceTreeNode node, BufferCursor start, BufferCursor end)
     {
         var piece = node.Piece;
-        var originalStart = piece.Start;
         var originalEnd = piece.End;
-        
         var oldLength = piece.Length;
         var oldLFCnt = piece.LineFeedCount;
-        
+
         var newEnd = start;
-        var newLineFeedCnt = GetLineFeedCnt(piece.BufferIndex, piece.Start, newEnd);
-        var newLength = OffsetInBuffer(piece.BufferIndex, start) - OffsetInBuffer(piece.BufferIndex, originalStart);
-        
-        node.Piece = new PieceSegment(piece.BufferIndex, piece.Start, newEnd, newLineFeedCnt, newLength);
-        UpdateTreeMetadata(node, newLength - oldLength, newLineFeedCnt - oldLFCnt);
+        var leftPiece = CreateSegment(piece.BufferIndex, piece.Start, newEnd);
+        node.Piece = leftPiece;
+        UpdateTreeMetadata(node, leftPiece.Length - oldLength, leftPiece.LineFeedCount - oldLFCnt);
         RecomputeMetadataUpwards(node);
         
-        var newPiece = new PieceSegment(
-            piece.BufferIndex,
-            end,
-            originalEnd,
-            GetLineFeedCnt(piece.BufferIndex, end, originalEnd),
-            OffsetInBuffer(piece.BufferIndex, originalEnd) - OffsetInBuffer(piece.BufferIndex, end)
-        );
-        
-        var newNode = RbInsertRight(node, newPiece);
-        ValidateCRLFWithPrevNode(newNode);
+        var rightPiece = CreateSegment(piece.BufferIndex, end, originalEnd);
+        if (rightPiece.Length > 0)
+        {
+            var newNode = RbInsertRight(node, rightPiece);
+            ValidateCRLFWithPrevNode(newNode);
+        }
     }
 
     private void DeleteNodes(List<PieceTreeNode> nodes)
@@ -662,7 +693,7 @@ internal sealed partial class PieceTreeModel
         }
     }
 
-    private List<PieceSegment> CreateNewPieces(string text, bool tryAppendToChangeBuffer = false, BufferCursor? appendStart = null)
+    private List<PieceSegment> CreateNewPieces(string text)
     {
         var pieces = new List<PieceSegment>();
         if (string.IsNullOrEmpty(text))
@@ -670,72 +701,32 @@ internal sealed partial class PieceTreeModel
             return pieces;
         }
 
-        // Use TS-like split helper to maintain good chunk sizes and CR/surrogate safety.
-        var first = true;
-        foreach (var slice in ChunkUtilities.SplitText(text))
+        if (text.Length > AverageBufferSize)
         {
-            // Only append to the change buffer when explicitly asked and when the tree is empty
-            // or the append start was at the change buffer end and no other nodes reference the change buffer.
-            if (tryAppendToChangeBuffer && first && appendStart.HasValue && _buffers.Count > 0)
+            foreach (var slice in ChunkUtilities.SplitText(text))
             {
-                var changeBuf = _buffers[ChangeBufferId];
-                // Only append small slices to change buffer to reduce GC/alloc/fragmentation.
-                if (changeBuf.Length + slice.Length <= ChunkUtilities.DefaultChunkSize)
+                if (string.IsNullOrEmpty(slice))
                 {
-                    var combined = changeBuf.Buffer + slice;
-                    var newChangeBuffer = ChunkBuffer.FromText(combined);
-                    // Update existing pieces that reference the change buffer to map to the new buffer's cursor positions.
-                    var oldChangeBuffer = _buffers[ChangeBufferId];
-                    _buffers[ChangeBufferId] = newChangeBuffer;
-                    MigrateChangeBufferPieces(oldChangeBuffer, newChangeBuffer);
-                    var oldStartOffset = oldChangeBuffer.GetOffset(appendStart.Value);
-                    var startCursor = CursorFromOffset(ChangeBufferId, oldStartOffset);
-                    var endCursor = newChangeBuffer.CreateEndCursor();
-                    var lf = GetLineFeedCnt(ChangeBufferId, startCursor, endCursor);
-                    var len = OffsetInBuffer(ChangeBufferId, endCursor) - OffsetInBuffer(ChangeBufferId, startCursor);
-#if DEBUG
-                    PieceTreeDebug.Log($"DEBUG CreateNewPieces Append to ChangeBuffer: startCursor={startCursor}, endCursor={endCursor}, lf={lf}, len={len}, changeBufLen={newChangeBuffer.Length}");
-#endif
-                    pieces.Add(new PieceSegment(ChangeBufferId, startCursor, endCursor, lf, len));
-                    // Update last change buffer position
-                    _lastChangeBufferPos = endCursor;
-                    first = false;
-                    // continue with the rest (no further try to append to change buffer in this call)
-                    tryAppendToChangeBuffer = false;
                     continue;
                 }
+
+                var segment = CreatePieceFromNewBuffer(slice);
+                pieces.Add(segment);
             }
-
-            // Default: create a new chunk for this slice
-            var piece = CreatePieceFromNewBuffer(slice);
-#if DEBUG
-            PieceTreeDebug.Log($"DEBUG CreateNewPieces Created new piece from new buffer: bufIdx={piece.BufferIndex}, start={piece.Start}, end={piece.End}, lf={piece.LineFeedCount}, len={piece.Length}");
-#endif
-            pieces.Add(piece);
-            first = false;
+            return pieces;
         }
 
+        var changeBuffer = _buffers[ChangeBufferId];
+        var startCursor = _lastChangeBufferPos;
+        var newBuffer = changeBuffer.Append(text);
+        _buffers[ChangeBufferId] = newBuffer;
+        var endCursor = newBuffer.CreateEndCursor();
+        var lf = GetLineFeedCnt(ChangeBufferId, startCursor, endCursor);
+        var piece = CreateSegment(ChangeBufferId, startCursor, endCursor, lf);
+        pieces.Add(piece);
+        _lastChangeBufferPos = endCursor;
+        _lastChangeBufferOffset = newBuffer.Length;
         return pieces;
-    }
-
-    private void MigrateChangeBufferPieces(ChunkBuffer oldBuffer, ChunkBuffer newBuffer)
-    {
-        // For every node using ChangeBufferId, re-map its Start/End cursors using the absolute offsets derived from the old buffer
-        var nodes = EnumerateNodesInOrder();
-        foreach (var node in nodes)
-        {
-            if (node is null || ReferenceEquals(node, _sentinel)) continue;
-            if (node.Piece.BufferIndex != ChangeBufferId) continue;
-
-            var oldStartOffset = oldBuffer.GetOffset(node.Piece.Start);
-            var oldEndOffset = oldBuffer.GetOffset(node.Piece.End);
-            var newStart = CursorFromOffset(ChangeBufferId, oldStartOffset);
-            var newEnd = CursorFromOffset(ChangeBufferId, oldEndOffset);
-            var newLF = GetLineFeedCnt(ChangeBufferId, newStart, newEnd);
-            var newLen = OffsetInBuffer(ChangeBufferId, newEnd) - OffsetInBuffer(ChangeBufferId, newStart);
-            node.Piece = new PieceSegment(ChangeBufferId, newStart, newEnd, newLF, newLen);
-            RecomputeMetadataUpwards(node);
-        }
     }
 
     private PieceSegment CreatePieceFromNewBuffer(string text)
@@ -744,17 +735,39 @@ internal sealed partial class PieceTreeModel
         var chunkBuffer = ChunkBuffer.FromText(text);
         _buffers.Add(chunkBuffer);
         var bufferIndex = _buffers.Count - 1;
-        // Compute the accurate line feed count for this new chunk using the same scanner that we use for slices
         var endCursor = chunkBuffer.CreateEndCursor();
-        var lf = GetLineFeedCnt(bufferIndex, BufferCursor.Zero, endCursor);
-        var len = chunkBuffer.Length;
-        return new PieceSegment(
-            bufferIndex,
-            BufferCursor.Zero,
-            endCursor,
-            lf,
-            len
-        );
+        return CreateSegment(bufferIndex, BufferCursor.Zero, endCursor);
+    }
+
+    private PieceSegment CreateSegment(int bufferIndex, BufferCursor start, BufferCursor end)
+    {
+        var buffer = _buffers[bufferIndex];
+        var startOffset = OffsetInBuffer(bufferIndex, start);
+        var endOffset = OffsetInBuffer(bufferIndex, end);
+        var length = Math.Max(0, endOffset - startOffset);
+        var lineFeeds = length == 0 ? 0 : GetLineFeedCnt(bufferIndex, start, end);
+        var textLength = buffer.Slice(start, end).Length;
+        if (textLength != length)
+        {
+            PieceTreeDebug.Log($"CreateSegment mismatch: buffer={bufferIndex}, start={start.Line}/{start.Column}, end={end.Line}/{end.Column}, computedLen={length}, actualLen={textLength}");
+            length = textLength;
+        }
+        return new PieceSegment(bufferIndex, start, end, lineFeeds, length);
+    }
+
+    private PieceSegment CreateSegment(int bufferIndex, BufferCursor start, BufferCursor end, int lineFeeds)
+    {
+        var buffer = _buffers[bufferIndex];
+        var startOffset = OffsetInBuffer(bufferIndex, start);
+        var endOffset = OffsetInBuffer(bufferIndex, end);
+        var length = Math.Max(0, endOffset - startOffset);
+        var textLength = buffer.Slice(start, end).Length;
+        if (textLength != length)
+        {
+            PieceTreeDebug.Log($"CreateSegment mismatch: buffer={bufferIndex}, start={start.Line}/{start.Column}, end={end.Line}/{end.Column}, computedLen={length}, actualLen={textLength}");
+            length = textLength;
+        }
+        return new PieceSegment(bufferIndex, start, end, lineFeeds, length);
     }
 
     private PieceTreeNode RbInsertRight(PieceTreeNode node, PieceSegment p)

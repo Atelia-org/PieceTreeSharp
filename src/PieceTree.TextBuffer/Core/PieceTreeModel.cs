@@ -8,12 +8,14 @@ internal sealed partial class PieceTreeModel
     private const string SearchNotImplementedMessage = "PieceTreeModel search stub is not implemented (PT-004 placeholder).";
 
     public const int ChangeBufferId = 0;
+    private const int AverageBufferSize = ChunkUtilities.DefaultChunkSize;
 
     private readonly PieceTreeNode _sentinel = PieceTreeNode.Sentinel;
     private readonly PieceTreeSearchCache _searchCache = new();
     private struct LastVisitedLine { public int LineNumber; public string Value; }
     private LastVisitedLine _lastVisitedLine;
     private BufferCursor _lastChangeBufferPos;
+    private int _lastChangeBufferOffset;
     private readonly List<ChunkBuffer> _buffers;
     private PieceTreeNode _root;
     private int _count;
@@ -27,6 +29,7 @@ internal sealed partial class PieceTreeModel
         _eolNormalized = eolNormalized;
         _eol = eol;
         _lastChangeBufferPos = BufferCursor.Zero;
+        _lastChangeBufferOffset = _buffers.Count > ChangeBufferId ? _buffers[ChangeBufferId].Length : 0;
     }
 
     public PieceTreeNode Root => _root;
@@ -112,7 +115,7 @@ internal sealed partial class PieceTreeModel
         {
             _root = _sentinel;
             _count = 0;
-            _searchCache.InvalidateFromOffset(0);
+            _searchCache.Clear();
             _buffers.Clear();
             _buffers.Add(ChunkBuffer.Empty);
             
@@ -135,6 +138,7 @@ internal sealed partial class PieceTreeModel
         }
         // Reset change buffer write pointer when normalizing EOLs
         _lastChangeBufferPos = BufferCursor.Zero;
+        _lastChangeBufferOffset = 0;
     }
 
     private IEnumerable<PieceTreeNode> EnumerateNodesPostOrder()
@@ -174,21 +178,43 @@ internal sealed partial class PieceTreeModel
     private void ComputeBufferMetadata()
     {
         PieceTreeDebug.Log($"DEBUG ComputeBufferMetadata START: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
-        // Recompute aggregates for the entire tree in post-order so children are computed before parents.
+
         foreach (var node in EnumerateNodesPostOrder())
         {
+            var normalizedPiece = NormalizePiece(node.Piece);
+            if (!node.Piece.Equals(normalizedPiece))
+            {
+                node.Piece = normalizedPiece;
+            }
+
             node.RecomputeAggregates(_sentinel);
         }
 
-        // Re-validate the search cache against the current total length so stale entries get pruned.
-        _searchCache.InvalidateFromOffset(TotalLength);
+        _searchCache.Validate(GetOffsetOfNode, TotalLength);
         PieceTreeDebug.Log($"DEBUG ComputeBufferMetadata END: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
+    }
+
+    private PieceSegment NormalizePiece(PieceSegment piece)
+    {
+        if (piece.Length == 0 && piece.LineFeedCount == 0)
+        {
+            return piece;
+        }
+
+        var normalized = CreateSegment(piece.BufferIndex, piece.Start, piece.End);
+        if (normalized.Length != piece.Length || normalized.LineFeedCount != piece.LineFeedCount)
+        {
+            PieceTreeDebug.Log($"NormalizePiece: BufIdx={piece.BufferIndex}, oldLen={piece.Length}, newLen={normalized.Length}, oldLF={piece.LineFeedCount}, newLF={normalized.LineFeedCount}");
+            return normalized;
+        }
+
+        return piece;
     }
 
     public PieceTreeNode InsertPieceAtEnd(PieceSegment piece)
     {
         var insertionOffset = TotalLength;
-        _searchCache.InvalidateFromOffset(insertionOffset);
+        _searchCache.InvalidateRange(insertionOffset, int.MaxValue);
 
         var node = new PieceTreeNode(piece);
         node.ResetLinks();
@@ -266,7 +292,7 @@ internal sealed partial class PieceTreeModel
         _searchCache.Remember(node, nodeStartOffset, nodeStartLineNumber);
     }
 
-    internal void InvalidateCacheFromOffset(int offset) => _searchCache.InvalidateFromOffset(offset);
+    internal void InvalidateCacheFromOffset(int offset) => _searchCache.InvalidateRange(offset, int.MaxValue);
 
     public IEnumerable<PieceSegment> EnumeratePiecesInOrder()
     {
@@ -480,6 +506,43 @@ internal sealed partial class PieceTreeModel
             node.RecomputeAggregates(_sentinel);
             node = node.Parent;
         }
+    }
+
+    internal void AssertPieceIntegrity()
+    {
+        var aggregatedLength = 0;
+        var aggregatedLineFeeds = 0;
+
+        foreach (var piece in EnumeratePiecesInOrder())
+        {
+            var buffer = _buffers[piece.BufferIndex];
+            var textSlice = buffer.Slice(piece.Start, piece.End);
+            if (textSlice.Length != piece.Length)
+            {
+                throw new InvalidOperationException($"Piece metadata mismatch: expected length {textSlice.Length} but recorded {piece.Length} for buffer {piece.BufferIndex}.");
+            }
+
+            var computedLineFeeds = GetLineFeedCnt(piece.BufferIndex, piece.Start, piece.End);
+            if (computedLineFeeds != piece.LineFeedCount)
+            {
+                throw new InvalidOperationException($"Piece line feed mismatch: expected {computedLineFeeds} but recorded {piece.LineFeedCount} for buffer {piece.BufferIndex}.");
+            }
+
+            aggregatedLength += piece.Length;
+            aggregatedLineFeeds += piece.LineFeedCount;
+        }
+
+        if (aggregatedLength != TotalLength)
+        {
+            throw new InvalidOperationException($"TotalLength mismatch: aggregated pieces = {aggregatedLength}, tree metadata = {TotalLength}.");
+        }
+
+        if (aggregatedLineFeeds != TotalLineFeeds)
+        {
+            throw new InvalidOperationException($"TotalLineFeeds mismatch: aggregated pieces = {aggregatedLineFeeds}, tree metadata = {TotalLineFeeds}.");
+        }
+
+        _searchCache.Validate(GetOffsetOfNode, TotalLength);
     }
 }
 

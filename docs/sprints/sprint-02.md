@@ -7,7 +7,7 @@
   - `docs/reports/migration-log.md` & `agent-team/indexes/README.md` 记录 AA4 变更，AGENTS / Sprint / Task Board 同步至 Info-Indexer 最新 changefeed。
   - DocUI MarkdownRenderer 展现搜索/替换 overlay、chunk 元数据显示、Cursor word selection 标记，形成对 LLM 友好的多层装饰输出。
 
-**Status Edits Reminder:** 在更新本 Sprint 任何状态前先查阅 `docs/reports/migration-log.md` 以及 `agent-team/indexes/README.md#delta-2025-11-20`，并在备注中引用对应条目。
+**Status Edits Reminder:** 在更新本 Sprint 任何状态前先查阅 `docs/reports/migration-log.md` 以及 `agent-team/indexes/README.md#delta-2025-11-20` / `#delta-2025-11-21`，并在备注中引用对应条目。
 
 ## Backlog Snapshot
 | Priority | Task | Description & Deliverables | runSubAgent Budget | Owner | Target Date | Dependencies | Status / Notes |
@@ -16,11 +16,11 @@
 | P0 | AA4-002 | Investigator-TS：完成 CL6（ChangeBuffer/CRLF/large edits）对照，输出 `agent-team/handoffs/AA4-002-Audit.md`。 | 2 | Investigator-TS | 2025-11-22 | 同上 | Done – `AA4-002-Audit.md` 捕捉 change buffer/CRLF/metadata 缺口，CL6 checklist 更新 |
 | P1 | AA4-003 | Investigator-TS：完成 CL7（Cursor word/snippet/multi-selection）对照，输出 `agent-team/handoffs/AA4-003-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL5/CL6 context | Planned |
 | P1 | AA4-004 | Investigator-TS：完成 CL8（DocUI Find/Replace + Decorations）对照，输出 `agent-team/handoffs/AA4-004-Audit.md`。 | 2 | Investigator-TS | 2025-11-23 | CL5~CL7 context | Planned |
-| P0 | AA4-005 | Porter-CS：根据 CL5 差异实现 PieceTree Builder/Factory parity，记录在 `agent-team/handoffs/AA4-005-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-25 | AA4-001 | Planned |
-| P0 | AA4-006 | Porter-CS：按 CL6 结果实现 ChangeBuffer/CRLF/large edit 修复，更新 tests & 文档。 | 3 | Porter-CS | 2025-11-25 | AA4-002 | Planned |
+| P0 | AA4-005 | Porter-CS：根据 CL5 差异实现 PieceTree Builder/Factory parity，记录在 `agent-team/handoffs/AA4-005-Result.md` + 迁移日志。 | 3 | Porter-CS | 2025-11-25 | AA4-001 | Done – 2025-11-21 交付 chunk split/BOM/DefaultEOL parity，详见 `docs/reports/migration-log.md` 中 AA4-005 行及 `agent-team/indexes/README.md#delta-2025-11-21`；`PieceTreeBuilderTests`、`PieceTreeFactoryTests`、`AA005Tests` 覆盖同步。 |
+| P0 | AA4-006 | Porter-CS：按 CL6 结果实现 ChangeBuffer/CRLF/large edit 修复，更新 tests & 文档。 | 3 | Porter-CS | 2025-11-25 | AA4-002 | Done – 2025-11-21 Porter+QA 验证（见 `agent-team/handoffs/AA4-006-Result.md`、`docs/reports/migration-log.md`「AA4-006 (QA Verified)」行与 `agent-team/indexes/README.md#delta-2025-11-21`）；`PieceTreeModelTests`、`CRLFFuzzTests`、`TestMatrix.md` 已记录。 |
 | P1 | AA4-007 | Porter-CS：实现 Cursor word/snippet/multi-select 语义，更新 MarkdownRenderer/DocUI 展示。 | 3 | Porter-CS | 2025-11-26 | AA4-003 | Planned |
 | P1 | AA4-008 | Porter-CS：实现 DocUI Find/Replace overlays + capture decorations，`MarkdownRenderer`/`TextModelSearch` 同步。 | 3 | Porter-CS | 2025-11-26 | AA4-004 | Planned |
-| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Planned |
+| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Done – QA revalidation 完成（`agent-team/handoffs/AA4-009-QA.md`、`src/PieceTree.TextBuffer.Tests/TestMatrix.md`），`PIECETREE_DEBUG=0 dotnet test ... --nologo` 记录 119/119 基线并在 `agent-team/indexes/README.md#delta-2025-11-21` 广播。 |
 | P0 | OI-011 | Info-Indexer：发布 AA4 changefeed、更新 `core-docs-index`、同步 AGENTS/Sprint/Task Board。 | 1 | Info-Indexer | 2025-11-28 | 全部 AA4 deliverables | Planned |
 
 ## Plan

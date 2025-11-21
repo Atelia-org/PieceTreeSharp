@@ -1,4 +1,4 @@
-# PT-005 QA Matrix (2025-11-20)
+# PT-005 QA Matrix (2025-11-21)
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
 
@@ -32,7 +32,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F3 – Stickiness & `forceMoveMarkers` parity | `DecorationRangeUpdater` honoring TS semantics for collapsed ranges and forced moves | Covered | `DecorationTests.ForceMoveMarkersOverridesStickinessDefaults` |
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 
-**Total Tests Passing**: 105
+**Total Tests Passing**: 119 (PIECETREE_DEBUG=0 baseline)
 **Date**: 2025-11-21
 
 ## AA4-005 (CL5) & AA4-006 (CL6) Porter-added tests (2025-11-21)
@@ -53,6 +53,9 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | LastChangeBufferPos_AppendOptimization | CL6 | Append optimization / change buffer reuse | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.LastChangeBufferPos_AppendOptimization` |
 | AverageBufferSize_InsertLargePayload | CL6 | Chunk splitting heuristics for large inserts | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.AverageBufferSize_InsertLargePayload` |
 | CRLF_RepairAcrossChunks | CL6 | Repair CRLF bridging across chunks | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.CRLF_RepairAcrossChunks` |
+| CRLFRepair_DoesNotLeaveZeroLengthNodes | CL6 | CRLF repair should not leave tombstone nodes | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.CRLFRepair_DoesNotLeaveZeroLengthNodes` |
+| MetadataRebuild_AfterBulkDeleteAndInsert | CL6 | Metadata rebuild + line-feed recount after bulk edits | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.MetadataRebuild_AfterBulkDeleteAndInsert` |
+| CRLF_FuzzAcrossChunks | CL6 | CR/LF fuzzing across chunks with deterministic logs | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.CRLF_FuzzAcrossChunks` |
 | ChangeBufferFuzzTests | CL6 | Random insert/delete fuzz and invariants | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.ChangeBufferFuzzTests` |
 | SearchCacheInvalidation_Precise | CL6 | Search cache precision & cache invalidation | Porter-CS / QA-Automation | Verified (pass) | `PieceTreeModelTests.SearchCacheInvalidation_Precise` |
 
@@ -63,7 +66,15 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 2025-11-21 | 105 | 105 | 0 | 2.1s | All tests passed after AA4-006 fixes: `AA005Tests.TestSplitCRLF` & `PieceTreeModelTests.CRLF_RepairAcrossChunks` verified; CRLF fuzz harness green. |
+| 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
+| 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
+
+### Targeted reruns (AA4-009, 2025-11-21)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
+| `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
 
 ## AA4-007 (CL7) – Cursor Word / Snippet / Multi-select parity (Porter-created tests)
 
@@ -84,5 +95,5 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 - Ownership: `Porter-CS` implemented initial features & tests; `QA-Automation` verifies and extends test matrix (labels: CL7). 
 - The `MarkdownRenderer` test for a combined multi-cursor + snippet rendering snapshot is planned (pending implementation name `TestRender_MultiCursorAndSnippet`) and will be added to strengthen DocUI coverage for CL7.
 
-**Next Steps:** QA will reproduce the failing CRLF cases, run the CRLF fuzz harness across permutations, capture stack traces and failing inputs, update the `agent-team/handoffs/AA4-009-QA.md` with repro steps and logs, and coordinate with Porter-CS for fixes. Re-run `dotnet test` twice to confirm flakiness or deterministic regressions.
+**Next Steps:** 1) Monitor CL7/CL8 additions and capture new cursor/snippet/search overlays in this matrix once Porter drops land. 2) Keep CRLF fuzz harness wired with `PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs` so future QA runs retain deterministic seeds/log trails. 3) Promote DocUI golden outputs (MarkdownRenderer multi-cursor + snippet) once the pending test lands.
 
