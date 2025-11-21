@@ -19,9 +19,12 @@
 | Process & Templates | agent-team/ai-team-playbook.md, agent-team/main-loop-methodology.md | runSubAgent 输入模板与主循环 checklist 的落地点，Planner 维护。 |
 | Meetings & Decisions | docs/meetings/meeting-20251119-team-kickoff.md, docs/meetings/meeting-20251119-org-self-improvement.md | 最近决策与行动项来源，更新 Task Board / Sprint 时引用。 |
 | Global Milestones | AGENTS.md | 完成阶段性计划调整后将成果写入此时间线。 |
+| TS Test Alignment | docs/plans/ts-test-alignment.md | Batch #1 ReplacePattern runtime/tests/harness checklists与 QA/Info-Indexer 依赖的主计划。 |
 
 ## Worklog
-- **Last Update:** 2025-11-19
+- **Last Update:** 2025-11-22
+- **Recent Actions (2025-11-22):**
+  - 复盘 `docs/plans/ts-test-alignment.md` Live Checkpoints，规划 Batch #1（ReplacePattern runtime/tests/harness）协调简报，明确 AA4-008/AA4-009/OI-011 映射与 Sprint 02 同步点。
 - **Recent Actions (2025-11-19):**
   - 落地 OI-003：在 `agent-team/main-loop-methodology.md` 新增 `runSubAgent Input Template`，引入 ContextSeeds/Objectives/Dependencies/... 结构并强调 changefeed 钩子。
   - 更新 `agent-team/ai-team-playbook.md`，让 Core Artifacts + Workflow 显式引用模板与 `agent-team/indexes/README.md#delta-20251119` checkpoint。
@@ -32,6 +35,7 @@
 1. **OI-003 – Adoption Pass:** 验证各 SubAgent 在下一轮调用中使用新模板并标记 changefeed checkpoint；收集反馈准备后续迭代。
 2. **OI-001/OI-004 接口落地：** 与 DocMaintainer、Info-Indexer 共建“索引输入 -> Task Board 精简”流水线，确保审计结果能直接转化为 backlog 调整提案。
 3. **PT-003 – Sprint 对齐：** 等待 Investigator-TS 的类型映射扩展后，更新 `docs/sprints/sprint-00.md` 与 `agent-team/task-board.md` 的依赖、预算与节奏。
+4. **Batch #1 – ReplacePattern Handoff:** 将 AA4-008/AA4-009/OI-011 交付映射至 Sprint 02，补充 Task Board checklist（runtime/tests/harness/changefeed/DocUI snapshot）。
 
 ## Blocking Issues
 - 仍需 Investigator-TS 汇总 PieceTree 类型映射/依赖输出，方能重新评估 PT-004 时间表与 runSubAgent 预算。
