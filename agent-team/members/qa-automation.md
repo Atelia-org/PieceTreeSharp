@@ -41,6 +41,7 @@
 
  - **2025-11-21:** AA4-007 QA start — Initiating CL7 validation: verify multi-cursor, wordOps, column selection, and snippet coverage added by Porter-CS; add CL7 tests to `TestMatrix.md`; run the full test suite baseline twice; run multi-cursor & snippet tests (x3); create a snippet+multi-cursor fuzz harness; record outcomes and file `agent-team/handoffs/AA4-007-QA.md` with findings.
 - **2025-11-21:** AA4-008 QA strategy drafted — Reviewed CL8 remediation memo (Investigator + Porter, findings F1–F4) for DocUI find/replace overlays and produced Sprint-02 QA plan enumerating new DocUI overlay suites, commands, instrumentation, fixture requirements, docs to update, and exit criteria.
+- **2025-11-22:** TS test alignment map created — Updated `src/PieceTree.TextBuffer.Tests/TestMatrix.md` with TS Source/Portability Tier columns, linked existing suites (PieceTree/TextModel/Diff/Decorations/Markdown) to the Appendix inventory, added DocUI find model/controller/selection + replace-pattern placeholder rows ("Not implemented" with target filenames), and documented Batch #1 commands (full `dotnet test`, DocUI replace-pattern filter, Markdown overlay sweep). Blockers: DocUI harness/clipboard/context-key stubs for find suites + WordSeparator/SearchContext mappings for full Tier-B parity.
 
 ## AA4-008 (CL8 DocUI Find/Replace Overlays) QA Strategy — 2025-11-21
 

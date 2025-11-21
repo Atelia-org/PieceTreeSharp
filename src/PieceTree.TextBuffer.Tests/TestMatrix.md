@@ -1,5 +1,22 @@
 # PT-005 QA Matrix (2025-11-21)
 
+## TS Test Alignment Map (Batch #1)
+
+| C# Suite | Scope | TS Source | Portability Tier | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| PieceTreeBuilderTests | Builder chunk split, BOM/metadata retention | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Mirrors Builder cases (`AcceptChunk_*`) incl. CRLF carryover per AA4-005. |
+| PieceTreeModelTests | Piece insert/delete invariants, CRLF repair, fuzz | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Covers metadata rebuild + CRLF fuzz; extend for invariant asserts once Porter exposes EnumeratePieces API. |
+| PieceTreeSearchTests | PieceTree-level search helpers + fuzz harness | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Provides deterministic search + fuzz parity; waiting on PT-005.S9 BufferRange/SearchContext map for full property coverage. |
+| TextModelTests | TextModel lifecycle, BOM/EOL options | [ts/src/vs/editor/test/common/model/textModel.test.ts](../../ts/src/vs/editor/test/common/model/textModel.test.ts) | B | Implemented | `TextModelTests.cs` includes initialization + CRLF normalization; services layer stubs still pending for event stream parity. |
+| TextModelSearchTests | Regex/word search parameters, CRLF payloads | [ts/src/vs/editor/test/common/model/textModelSearch.test.ts](../../ts/src/vs/editor/test/common/model/textModelSearch.test.ts) | B | Implemented | Core regex + multiline coverage exists; Tier-B gaps = word-boundary + separator maps noted in AA4-008 blockers. |
+| DiffTests | DiffComputer heuristics (line/char, trim flags) | [ts/src/vs/editor/test/common/diff/diffComputer.test.ts](../../ts/src/vs/editor/test/common/diff/diffComputer.test.ts) | B | Implemented | Legacy diff logic ported; char-change pretty diff + whitespace flag cases still TODO for parity. |
+| DecorationTests | Stickiness, injected text, per-line queries | [ts/src/vs/editor/test/common/model/modelDecorations.test.ts](../../ts/src/vs/editor/test/common/model/modelDecorations.test.ts) | B | Implemented | AA3-009 suites cover metadata + stickiness; need `model.changeDecorations` parity sweep for Tier-B exit. |
+| MarkdownRendererTests | DocUI diff overlay + owner routing | [TODO – locate DocUI find widget snapshot/browser smoke tests (ts/test/browser/*)](../../docs/plans/ts-test-alignment.md#appendix-%E2%80%93-ts-test-inventory-placeholder) | C | Implemented (partial) | Snapshot parity for diff markers landed; upstream TS widget tests still unidentified → Info-Indexer to surface canonical path. |
+| DocUIFindModelTests (planned) | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | C | Not implemented | Planned `src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`; blocked on DocUI editor harness + find decoration plumbing. |
+| DocUIFindControllerTests (planned) | Command-layer find controller semantics | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | C | Not implemented | Target file `DocUI/DocUIFindControllerTests.cs`; needs clipboard/context-key services shims. |
+| DocUIFindSelectionTests (planned) | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | B | Not implemented | Target file `DocUI/DocUIFindSelectionTests.cs`; requires lightweight selection helpers + range serialization. |
+| DocUIReplacePatternTests (planned) | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | Not implemented | Batch #1 priority (`DocUI/DocUIReplacePatternTests.cs`); pure-logic suite once baseline harness stands. |
+
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
 
 | Scenario | Edit Types | Text Shapes | Chunk Layout | Validation Signals | Status | Reference |
@@ -75,6 +92,14 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | --- | --- | --- |
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
 | `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
+
+### Batch #1 (TS Portability) Validation Commands
+
+| Command | Purpose | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~DocUIReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted DocUI replace-pattern port | Awaits `DocUIReplacePatternTests.cs`; command stub recorded so QA can paste once suite lands. |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
 
 ## AA4-007 (CL7) – Cursor Word / Snippet / Multi-select parity (Porter-created tests)
 

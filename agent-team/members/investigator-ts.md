@@ -71,6 +71,7 @@
     - 在 `agent-team/handoffs/AA4-004-Audit.md` 写入 F1–F4（search overlay metadata、FindModel state、replace preview/captureMatches、MarkdownRenderer owner filtering）并列出 Porter/QA 依赖。
     - 更新 `docs/reports/audit-checklist-aa4.md#cl8`（状态切换为 “Audit Complete – Awaiting Fix”，同步主要差异与测试钩子）。
   - 2025-11-21: 汇总 Sprint 02 Phase 7（CL8）最新 delta，与 `docs/sprints/sprint-02.md` / `agent-team/task-board.md` / `docs/reports/migration-log.md` / `agent-team/indexes/README.md#delta-2025-11-21` 对齐；编写 Porter-CS AA4-008 交付 addendum，明确 TS vs C# 差异、文件级 TODO、测试挂钩与 DocMaintainer/Info-Indexer changefeed 依赖。
+  - 2025-11-21: 以 Investigator-TS 身份完成 AA4 Phase 7 Sprint 02 TS 测试 inventory（PieceTree/TextModel/Diff/DocUI Find），将清单写入 `docs/plans/ts-test-alignment.md#appendix`，标注可移植等级 A/B/C、DocUI harness 阻塞，并引用 `docs/reports/audit-checklist-aa4.md` / `docs/reports/audit-checklist-aa3.md` 记录依赖。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。
