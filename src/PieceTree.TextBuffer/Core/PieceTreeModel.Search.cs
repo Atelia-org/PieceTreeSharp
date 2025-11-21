@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Class: PieceTreeBase - Search/FindMatches operations (Lines: 1500-1800)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;

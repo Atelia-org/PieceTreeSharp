@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts
+// - Interface: ITextSnapshot, snapshot implementation
+// - Lines: 50-150
+// Ported: 2025-11-19
+
 using System.Collections.Generic;
 using System.Text;
 

@@ -1,3 +1,11 @@
+// Source: ts/src/vs/editor/common/model/textModelSearch.ts
+// - Classes: SearchParams, SearchData, FindMatch
+// - Lines: 1-200
+// Source: ts/src/vs/editor/common/core/wordCharacterClassifier.ts
+// - Class: WordCharacterClassifier
+// - Lines: 1-100
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;

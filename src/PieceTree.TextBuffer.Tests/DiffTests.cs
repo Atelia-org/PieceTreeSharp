@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/diff/defaultLinesDiffComputer.test.ts
+// - Tests: Word diff inner changes, ignore trim whitespace, move detection
+// Ported: 2025-11-20
+
 using System;
 using System.Text;
 using PieceTree.TextBuffer.Diff;

@@ -1,3 +1,11 @@
+// Source: ts/src/vs/platform/undoRedo/common/undoRedo.ts
+// - Interface: IUndoRedoService
+// Ported: 2025-11-19
+//
+// Original C# implementation
+// Purpose: Simplified in-process undo/redo service implementation
+// Created: 2025-11-20
+
 using System;
 using System.Collections.Generic;
 

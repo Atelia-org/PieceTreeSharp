@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/cursor/cursorColumnSelection.ts
+// - Methods: visibleColumnFromColumn, columnFromVisibleColumn (Lines: 10-50)
+// Ported: 2025-11-22
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

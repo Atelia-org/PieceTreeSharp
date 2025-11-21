@@ -1,3 +1,9 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/heuristicSequenceOptimizations.ts
+// - Functions: optimizeSequenceDiffs, removeShortMatches, extendDiffsToEntireWordIfAppropriate,
+//   removeVeryShortMatchingLinesBetweenDiffs, removeVeryShortMatchingTextBetweenLongDiffs,
+//   joinSequenceDiffsByShifting, shiftSequenceDiffs (Lines: 12-473)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

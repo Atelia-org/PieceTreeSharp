@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Class: LineStarts (Lines: 27-31)
+// - Functions: createLineStarts, createLineStartsFast (Lines: 61-98)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 

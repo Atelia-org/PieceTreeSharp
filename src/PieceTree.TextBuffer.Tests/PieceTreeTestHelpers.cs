@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Helper: Text reconstruction from PieceTree model
+// Ported: 2025-11-22
+
 using System.Text;
 using PieceTree.TextBuffer.Core;
 

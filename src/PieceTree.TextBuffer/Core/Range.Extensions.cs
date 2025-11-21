@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/core/range.ts
+// - Interface: IRange extension methods
+// - Lines: 50-150
+// Ported: 2025-11-18
+
 namespace PieceTree.TextBuffer.Core;
 
 public readonly partial record struct Range

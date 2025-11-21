@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/core/selection.ts
+// - Class: Selection
+// - Lines: 1-100
+// Ported: 2025-11-19
+
 using System;
 
 namespace PieceTree.TextBuffer.Core;

@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: Snapshot immutability and content reading
+// Ported: 2025-11-19
+
 using Xunit;
 using PieceTree.TextBuffer.Core;
 using System.Collections.Generic;

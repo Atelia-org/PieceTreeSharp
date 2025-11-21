@@ -1,3 +1,9 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/computeMovedLines.ts
+// - Function: computeMovedLines
+// - Helper types: LineRangeFragment, PossibleMapping, WindowKey
+// - Lines: 20-800
+// Ported: 2025-11-21
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

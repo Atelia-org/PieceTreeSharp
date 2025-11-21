@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/textModelSearch.test.ts
+// - Tests: FindMatches literal/regex, capture groups, multiline search, word boundaries
+// Ported: 2025-11-19
+
 using Xunit;
 using Range = PieceTree.TextBuffer.Core.Range;
 

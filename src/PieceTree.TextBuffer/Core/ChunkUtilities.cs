@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Functions: Text chunking and normalization utilities
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Text;

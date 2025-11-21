@@ -1,3 +1,9 @@
+// Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+// - Class: OffsetRange (Lines: 76-107)
+// Ported: 2025-11-19
+//
+// Note: In TS, OffsetRange is defined within rangeMapping.ts alongside LineRange and RangeMapping.
+
 using System;
 using System.Collections.Generic;
 

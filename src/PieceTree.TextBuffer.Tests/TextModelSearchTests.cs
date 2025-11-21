@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/textModelSearch.test.ts
+// - Tests: Multi-range search, findInSelection, FindNextMatch wrapping
+// Ported: 2025-11-19
+
 using PieceTree.TextBuffer;
 using Xunit;
 using PieceTreeRange = PieceTree.TextBuffer.Core.Range;

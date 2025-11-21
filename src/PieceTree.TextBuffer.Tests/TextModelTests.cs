@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/textModel.test.ts
+// - Tests: TextModel creation, selection logic, line content, editing operations
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,10 @@
+// Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+// - Class: RangeMapping (Lines: 243-320)
+// - Class: LineRangeMapping (Lines: 19-195)
+// - Class: DetailedLineRangeMapping (Lines: 196-240)
+// - Function: lineRangeMappingFromRangeMappings (Lines: 322-395)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/editStack.ts
+// - Class: EditStack (Lines: 384-452)
+// - Class: EditStackElement (integrated into C# implementation)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using PieceTree.TextBuffer.Services;

@@ -1,3 +1,18 @@
+// Source: vs/editor/common/model.ts
+// - Enum: TrackedRangeStickiness (Lines: 673-677)
+// - Interface: IModelDecoration (Lines: 385-403)
+// - Interface: IModelDecorationOptions (Lines: 147-310)
+// - Interface: IModelDecorationOverviewRulerOptions (Lines: 127-133)
+// - Interface: IModelDecorationMinimapOptions (Lines: 138-150)
+// - Interface: IModelDecorationGlyphMarginOptions (Lines: 109-118)
+// - Interface: InjectedTextOptions (Lines: 321-355)
+// - Enum: OverviewRulerLane (Lines: 35-40)
+// - Enum: GlyphMarginLane (Lines: 45-49)
+// - Enum: MinimapPosition (Lines: 74-77)
+// - Enum: TextDirection (Lines: 313-318)
+// - Enum: InjectedTextCursorStops (Lines: 357-362)
+// Ported: 2025-11-22
+
 using System;
 using System.Text;
 

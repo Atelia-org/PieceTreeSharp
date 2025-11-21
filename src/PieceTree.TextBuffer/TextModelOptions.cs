@@ -1,3 +1,9 @@
+// Source: ts/src/vs/editor/common/model.ts
+// - Enums: EndOfLineSequence, EndOfLinePreference, DefaultEndOfLine
+// Source: ts/src/vs/editor/common/core/misc/textModelDefaults.ts
+// - Interface: ITextModelCreationOptions (EDITOR_MODEL_DEFAULTS)
+// Ported: 2025-11-19
+
 using System;
 
 namespace PieceTree.TextBuffer;

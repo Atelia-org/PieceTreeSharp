@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/diff/linesDiffComputer.ts
+// - Class: LinesDiff (Lines: 19-37)
+// Ported: 2025-11-19
+
 using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Diff;

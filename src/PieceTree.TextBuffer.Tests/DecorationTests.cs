@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/model.decorations.test.ts
+// - Tests: DeltaDecorations, owner scopes, stickiness, CollapseOnReplaceEdit
+// Ported: 2025-11-20
+
 using System.Collections.Generic;
 using Xunit;
 using PieceTree.TextBuffer;

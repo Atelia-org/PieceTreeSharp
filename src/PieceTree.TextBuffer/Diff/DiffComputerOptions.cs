@@ -1,3 +1,9 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer.ts
+// - Interface: ILinesDiffComputerOptions (Lines: 15-30)
+// Source: ts/src/vs/editor/common/diff/linesDiffComputer.ts
+// - Interface: LinesDiffComputerOptions
+// Ported: 2025-11-21
+
 namespace PieceTree.TextBuffer.Diff;
 
 public sealed class DiffComputerOptions

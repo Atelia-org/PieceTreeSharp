@@ -1,3 +1,8 @@
+// Original C# implementation
+// Purpose: Fuzz testing for snippet placeholders with multi-cursor scenarios
+// - Validates snippet session state consistency across random edits
+// Created: 2025-11-22
+
 using System;
 using System.Linq;
 using Xunit;

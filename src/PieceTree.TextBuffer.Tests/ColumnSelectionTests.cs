@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/contrib/multicursor/test/browser/multicursor.test.ts
+// - Tests: Column selection and visible column calculations
+// Ported: 2025-11-22
+
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Cursor;

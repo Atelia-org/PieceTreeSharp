@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/cursorCommon.ts
+// - Class: CursorState, SingleCursorState (Lines: 271-340)
+// Ported: 2025-11-22
+
 using System;
 using PieceTree.TextBuffer.Core;
 

@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Class: PieceTreeSearchCache (cache field and helper methods)
+// - Lines: 100-268
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 

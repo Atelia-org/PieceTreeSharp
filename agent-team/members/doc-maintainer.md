@@ -24,11 +24,13 @@
 | Meetings Archive | docs/meetings/meeting-20251119-team-kickoff.md; docs/meetings/meeting-20251119-org-self-improvement.md | 跟踪决策、跨角色依赖 |
 | Sprint Plans | docs/sprints/sprint-00.md; docs/sprints/sprint-org-self-improvement.md | 定义 PT-006 / OI-001 / OI-004 的目标、预算 |
 | Task Board | agent-team/task-board.md | 统一 PT / OI 状态并承载压缩策略 |
+| Task Guides | docs/tasks/source-attribution-task.md | PT-007 溯源注释规范与执行指南 |
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
 - **Last Update:** 2025-11-22（Batch #1 changefeed触点 + #delta-2025-11-22 待发布前置）
 - **Recent Actions:**
+  - 2025-11-22：创建 `docs/tasks/source-attribution-task.md`（PT-007 任务指导），定义 C# 文件头溯源注释的统一格式规范、执行流程和验收标准，支持移植代码 TS 源追溯与原创代码标注。
   - 2025-11-22：记录 Porter coding / QA waiting / Info-Indexer 准备 `#delta-2025-11-22` 的状态检查，暂缓修改 `AGENTS.md`、`docs/sprints/sprint-02.md`、`agent-team/task-board.md`、`docs/reports/migration-log.md`，先完成 changefeed 模板片段与链接占位符预装，待 delta 落地即可套用。
   - 2025-11-22：建立 Batch #1（DocUI ReplacePattern 套件）文档触点清单，确认 `AGENTS.md`、`docs/sprints/sprint-02.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`docs/reports/migration-log.md` 需引用 `agent-team/indexes/README.md#delta-2025-11-22`，并准备 DocUI snapshot/TRX 链接守则。
   - 2025-11-20：完成 AA3-003 / AA3-008 文档对齐 —— 更新 `agent-team/task-board.md`、`docs/sprints/sprint-01.md`、`AGENTS.md`，引用 `agent-team/indexes/README.md#delta-2025-11-20` 作为 canonical DocUI changefeed，并在记忆档记录该 pass。

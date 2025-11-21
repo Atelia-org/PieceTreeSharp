@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetController2.test.ts
+// Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetSession.test.ts
+// - Tests: Snippet insertion, placeholder navigation
+// Ported: 2025-11-22
+
 using System;
 using Xunit;
 using PieceTree.TextBuffer;

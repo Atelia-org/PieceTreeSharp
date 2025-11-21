@@ -1,3 +1,10 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts
+// - Interface: IDiffAlgorithm
+// - Class: DiffAlgorithmResult, SequenceDiff, OffsetPair
+// - Interfaces: ISequence, ITimeout
+// - Classes: InfiniteTimeout, DateTimeout
+// Ported: 2025-11-21
+
 using System;
 using System.Collections.Generic;
 using PieceTree.TextBuffer.Diff;

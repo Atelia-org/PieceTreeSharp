@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/lineSequence.ts
+// - Class: LineSequence (Lines: 10-45)
+// Ported: 2025-11-19
+
 using System;
 using System.Linq;
 using PieceTree.TextBuffer.Diff.Algorithms;

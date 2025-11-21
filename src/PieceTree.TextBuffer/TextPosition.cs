@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/core/position.ts
+// - Interface: IPosition (Lines: 9-21)
+// - Class: Position (Lines: 23-200+)
+// Ported: 2025-11-18
+
 namespace PieceTree.TextBuffer;
 
 /// <summary>

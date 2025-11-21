@@ -1,3 +1,8 @@
+// Original C# implementation
+// Purpose: Debug utilities for PieceTree model inspection in tests
+// - Provides model dump functionality for test diagnostics
+// Created: 2025-11-22
+
 using System;
 using System.Linq;
 using System.Text;

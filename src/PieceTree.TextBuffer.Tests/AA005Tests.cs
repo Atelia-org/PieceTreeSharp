@@ -1,3 +1,7 @@
+// Source: Custom C# test implementation
+// Purpose: AA-005 CRLF splitting validation tests
+// Created: 2025-11-21
+
 using System;
 using PieceTree.TextBuffer.Core;
 using Xunit;

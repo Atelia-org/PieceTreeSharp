@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/model/textModelSearch.ts
+// - Interface: SearchParams and related types
+// Ported: 2025-11-19
+
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer;

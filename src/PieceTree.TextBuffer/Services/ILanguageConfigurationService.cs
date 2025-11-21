@@ -1,3 +1,11 @@
+// Source: ts/src/vs/editor/common/languages/languageConfigurationRegistry.ts
+// - Interface: ILanguageConfigurationService
+// Ported: 2025-11-19
+//
+// Original C# implementation
+// Purpose: Simplified service implementation for C# without full DI infrastructure
+// Created: 2025-11-20
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

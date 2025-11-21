@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: Builder chunk splitting, BOM/metadata retention, CRLF handling (Lines: 1500+)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using PieceTree.TextBuffer;

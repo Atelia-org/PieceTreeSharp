@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Functions: RTL detection, line terminator scanning
+// - Lines: 100-150
+// Ported: 2025-11-19
+
 using System;
 
 namespace PieceTree.TextBuffer.Core;

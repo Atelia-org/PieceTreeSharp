@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/contrib/multicursor/test/browser/multicursor.test.ts
+// - Tests: Multi-cursor editing and rendering
+// Ported: 2025-11-22
+
 using System;
 using System.Linq;
 using Xunit;

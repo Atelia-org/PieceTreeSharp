@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: basic insert/delete, more inserts, more deletes (Lines: 214-265)
+// Ported: 2025-11-19
+
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;

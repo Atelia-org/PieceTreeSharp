@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/rbTreeBase.ts
+// - Class: TreeNode (Lines: 8-425)
+// Ported: 2025-11-19
+
 namespace PieceTree.TextBuffer.Core;
 
 internal enum NodeColor

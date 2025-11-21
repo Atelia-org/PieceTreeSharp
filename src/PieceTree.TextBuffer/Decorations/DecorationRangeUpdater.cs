@@ -1,3 +1,8 @@
+// Source: vs/editor/common/model/intervalTree.ts
+// - Function: nodeAcceptEdit (Lines: 425-510)
+// - Function: adjustMarkerBeforeColumn (Lines: 410-424)
+// Ported: 2025-11-22
+
 using System;
 
 namespace PieceTree.TextBuffer.Decorations;

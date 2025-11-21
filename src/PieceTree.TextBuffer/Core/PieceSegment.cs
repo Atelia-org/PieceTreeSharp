@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Interface: Piece (referenced throughout PieceTreeBase)
+// - Type: BufferCursor (referenced throughout PieceTreeBase)
+// Ported: 2025-11-19
+
 namespace PieceTree.TextBuffer.Core;
 
 /// <summary>

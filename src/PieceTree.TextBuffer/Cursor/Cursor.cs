@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/cursor/oneCursor.ts
+// - Class: Cursor (Lines: 15-200)
+// Ported: 2025-11-22
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

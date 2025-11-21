@@ -1,3 +1,9 @@
+// Source: vs/editor/common/model/intervalTree.ts
+// - Class: IntervalTree (Lines: 268-1100)
+// - Class: IntervalNode (Lines: 142-266)
+// - Red-black tree implementation for decoration storage
+// Ported: 2025-11-22
+
 using System;
 using System.Collections.Generic;
 

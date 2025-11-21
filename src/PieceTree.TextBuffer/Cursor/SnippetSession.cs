@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/contrib/snippet/browser/snippetSession.ts
+// - Class: SnippetSession (Lines: 30-600)
+// Ported: 2025-11-22
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts
+// - Class: PieceTreeTextBufferFactory
+// - Lines: 190-350
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Text;

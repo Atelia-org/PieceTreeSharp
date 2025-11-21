@@ -1,3 +1,7 @@
+// Source: vs/editor/common/model/textModel.ts
+// - Decoration change tracking structures
+// Ported: 2025-11-22
+
 namespace PieceTree.TextBuffer.Decorations;
 
 public enum DecorationDeltaKind

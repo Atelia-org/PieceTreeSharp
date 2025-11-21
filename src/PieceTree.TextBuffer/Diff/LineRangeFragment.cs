@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/utils.ts
+// - Class: LineRangeFragment (Lines: 30-74)
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 

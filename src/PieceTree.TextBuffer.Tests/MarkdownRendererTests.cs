@@ -1,3 +1,8 @@
+// Original C# implementation
+// Purpose: Tests for MarkdownRenderer - visual debugging output for editor state
+// - Validates cursor, selection, and decoration rendering in text format
+// Created: 2025-11-22
+
 using System;
 using Xunit;
 using PieceTree.TextBuffer;

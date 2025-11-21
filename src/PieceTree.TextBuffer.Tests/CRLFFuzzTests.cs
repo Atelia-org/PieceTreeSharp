@@ -1,3 +1,8 @@
+// Original C# implementation
+// Purpose: Fuzz testing for CRLF handling edge cases in PieceTree
+// - Validates cross-chunk CRLF normalization and split boundary handling
+// Created: 2025-11-22
+
 using System;
 using System.Text;
 using Xunit;

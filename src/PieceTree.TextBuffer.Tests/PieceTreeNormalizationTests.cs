@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: delete CR in CRLF normalization tests (Lines: 1730+)
+// Ported: 2025-11-19
+
 using Xunit;
 using PieceTree.TextBuffer;
 using System.Collections.Generic;

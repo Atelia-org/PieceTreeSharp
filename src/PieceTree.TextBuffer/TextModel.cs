@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/textModel.ts
+// - Class: TextModel (Lines: 120-2688)
+// - Interfaces: ITextEdit, ITextChange and related types
+// Ported: 2025-11-19
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

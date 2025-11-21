@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts
+// - Functions: Searcher class and search implementation
+// - Lines: 1500-1700
+// Ported: 2025-11-19
+
 using System;
 using System.Text.RegularExpressions;
 

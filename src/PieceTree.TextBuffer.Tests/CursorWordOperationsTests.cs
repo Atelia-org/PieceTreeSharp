@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/contrib/wordOperations/test/browser/wordOperations.test.ts
+// - Tests: Word movement and deletion operations
+// Ported: 2025-11-22
+
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;

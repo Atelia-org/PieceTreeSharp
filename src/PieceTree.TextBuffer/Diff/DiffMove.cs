@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/diff/linesDiffComputer.ts
+// - Interface: MovedText
+// - Lines: 50-80
+// Ported: 2025-11-21
+
 using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Diff;

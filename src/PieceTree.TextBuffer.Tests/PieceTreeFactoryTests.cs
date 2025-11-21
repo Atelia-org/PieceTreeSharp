@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: Factory line text retrieval, EOL handling, normalization (Lines: 100+)
+// Ported: 2025-11-19
+
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Xunit;

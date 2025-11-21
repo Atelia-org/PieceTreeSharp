@@ -1,3 +1,11 @@
+// Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+// - Class: LineRange (Lines: 1-18)
+// - Class: LineRangeSet (additional C# implementation for set operations)
+// Ported: 2025-11-19
+//
+// Note: LineRange is a lightweight struct in TS; C# version adds LineRangeSet
+// for efficient range set operations not present in the original TS implementation.
+
 using System;
 using System.Collections.Generic;
 using PieceTree.TextBuffer.Core;

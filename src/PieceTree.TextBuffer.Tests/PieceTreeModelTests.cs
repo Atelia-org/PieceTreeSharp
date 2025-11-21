@@ -1,3 +1,7 @@
+// Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
+// - Tests: Change buffer optimization, chunk splitting, search cache invalidation
+// Ported: 2025-11-21
+
 using Xunit;
 using System.Linq;
 using System.Text;

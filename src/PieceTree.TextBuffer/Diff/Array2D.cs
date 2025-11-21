@@ -1,3 +1,8 @@
+// Source: ts/src/vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts
+// - Class: Array2D (utility for dynamic programming)
+// - Lines: 200-230
+// Ported: 2025-11-21
+
 namespace PieceTree.TextBuffer.Diff;
 
 internal sealed class Array2D<T>

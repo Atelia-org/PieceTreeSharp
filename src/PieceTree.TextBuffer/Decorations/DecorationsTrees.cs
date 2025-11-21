@@ -1,3 +1,9 @@
+// Original C# implementation
+// Purpose: Multi-tree decoration storage with scope-based separation
+// Created: 2025-11-22
+// Note: VS Code uses a single IntervalTree; this implementation separates decorations
+//       into regular, overview, and injected text trees for better performance.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
