@@ -114,6 +114,10 @@
   - Synced with Investigator-TS + QA-Automation on TS test inventory (`TestMatrix.md`) and the new plan at `docs/plans/ts-test-alignment.md`; Batch #1 target is `replacePattern.test.ts` parity plus DocUI harness prep.
   - Action items: draft DocUI `replacePattern` execution plan (deliverable/test/dependency map), capture WordSeparator + DocUI selection helper gaps, note harness scaffolding requirements, and ensure outputs flow into migration log, changefeed, TestMatrix, and plan checkpoints.
   - New directive (AA4 Batch #1 – ReplacePattern): before implementation deliver a checklist covering touched files (`ReplacePattern.cs`, DocUI controllers, fixtures, harness JSON/tests), API surface synopsis, migration-log entry template (include QA commands & DocUI snapshots), and risk/dependency plan (WordSeparator cache, harness substitutes). Output must reference Planner checkpoints and broadcast feed `#delta-2025-11-22` once artifacts land.
+ - **2025-11-22 – Batch #1 ReplacePattern Kickoff**
+   - Began scoping C# runtime drop for `ReplacePattern` (port TS `replacePattern.ts` helpers + `ReplacePatternResult`/`ReplacePatternRequest` types) and lined up DocUI harness needs (`DocUITestHost`, `DocUIReplacePatternTests`, `DocUIReplacePatternFixtures`).
+   - TODO next session: map TS `replacePattern.test.ts` cases to `PieceTree.TextBuffer.Tests/DocUIReplacePatternTests.cs`, stub runtime entry in `src/PieceTree.TextBuffer/Search/ReplacePattern.cs`, scaffold DocUI harness under `src/PieceTree.TextBuffer.Tests/DocUI/` with test JSON ingestion, update `docs/plans/ts-test-alignment.md#Batch-1` checkpoints.
+   - Dependencies/blockers: need Investigator-TS to confirm WordSeparator + regex expansion semantics, confirm DocUI harness telemetry path, ensure `DocUIHarness.json` sample assets merge cleanly with `ts/test/` snapshots.
 
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。

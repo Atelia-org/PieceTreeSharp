@@ -27,8 +27,9 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-22（Batch #1 changefeed & DocUI touchpoint prep）
+- **Last Update:** 2025-11-22（Batch #1 changefeed触点 + #delta-2025-11-22 待发布前置）
 - **Recent Actions:**
+  - 2025-11-22：记录 Porter coding / QA waiting / Info-Indexer 准备 `#delta-2025-11-22` 的状态检查，暂缓修改 `AGENTS.md`、`docs/sprints/sprint-02.md`、`agent-team/task-board.md`、`docs/reports/migration-log.md`，先完成 changefeed 模板片段与链接占位符预装，待 delta 落地即可套用。
   - 2025-11-22：建立 Batch #1（DocUI ReplacePattern 套件）文档触点清单，确认 `AGENTS.md`、`docs/sprints/sprint-02.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`docs/reports/migration-log.md` 需引用 `agent-team/indexes/README.md#delta-2025-11-22`，并准备 DocUI snapshot/TRX 链接守则。
   - 2025-11-20：完成 AA3-003 / AA3-008 文档对齐 —— 更新 `agent-team/task-board.md`、`docs/sprints/sprint-01.md`、`AGENTS.md`，引用 `agent-team/indexes/README.md#delta-2025-11-20` 作为 canonical DocUI changefeed，并在记忆档记录该 pass。
   - 2025-11-19：完成 OI-004 Task Board 压缩与分层，添加 changefeed reminder、Key Artifact/Latest Update 引用层，并标记后续需同步 Sprint 状态。
