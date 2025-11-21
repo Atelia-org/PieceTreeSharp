@@ -55,3 +55,15 @@
 - **TestMatrix**: [`src/PieceTree.TextBuffer.Tests/TestMatrix.md`](../../src/PieceTree.TextBuffer.Tests/TestMatrix.md) (新增 ReplacePattern 行)
 - **已知差异**: C#/JavaScript Regex 空捕获组行为（已文档化，非阻塞）
 - **TODO 标记**: FindModel 集成、WordSeparator 上下文（Batch #2）
+
+### Batch #1 文档修正 (QA Follow-up)
+- **问题级别**: Medium × 2
+- **修复内容**:
+  1. **TestMatrix.md / ts-test-alignment.md**: 移除不存在的 `DocUIReplacePatternTests` 类名、`resources/docui/replace-pattern/*.json` fixtures 、`__snapshots__/docui/replace-pattern/*.md` 引用；更正为实际的 `ReplacePatternTests.cs`（inline 测试数据）。
+  2. **DocUIReplaceController.cs**: `ExecuteReplace` 从静默 no-op 改为 `throw new NotImplementedException(...)`，避免调用者误以为替换已执行。
+- **验证**: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --nologo` (23/23 通过)
+- **相关文件**:
+  - [`src/PieceTree.TextBuffer.Tests/TestMatrix.md`](../../src/PieceTree.TextBuffer.Tests/TestMatrix.md)
+  - [`docs/plans/ts-test-alignment.md`](../../docs/plans/ts-test-alignment.md)
+  - [`src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs)
+- **迁移日志**: 已添加 "Batch #1 文档修正" 条目

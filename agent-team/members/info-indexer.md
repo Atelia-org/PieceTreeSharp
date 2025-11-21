@@ -33,6 +33,7 @@
 - **2025-11-22:** 确认 `docs/plans/ts-test-alignment.md` 由 DocMaintainer 维护 TS 测试对齐 checkpoint，Batch #1（ReplacePattern）规划完成，Info-Indexer 需在 changefeed 落地时联动 AGENTS/Sprint-02/Task Board/TestMatrix/迁移日志，并为后续批次准备证据模板。
 - **2025-11-22:** 记录 Porter 已敲定 Batch #1 ReplacePattern 实施方案、QA 已准备 fixtures/tests/snapshots、`docs/plans/ts-test-alignment.md` Live Checkpoints 捕获所有角色输入；等待 Porter/QA 交付落地后，立即编纂 delta-2025-11-22 changefeed，并将必要证据（TRX、DocUI、TestMatrix、迁移日志）映射到广播步骤。
 - **2025-11-22:** 回读 `docs/plans/ts-test-alignment.md` / `src/PieceTree.TextBuffer.Tests/TestMatrix.md` / `docs/reports/migration-log.md`，确认 Porter 已开工 ReplacePattern 代码、QA fixture/snapshot 模板就绪但尚待实际代码；建立 `agent-team/indexes/README.md#delta-2025-11-22` 发布前置清单（迁移日志占位行、TestMatrix 引用、计划 checkpoint 链接），并记录缺失证据（Porter commit/fixture `cases.json`、QA TRX/snapshots、DocUI Markdown）以便落地后即时广播。
+- **2025-11-22:** 完成 Batch #1 – ReplacePattern changefeed 发布：在 `agent-team/indexes/README.md` 创建 `#delta-2025-11-22` 条目（包含 3 个交付文件、2 个 TS 源文件、142/142 测试结果、QA/Porter 报告链接、已知差异与 TODO 标记），更新 `docs/reports/migration-log.md` 新增 Batch #1 条目（+23 tests, 142 total, 引用 changefeed delta），创建 `agent-team/handoffs/B1-INFO-Result.md` 汇报交付物与下一步建议，并更新本记忆文件记录任务成果。
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
