@@ -15,7 +15,7 @@
 | DocUIFindModelTests (planned) | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | C | Not implemented | Planned `src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`; blocked on DocUI editor harness + find decoration plumbing. |
 | DocUIFindControllerTests (planned) | Command-layer find controller semantics | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | C | Not implemented | Target file `DocUI/DocUIFindControllerTests.cs`; needs clipboard/context-key services shims. |
 | DocUIFindSelectionTests (planned) | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | B | Not implemented | Target file `DocUI/DocUIFindSelectionTests.cs`; requires lightweight selection helpers + range serialization. |
-| DocUIReplacePatternTests (planned) | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | Spec ready | Batch #1 spec (2025-11-22) spans escape/backslash chains, `$n`/`$&` permutations, `\u/\l/\U/\L` case ops, JS semantics, and preserve-case helpers. Output files: `DocUI/DocUIReplacePatternTests.cs`, fixture `resources/docui/replace-pattern/cases.json`, snapshots under `src/PieceTree.TextBuffer.Tests/__snapshots__/docui/replace-pattern/`. |
+| ReplacePatternTests | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | ✅ Complete | Batch #1 (2025-11-22) – 23 tests covering escape/backslash chains, `$n`/`$&` permutations, `\u/\l/\U/\L` case ops, JS semantics, preserve-case helpers. Files: `ReplacePatternTests.cs`, `Core/ReplacePattern.cs`, `Rendering/DocUIReplaceController.cs`. |
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
 
@@ -83,6 +83,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-22 (Batch #1) | 142 | 142 | 0 | 2.6s | `dotnet test --logger "trx;LogFileName=batch1-full.trx" --nologo` – B1 ReplacePattern QA baseline (+23 tests from 119). TRX: `TestResults/batch1-full.trx`. |
 | 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
 | 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
 
@@ -93,25 +94,30 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
 | `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
 
+### Targeted reruns (Batch #1, 2025-11-22)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --logger "trx;LogFileName=batch1-replacepattern.trx" --nologo` | 23/23 green (1.6s) | ReplacePattern专项测试验证。TRX: `TestResults/batch1-replacepattern.trx`. 覆盖解析、捕获组、大小写操作、JS语义等全部23个测试用例。 |
+
 ### Batch #1 (TS Portability) Validation Commands
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~DocUIReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted DocUI replace-pattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `DocUIReplacePatternTests`, consumes `resources/docui/replace-pattern/cases.json`, and diffs Markdown snapshots under `__snapshots__/docui/replace-pattern/`. |
-| `DOCUI_SNAPSHOT_RECORD=1 PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~DocUIReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern-record.trx"` | Regenerate DocUI replace-pattern snapshots | Emit updated Markdown overlays for manual review; run only when TS semantics change so `__snapshots__/docui/replace-pattern/` stays authoritative. |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
 
 ### Batch #1 ReplacePattern Checklist
 
 | Checklist Item | TS Coverage | C# Plan | Artifacts |
 | --- | --- | --- | --- |
-| Escape sequences + literal/backslash tails | `parse replace string` (escapes `$`, `\\`, `\\t`, `\\n`, dangling slash) | `[Theory] DocUIReplacePatternTests.Parse_EmitsExpectedPieces` verifies `ReplacePiece` tokens built from `cases.json#escapes` | `DocUI/DocUIReplacePatternTests.cs`, `resources/docui/replace-pattern/cases.json#escapes` |
-| `$n`/`$&` capture semantics + numeric parsing | `parse replace string` + `replace has JavaScript semantics` | `DocUIReplacePatternTests.BuildReplaceString_RespectsCaptureSlots` compares `ReplacePattern` output to `Regex.Replace` for `$0..$99` combos | `resources/docui/replace-pattern/cases.json#captures`, snapshots `__snapshots__/docui/replace-pattern/Capture*.md` |
-| Case modifiers `\\u/\\l/\\U/\\L/\\E` | `parse replace string with case modifiers` | `DocUIReplacePatternTests.CaseModifiers_RunStackedOps` asserts stacked ops and cancellation along capture groups | `DocUI/DocUIReplacePatternTests.cs`, `cases.json#caseModifiers` |
-| JS semantics & substring vs. full-match replacements | `get replace string ... complete match` & `... sub-string` blocks | `DocUIReplacePatternTests.JavaScriptParity_MatchScopes` ensures lookahead/backreference cases align with JS results | `resources/docui/replace-pattern/cases.json#jsParity`, snapshots `__snapshots__/docui/replace-pattern/Scope*.md` |
-| Issue #19740 empty capture regression | `issue #19740 ... inserts undefined` | `[Fact] DocUIReplacePatternTests.OptionalGroupProducesEmptyString` ensures optional capture renders `{}` not `undefined` | Inline fixture `cases.json#issue19740` |
-| Preserve-case helper coverage | `buildReplaceStringWithCasePreserved test` + `preserve case` suites | `DocUIReplacePatternTests.PreserveCase_MatchesTsHelper` + snapshot-backed preview test to validate overlay Markdown | `resources/docui/replace-pattern/preserve-case.json`, `__snapshots__/docui/replace-pattern/PreserveCase*.md` |
+| Escape sequences + literal/backslash tails | `parse replace string` (escapes `$`, `\\`, `\\t`, `\\n`, dangling slash) | `ReplacePatternTests.ParseReplaceString_*` xUnit Facts verify `ReplacePiece` tokens | `ReplacePatternTests.cs` (inline test data) |
+| `$n`/`$&` capture semantics + numeric parsing | `parse replace string` + `replace has JavaScript semantics` | `ReplacePatternTests.ReplaceUsingCaptureGroups_*` compare `ReplacePattern` output to TS semantics for `$0..$99` combos | `ReplacePatternTests.cs` (inline test data) |
+| Case modifiers `\\u/\\l/\\U/\\L/\\E` | `parse replace string with case modifiers` | `ReplacePatternTests.ParseReplaceString_CaseModifiers*` assert stacked ops and cancellation | `ReplacePatternTests.cs` (inline test data) |
+| JS semantics & substring vs. full-match replacements | `get replace string ... complete match` & `... sub-string` blocks | `ReplacePatternTests.ReplaceUsingCaptureGroups_*` ensure lookahead/backreference cases align with JS results | `ReplacePatternTests.cs` (inline test data) |
+| Issue #19740 empty capture regression | `issue #19740 ... inserts undefined` | `[Fact] ReplacePatternTests.ReplaceUsingCaptureGroups_EmptyGroupYieldsEmptyString` ensures optional capture renders `{}` not `undefined` | `ReplacePatternTests.cs` (inline test data) |
+| Preserve-case helper coverage | `buildReplaceStringWithCasePreserved test` + `preserve case` suites | `ReplacePatternTests.BuildReplaceStringWithCasePreserved_*` validate case-preserving logic | `ReplacePatternTests.cs` (inline test data) |
 
 ## AA4-007 (CL7) – Cursor Word / Snippet / Multi-select parity (Porter-created tests)
 

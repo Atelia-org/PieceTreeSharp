@@ -3,3 +3,4 @@ ts/
 obj/
 bin/
 __pycache__/
+TestResults/

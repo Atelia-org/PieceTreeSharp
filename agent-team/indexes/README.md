@@ -37,3 +37,21 @@
 
 - 2025-11-21 | AA4-005/AA4-006 | Porter + QA fixes added. Test baseline: 105/105 | [`src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeTextBufferFactory.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeTextBufferFactory.cs), [`src/PieceTree.TextBuffer/Core/ChunkUtilities.cs`](../../src/PieceTree.TextBuffer/Core/ChunkUtilities.cs), [`src/PieceTree.TextBuffer/Core/TextMetadataScanner.cs`](../../src/PieceTree.TextBuffer/Core/TextMetadataScanner.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeModel.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeModel.cs), [`src/PieceTree.TextBuffer.Tests/AA005Tests.cs`](../../src/PieceTree.TextBuffer.Tests/AA005Tests.cs), [`src/PieceTree.TextBuffer.Tests/PieceTreeModelTests.cs`](../../src/PieceTree.TextBuffer.Tests/PieceTreeModelTests.cs), [`src/PieceTree.TextBuffer.Tests/CRLFFuzzTests.cs`](../../src/PieceTree.TextBuffer.Tests/CRLFFuzzTests.cs) | `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (105/105) | Y | Porter fixes for CL5/CL6 (AA4-005/AA4-006) integrated; QA verified baseline and re-ran fuzz/targeted CRLF cases (see [`agent-team/handoffs/AA4-009-QA.md`](../../agent-team/handoffs/AA4-009-QA.md)). Delta recorded in `docs/reports/migration-log.md` rows for AA4-005/AA4-006.
 - 2025-11-21 | AA4-007.BF1 | Snippet placeholder navigation now references live `ModelDecoration` ranges, eliminating infinite `NextPlaceholder` loops and keeping placeholder offsets consistent after earlier cursor edits. | [`src/PieceTree.TextBuffer/Cursor/SnippetSession.cs`](../../src/PieceTree.TextBuffer/Cursor/SnippetSession.cs), [`src/PieceTree.TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs`](../../src/PieceTree.TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs) | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.SnippetMultiCursorFuzzTests.SnippetAndMultiCursor_Fuzz_NoCrashesAndInvariantsHold" --nologo` (1/1); `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (115/115) | Y | Refer to migration log row `AA4-007.BF1`; fuzz hangs are now reproducible via seed 12345 and no longer loop indefinitely.
+
+## Delta (2025-11-22)
+
+### Batch #1 – ReplacePattern Implementation (AA4-008)
+- **交付文件**:
+  - [`src/PieceTree.TextBuffer/Core/ReplacePattern.cs`](../../src/PieceTree.TextBuffer/Core/ReplacePattern.cs) (561 lines)
+  - [`src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs) (119 lines)
+  - [`src/PieceTree.TextBuffer.Tests/ReplacePatternTests.cs`](../../src/PieceTree.TextBuffer.Tests/ReplacePatternTests.cs) (356 lines, 23 tests)
+- **TS 源文件**:
+  - `ts/src/vs/editor/contrib/find/browser/replacePattern.ts`
+  - `ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts`
+- **测试结果**: 142/142 通过 (基线: 119, 新增: 23)
+- **QA 报告**: [`agent-team/handoffs/B1-QA-Result.md`](../../agent-team/handoffs/B1-QA-Result.md)
+- **Porter 交付**: [`agent-team/handoffs/B1-PORTER-Result.md`](../../agent-team/handoffs/B1-PORTER-Result.md)
+- **迁移日志**: [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) (新增 Batch #1 条目)
+- **TestMatrix**: [`src/PieceTree.TextBuffer.Tests/TestMatrix.md`](../../src/PieceTree.TextBuffer.Tests/TestMatrix.md) (新增 ReplacePattern 行)
+- **已知差异**: C#/JavaScript Regex 空捕获组行为（已文档化，非阻塞）
+- **TODO 标记**: FindModel 集成、WordSeparator 上下文（Batch #2）

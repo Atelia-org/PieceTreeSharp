@@ -5,8 +5,8 @@
 
 ## Objectives
 1. **Batch #1 – ReplacePattern**
-   - Porter-CS：落地 `ReplacePattern.cs`、`DocUIReplaceController`、`DocUIReplacePatternTests`、fixtures、snapshots。
-   - QA-Automation：运行 Batch #1 命令（全量 `dotnet test`、`DocUIReplacePatternTests` filter、snapshot record），产出 TRX + Markdown 并更新 QA 文档。
+   - Porter-CS：落地 `ReplacePattern.cs`、`DocUIReplaceController`、`ReplacePatternTests.cs`（测试数据内联，无需 fixtures/snapshots）。
+   - QA-Automation：运行 Batch #1 命令（全量 `dotnet test`、`ReplacePatternTests` filter），产出 TRX 与 QA 报告。
    - Info-Indexer：发布 `agent-team/indexes/README.md#delta-2025-11-22`，同步迁移日志。
    - DocMaintainer：引用新 delta 更新 AGENTS / Sprint / Task Board / 计划。
 2. **TS Test Alignment – Batch #2 Ready**
@@ -19,10 +19,10 @@
 ## Deliverables & Tracking
 | ID | Deliverable | Owner | RunSubAgent Step | Evidence / Files | Status |
 | --- | --- | --- | --- | --- | --- |
-| B1-PORTER | ReplacePattern runtime/controller/tests 实现 | Porter-CS | 1 | `ReplacePattern.cs`, `DocUIReplaceController.cs`, `DocUIReplacePatternTests.cs`, fixtures, snapshots | Planned |
-| B1-QA | Batch #1 QA 运行 + TRX + snapshots | QA-Automation | 2 | TRX (`batch1-full.trx`, `batch1-replacepattern.trx`), Markdown snapshots, `AA4-009-QA.md` | Planned |
-| B1-INFO | Changefeed `#delta-2025-11-22` 发布 | Info-Indexer | 3 | `agent-team/indexes/README.md`, `docs/reports/migration-log.md` | Planned |
-| B1-DOC | AGENTS/Sprint/Task Board 更新 | DocMaintainer | 4 | `AGENTS.md`, `docs/sprints/sprint-03.md`, `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | Planned |
+| B1-PORTER | ReplacePattern runtime/controller/tests 实现 | Porter-CS | 1 | `ReplacePattern.cs`, `DocUIReplaceController.cs`, `ReplacePatternTests.cs` | ✅ Done |
+| B1-QA | Batch #1 QA 运行 + TRX + snapshots | QA-Automation | 2 | TRX (`batch1-full.trx`, `batch1-replacepattern.trx`), `B1-QA-Result.md` | ✅ Done |
+| B1-INFO | Changefeed `#delta-2025-11-22` 发布 | Info-Indexer | 3 | `agent-team/indexes/README.md`, `docs/reports/migration-log.md` | ✅ Done |
+| B1-DOC | AGENTS/Sprint/Task Board 更新 | DocMaintainer | 4 | `AGENTS.md`, `docs/sprints/sprint-03.md`, `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | ✅ Done |
 | B2-INV | WordSeparator spec & DocUI widget 测试定位 | Investigator-TS | 5 | `docs/plans/ts-test-alignment.md` Appendix, notes | Planned |
 | B2-PLAN | Batch #2 调度方案 | Planner | 6 | `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | Planned |
 | B2-QA | Batch #2 测试矩阵扩展 | QA-Automation | 7 | `src/PieceTree.TextBuffer.Tests/TestMatrix.md`, QA memo | Planned |
@@ -34,3 +34,8 @@
 | Run # | Date | Employee | Task | Result | Next Steps |
 | --- | --- | --- | --- | --- | --- |
 | R0 | 2025-11-22 | Main Agent | Sprint 03 建立 | 创建本文件，定义目标/RunSubAgent 节奏/跟踪规则 | 启动 B1-PORTER |
+| R1 | 2025-11-22 | Porter-CS | B1-PORTER ReplacePattern 实现 | 交付 `ReplacePattern.cs`, `DocUIReplaceController.cs`, `ReplacePatternTests.cs` (23 tests)；dotnet test 142/142 通过；详见 `agent-team/handoffs/B1-PORTER-Result.md` | 启动 B1-QA |
+| R2 | 2025-11-22 | QA-Automation | B1-QA ReplacePattern 验证 | 全量测试 142/142，专项测试 23/23，100% 通过；已更新 `TestMatrix.md`；TRX 文件已生成；详见 `agent-team/handoffs/B1-QA-Result.md` | 启动 B1-INFO |
+| R3 | 2025-11-22 | Info-Indexer | B1-INFO Changefeed 发布 | 发布 `#delta-2025-11-22`，更新迁移日志；交叉引用已验证；详见 `agent-team/handoffs/B1-INFO-Result.md` | 启动 B1-DOC |
+| R4 | 2025-11-22 | DocMaintainer | B1-DOC 文档同步 | 更新 AGENTS/Sprint/Task Board/Plan 4 个文档；Changefeed 引用统一为 `#delta-2025-11-22`；一致性检查通过；详见 `agent-team/handoffs/B1-DOC-Result.md` | **Batch #1 完成** |
+| R4 | 2025-11-22 | DocMaintainer | B1-DOC 文档同步 | 更新 `AGENTS.md`、`docs/sprints/sprint-03.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`；所有 changefeed 引用已统一为 `#delta-2025-11-22`；详见 `agent-team/handoffs/B1-DOC-Result.md` | Batch #1 完成，准备 B2-INV |
