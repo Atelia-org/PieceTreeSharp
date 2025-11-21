@@ -110,6 +110,10 @@
   - `FixCRLF` behavior interacts with `ChunkUtilities` splitting technique such that initial insertion of `\r\n` as a change-buffer piece or change buffer append clobbers boundaries; need to carefully unify chunk splitting & CRLF rejoin logic. 
   - Due to time constraints, CRLF fixes require further coordinated test coverage and a detailed review vs TS `pieceTreeTextBufferBase` logic.
 
+- **2025-11-22 – Sprint 02 Phase 7 (AA4) Alignment**
+  - Synced with Investigator-TS + QA-Automation on TS test inventory (`TestMatrix.md`) and the new plan at `docs/plans/ts-test-alignment.md`; Batch #1 target is `replacePattern.test.ts` parity plus DocUI harness prep.
+  - Action items: draft DocUI `replacePattern` execution plan (deliverable/test/dependency map), capture WordSeparator + DocUI selection helper gaps, note harness scaffolding requirements, and ensure outputs flow into migration log, changefeed, TestMatrix, and plan checkpoints.
+
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。
 - 关键红黑树操作需辅以调试断言（如节点颜色/黑高），计划构建 Debug-only 验证方法供 QA 复用。

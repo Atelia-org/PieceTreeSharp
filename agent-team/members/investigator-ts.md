@@ -28,7 +28,7 @@
 - `deepwiki/` 备用：若分析篇幅过长，再与 DocMaintainer 协调发布。
 
 ## Worklog
-- **Last Update:** 2025-11-19
+- **Last Update:** 2025-11-22
 - **Recent Actions:**
   - 2025-11-19: 在 `docs/meetings/meeting-20251119-org-self-improvement.md` 提交 Investigator-TS 陈述，记录 PieceTree 覆盖现状、blind spots、协作需求与文档治理建议。
   - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
@@ -72,6 +72,7 @@
     - 更新 `docs/reports/audit-checklist-aa4.md#cl8`（状态切换为 “Audit Complete – Awaiting Fix”，同步主要差异与测试钩子）。
   - 2025-11-21: 汇总 Sprint 02 Phase 7（CL8）最新 delta，与 `docs/sprints/sprint-02.md` / `agent-team/task-board.md` / `docs/reports/migration-log.md` / `agent-team/indexes/README.md#delta-2025-11-21` 对齐；编写 Porter-CS AA4-008 交付 addendum，明确 TS vs C# 差异、文件级 TODO、测试挂钩与 DocMaintainer/Info-Indexer changefeed 依赖。
   - 2025-11-21: 以 Investigator-TS 身份完成 AA4 Phase 7 Sprint 02 TS 测试 inventory（PieceTree/TextModel/Diff/DocUI Find），将清单写入 `docs/plans/ts-test-alignment.md#appendix`，标注可移植等级 A/B/C、DocUI harness 阻塞，并引用 `docs/reports/audit-checklist-aa4.md` / `docs/reports/audit-checklist-aa3.md` 记录依赖。
+- 2025-11-22: 深挖 WordSeparator/SearchContext parity（`wordHelper.ts`、`wordCharacterClassifier.ts`、`textModelSearch.ts` ↔ `Core/SearchTypes.cs`），梳理 `ReplacePattern` 与 `TextModelSearch` 的捕获值共享机制，定位 DocUI Find 套件的 TS 测试目录（`ts/src/vs/editor/contrib/find/test/browser/*.test.ts`）并确认缺失 widget DOM/snapshot 覆盖，同时在 `docs/plans/ts-test-alignment.md` Appendix 中补写 `textModelSearch.test.ts`/DocUI Widget TODO 行及去风险建议。
 - **Upcoming Goals (1 runSubAgent per item):**
   1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
   2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。

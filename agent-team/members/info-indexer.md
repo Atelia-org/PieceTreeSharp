@@ -18,6 +18,7 @@
 | Task Board Linkage | `agent-team/task-board.md`（OI-001~OI-004） | 跟踪组织改进任务状态，方便引用 runSubAgent 预算
 | QA/Test Assets Index (planned) | `agent-team/indexes/qa-test-assets-index.md`, `PieceTree.TextBuffer.Tests`, QA 会议记录 | 映射测试矩阵、基准计划与代码文件，供 QA-Automation 查阅
 | TS↔C# Crosswalk Index (planned) | `agent-team/indexes/ts-cs-crosswalk-index.md`, `agent-team/type-mapping.md`, `ts/src/vs/editor/...` | 追踪类型映射进度，补足 `type-mapping.md` 之外的上下文
+| TS Test Alignment Plan | `docs/plans/ts-test-alignment.md`, `docs/sprints/sprint-02.md`, Porter handoffs | 记录 ReplacePattern Batch#1 及后续 batch 的 TS 测试对齐 checkpoint 与证据需求
 | Main Loop & Template Notes | `agent-team/main-loop-methodology.md`, `agent-team/ai-team-playbook.md` | 记录 runSubAgent 输入模板、Info-Indexer 钩子位置
 
 ## Worklog
@@ -29,11 +30,13 @@
 - **2025-11-21:** 开始 OI-011：发布 AA4 changefeed delta（AA4-005/AA4-006）、同步迁移日志与 Task Board，并创建 OI-011 handoff 结果草案以供 DocMaintainer/QA 验证。
 - **2025-11-21:** 完成 OI-011 —— 发布 changefeed delta `agent-team/indexes/README.md#delta-2025-11-21`（AA4-005/AA4-006），更新 `docs/reports/migration-log.md` 将 AA4-005/AA4-006 的 Changefeed Entry? 标记为 Y 并指向新 delta，更新 `agent-team/task-board.md` 将 AA4-005/AA4-006/AA4-009 标记为 Done，并新建 `agent-team/handoffs/OI-011-Result.md` 汇总交付与验证证据。 |
 - **2025-11-21:** 规划下一波 OI-011 delta，聚焦 AA4-007.BF1 → AA4-008：整理所需输入（迁移日志行、AA4-008 handoffs、QA baseline、DocUI snapshot 路径）并预先对齐 AGENTS / `docs/sprints/sprint-02.md` / `agent-team/task-board.md` 同步顺序，确保 Porter/QA 完成后可立即广播。 |
+- **2025-11-22:** 确认 `docs/plans/ts-test-alignment.md` 由 DocMaintainer 维护 TS 测试对齐 checkpoint，Batch #1（ReplacePattern）规划完成，Info-Indexer 需在 changefeed 落地时联动 AGENTS/Sprint-02/Task Board/TestMatrix/迁移日志，并为后续批次准备证据模板。
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
 2. **QA/Test Assets Index Draft:** 在 QA-Automation 提供资产清单后，生成 `qa-test-assets-index.md` 首张表（接口、文件、负责人、复核节奏），供 QA 直接引用。
-3. **OI-003 / Indexing Hooks Snippet:** 与 Planner 协作，将索引引用段落纳入 runSubAgent 输入模板，减少每次调用的路径说明成本。
+3. **TS Test Alignment Hooks:** 将 `docs/plans/ts-test-alignment.md` checkpoint 结构映射到 changefeed 模板（含 Batch #1 ReplacePattern 证据），以便 delta 发布时可快速引用。
+4. **OI-003 / Indexing Hooks Snippet:** 与 Planner 协作，将索引引用段落纳入 runSubAgent 输入模板，减少每次调用的路径说明成本。
 
 ## Blocking Issues
 - 需 DocMaintainer 提供 OI-001 审计输入（最新的重复/缺口列表）以便索引记录行动项。
