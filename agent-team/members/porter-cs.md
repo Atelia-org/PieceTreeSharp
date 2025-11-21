@@ -113,6 +113,7 @@
 - **2025-11-22 – Sprint 02 Phase 7 (AA4) Alignment**
   - Synced with Investigator-TS + QA-Automation on TS test inventory (`TestMatrix.md`) and the new plan at `docs/plans/ts-test-alignment.md`; Batch #1 target is `replacePattern.test.ts` parity plus DocUI harness prep.
   - Action items: draft DocUI `replacePattern` execution plan (deliverable/test/dependency map), capture WordSeparator + DocUI selection helper gaps, note harness scaffolding requirements, and ensure outputs flow into migration log, changefeed, TestMatrix, and plan checkpoints.
+  - New directive (AA4 Batch #1 – ReplacePattern): before implementation deliver a checklist covering touched files (`ReplacePattern.cs`, DocUI controllers, fixtures, harness JSON/tests), API surface synopsis, migration-log entry template (include QA commands & DocUI snapshots), and risk/dependency plan (WordSeparator cache, harness substitutes). Output must reference Planner checkpoints and broadcast feed `#delta-2025-11-22` once artifacts land.
 
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。

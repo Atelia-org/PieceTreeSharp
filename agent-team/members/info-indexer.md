@@ -31,6 +31,7 @@
 - **2025-11-21:** 完成 OI-011 —— 发布 changefeed delta `agent-team/indexes/README.md#delta-2025-11-21`（AA4-005/AA4-006），更新 `docs/reports/migration-log.md` 将 AA4-005/AA4-006 的 Changefeed Entry? 标记为 Y 并指向新 delta，更新 `agent-team/task-board.md` 将 AA4-005/AA4-006/AA4-009 标记为 Done，并新建 `agent-team/handoffs/OI-011-Result.md` 汇总交付与验证证据。 |
 - **2025-11-21:** 规划下一波 OI-011 delta，聚焦 AA4-007.BF1 → AA4-008：整理所需输入（迁移日志行、AA4-008 handoffs、QA baseline、DocUI snapshot 路径）并预先对齐 AGENTS / `docs/sprints/sprint-02.md` / `agent-team/task-board.md` 同步顺序，确保 Porter/QA 完成后可立即广播。 |
 - **2025-11-22:** 确认 `docs/plans/ts-test-alignment.md` 由 DocMaintainer 维护 TS 测试对齐 checkpoint，Batch #1（ReplacePattern）规划完成，Info-Indexer 需在 changefeed 落地时联动 AGENTS/Sprint-02/Task Board/TestMatrix/迁移日志，并为后续批次准备证据模板。
+- **2025-11-22:** 记录 Porter 已敲定 Batch #1 ReplacePattern 实施方案、QA 已准备 fixtures/tests/snapshots、`docs/plans/ts-test-alignment.md` Live Checkpoints 捕获所有角色输入；等待 Porter/QA 交付落地后，立即编纂 delta-2025-11-22 changefeed，并将必要证据（TRX、DocUI、TestMatrix、迁移日志）映射到广播步骤。
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
