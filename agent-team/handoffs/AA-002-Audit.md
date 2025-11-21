@@ -62,5 +62,5 @@ The C# implementation of `TextModel` and `PieceTreeBuffer` is currently a functi
 ## References
 - TS: `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts`
 - TS: `vs/editor/common/model/textModel.ts`
-- C#: `src/PieceTree.TextBuffer/Class1.cs` (PieceTreeBuffer)
+- C#: `src/PieceTree.TextBuffer/PieceTreeBuffer.cs` (PieceTreeBuffer)
 - C#: `src/PieceTree.TextBuffer/Core/PieceTreeModel.cs`

@@ -118,6 +118,14 @@
    - Began scoping C# runtime drop for `ReplacePattern` (port TS `replacePattern.ts` helpers + `ReplacePatternResult`/`ReplacePatternRequest` types) and lined up DocUI harness needs (`DocUITestHost`, `DocUIReplacePatternTests`, `DocUIReplacePatternFixtures`).
    - TODO next session: map TS `replacePattern.test.ts` cases to `PieceTree.TextBuffer.Tests/DocUIReplacePatternTests.cs`, stub runtime entry in `src/PieceTree.TextBuffer/Search/ReplacePattern.cs`, scaffold DocUI harness under `src/PieceTree.TextBuffer.Tests/DocUI/` with test JSON ingestion, update `docs/plans/ts-test-alignment.md#Batch-1` checkpoints.
    - Dependencies/blockers: need Investigator-TS to confirm WordSeparator + regex expansion semantics, confirm DocUI harness telemetry path, ensure `DocUIHarness.json` sample assets merge cleanly with `ts/test/` snapshots.
+- **2025-11-22 – Batch #1 ReplacePattern Plan Update**
+  - Captured deliverable breakdown for runtime skeleton (`ReplacePattern.cs`), DocUI controller, and tests, plus doc/report touchpoints (AA4-008 result + migration log) ahead of implementation.
+  - Logged evidence plan (`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`, DocUI capture artifacts) and reiterated outstanding blockers (fixture export pipeline, WordSeparator spec from Investigator-TS).
+  - Ready to drop initial code diffs + documentation updates once green-lit; this entry reflects current memory sync per Porter-CS instructions.
+- **2025-11-22 – Batch #1 ReplacePattern Skeleton Draft (Porter-CS)**
+  - Re-read Batch #1 directives; prepping concrete runtime/controller/test skeletons so editors can wire up parity quickly.
+  - Tracking follow-up doc work for `agent-team/handoffs/AA4-008-Result.md` and `docs/reports/migration-log.md` to run immediately after the first ReplacePattern chunk lands.
+  - Blockers: awaiting fixture JSON export from DocUITestHost + Investigator guidance on WordSeparator spec so case-preserve helpers stay aligned with TS `search.ts`.
 
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。

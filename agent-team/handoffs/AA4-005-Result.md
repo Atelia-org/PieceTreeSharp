@@ -21,6 +21,6 @@ dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj
 - Metadata flags currently refresh via rebuild paths; once AA4-006 lands, incremental edits should trigger targeted metadata recomputation so `MightContain*` stays accurate without full rebuilds.
 
 ## Documentation & References
-- Code: `src/PieceTree.TextBuffer/Core` (builder, factory, chunk utilities, metadata scanner, model edit updates) and `src/PieceTree.TextBuffer/Class1.cs`.
+- Code: `src/PieceTree.TextBuffer/Core` (builder, factory, chunk utilities, metadata scanner, model edit updates) and `src/PieceTree.TextBuffer/PieceTreeBuffer.cs`.
 - Tests: `src/PieceTree.TextBuffer.Tests/PieceTreeBuilderTests.cs`, `PieceTreeFactoryTests.cs`, `PieceTreeTestHelpers.cs`, updated `AA005Tests.cs`.
 - Tracking: Entry added to `docs/reports/migration-log.md` under AA4-005; CL5 checklist updated to “Porter Complete – Pending QA”. Changefeed publication will occur in OI-011 once QA signs off.
