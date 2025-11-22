@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer", "PieceTree.TextBuffer\PieceTree.TextBuffer.csproj", "{7987828C-7512-4D81-9EC2-D12929CECDC6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer", "src\TextBuffer\TextBuffer.csproj", "{7987828C-7512-4D81-9EC2-D12929CECDC6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer.Tests", "PieceTree.TextBuffer.Tests\PieceTree.TextBuffer.Tests.csproj", "{98497BC5-B65B-443E-99E4-7BA9FBAFA631}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieceTree.TextBuffer.Tests", "tests\TextBuffer.Tests\TextBuffer.Tests.csproj", "{98497BC5-B65B-443E-99E4-7BA9FBAFA631}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

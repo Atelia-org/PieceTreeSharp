@@ -4,4 +4,4 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("PieceTree.TextBuffer.Tests")]
+[assembly: InternalsVisibleTo("TextBuffer.Tests")]
