@@ -19,6 +19,17 @@
 | AA4-009 | QA：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试矩阵，记录最新 `dotnet test` 基线 | QA-Automation | `src/PieceTree.TextBuffer.Tests/`<br>`docs/reports/audit-checklist-aa4.md`<br>`agent-team/handoffs/AA4-009-QA.md` | 2 | Done | QA completed: `PIECETREE_DEBUG=0 dotnet test ... --nologo` 119/119 baseline + builder/factory spot-check + deterministic CRLF fuzz rerun（均记录于 `agent-team/handoffs/AA4-009-QA.md` 与 `TestMatrix.md`）；changefeed `agent-team/indexes/README.md#delta-2025-11-21` 已广播。 |
 | OI-011 | Info-Indexer：AA4 changefeed & 索引同步，确保 AGENTS/Sprint/Task Board 对齐 | Info-Indexer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-02.md`<br>`docs/reports/migration-log.md` | 1 | Planned | 新增 `#delta-2025-11-20` 之后的 AA4 delta，广播到 AGENTS / Sprint 02 / Task Board。 |
 
+## Batch #2 – FindModel Core (B2)
+
+| ID | Description | Owner | Key Artifacts | runSubAgent Budget | Status | Latest Update |
+| --- | --- | --- | --- | --- | --- | --- |
+| B2-INV | Investigator：WordSeparator 规格调研 + FindWidget 测试路径定位 | Investigator-TS | `ts/src/vs/editor/contrib/find/`<br>`ts/src/vs/editor/common/core/wordHelper.ts`<br>`agent-team/handoffs/B2-INV-Result.md`<br>`docs/plans/ts-test-alignment.md#appendix-b` | 2 | ✅ Done | 2025-11-22 | WordSeparator 规格已补全（Appendix B），FindWidget 测试路径已定位（无专用 DOM harness），Batch #2 依赖清单已输出（Appendix C）。 |
+| B2-001 | Porter：创建 FindReplaceState/FindDecorations stubs | Porter-CS | `src/PieceTree.TextBuffer/DocUI/FindReplaceState.cs`<br>`src/PieceTree.TextBuffer/DocUI/FindDecorations.cs`<br>`agent-team/handoffs/B2-001-Result.md` | 2 | ✅ Done | 2025-11-23 | 最小化 stub 支持 FindModel 测试（状态机 + decoration hooks）；详见 [B2-Final-QA](handoffs/B2-Final-QA.md)。 |
+| B2-002 | Porter：实现 FindModel 核心逻辑（search + replace） | Porter-CS | `src/PieceTree.TextBuffer/DocUI/FindModel.cs`<br>`agent-team/handoffs/B2-002-Result.md` | 3 | Done | 2025-11-23 | ✅ 2025-11-23 完成，187/187 测试通过，详见 [B2-Final-QA](handoffs/B2-Final-QA.md) |
+| B2-003 | QA：迁移 findModel.test.ts + 创建 DocUI harness | QA-Automation | `src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`<br>`src/PieceTree.TextBuffer.Tests/DocUI/LineCountTest.cs`<br>`src/PieceTree.TextBuffer.Tests/DocUI/RegexTest.cs`<br>`src/PieceTree.TextBuffer.Tests/DocUI/EmptyStringRegexTest.cs`<br>`agent-team/handoffs/B2-003-QA.md` | 3 | ✅ Done | 2025-11-23 | Harness：`DocUI/TestEditorContext.cs`；FindModel parity 39/43（其余 4 个 multi-cursor 用例移至 Batch #3）。 |
+| B2-004 | Info-Indexer：Batch #2 changefeed 发布 | Info-Indexer | `agent-team/indexes/README.md#delta-2025-11-23`<br>`docs/reports/migration-log.md`<br>`agent-team/handoffs/B2-004-Result.md` | 1 | ✅ Done | 2025-11-23 | Changefeed `#delta-2025-11-23` 登记 7 个新文件 + 187 测试（142→187，+45）；Task Board/Sprint/AGENTS 更新前均引用此 delta。 |
+| B2-005 | DocMaintainer：Batch #2 文档同步 | DocMaintainer | `AGENTS.md`<br>`docs/sprints/sprint-02.md`<br>`agent-team/task-board.md`<br>`docs/plans/ts-test-alignment.md`<br>`src/PieceTree.TextBuffer.Tests/TestMatrix.md`<br>`agent-team/handoffs/B2-005-Result.md` | 1 | ✅ Done | 2025-11-23 | 文档面同步（AGENTS、Sprint 02、Task Board、TS 计划、TestMatrix、BATCH2_SUMMARY）；详见 [B2-005-Result](handoffs/B2-005-Result.md)。 |
+
 ## Reference & Logs
 
 - `agent-team/task-board-v6-archive.md` – Phase 6 (Alignment & Audit R3) 历史。

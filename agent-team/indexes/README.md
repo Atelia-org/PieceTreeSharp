@@ -6,6 +6,7 @@
 | Name | Description | Last Updated |
 | --- | --- | --- |
 | [Core Docs Index](core-docs-index.md) | 核心文档的用途、Owner、更新时间与缺口行动列表 | 2025-11-20 |
+| [OI Backlog](oi-backlog.md) | 组织性基础设施改进任务（测试框架、工具、架构设计） | 2025-11-22 |
 
 ## Contributing Guidelines
 1. 每个索引文件命名为 `<topic>-index.md`。
@@ -67,3 +68,53 @@
   - [`docs/plans/ts-test-alignment.md`](../../docs/plans/ts-test-alignment.md)
   - [`src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs)
 - **迁移日志**: 已添加 "Batch #1 文档修正" 条目
+
+## Delta (2025-11-22 - OI Backlog)
+
+### OI Backlog 创建 (OI-REFRESH)
+- **新增文件**: [`oi-backlog.md`](./oi-backlog.md)
+- **登记任务**: OI-012~015（4 项 Active Backlog）
+  - **OI-012**: DocUI Widget 测试框架设计（P2, QA-Automation）
+  - **OI-013**: Snapshot Tooling - Markdown 快照自动化（P2, QA-Automation）
+  - **OI-014**: WordSeparator Parity - 完整对齐（P3, Porter-CS）
+  - **OI-015**: DocUI Harness 标准化设计（P2, Planner）
+- **技术债来源**: 参考 `B2-INV-Result.md` 调研成果（FindWidget 测试路径、WordSeparator 规格缺口）
+- **下一步**: Batch #2 完成后评估 OI-012/OI-015 启动时机；OI-013 可随时启动；OI-014 在 Batch #2 后纳入技术债清理
+
+## Changefeed
+
+### delta-2025-11-23
+**Batch #2 – FindModel 完成 (Final QA 187/187)**
+
+交付物：
+- 测试文件 (4): [`DocUIFindModelTests.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) (39 tests), [`LineCountTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/LineCountTest.cs), [`RegexTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/RegexTest.cs), [`EmptyStringRegexTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/EmptyStringRegexTest.cs)
+- 实现文件 (3): [`FindModel.cs`](../../src/PieceTree.TextBuffer/DocUI/FindModel.cs), [`FindDecorations.cs`](../../src/PieceTree.TextBuffer/DocUI/FindDecorations.cs), [`FindReplaceState.cs`](../../src/PieceTree.TextBuffer/DocUI/FindReplaceState.cs)
+- Harness: [`TestEditorContext.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/TestEditorContext.cs)
+
+CI 修复列表：
+- CI-1 / CI-2 / CI-3 零宽 (^ / $ / ^.*$/^$) 末尾空行匹配与装饰残留问题全部修复；范围扩展至 `model length + 1` 捕获末尾零宽装饰，Search 控制流与 TS `do...while` 行为对齐。
+
+测试基线：
+- 142 → 187 (+45) 全量测试通过。FindModel 专项 39/39；辅助测试 4/4。
+
+Handoff 文件：
+- [`B2-TS-Review.md`](../handoffs/B2-TS-Review.md)
+- [`B2-Porter-Fixes.md`](../handoffs/B2-Porter-Fixes.md)
+- [`B2-QA-Result.md`](../handoffs/B2-QA-Result.md)
+- [`B2-Porter-CI3-Fix.md`](../handoffs/B2-Porter-CI3-Fix.md)
+- [`B2-Final-QA.md`](../handoffs/B2-Final-QA.md)
+
+迁移日志条目：
+- 见 [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) 中 2025-11-23 / Batch #2 行（FindModel Tests, 187/187）。
+
+后续计划：
+- Batch #3 处理剩余 4 个多光标/选择相关 FindModel parity 测试（select all matches / multi-cursor navigation）。
+- 补充 DocUI FindController 层与 selection-derived search 行为测试。 
+
+性能与一致性微优化 (FR-01 / FR-02):
+- 修改：[`FindModel.cs`](../../src/PieceTree.TextBuffer/DocUI/FindModel.cs) 增加 `_ignoreModelContentChanged` 标志位，在 Replace / ReplaceAll 内包裹 `PushEditOperations` 期间抑制双重 `Research()`，与 TS 行为对齐（避免重复 recompute）。
+- 修改：[`SearchTypes.cs`](../../src/PieceTree.TextBuffer/Core/SearchTypes.cs) 引入 `WordCharacterClassifierCache`（10-entry LRU），`ParseSearchRequest` 复用缓存，移植 TS `getMapForWordSeparators` 语义，降低频繁 whole-word 匹配构造开销。
+- 测试：全量基线保持 187/187，通过快速 re-run 验证无回归；FindModel 专项测试未需变更（逻辑透明优化）。
+- 迁移日志：新增行见 [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) 2025-11-23 FR-01 / FR-02。
+- 后续：计划在 Batch #3 加入缓存命中率统计测试 & ReplaceAll undo 分组 parity（单步撤销）。
+

@@ -260,6 +260,39 @@
     - `RangeMapping.cs` 合并了 rangeMapping.ts 中的多个类（RangeMapping、LineRangeMapping、DetailedLineRangeMapping）及辅助函数
     - 整个 Diff 模块（16 个文件）现已全部完成溯源标注
 
+- **2025-11-22 – B2-001 FindModel Stubs Creation (Batch #2 准备)**
+  - 完成 **FindModel 基础设施（stubs）创建**，为 B2-002 核心逻辑实现铺路。
+  - 新增文件：
+    - `src/PieceTree.TextBuffer/DocUI/FindReplaceState.cs`: 管理 find/replace 状态，包含搜索参数、flags、匹配计数、事件通知
+      - 实现 `CreateSearchParams()` 方法，将 state 转换为 `SearchParams`（集成 WholeWord 支持）
+      - 包含 `Change()` 方法统一更新状态并触发事件
+      - 实现 `ChangeMatchInfo()` 更新匹配计数和当前匹配
+    - `src/PieceTree.TextBuffer/DocUI/FindDecorations.cs`: 管理 find match 装饰（高亮）
+      - Stub 实现，预留 TODO(B2-002) 标记用于核心逻辑
+      - 基础方法：`SetCurrentMatch()`, `SetAllMatches()`, `ClearDecorations()`, `GetAllMatchRanges()`
+    - `src/PieceTree.TextBuffer/DocUI/FindModel.cs`: FindModel 核心类（空壳）
+      - 构造函数接受 `TextModel` 和 `FindReplaceState`
+      - 核心方法全部预置 TODO(B2-002) 标记：`FindNext()`, `FindPrevious()`, `Replace()`, `ReplaceAll()`, `SelectAllMatches()`
+      - 辅助方法：`UpdateDecorations()`, `UpdateState()`（均为空壳）
+    - `src/PieceTree.TextBuffer.Tests/DocUI/FindModelStubTests.cs`: 验证测试（7 个测试）
+      - `FindReplaceState_CreateSearchParams_CreatesValidParams`: 验证 SearchParams 创建（WholeWord=true）
+      - `FindReplaceState_CreateSearchParams_WithoutWholeWord_NoWordSeparators`: 验证 WholeWord=false 时无 wordSeparators
+      - `FindDecorations_InitialState_HasZeroDecorations`: 验证初始装饰数为 0
+      - `FindModel_Construction_DoesNotThrow`: 验证 FindModel 构造不抛异常
+      - `FindModel_Dispose_DoesNotThrow`: 验证 Dispose 双重调用不抛异常
+      - `FindReplaceState_Change_FiresEvent`: 验证状态变更事件触发
+      - `FindReplaceState_ChangeMatchInfo_UpdatesMatchCount`: 验证匹配计数更新事件
+  - 测试结果：`dotnet test` 通过，总数 142 → 149（新增 7 个测试）
+  - TODO 清单（供 B2-002）:
+    - `FindDecorations`: 实现装饰创建、高亮切换、范围查询（依赖 TextModel decoration API）
+    - `FindModel`: 实现 `FindNext/Prev()` 导航、`Replace/ReplaceAll()` 替换、`SelectAllMatches()` 多选、`UpdateDecorations()` 装饰更新、`UpdateState()` 状态同步
+    - 集成 Batch #1 `ReplacePattern` 用于替换操作
+    - 监听 `FindReplaceState.OnFindReplaceStateChange` 事件触发重新搜索
+  - 下一步建议：
+    - B2-002: 实现 `FindModel` 核心逻辑（search/replace/navigation）
+    - B2-003: QA 添加完整测试套件（参考 B2-QA-Result.md 的 15 个测试场景）
+    - 依赖：TextModel decoration API 需要暴露给 DocUI 层
+
 - **2025-11-22 – PT-007 Source Attribution (Batch 7: Services & Top-level)**
   - 完成 **Batch 7: Services & Top-level** 的 11 个文件的 TypeScript 源文件溯源注释标注任务。
   - 处理的文件：
@@ -327,6 +360,58 @@
     - 4 个模糊测试文件标记为原创 C# 实现（CRLFFuzzTests、SnippetMultiCursorFuzzTests、FuzzLogCollector、PieceTreeModelTestHelpers）
     - 1 个 Markdown 渲染器测试文件标记为原创 C# 实现（MarkdownRendererTests - 用于可视化调试）
     - 其余测试文件均对应 VS Code 的 TypeScript 测试套件，涵盖 multicursor、cursor operations、word operations、snippet 等功能模块
+
+- **2025-11-22 – B2-002 FindModel Core Logic Implementation ✅ COMPLETE**
+  - **实现文件**:
+    - `src/PieceTree.TextBuffer/DocUI/FindDecorations.cs`: 完整实现装饰管理
+      - `Set()`: 批量创建/更新 find match 装饰，支持大结果集优化（>1000 matches 使用简化装饰）
+      - `SetCurrentMatch()`: 高亮当前匹配，返回 1-based 位置
+      - `ClearDecorations()` / `Reset()`: 清除装饰和重置状态
+      - `GetCurrentMatchRange()` / `GetAllMatchRanges()`: 获取装饰范围
+      - `GetCurrentMatchesPosition()`: 获取选区对应的匹配位置
+      - `MatchBeforePosition()` / `MatchAfterPosition()`: 查找前/后匹配（支持 wrap-around）
+      - 装饰选项：`CurrentFindMatchDecoration` (zIndex=13)、`FindMatchDecoration` (zIndex=10)、`FindMatchNoOverviewDecoration`、`FindScopeDecoration`
+    - `src/PieceTree.TextBuffer/DocUI/FindModel.cs`: 核心逻辑实现
+      - `Research()`: 执行搜索并更新装饰和状态
+      - `FindNext()` / `FindPrevious()`: 导航到下一个/上一个匹配
+      - `MoveToNextMatch()` / `MoveToPrevMatch()`: 内部导航逻辑
+      - `SetCurrentFindMatch()`: 设置当前匹配并更新状态
+      - `Replace()`: 单次替换，集成 ReplacePattern (Batch #1)
+      - `ReplaceAll()`: 批量替换，倒序应用编辑避免位置偏移
+      - `SelectAllMatches()`: 标记为 TODO(Batch #3)，需要 multi-cursor API
+      - `GetReplacePattern()`: 根据 IsRegex 创建 ReplacePattern
+      - `GetMatchesForReplace()`: 为替换获取 capture groups
+      - 事件驱动：监听 `FindReplaceState.OnFindReplaceStateChange`，自动触发重新搜索
+    - `src/PieceTree.TextBuffer/TextModel.cs`: 新增公共 API
+      - `GetDecorationById()`: 根据 ID 获取装饰（用于 FindDecorations 访问装饰详情）
+  - **测试文件**:
+    - `src/PieceTree.TextBuffer.Tests/DocUI/FindModelStubTests.cs` → `FindModelTests.cs`: 扩展为 16 个测试用例
+      - 基础测试（7 个）：State/Decorations/Construction/Dispose/Event
+      - 搜索测试（2 个）：`BasicSearch_FindsMatches`、`SearchWithNoMatches_ReturnsZero`
+      - 导航测试（1 个）：`FindNext_NavigatesToNextMatch`
+      - 替换测试（2 个）：`Replace_ReplacesCurrentMatch`、`ReplaceAll_ReplacesAllMatches`
+      - Regex测试（2 个）：`RegexSearch_FindsMatches`、`RegexReplace_WithCaptureGroups`
+  - **测试结果**:
+    - ✅ 全量测试通过：156/156（新增 9 个 FindModel 功能测试，总数 149 → 156）
+    - 命令：`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`
+  - **集成要点**:
+    - ✅ 集成 Batch #1 `ReplacePattern`：支持静态替换、正则替换、capture groups、case-preserving
+    - ✅ 装饰管理：使用 `TextModel.DeltaDecorations()` 创建/删除装饰，owner ID = 1000
+    - ✅ 大结果集优化：>1000 matches 使用 `FindMatchNoOverviewDecoration`（无 overview ruler）
+    - ✅ 位置计算：`TextModel.GetPositionAt()` / `GetOffsetAt()` 转换 TextRange ↔ Range
+    - ✅ 编辑操作：`TextModel.PushEditOperations()` 应用替换，倒序处理避免位置偏移
+  - **已知限制**:
+    - ⚠️ `SelectAllMatches()` 标记为 TODO(Batch #3)，需要 TextModel 多光标 API（未实现）
+    - ⚠️ 装饰颜色/主题：当前使用简化选项（无 OverviewRuler/Minimap 颜色），需要主题系统支持
+    - ⚠️ Find in Selection：`FindReplaceState.SearchScope` 支持搜索范围限制，但 UI 层需要 Batch #3 实现
+  - **下一步建议**:
+    - B2-003 (QA): 添加 TS `findModel.test.ts` 对等测试（43 个用例），覆盖边缘情况（空匹配、正则边界符、lookahead regex 等）
+    - Batch #3 (FindController): 实现命令层、快捷键绑定、Find Widget UI、多光标集成
+    - 性能优化：考虑增量搜索（仅更新变更区域的匹配）、装饰虚拟化（大文件场景）
+  - **文档更新**:
+    - 源文件溯源注释已添加到所有实现文件
+    - TypeScript 源：`ts/src/vs/editor/contrib/find/browser/findModel.ts` (Lines: 1-616)
+    - TypeScript 源：`ts/src/vs/editor/contrib/find/browser/findDecorations.ts` (Lines: 1-349)
 
 ## Testing & Validation Plan
 - 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。

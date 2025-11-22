@@ -4,3 +4,8 @@ obj/
 bin/
 __pycache__/
 TestResults/
+src/PieceTree.TextBuffer.Tests/BugRepro/
+BugRepro/
+agent-team/handoffs/
+/*.cs
+ts-upstream/

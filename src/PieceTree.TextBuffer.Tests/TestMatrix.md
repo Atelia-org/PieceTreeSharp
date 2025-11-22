@@ -1,4 +1,4 @@
-# PT-005 QA Matrix (2025-11-21)
+# PT-005 QA Matrix (2025-11-23)
 
 ## TS Test Alignment Map (Batch #1)
 
@@ -12,9 +12,10 @@
 | DiffTests | DiffComputer heuristics (line/char, trim flags) | [ts/src/vs/editor/test/common/diff/diffComputer.test.ts](../../ts/src/vs/editor/test/common/diff/diffComputer.test.ts) | B | Implemented | Legacy diff logic ported; char-change pretty diff + whitespace flag cases still TODO for parity. |
 | DecorationTests | Stickiness, injected text, per-line queries | [ts/src/vs/editor/test/common/model/modelDecorations.test.ts](../../ts/src/vs/editor/test/common/model/modelDecorations.test.ts) | B | Implemented | AA3-009 suites cover metadata + stickiness; need `model.changeDecorations` parity sweep for Tier-B exit. |
 | MarkdownRendererTests | DocUI diff overlay + owner routing | [TODO – locate DocUI find widget snapshot/browser smoke tests (ts/test/browser/*)](../../docs/plans/ts-test-alignment.md#appendix-%E2%80%93-ts-test-inventory-placeholder) | C | Implemented (partial) | Snapshot parity for diff markers landed; upstream TS widget tests still unidentified → Info-Indexer to surface canonical path. |
-| DocUIFindModelTests (planned) | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | C | Not implemented | Planned `src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`; blocked on DocUI editor harness + find decoration plumbing. |
-| DocUIFindControllerTests (planned) | Command-layer find controller semantics | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | C | Not implemented | Target file `DocUI/DocUIFindControllerTests.cs`; needs clipboard/context-key services shims. |
-| DocUIFindSelectionTests (planned) | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | B | Not implemented | Target file `DocUI/DocUIFindSelectionTests.cs`; requires lightweight selection helpers + range serialization. |
+| DocUIFindModelTests | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ In progress (39/43) | Batch #2 已落地 39 个 TS parity 测试，剩余 4 个 multi-cursor/selection 场景推迟到 Batch #3。Harness：`DocUI/TestEditorContext.cs`。 |
+| WordBoundaryTests | Word separator + boundary validation | [ts/src/vs/editor/common/core/wordCharacterClassifier.ts](../../ts/src/vs/editor/common/core/wordCharacterClassifier.ts) | A | Deferred (Batch #3) | 10 个测试覆盖 ASCII separators、Unicode、multi-char operators（`->`、`::`）；文档化 CJK/Thai 限制（无 Intl.Segmenter）。扩展 TextModelSearchTests.cs 添加 5 个 wholeWord 场景（regex/simple/case-insensitive/multiline 组合）。 |
+| DocUIFindControllerTests (planned) | Command-layer find controller semantics | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | C | Not implemented | Target file `DocUI/DocUIFindControllerTests.cs`; needs clipboard/context-key services shims. **Deferred to Batch #3** (依赖 EditorAction/ContextKey/Clipboard services). |
+| DocUIFindSelectionTests (planned) | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | B | Not implemented | Target file `DocUI/DocUIFindSelectionTests.cs`; requires lightweight selection helpers + range serialization. **Deferred to Batch #3**. |
 | ReplacePatternTests | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | ✅ Complete | Batch #1 (2025-11-22) – 23 tests covering escape/backslash chains, `$n`/`$&` permutations, `\u/\l/\U/\L` case ops, JS semantics, preserve-case helpers. Files: `ReplacePatternTests.cs`, `Core/ReplacePattern.cs`, `Rendering/DocUIReplaceController.cs`. |
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
@@ -49,8 +50,8 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F3 – Stickiness & `forceMoveMarkers` parity | `DecorationRangeUpdater` honoring TS semantics for collapsed ranges and forced moves | Covered | `DecorationTests.ForceMoveMarkersOverridesStickinessDefaults` |
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 
-**Total Tests Passing**: 119 (PIECETREE_DEBUG=0 baseline)
-**Date**: 2025-11-21
+**Total Tests Passing**: 187 (PIECETREE_DEBUG=0 baseline)
+**Date**: 2025-11-23
 
 ## AA4-005 (CL5) & AA4-006 (CL6) Porter-added tests (2025-11-21)
 
@@ -83,6 +84,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-23 (Batch #2) | 187 | 187 | 0 | X.Xs | `dotnet test --logger "trx;LogFileName=batch2-full.trx" --nologo` – B2 FindModel QA baseline (+45 tests from 142). TRX: `TestResults/batch2-full.trx`. |
 | 2025-11-22 (Batch #1) | 142 | 142 | 0 | 2.6s | `dotnet test --logger "trx;LogFileName=batch1-full.trx" --nologo` – B1 ReplacePattern QA baseline (+23 tests from 119). TRX: `TestResults/batch1-full.trx`. |
 | 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
 | 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
@@ -107,6 +109,15 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
 | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
+
+### Batch #2 (FindModel) Validation Commands
+
+| Command | Purpose | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch2-full.trx"` | Full-suite baseline before/after Batch #2 drops | 实际 142 → 187 测试（+45）；用于验证 FindModel 集成不破坏既有测试。 |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~DocUIFindModelTests" --logger "trx;LogFileName=TestResults/batch2-findmodel.trx"` | FindModel 专项测试（15 个核心场景） | 验证增量搜索、findNext/Prev、replace、replaceAll、wholeWord、decorations 同步、matches count 更新。参考 B2-QA-Result.md 的 P0/P1/P2 分级。 |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~WordBoundaryTests" --logger "trx;LogFileName=TestResults/batch2-wordboundary.trx"` | Word boundary 专项测试（10 个边界场景） | **Deferred to Batch #3** – WordBoundary tests尚未登陆 187 基线，保留命令模板以备下批落地。 |
+| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~TextModelSearchTests" --logger "trx;LogFileName=TestResults/batch2-textsearch.trx"` | TextModelSearch 扩展测试（包含 wholeWord 场景） | 验证 wholeWord + regex/simple/case-insensitive/multiline 组合（新增 5 个测试）。 |
 
 ### Batch #1 ReplacePattern Checklist
 

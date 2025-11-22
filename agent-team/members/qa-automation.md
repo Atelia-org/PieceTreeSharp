@@ -86,10 +86,14 @@
 4. `TestMatrix.md` and `agent-team/handoffs/AA4-008-QA.md` updated with command logs, fixture hashes, and Investigator/Porter reviews of find-controller + owner-path traces (F2/F4).
 5. Audit checklist + Sprint doc entries merged; QA sign-off gated on Markdown owner-path trace review (F4) and controller scope log review (F2).
 
+- **2025-11-22:** Batch #2 FindModel QA Matrix drafted — Reviewed B2-INV-Result (WordSeparator规格 + FindWidget测试定位) and B2-PLAN-Result (B2-001~005任务拆解), selected 15 high-priority test scenarios from TS `findModel.test.ts` (43 total tests), designed minimal DocUI test harness (`TestEditorContext.cs` adapting TS `withTestCodeEditor`), created Word Boundary test matrix (10 tests covering ASCII/Unicode separators, multi-char operators, CJK/Thai limitations), defined QA Expectations for Porter-CS API contracts (FindReplaceState, FindDecorations, FindModel with wholeWord integration), and prepared TestMatrix.md updates (new FindModel/WordBoundary rows + Batch #2 validation commands). Deliverables: `agent-team/handoffs/B2-QA-Result.md` with P0/P1/P2 test prioritization (7 core + 5 advanced + 3 edge cases), harness草案, and Porter/QA交付物清单. Blockers: awaiting B2-002 (Porter-CS FindModel implementation) before B2-003 test migration can begin.
+
 - **Upcoming Goals (next 1-3 runs):**
-1. **PT-005.S8**：与 Porter-CS 对齐 `PieceTreeBuffer`/`PieceTreeModel` 对外 `EnumeratePieces`/chunk reuse API，并在测试中断言 piece-level 布局。
-2. **PT-005.S9**：在 Investigator-TS 提供 BufferRange/SearchContext 映射后，撰写属性测试（FsCheck）提案与样例代码。
-3. **PT-005.S10**：追加顺序 delete→insert 覆盖，验证连续 `ApplyEdit` 的 metadata（长度/CRLF 计数）。
+1. **B2-003 完成（初版）**：已创建 TestEditorContext harness 并迁移 39 个 FindModel 测试（从 TS 的 43 个测试中跳过 4 个多光标测试），部分测试失败需要调整（主要是光标位置跟踪、空行处理、loop 行为等实现细节）。
+2. **B2-003 修复**：修复测试失败（24个失败），主要问题包括：正则表达式边界符匹配（`^` 和 `$`）、光标位置同步、loop=false 行为、空行末尾处理。
+3. **PT-005.S8/S9/S10**：（推迟）待 FindModel/WordBoundary 工作完成并稳定后，继续 piece-level 布局验证、属性测试提案、顺序编辑覆盖。
+
+- **2025-11-22:** Batch #2 FindModel QA 测试迁移完成（初版）—— 从 TS `findModel.test.ts` (43 个测试) 迁移了 39 个测试到 C#（跳过 4 个多光标测试：Test07/08/28/29 标记为 TODO(Batch #3)），创建了 `TestEditorContext.cs` harness 适配 TS `withTestCodeEditor`，并实现了完整的测试覆盖包括：增量查找、导航（next/prev）、作用域限制、正则表达式（`^`/`$`/`.*`/lookah ead）、替换（单个/全部/捕获组/preserveCase）、边缘案例（空匹配、1000+ 匹配、issue 回归测试）。执行 `dotnet test --filter FullyQualifiedName~FindModelTests` 结果：Total=39, Passed=15, Failed=24。失败原因分析：主要是标准测试文本末尾空行数量差异（TS 12 行 vs C# 11 行）、光标位置同步问题（TestEditorContext 需要从 State.CurrentMatch 获取当前光标）、loop=false 行为未实现（TS 有 canNavigateForward/Back 逻辑）、正则边界符 `^`/`$` 匹配空行。待修复后重新运行测试。文件更新：创建 `DocUIFindModelTests.cs` (2071 行，39 个测试方法)、更新 `TestEditorContext.cs` (GetSelection 现在使用 State.CurrentMatch)。下一步：修复测试失败（调整标准测试文本、实现 loop 行为、修复正则匹配），然后更新 TestMatrix.md 并创建 B2-003-Result.md。
 
 ## Blocking Issues
 - Porter-CS 需开放 PieceTreeBuffer/piece 枚举或 Snapshot API（PT-005.S8 所需）。

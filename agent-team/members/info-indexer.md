@@ -34,6 +34,7 @@
 - **2025-11-22:** 记录 Porter 已敲定 Batch #1 ReplacePattern 实施方案、QA 已准备 fixtures/tests/snapshots、`docs/plans/ts-test-alignment.md` Live Checkpoints 捕获所有角色输入；等待 Porter/QA 交付落地后，立即编纂 delta-2025-11-22 changefeed，并将必要证据（TRX、DocUI、TestMatrix、迁移日志）映射到广播步骤。
 - **2025-11-22:** 回读 `docs/plans/ts-test-alignment.md` / `src/PieceTree.TextBuffer.Tests/TestMatrix.md` / `docs/reports/migration-log.md`，确认 Porter 已开工 ReplacePattern 代码、QA fixture/snapshot 模板就绪但尚待实际代码；建立 `agent-team/indexes/README.md#delta-2025-11-22` 发布前置清单（迁移日志占位行、TestMatrix 引用、计划 checkpoint 链接），并记录缺失证据（Porter commit/fixture `cases.json`、QA TRX/snapshots、DocUI Markdown）以便落地后即时广播。
 - **2025-11-22:** 完成 Batch #1 – ReplacePattern changefeed 发布：在 `agent-team/indexes/README.md` 创建 `#delta-2025-11-22` 条目（包含 3 个交付文件、2 个 TS 源文件、142/142 测试结果、QA/Porter 报告链接、已知差异与 TODO 标记），更新 `docs/reports/migration-log.md` 新增 Batch #1 条目（+23 tests, 142 total, 引用 changefeed delta），创建 `agent-team/handoffs/B1-INFO-Result.md` 汇报交付物与下一步建议，并更新本记忆文件记录任务成果。
+- **2025-11-22:** 完成 OI-REFRESH 任务：创建 `agent-team/indexes/oi-backlog.md` 登记 OI-012~015（DocUI 测试框架、Snapshot 工具、WordSeparator 完整对齐、DocUI Harness 标准化），在 `agent-team/indexes/README.md` 添加 OI Backlog 索引行与 `#delta-2025-11-22 (OI Backlog)` 条目，创建 `agent-team/handoffs/OI-REFRESH-Result.md` 汇报交付物与下一步建议；所有技术债来源已追溯到 `B2-INV-Result.md` 调研成果，等待 Planner 决策 OI-013/OI-012 启动时机。
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。

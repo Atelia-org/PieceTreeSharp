@@ -25,8 +25,8 @@
 | B1-DOC | AGENTS/Sprint/Task Board 更新 | DocMaintainer | 4 | `AGENTS.md`, `docs/sprints/sprint-03.md`, `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | ✅ Done |
 | B2-INV | WordSeparator spec & DocUI widget 测试定位 | Investigator-TS | 5 | `docs/plans/ts-test-alignment.md` Appendix, notes | Planned |
 | B2-PLAN | Batch #2 调度方案 | Planner | 6 | `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | Planned |
-| B2-QA | Batch #2 测试矩阵扩展 | QA-Automation | 7 | `src/PieceTree.TextBuffer.Tests/TestMatrix.md`, QA memo | Planned |
-| OI-REFRESH | OI backlog 记录 OI-012~015 | Info-Indexer | 8 | `agent-team/indexes/oi-backlog.md` | Planned |
+| B2-QA | Batch #2 测试矩阵扩展 | QA-Automation | 7 | `src/PieceTree.TextBuffer.Tests/TestMatrix.md`, QA memo | ✅ Done |
+| OI-REFRESH | OI backlog 记录 OI-012~015 | Info-Indexer | 8 | `agent-team/indexes/oi-backlog.md` | ✅ Done |
 
 ## Progress Log
 > 规则：每次 runSubAgent 调用结束前，由该员工在下表新增一行，包含序号（Run #）、日期、员工、任务、结果、下一步。
@@ -39,3 +39,9 @@
 | R3 | 2025-11-22 | Info-Indexer | B1-INFO Changefeed 发布 | 发布 `#delta-2025-11-22`，更新迁移日志；交叉引用已验证；详见 `agent-team/handoffs/B1-INFO-Result.md` | 启动 B1-DOC |
 | R4 | 2025-11-22 | DocMaintainer | B1-DOC 文档同步 | 更新 AGENTS/Sprint/Task Board/Plan 4 个文档；Changefeed 引用统一为 `#delta-2025-11-22`；一致性检查通过；详见 `agent-team/handoffs/B1-DOC-Result.md` | **Batch #1 完成** |
 | R4 | 2025-11-22 | DocMaintainer | B1-DOC 文档同步 | 更新 `AGENTS.md`、`docs/sprints/sprint-03.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`；所有 changefeed 引用已统一为 `#delta-2025-11-22`；详见 `agent-team/handoffs/B1-DOC-Result.md` | Batch #1 完成，准备 B2-INV |
+| R5 | 2025-11-22 | Investigator-TS | B2-INV WordSeparator 规格调研 | 补全 WordSeparator 规格（Appendix B），确认 FindWidget 测试不存在，列出 Batch #2 依赖清单；详见 `agent-team/handoffs/B2-INV-Result.md` | 启动 B2-PLAN |
+| R6 | 2025-11-22 | Planner | B2-PLAN Batch #2 任务拆解 | 拆解为 B2-001~005（FindModel stubs → 核心逻辑 → 测试 → changefeed → 文档）；登记 Task Board；详见 `agent-team/handoffs/B2-PLAN-Result.md` | 并行启动 B2-QA + OI-REFRESH |
+| R7 | 2025-11-22 | QA-Automation | B2-QA 测试矩阵草拟 | 选择 15 个核心测试场景（P0/P1/P2 分级），设计 `TestEditorContext` harness，定义 Porter-CS API 契约；详见 `agent-team/handoffs/B2-QA-Result.md` | 等待 B2-001 启动 |
+| R8 | 2025-11-22 | Info-Indexer | OI-REFRESH Backlog 创建 | 创建 `oi-backlog.md`，登记 OI-012~015（Widget 测试框架、Snapshot 工具、WordSeparator parity、Harness 标准化）；详见 `agent-team/handoffs/OI-REFRESH-Result.md` | Sprint 03 准备工作完成 |
+| R9 | 2025-11-22 | Porter-CS | B2-001 FindModel Stubs 创建 | 创建 `FindReplaceState.cs`、`FindDecorations.cs`（stub）、`FindModel.cs`（空壳）；7 个验证测试，dotnet test 149/149 通过；详见 `agent-team/handoffs/B2-001-Result.md` | 启动 B2-002 |
+| R10 | 2025-11-22 | Porter-CS | B2-002 FindModel 核心逻辑 | 完成 `FindDecorations.cs`、`FindModel.cs` 核心功能（搜索/导航/替换）；9 个功能测试，dotnet test 156/156 通过；详见 `agent-team/handoffs/B2-002-Result.md` | 启动 B2-003 |

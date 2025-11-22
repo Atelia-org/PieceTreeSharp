@@ -72,12 +72,46 @@
     - 更新 `docs/reports/audit-checklist-aa4.md#cl8`（状态切换为 “Audit Complete – Awaiting Fix”，同步主要差异与测试钩子）。
   - 2025-11-21: 汇总 Sprint 02 Phase 7（CL8）最新 delta，与 `docs/sprints/sprint-02.md` / `agent-team/task-board.md` / `docs/reports/migration-log.md` / `agent-team/indexes/README.md#delta-2025-11-21` 对齐；编写 Porter-CS AA4-008 交付 addendum，明确 TS vs C# 差异、文件级 TODO、测试挂钩与 DocMaintainer/Info-Indexer changefeed 依赖。
   - 2025-11-21: 以 Investigator-TS 身份完成 AA4 Phase 7 Sprint 02 TS 测试 inventory（PieceTree/TextModel/Diff/DocUI Find），将清单写入 `docs/plans/ts-test-alignment.md#appendix`，标注可移植等级 A/B/C、DocUI harness 阻塞，并引用 `docs/reports/audit-checklist-aa4.md` / `docs/reports/audit-checklist-aa3.md` 记录依赖。
-- 2025-11-22: 深挖 WordSeparator/SearchContext parity（`wordHelper.ts`、`wordCharacterClassifier.ts`、`textModelSearch.ts` ↔ `Core/SearchTypes.cs`），梳理 `ReplacePattern` 与 `TextModelSearch` 的捕获值共享机制，定位 DocUI Find 套件的 TS 测试目录（`ts/src/vs/editor/contrib/find/test/browser/*.test.ts`）并确认缺失 widget DOM/snapshot 覆盖，同时在 `docs/plans/ts-test-alignment.md` Appendix 中补写 `textModelSearch.test.ts`/DocUI Widget TODO 行及去风险建议。
+  - 2025-11-22 (B2-INV): 完成 Batch #2 调研任务（WordSeparator规格 + FindWidget测试定位）：
+    - **WordSeparator规格**：深入分析 `wordHelper.ts`、`wordCharacterClassifier.ts`、`textModelSearch.ts`，完整梳理 TS 侧的 WordCharacterClassifier 架构（LRU cache、Intl.Segmenter集成、word boundary helpers）与 FindModel 集成点（wholeWord → EditorOption.wordSeparators）。
+    - **C# 对齐验证**：确认 `SearchTypes.cs` 已实现核心 API（WordCharacterClassifier、SearchParams、SearchData、PieceTreeSearcher），标注缺口（LRU cache、Intl.Segmenter、getWordAtText API、EditorOption层）。
+    - **FindWidget测试路径**：确认 TS 端 `contrib/find/test/browser/` 仅包含 `find.test.ts`、`findModel.test.ts`、`findController.test.ts`、`replacePattern.test.ts`，无专用 FindWidget DOM harness；建议 C# 端跳过 widget DOM 测试，聚焦 FindModel 逻辑层。
+    - **文档输出**：在 `docs/plans/ts-test-alignment.md` 新增 Appendix B（WordSeparator规格）和 Appendix C（Batch #2 依赖路线图），更新 Appendix A 表格中 findWidget.test.ts 行（标注为"Expected but not found"）。
+    - **记忆更新**：将本次调研成果写入 Investigator-TS 记忆文件，准备向 Planner 汇报。
+  - **2025-11-23 (B2-TS-Review): 完成 Batch #2 git 暂存区 TS 对齐性审查**：
+    - **审查范围**：`FindReplaceState.cs` (416L), `FindDecorations.cs` (482L), `FindModel.cs` (870L), `TestEditorContext.cs` (244L), `DocUIFindModelTests.cs` (2070L, 39 tests), `EmptyStringRegexTest.cs`, `LineCountTest.cs`, `RegexTest.cs`，以及基础设施修复（`IntervalTree.cs`, `PieceTreeSearcher.cs`, `TextModel.cs`）
+    - **Critical Issues 发现** (3 个必须修复):
+      - **CI-1**: `IntervalTree.cs:150` 空范围边界检查逻辑错误（`<=` 应为 `<`），影响零宽匹配（如 `^` regex）的 decoration 查询
+      - **CI-2**: `FindModel.SetCurrentFindMatch()` 未同步 `MatchesPosition` 到 `FindReplaceState`，导致 "3/5" 计数不准确
+      - **CI-3**: `PieceTreeSearcher.Next()` 文本末尾零宽匹配边界检查顺序可优化（非阻塞，但建议对齐 TS 提前退出逻辑）
+    - **Warnings 识别** (5 个建议改进):
+      - **W-1**: `TestEditorContext` 未实现 TS `withTestCodeEditor` 的工厂模式（PieceTreeBuilder 分块测试）
+      - **W-2**: `FindModel.Replace()` 缺少 TS 的 `buildReplaceString` 空字符串边界检查
+      - **W-3**: `FindReplaceState.CreateSearchParams()` 使用硬编码 `DefaultWordSeparators`，缺少 TS 的 `EditorOption` 配置层
+      - **W-4**: `FindModel._largeReplaceAll()` 未实现 TS 的 `PushStackElement()` 撤销栈边界
+      - **W-5**: 缺少 TS 的 `_ignoreModelContentChanged` 标志，replace 操作可能触发不必要的 `Research()`
+    - **TS Parity 确认** (15+ 项核心对齐):
+      - ✅ FindReplaceState 状态机完整移植（所有字段、Change/ChangeMatchInfo 逻辑、CanNavigate 检查）
+      - ✅ FindDecorations 装饰管理（currentFindMatch/findMatch/findScope 类型、批量替换、wrap-around 导航）
+      - ✅ FindModel 搜索/替换核心逻辑（MATCHES_LIMIT、零宽匹配调整、Replace/ReplaceAll 分支、selection offset 跟踪）
+      - ✅ TestEditorContext 准确模拟 `withTestCodeEditor`（RunTest callback、AssertFindState 三项检查）
+      - ✅ 正则表达式边界情况（`^`/`$`/`^$`/`.*`/`^.*$` 零宽匹配、position 调整）
+      - ✅ 替换字符串捕获组和大小写修饰符（`$n`/`$&`/`\u/\l/\U/\L`、PreserveCase）
+      - ✅ SearchScope 多范围支持（Range[] 归一化、findInSelection 参数）
+      - ✅ Decoration stickiness 行为（NeverGrowsWhenTypingAtEdges、Normalize）
+      - ✅ 文本模型事件处理（OnDidChangeContent、IsFlush、Research）
+      - ✅ 文件头部注释标注 TS 来源（所有新文件包含 TypeScript source reference）
+      - ✅ 测试用例命名与 TS 一致（Test01~Test43，39/43 已移植）
+      - ✅ IntervalTree decoration 查询（Search/ownerFilter/overlap 逻辑，CI-1 需修复边界）
+      - ✅ PieceTreeSearcher 零宽匹配处理（_prevMatch 跟踪、AdvanceForZeroLength、CI-3 建议优化）
+      - ✅ TextModel decoration 事件集成（GetDecorationById、DeltaDecorations owner、IsFlush 字段）
+      - ✅ LineCount 测试的 trailing empty line 行为（`"a\nb\n"` → 3 行）
+    - **输出文档**：`agent-team/handoffs/B2-TS-Review.md` (详细审查报告，包含 TS 参考代码、修复建议、测试验证矩阵)
 - **Upcoming Goals (1 runSubAgent per item):**
-  1. PT-003.C：与 Planner/Porter 对齐 Searcher/WordSeparators 的最小 stub 方案（截止 2025-11-20），若无结论则在 type-mapping 里落地临时 API 约束。
-  2. OI-002.A：起草 `agent-team/indexes/core-ts-piece-tree.md`，引用已更新的 type map，供 Info-Indexer 接入 changefeed。
-  3. PT-003.D：回读 `pieceTreeTextBufferBuilder.ts` + `textModelSearch.ts` 的剩余触点，形成 QA/Porter checklist（若缺上下文则在下一 run 请求 Planner 追加资料）。
-  4. Sprint-00 meta：在 Info-Indexer/Task Board 上登记本次 type map 变更与待定 search stub，以免 PT-004/005 启动时遗漏依赖。
+  1. ~~PT-003.C~~：已完成 WordSeparator 规格对齐（见 B2-INV）
+  2. ~~OI-002.A~~：索引任务已移交 Info-Indexer（见 OI-011/OI-012）
+  3. **B2-TS-Review 后续**：等待 Porter-CS 修复 CI-1/CI-2/CI-3，QA-Automation 验证后再次审查（若需要）
+  4. **Batch #3 准备**：规划 FindController/multi-cursor 测试迁移策略（依赖 EditorAction/ContextKey/Clipboard services）
 
 ## Blocking Issues
 - 需要 Planner 明确 PT-003 与 OI-002 工时的优先顺序，避免同一 runSubAgent 同时覆盖两条任务。
