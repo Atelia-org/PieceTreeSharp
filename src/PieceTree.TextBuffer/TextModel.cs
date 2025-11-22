@@ -405,6 +405,11 @@ public class TextModel : ITextSearchAccess
     public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
         => _decorationTrees.Search(range, ownerIdFilter);
 
+    public ModelDecoration? GetDecorationById(string decorationId)
+    {
+        return _decorationsById.GetValueOrDefault(decorationId);
+    }
+
     public IReadOnlyList<ModelDecoration> DeltaDecorations(int ownerId, IReadOnlyList<string>? oldDecorationIds, IReadOnlyList<ModelDeltaDecoration>? newDecorations)
     {
         var changes = new List<DecorationChange>();
@@ -771,6 +776,11 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<TextChange>();
         }
 
+        var documentRangeBeforeEdit = GetDocumentRange();
+        var isFlushEdit = pending.Count == 1
+            && pending[0].Edit.Start.Equals(documentRangeBeforeEdit.Start)
+            && pending[0].Edit.End.Equals(documentRangeBeforeEdit.End);
+
         var decorationChanges = ApplyPendingEdits(pending, forceMoveMarkers);
 
         foreach (var edit in pending)
@@ -803,7 +813,7 @@ public class TextModel : ITextSearchAccess
                 edit.NewText));
         }
 
-        OnDidChangeContent?.Invoke(this, new TextModelContentChangedEventArgs(changes, _versionId, isUndo, isRedo, false));
+        OnDidChangeContent?.Invoke(this, new TextModelContentChangedEventArgs(changes, _versionId, isUndo, isRedo, isFlushEdit));
 
         if (decorationChanges.Count > 0)
         {

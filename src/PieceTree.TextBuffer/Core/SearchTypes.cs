@@ -141,7 +141,8 @@ public sealed class SearchParams
             }
         }
 
-        var classifier = string.IsNullOrEmpty(WordSeparators) ? null : new WordCharacterClassifier(WordSeparators!);
+        // TS Parity: use cached WordCharacterClassifier (getMapForWordSeparators) – we implement a 10-entry LRU
+        var classifier = string.IsNullOrEmpty(WordSeparators) ? null : WordCharacterClassifierCache.Get(WordSeparators!);
         return new SearchData(regex, classifier, simpleSearch, isMultiline, MatchCase);
     }
 
@@ -432,6 +433,53 @@ public sealed class WordCharacterClassifier
         }
 
         return GetClass(codePoint) != WordCharacterClass.Regular;
+    }
+}
+
+// LRU cache for WordCharacterClassifier instances (TS: getMapForWordSeparators)
+internal static class WordCharacterClassifierCache
+{
+    private const int MaxEntries = 10;
+    private static readonly Dictionary<string, (WordCharacterClassifier classifier, long stamp)> _cache = new(StringComparer.Ordinal);
+    private static long _counter;
+    private static readonly object _sync = new();
+
+    public static WordCharacterClassifier Get(string separators)
+    {
+        if (string.IsNullOrEmpty(separators))
+        {
+            // Empty separators => classifier with no word separators; cache key can be empty string
+            separators = string.Empty;
+        }
+        lock (_sync)
+        {
+            _counter++;
+            if (_cache.TryGetValue(separators, out var entry))
+            {
+                _cache[separators] = (entry.classifier, _counter);
+                return entry.classifier;
+            }
+            var classifier = new WordCharacterClassifier(separators);
+            if (_cache.Count >= MaxEntries)
+            {
+                string? oldestKey = null;
+                long oldestStamp = long.MaxValue;
+                foreach (var kv in _cache)
+                {
+                    if (kv.Value.stamp < oldestStamp)
+                    {
+                        oldestStamp = kv.Value.stamp;
+                        oldestKey = kv.Key;
+                    }
+                }
+                if (oldestKey != null)
+                {
+                    _cache.Remove(oldestKey);
+                }
+            }
+            _cache[separators] = (classifier, _counter);
+            return classifier;
+        }
     }
 }
 

@@ -147,6 +147,8 @@ namespace PieceTree.TextBuffer.Decorations
             bool overlaps;
             if (currentRange.IsEmpty)
             {
+                // TS Parity: Empty range uses [start, end) semantics (startOffset < endOffset, not <=)
+                // Reference: ts/src/vs/editor/common/model/intervalTree.ts:240-242
                 overlaps = currentRange.StartOffset >= range.StartOffset && currentRange.StartOffset < range.EndOffset;
             }
             else

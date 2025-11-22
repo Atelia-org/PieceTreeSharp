@@ -45,14 +45,24 @@ public class PieceTreeSearcher
     {
         var textLength = text.Length;
 
-        while (true)
+        // 改为了和原版相同的do while结构。
+        Match? match;
+        do
         {
             if (_lastIndex > textLength)
             {
                 return null;
             }
 
-            var match = _searchRegex.Match(text, _lastIndex);
+            // TS Parity: Check if previous match reached text end (after _lastIndex check)
+            // This allows first match at text end, but prevents infinite loop on zero-width matches
+            // Reference: ts/src/vs/editor/common/model/textModelSearch.ts:519-522
+            if (_prevMatchStartIndex + _prevMatchLength == textLength && _lastIndex > 0)
+            {
+                return null;
+            }
+
+            match = _searchRegex.Match(text, _lastIndex);
             if (!match.Success)
             {
                 return null;
@@ -77,13 +87,14 @@ public class PieceTreeSearcher
 
             AdvanceLastIndex(text, matchStartIndex, matchLength);
 
-            if (_wordSeparators != null && !_wordSeparators.IsValidMatch(text, matchStartIndex, matchLength))
+            if (_wordSeparators == null || _wordSeparators.IsValidMatch(text, matchStartIndex, matchLength))
             {
-                continue;
+                return match;
             }
 
-            return match;
-        }
+        } while (match != null);
+
+        return null;
     }
 
     private void AdvanceLastIndex(string text, int matchStartIndex, int matchLength)
