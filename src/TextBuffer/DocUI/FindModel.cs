@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
+using Selection = PieceTree.TextBuffer.Core.Selection;
 
 namespace PieceTree.TextBuffer.DocUI
 {
@@ -29,6 +30,7 @@ namespace PieceTree.TextBuffer.DocUI
         private readonly TextModel _model;
         private readonly FindReplaceState _state;
         private readonly FindDecorations _decorations;
+        private readonly Func<string?> _wordSeparatorsProvider;
         private readonly EventHandler<TextModelContentChangedEventArgs> _modelContentChangedHandler;
         private bool _isDisposed;
         private Range _currentSelection;
@@ -38,11 +40,12 @@ namespace PieceTree.TextBuffer.DocUI
         // TS Parity: _ignoreModelContentChanged flag prevents double research after Replace/ReplaceAll
         private bool _ignoreModelContentChanged;
 
-        public FindModel(TextModel model, FindReplaceState state)
+        public FindModel(TextModel model, FindReplaceState state, Func<string?>? wordSeparatorsProvider = null)
         {
             _model = model ?? throw new ArgumentNullException(nameof(model));
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _decorations = new FindDecorations(model);
+            _wordSeparatorsProvider = wordSeparatorsProvider ?? (() => null);
             _currentSelection = new Range(new TextPosition(1, 1), new TextPosition(1, 1));
             _modelContentChangedHandler = OnModelContentChanged;
             _globalStartPosition = _decorations.GetStartPosition();
@@ -233,7 +236,7 @@ namespace PieceTree.TextBuffer.DocUI
                 return Array.Empty<FindMatch>();
             }
 
-            var searchParams = _state.CreateSearchParams();
+            var searchParams = CreateSearchParams();
 
             if (findScopes != null && findScopes.Length > 0)
             {
@@ -550,7 +553,7 @@ namespace PieceTree.TextBuffer.DocUI
 
         private FindMatch? GetNextMatchFromModel(TextPosition position, bool forceMove, bool captureMatches = false)
         {
-            var searchParams = _state.CreateSearchParams();
+            var searchParams = CreateSearchParams();
             var normalizedScopes = ResolveFindScopes();
             var readOnlyScopes = normalizedScopes != null && normalizedScopes.Length > 0
                 ? Array.AsReadOnly(normalizedScopes)
@@ -585,7 +588,7 @@ namespace PieceTree.TextBuffer.DocUI
 
         private FindMatch? GetPreviousMatchFromModel(TextPosition position, bool forceMove, bool captureMatches = false)
         {
-            var searchParams = _state.CreateSearchParams();
+            var searchParams = CreateSearchParams();
             var normalizedScopes = ResolveFindScopes();
             var readOnlyScopes = normalizedScopes != null && normalizedScopes.Length > 0
                 ? Array.AsReadOnly(normalizedScopes)
@@ -686,7 +689,7 @@ namespace PieceTree.TextBuffer.DocUI
 
         private int _largeReplaceAll(ReplacePattern replacePattern, SelectionSnapshot selectionSnapshot)
         {
-            var searchParams = _state.CreateSearchParams();
+            var searchParams = CreateSearchParams();
             var searchData = searchParams.ParseSearchRequest();
             if (searchData == null)
             {
@@ -752,6 +755,11 @@ namespace PieceTree.TextBuffer.DocUI
             return new Range(new TextPosition(1, 1), new TextPosition(lastLine, _model.GetLineMaxColumn(lastLine)));
         }
 
+        private SearchParams CreateSearchParams()
+        {
+            return _state.CreateSearchParams(_wordSeparatorsProvider());
+        }
+
         private static Regex EnsureMultilineRegex(Regex regex)
         {
             return regex.Options.HasFlag(RegexOptions.Multiline)
@@ -775,9 +783,65 @@ namespace PieceTree.TextBuffer.DocUI
             public bool IsCollapsed => StartOffset == EndOffset;
         }
 
-        public void SelectAllMatches()
+        public Selection[] SelectAllMatches()
         {
-            throw new NotImplementedException("SelectAllMatches requires multi-cursor API support (planned for Batch #3)");
+            EnsureResearched();
+
+            if (_decorations.GetCount() == 0)
+            {
+                return Array.Empty<Selection>();
+            }
+
+            var findScopes = ResolveFindScopes();
+            var matches = FindMatches(findScopes, captureMatches: false, int.MaxValue);
+            if (matches.Count == 0)
+            {
+                return Array.Empty<Selection>();
+            }
+
+            var selections = new SelectionInfo[matches.Count];
+            for (int i = 0; i < matches.Count; i++)
+            {
+                var matchRange = matches[i].Range;
+                selections[i] = new SelectionInfo(matchRange, new Selection(matchRange.Start, matchRange.End));
+            }
+
+            Array.Sort(selections, (left, right) => CompareRanges(left.Range, right.Range));
+
+            var primaryRange = GetSelectionRange();
+            var primaryIndex = -1;
+            for (int i = 0; i < selections.Length; i++)
+            {
+                if (selections[i].Range.Equals(primaryRange))
+                {
+                    primaryIndex = i;
+                    break;
+                }
+            }
+
+            var result = new Selection[selections.Length];
+            if (primaryIndex >= 0)
+            {
+                result[0] = selections[primaryIndex].Selection;
+                var writeIndex = 1;
+                for (int i = 0; i < selections.Length; i++)
+                {
+                    if (i == primaryIndex)
+                    {
+                        continue;
+                    }
+                    result[writeIndex++] = selections[i].Selection;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < selections.Length; i++)
+                {
+                    result[i] = selections[i].Selection;
+                }
+            }
+
+            return result;
         }
 
         private ReplacePattern GetReplacePattern()
@@ -797,7 +861,7 @@ namespace PieceTree.TextBuffer.DocUI
                 return null;
             }
 
-            var searchParams = _state.CreateSearchParams();
+            var searchParams = CreateSearchParams();
             FindMatch? match;
             if (_state.SearchScope != null && _state.SearchScope.Length > 0)
             {
@@ -853,6 +917,17 @@ namespace PieceTree.TextBuffer.DocUI
             return 0;
         }
 
+        private static int CompareRanges(Range left, Range right)
+        {
+            var startComparison = ComparePositions(left.Start, right.Start);
+            if (startComparison != 0)
+            {
+                return startComparison;
+            }
+
+            return ComparePositions(left.End, right.End);
+        }
+
         private static int ComparePositions(TextPosition left, TextPosition right)
         {
             if (left.LineNumber != right.LineNumber)
@@ -880,5 +955,7 @@ namespace PieceTree.TextBuffer.DocUI
             _model.OnDidChangeContent -= _modelContentChangedHandler;
             _decorations.Dispose();
         }
+
+        private readonly record struct SelectionInfo(Range Range, Selection Selection);
     }
 }

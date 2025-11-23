@@ -12,10 +12,11 @@
 | DiffTests | DiffComputer heuristics (line/char, trim flags) | [ts/src/vs/editor/test/common/diff/diffComputer.test.ts](../../ts/src/vs/editor/test/common/diff/diffComputer.test.ts) | B | Implemented | Legacy diff logic ported; char-change pretty diff + whitespace flag cases still TODO for parity. |
 | DecorationTests | Stickiness, injected text, per-line queries | [ts/src/vs/editor/test/common/model/modelDecorations.test.ts](../../ts/src/vs/editor/test/common/model/modelDecorations.test.ts) | B | Implemented | AA3-009 suites cover metadata + stickiness; need `model.changeDecorations` parity sweep for Tier-B exit. |
 | MarkdownRendererTests | DocUI diff overlay + owner routing | [TODO – locate DocUI find widget snapshot/browser smoke tests (ts/test/browser/*)](../../docs/plans/ts-test-alignment.md#appendix-%E2%80%93-ts-test-inventory-placeholder) | C | Implemented (partial) | Snapshot parity for diff markers landed; upstream TS widget tests still unidentified → Info-Indexer to surface canonical path. |
-| DocUIFindModelTests | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ In progress (39/43) | Batch #2 已落地 39 个 TS parity 测试，剩余 4 个 multi-cursor/selection 场景推迟到 Batch #3。Harness：`DocUI/TestEditorContext.cs`。 |
+| DocUIFindModelTests | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ In progress (41/43 + Test44) | Batch #2 已落地 39 个 TS parity 测试；Batch #3 (B3-FM) 追加 SelectAllMatches FM-01/FM-02（范围排序 + 主光标保持），本轮补上 **Test44_WholeWordRespectsCustomWordSeparators** 覆盖 OI-014（host wordSeparators 注入到 whole-word 搜索）。余下 2 个 multi-cursor/selection 场景依旧待处理。Harness：`DocUI/TestEditorContext.cs`。 |
+| DocUIFindModelTests – B3-FM subset | SelectAllMatches search-scope ordering + primary cursor fidelity | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ Complete (2/2) | `DocUIFindModelTests.Test28/Test29` 覆盖 TS `selectAllMatches` + issue #14143 case；匹配多光标并按 range 排序，保持主光标不变。 |
 | WordBoundaryTests | Word separator + boundary validation | [ts/src/vs/editor/common/core/wordCharacterClassifier.ts](../../ts/src/vs/editor/common/core/wordCharacterClassifier.ts) | A | Deferred (Batch #3) | 10 个测试覆盖 ASCII separators、Unicode、multi-char operators（`->`、`::`）；文档化 CJK/Thai 限制（无 Intl.Segmenter）。扩展 TextModelSearchTests.cs 添加 5 个 wholeWord 场景（regex/simple/case-insensitive/multiline 组合）。 |
-| DocUIFindControllerTests (planned) | Command-layer find controller semantics | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | C | Not implemented | Target file `DocUI/DocUIFindControllerTests.cs`; needs clipboard/context-key services shims. **Deferred to Batch #3** (依赖 EditorAction/ContextKey/Clipboard services). |
-| DocUIFindSelectionTests (planned) | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | B | Not implemented | Target file `DocUI/DocUIFindSelectionTests.cs`; requires lightweight selection helpers + range serialization. **Deferred to Batch #3**. |
+| DocUIFindControllerTests | FindController command parity（issue #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232 + scope persistence + whitespace Ctrl/Cmd+F3 + Alt+Enter parity） | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | B | ✅ Complete (+ OI-013/OI-015) | `DocUIFindControllerTests.cs` + `TestEditorHost`/storage/clipboard stubs cover navigation loops、regex seed auto-escape、scope lifecycle、replace focus、selection-seeded regex、auto find-in-selection fallback (**AutoFindInSelectionAppliesDuringFallbackStart**), backward helpers (**Issue3090_PreviousMatchLoopsWithinSingleLine** / **Issue38232_PreviousSelectionMatchRegex**) 与 Alt+Enter wiring (**SelectAllMatchesActionAppliesSelections**). PreserveCase 默认值/存储回填、EmptyClipboard no-op、SearchScope persistence + whitespace Ctrl/Cmd+F3 regressions tracked via `#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`; 最新 `#delta-2025-11-23-b3-fc-lifecycle` 覆盖 Ctrl+F reseed parity、`SeedSearchStringMode.Never` replace 护栏、Cmd+E multi-line/word seeds（issues #47400/#109756）、FindModel lifecycle/disposal 测试；`#delta-2025-11-23-b3-fc-regexseed` 新增 Cmd+E regex 多行选择保持字面文本（27 测试）。 |
+| DocUIFindSelectionTests | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | A | ✅ Complete (+ hyphen regression) | `DocUIFindSelectionTests.cs` ports the 3 `find.test.ts` cases (cursor word seed, single-line selection, multiline null) using `SelectionTestContext` 并新增 **RespectsCustomWordSeparatorsHyphen** 覆盖 OI-014（wordSeparators plumbing）。Tracks `#delta-2025-11-23-b3-fsel`. |
 | ReplacePatternTests | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | ✅ Complete | Batch #1 (2025-11-22) – 23 tests covering escape/backslash chains, `$n`/`$&` permutations, `\u/\l/\U/\L` case ops, JS semantics, preserve-case helpers. Files: `ReplacePatternTests.cs`, `Core/ReplacePattern.cs`, `Rendering/DocUIReplaceController.cs`. |
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
@@ -50,7 +51,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F3 – Stickiness & `forceMoveMarkers` parity | `DecorationRangeUpdater` honoring TS semantics for collapsed ranges and forced moves | Covered | `DecorationTests.ForceMoveMarkersOverridesStickinessDefaults` |
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 
-**Total Tests Passing**: 187 (PIECETREE_DEBUG=0 baseline)
+**Total Tests Passing**: 218 (PIECETREE_DEBUG=0 baseline)
 **Date**: 2025-11-23
 
 ## AA4-005 (CL5) & AA4-006 (CL6) Porter-added tests (2025-11-21)
@@ -84,10 +85,33 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-23 (B3-FC-RegexSeed hotfix) | 218 | 218 | 0 | 3.3s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Full suite after regex seeding fix (`#delta-2025-11-23-b3-fc-regexseed`). |
+| 2025-11-23 (Batch #3 – B3-FC-Core) | 199 | 199 | 0 | 6.9s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – DocUI FindController core parity run (`#delta-2025-11-23-b3-fc-core`). |
+| 2025-11-23 (Batch #3 – B3-FSel) | 189 | 189 | 0 | 3.5s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Find selection helper parity run (`#delta-2025-11-23-b3-fsel`). |
+| 2025-11-23 (Batch #3 – B3-FM) | 186 | 186 | 0 | 3.0s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – B3 SelectAllMatches parity run (#delta-2025-11-23-b3-fm). |
 | 2025-11-23 (Batch #2) | 187 | 187 | 0 | X.Xs | `dotnet test --logger "trx;LogFileName=batch2-full.trx" --nologo` – B2 FindModel QA baseline (+45 tests from 142). TRX: `TestResults/batch2-full.trx`. |
 | 2025-11-22 (Batch #1) | 142 | 142 | 0 | 2.6s | `dotnet test --logger "trx;LogFileName=batch1-full.trx" --nologo` – B1 ReplacePattern QA baseline (+23 tests from 119). TRX: `TestResults/batch1-full.trx`. |
 | 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
 | 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
+
+### Targeted reruns (B3-FM, 2025-11-23)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~DocUIFindModelTests.Test28|FullyQualifiedName~DocUIFindModelTests.Test29" --nologo` | 2/2 green | SelectAllMatches regression sweep for FM-01/FM-02 (`#delta-2025-11-23-b3-fm`). |
+
+### Targeted reruns (B3-FSel, 2025-11-23)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindSelectionTests --nologo` | 4/4 green | Selection-derived seed heuristics (cursor word, single-line selection, multi-line null) + hyphen separator regression run (`#delta-2025-11-23-b3-fsel`). |
+
+### Targeted reruns (B3-FC, 2025-11-23)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` | 27/27 green | DocUI FindController parity run covering issues #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232，加上 Ctrl+F reseed、`SeedSearchStringMode.Never` replace、Cmd+E multi-line/word seeds（issues #47400/#109756）、lifecycle disposal（`#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`、`#delta-2025-11-23-b3-fc-lifecycle`）及 **regex multi-line seed literal parity** (`#delta-2025-11-23-b3-fc-regexseed`). |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` | 17/17 green (1.6s) | Aggregated DocUI find suites (controller/model/selection) re-ran after preserve-case/word-separator/clipboard restage; log mirrored into `agent-team/handoffs/AA4-009-QA.md` (`#delta-2025-11-23-docuifind`). |
 
 ### Targeted reruns (AA4-009, 2025-11-21)
 

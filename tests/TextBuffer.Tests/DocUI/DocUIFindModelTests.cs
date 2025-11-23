@@ -7,10 +7,12 @@
 // B2-003: Port 43 TS tests to C# (39 tests, skipping 4 multi-cursor tests for Batch #3)
 
 using System;
+using System.Linq;
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.DocUI;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests.DocUI
 {
@@ -1474,9 +1476,62 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             });
         }
 
-        // Test28 & Test29: SelectAllMatches - TODO(Batch #3)
-        // Skipped: 'selectAllMatches'
-        // Skipped: 'issue #14143 selectAllMatches should maintain primary cursor if feasible'
+        [Fact]
+        public void Test28_SelectAllMatchesHonorsSearchScopeAndOrdersByRangeStart()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                ctx.State.Change(searchString: "hello", moveCursor: false);
+
+                var scopedRanges = new[]
+                {
+                    new Core.Range(new TextPosition(6, 1), new TextPosition(7, ctx.Model.GetLineMaxColumn(7))),
+                    new Core.Range(new TextPosition(9, 1), new TextPosition(10, ctx.Model.GetLineMaxColumn(10)))
+                };
+
+                ctx.State.Change(searchScope: scopedRanges, searchScopeProvided: true, moveCursor: false);
+
+                var selections = ctx.FindModel.SelectAllMatches();
+
+                var expected = new[]
+                {
+                    CreateRange(6, 14, 6, 19),
+                    CreateRange(6, 27, 6, 32),
+                    CreateRange(7, 14, 7, 19),
+                    CreateRange(9, 14, 9, 19)
+                };
+
+                Assert.Equal(expected, ToRanges(selections));
+            });
+        }
+
+        [Fact]
+        public void Test29_SelectAllMatchesMaintainsPrimaryCursorWhenSelectionIsMatch()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                ctx.State.Change(searchString: "hello", moveCursor: false);
+
+                ctx.FindModel.FindNext();
+                ctx.FindModel.FindNext();
+                ctx.FindModel.FindNext();
+                ctx.FindModel.FindNext();
+
+                var selections = ctx.FindModel.SelectAllMatches();
+                var ranges = ToRanges(selections);
+
+                Assert.Equal(CreateRange(8, 14, 8, 19), ranges[0]);
+
+                var expectedTail = new[]
+                {
+                    CreateRange(6, 14, 6, 19),
+                    CreateRange(6, 27, 6, 32),
+                    CreateRange(7, 14, 7, 19),
+                    CreateRange(9, 14, 9, 19)
+                };
+                Assert.Equal(expectedTail, ranges.Skip(1).ToArray());
+            });
+        }
 
         [Fact]
         public void Test30_Issue1914_NPEWhenThereIsOnlyOneFindMatch()
@@ -2065,6 +2120,40 @@ namespace PieceTree.TextBuffer.Tests.DocUI
                 ctx.FindModel.FindPrevious();
                 Assert.Equal(1, ctx.State.MatchesPosition);
             });
+        }
+
+        [Fact]
+        public void Test44_WholeWordRespectsCustomWordSeparators()
+        {
+            var text = new[] { "alpha-beta alpha" };
+            var options = new TestEditorContextOptions
+            {
+                WordSeparators = " \t"
+            };
+
+            TestEditorContext.RunTest(text, ctx =>
+            {
+                ctx.State.Change(searchString: "alpha", wholeWord: true, moveCursor: false);
+                Assert.Equal(1, ctx.State.MatchesCount);
+
+                ctx.State.Change(wholeWord: false, moveCursor: false);
+                Assert.Equal(2, ctx.State.MatchesCount);
+            }, options);
+        }
+
+        private static Range[] ToRanges(Selection[] selections)
+        {
+            var result = new Range[selections.Length];
+            for (int i = 0; i < selections.Length; i++)
+            {
+                result[i] = new Range(selections[i].Start, selections[i].End);
+            }
+            return result;
+        }
+
+        private static Range CreateRange(int startLine, int startColumn, int endLine, int endColumn)
+        {
+            return new Range(new TextPosition(startLine, startColumn), new TextPosition(endLine, endColumn));
         }
     }
 }

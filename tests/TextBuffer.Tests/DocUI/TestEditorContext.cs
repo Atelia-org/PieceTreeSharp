@@ -27,7 +27,7 @@ namespace PieceTree.TextBuffer.Tests.DocUI
         public FindModel FindModel { get; }
         private Range _selection;
 
-        private TestEditorContext(string[] lines)
+        private TestEditorContext(string[] lines, TestEditorContextOptions? options)
         {
             // Create TextModel (join lines with \n)
             // TS behavior: ['line1', 'line2', ''].join('\n') => 'line1\nline2\n'
@@ -42,7 +42,8 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             _selection = new Range(new TextPosition(1, 1), new TextPosition(1, 1));
             
             // Create FindModel (binds to Model and State)
-            FindModel = new FindModel(Model, State);
+            var configuredWordSeparators = options?.WordSeparators;
+            FindModel = new FindModel(Model, State, () => configuredWordSeparators);
             FindModel.SetSelection(_selection);
         }
 
@@ -50,9 +51,9 @@ namespace PieceTree.TextBuffer.Tests.DocUI
         /// Runs a test with a disposable TestEditorContext.
         /// Mimics TS withTestCodeEditor pattern.
         /// </summary>
-        public static void RunTest(string[] lines, Action<TestEditorContext> callback)
+        public static void RunTest(string[] lines, Action<TestEditorContext> callback, TestEditorContextOptions? options = null)
         {
-            using var ctx = new TestEditorContext(lines);
+            using var ctx = new TestEditorContext(lines, options);
             callback(ctx);
         }
 
@@ -241,5 +242,10 @@ namespace PieceTree.TextBuffer.Tests.DocUI
     {
         public Range[] Highlighted { get; set; } = Array.Empty<Range>();
         public Range[] FindDecorations { get; set; } = Array.Empty<Range>();
+    }
+
+    public sealed class TestEditorContextOptions
+    {
+        public string? WordSeparators { get; init; }
     }
 }
