@@ -28,7 +28,7 @@
 - `deepwiki/` 备用：若分析篇幅过长，再与 DocMaintainer 协调发布。
 
 ## Worklog
-- **Last Update:** 2025-11-22
+- **Last Update:** 2025-11-23
 - **Recent Actions:**
   - 2025-11-19: 在 `docs/meetings/meeting-20251119-org-self-improvement.md` 提交 Investigator-TS 陈述，记录 PieceTree 覆盖现状、blind spots、协作需求与文档治理建议。
   - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
@@ -107,11 +107,17 @@
       - ✅ TextModel decoration 事件集成（GetDecorationById、DeltaDecorations owner、IsFlush 字段）
       - ✅ LineCount 测试的 trailing empty line 行为（`"a\nb\n"` → 3 行）
     - **输出文档**：`agent-team/handoffs/B2-TS-Review.md` (详细审查报告，包含 TS 参考代码、修复建议、测试验证矩阵)
+    - 2025-11-23: second-pass DocUI Find 暂存区 parity sweep（`src/TextBuffer/DocUI/DocUIFindController.cs`, `src/TextBuffer/DocUI/FindModel.cs`, `src/TextBuffer/DocUI/FindUtilities.cs`, `tests/TextBuffer.Tests/DocUI/*`）。记录缺口：① Controller 未实现 `TogglePreserveCase` 与持久化（TS 参考 `ts/src/vs/editor/contrib/find/browser/findController.ts`）；② `FindModel`/`FindReplaceState.CreateSearchParams` 仍以常量分隔符驱动 whole-word 模式，未读取 `IEditorHost` 的 `WordSeparators`（TS `findModel.ts` 依赖 `EditorOption.wordSeparators`）；③ `FindUtilities.GetWordAtPosition` 仅基于 ASCII 字符分类，缺少 TS `getConfiguredWordAtPosition`/`WordCharacterClassifier` 的语言感知边界；④ `DocUIFindController.Start` 在 `UseGlobalFindClipboard` 场景会把空白剪贴板写回 search string，而 TS 对空串直接忽略。待 Porter Batch #3 跟进修复，并在 QA 清单中追踪。
+    - 2025-11-23 (B3-FC Review): 完成 Batch #3 DocUI Find Controller staging TS 对齐复审（锚定 docs/sprints/sprint-03.md R14 / AA4-004-Audit.md）。确认 word separator & clipboard plumbing 已修复，但新增 2 个 Warning：W1 `Start()` 在 `UpdateSearchScope=true` 且选区为空时会清空既有 scope（TS `_start` 仅在 `selection.some(!isEmpty)` 时写入）；W2 `NextSelectionMatchFindAction()` 在 caret 位于空白无法 seed 时直接返回 `false`，而 TS `SelectionMatchFindAction.run` 仍会 `start()` 并显示 Find widget。已在 `agent-team/handoffs/B3-FC-Review.md` 记录 Porter 修复建议及需补的 DocUIFindControllerTests（scope persistence + whitespace Ctrl/Cmd+F3）。
+    - 2025-11-23 (B3-FC Investigator pass #2): 审看最新 DocUI Find Controller/Model 暂存差异时，发现 3 个 parity 缺口需在 Porter 合入前解决：① `_start` 未像 TS 那样在所有入口（F3/Ctrl+F3 等）强制 `autoFindInSelection` → fallback 流程不会保留多行 scope；② 缺少 `PreviousMatchFindAction`/`PreviousSelectionMatchFindAction` 命令封装，`MoveToPrevMatch()` 无法由 DocUI host 使用；③ 未实现 `SelectAllMatches` 控制器动作，`FindModel.SelectAllMatches()` 结果无法写回 `IEditorHost.SetSelections`，`Alt+Enter`/`editor.action.selectAllMatches` 仍不可用。待 Porter 在 B3-FC 修复并补对照测试。
+    - 2025-11-23 (B3-FC Investigator pass #3): DocUI Find Controller re-audit against TS `findController.ts` surfaced new gaps: (1) `StartFindAction` in C# only seeds from selection when `searchString` is empty, diverging from VS Code which always replaces the term unless `find.seedSearchStringFromSelection === 'never'`; (2) `StartFindReplaceAction` ignores the same option, so `Ctrl+H` overwrites the find term even when seeding is disabled; (3) closing the widget never disposes `FindModel` or clears decorations, so highlights linger unlike TS `_onStateChanged` which calls `disposeModel()`; (4) reopening Find after a Replace session keeps the replace UI visible because `_start` never forces `isReplaceRevealed = false` when the widget was hidden; (5) `DocUIFindControllerTests.cs` still lacks the TS `StartFindWithSelection` regressions (issues #47400/ #109756) even though `tests/TextBuffer.Tests/TestMatrix.md` marks the suite “✅ Complete”. Need Porter-CS fixes & QA tests mirroring the TS cases.
+    - 2025-11-23 (B3-FC Investigator pass #4): Audited staged DocUI diff (FindController/FindModel/FindUtilities/tests) vs TS references and noted fresh gaps: (a) `DocUIFindController.Start` always escapes seeded text when regex is enabled (even for `SelectionSeedMode.Multiple`), diverging from TS `_start` where multi-line `Cmd+E` seeds are left raw; (b) `FindUtilities.GetWordAtPosition` only honors ASCII separator tables and ignores `EditorOption.wordSegmenterLocales`, whereas TS `getConfiguredWordAtPosition` delegates to `WordOperations` with Intl.Segmenter fallbacks; (c) `DocUIFindControllerTests` still miss the TS persistence tests for default `matchCase`/`wholeWord` plus the `issue #18111`/`#24714` regex replace regressions even though `TestMatrix.md` now flags the suite as “✅ Complete”. Documented fixes + QA asks for Batch #3 follow-up.
 - **Upcoming Goals (1 runSubAgent per item):**
   1. ~~PT-003.C~~：已完成 WordSeparator 规格对齐（见 B2-INV）
   2. ~~OI-002.A~~：索引任务已移交 Info-Indexer（见 OI-011/OI-012）
   3. **B2-TS-Review 后续**：等待 Porter-CS 修复 CI-1/CI-2/CI-3，QA-Automation 验证后再次审查（若需要）
   4. **Batch #3 准备**：规划 FindController/multi-cursor 测试迁移策略（依赖 EditorAction/ContextKey/Clipboard services）
+  5. **B3-INV 初稿 (2025-11-23)**：收敛 Batch #3 范围（FindModel multi-cursor selectAllMatches & primary cursor 保持、getSelectionSearchString、FindController 核心/搜索域/持久化/自动逃逸、Decorations stickiness、PieceTree fuzz+invariants、Diff pretty/char-change、高级 word boundary matrix），形成迁移分批与 harness 规格。
 
 ## Blocking Issues
 - 需要 Planner 明确 PT-003 与 OI-002 工时的优先顺序，避免同一 runSubAgent 同时覆盖两条任务。
@@ -123,3 +129,18 @@
 1. 研究笔记写入 `agent-team/members/investigator-ts.md`。
 2. Tests or validations performed? N/A（分析任务）
 3. 下一位执行者请基于“Upcoming Goals”继续推进或更新类型映射表。
+
+## Latest Focus
+- **日期**: 2025-11-23
+- **Batch #3 范围确认**: 覆盖剩余 DocUI Find 相关测试（`findModel.test.ts` 中 `selectAllMatches` + primary cursor (`#14143`)；`find.test.ts` 中 `getSelectionSearchString` 三类场景；`findController.test.ts` 中动作/域/持久化/自动逃逸/多行选区作用域/选区种子/选项持久化 等逻辑分组）以及尚未迁移的底层测试集（PieceTree fuzz & invariants、Diff char-change / pretty heuristics、modelDecorations stickiness/per-line、textModelSearch word boundary matrix）。
+- **DocUI FC delta (2025-11-23)**: 复审确认 word separator / clipboard plumbing 已覆盖 Batch #3，但需 Porter 修复 (1) `Start()` 在 `UpdateSearchScope=true` 且当前选区为空时误清空 scope；(2) `NextSelectionMatchFindAction()` 无法 seed 时未调用 `Start()`，导致 Ctrl/Cmd+F3 在空白处无法唤起 Find widget。Fix 后需补 scope persistence 与 whitespace Ctrl/Cmd+F3 两个 DocUIFindControllerTests。
+- **Controller Harness 规划**: 定义最小 `IEditorHost`（提供：`Selections[]`、`Options`（含 `WordSeparators`）、`ApplyEdits(edits)`、`SetValue(text)`、`ClipboardStub`、`StorageStub`、`ContextKeyFacade(Enum)`、同步版 `Delayer` 替代）。
+- **Clipboard/Storage 策略**: Mac 专用 `IClipboardService` 行为通过条件编译或运行时平台判断；非 Mac 测试标记 `SkipOnNonMac`；Storage 使用内存字典模拟 `IStorageService`（键：`editor.isRegex` / `editor.matchCase` / `editor.wholeWord`）。
+- **Selection Heuristics**: `getSelectionSearchString` 在 C# 新文件 `FindUtilities.cs` 中实现：单光标 → word-under-cursor（不跨行）；单行选区 → 直接返回文本；若选区跨行或包含换行 → 返回 `null`；多选暂不取并集（保持与 TS 单选行为一致）。
+- **Multi-cursor Primary Preservation**: `selectAllMatches` 保持原主光标：若原主光标所在匹配仍存在，将其置于 `Selections[0]`；新匹配按出现顺序追加；实现时先收集所有匹配，然后 `OrderBy(match == primary ? 0 : 1, startPosition)`。
+- **PieceTree Fuzz 计划**: 建立 deterministic RNG（种子注入），操作集：插入/删除/替换/行尾追加；不变量：行数一致、`GetLineContent` 重构一致、搜索结果稳定（对随机文本固定 pattern 集）、装饰区间不重叠（stickiness 扩展前）。
+- **Decoration Stickiness**: 拟测试矩阵：`NeverGrowsWhenTypingAtEdges` / `AlwaysGrowsWhenTypingAtEdges` / `GrowsOnlyWhenTypingBefore` / `GrowsOnlyWhenTypingAfter` 四类，在左/右/中间插入、跨行删除、拼接场景；验证范围更新与行号稳定。
+- **Diff Pretty / Char-change**: 标记缺口：字符级差异、移动检测、空白折叠、超时策略；C# 需添加 `PrettyDiffTests.cs` 验证 whitespace trim、字符替换聚合、长行超时 fallback、move heuristic（若暂缺则记录 Tier C）。
+- **Word Boundary Matrix**: 增补 ASCII/标点/下划线/数字/emoji/CJK；暂未实现 Intl.Segmenter → CJK 行为标记 `ExpectedDifferentBoundary`。
+- **Delta Tags 预留**: `#delta-2025-11-23-b3-fm`, `#delta-2025-11-23-b3-fsel`, `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-23-b3-fc-scope`, `#delta-2025-11-23-b3-decor-stickiness`, `#delta-2025-11-23-b3-piecetree-fuzz`, `#delta-2025-11-23-b3-diff-pretty`。
+- **下一步**: 进入 R12（B3-FM）：实现 `selectAllMatches` & primary cursor 保持测试移植与 C# API 对齐；准备 R13 getSelectionSearchString；为 Controller 核心/Scope 子批次预置 harness 桩。

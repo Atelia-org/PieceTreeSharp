@@ -118,3 +118,102 @@ Handoff 文件：
 - 迁移日志：新增行见 [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) 2025-11-23 FR-01 / FR-02。
 - 后续：计划在 Batch #3 加入缓存命中率统计测试 & ReplaceAll undo 分组 parity（单步撤销）。
 
+### delta-2025-11-23-b3-fm
+**Sprint 03 R12 – B3-FM SelectAllMatches 多光标语义对齐**
+
+交付内容：
+- [`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) – `SelectAllMatches()` 现使用 `SelectionInfo` 聚合、范围排序与主光标保持逻辑，完全映射 TS `findModel.test.ts` `selectAllMatches` 行为。
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) – 新增 FM-01 (`Test28_SelectAllMatchesHonorsSearchScopeOrdering`) / FM-02 (`Test29_SelectAllMatchesMaintainsPrimaryCursorInDuplicates`) parity 覆盖。
+- [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) – 更新 DocUI FindModel 行（41/43）并记录 B3-FM 子集、Batch #3 基线 (186/186)。
+- [`agent-team/handoffs/B3-FM-Result.md`](../handoffs/B3-FM-Result.md) – Porter handoff，含变更、测试、风险、后续动作。
+
+验证：
+- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 186/186，全量绿；FM-01/FM-02 断言覆盖搜索范围排序 + 主光标不变。
+
+文档/索引更新：
+- `agent-team/members/porter-cs.md#Latest Focus (2025-11-23)`、`docs/sprints/sprint-03.md` (R12)、`docs/reports/migration-log.md`（B3-FM 行）同步引用本 delta。
+- Sprint 03 交付矩阵新增 `B3-FM` 行；TestMatrix 基线与 QA 命令链接到此 delta。
+
+后续计划：
+- Batch #3 余项（FindController/WordBoundary 多光标场景、DocUI selection heuristics）将沿用本 delta 的 multi-cursor harness；Info-Indexer 继续跟踪 `#delta-2025-11-23-b3-fm` 在 Task Board / AGENTS / Sprint 三处的引用情况。
+
+### delta-2025-11-23-b3-fsel
+**Sprint 03 R13 – B3-FSel Selection Search String Parity**
+
+交付内容：
+- [`src/TextBuffer/DocUI/FindUtilities.cs`](../../src/TextBuffer/DocUI/FindUtilities.cs) – 新增 `SelectionSeedMode`, `IEditorSelectionContext`, `WordAtPosition`，并实现 `GetSelectionSearchString()` / `GetWordAtPosition()`（524,288 长度上限 + ASCII word separator 行为与 TS 对齐）。
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindSelectionTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindSelectionTests.cs) – 3 个 parity Tests（空选区→word、单行选区→文本、跨行/含换行→null）+ `SelectionTestContext` harness。
+- 文档更新：`tests/TextBuffer.Tests/TestMatrix.md`（DocUIFindSelectionTests 行记为 ✅、基线 189/189）、`docs/sprints/sprint-03.md`（R13 记录）、`docs/reports/migration-log.md`（B3-FSel 行）。
+
+验证：
+- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 189/189 绿色（新增 3 个 DocUI selection 测试，见 TestMatrix `#delta-2025-11-23-b3-fsel` 行）。
+
+Handoff / 参考：
+- [`agent-team/handoffs/B3-FSel-Result.md`](../handoffs/B3-FSel-Result.md) – Porter 交付说明、测试命令、后续行动。
+- Sprint log / Migration log / TestMatrix 已引用该 delta，DocMaintainer 变更完成。
+
+后续计划：
+- R14（B3-FC-Core）将复用 `IEditorSelectionContext` + `FindUtilities` 为 DocUI FindController 注入 selection seed 逻辑、regex 逃逸与导航命令。
+- WordSeparator Unicode parity (OI-014) 与多光标/多选区 scope 逻辑继续跟踪 B3-FC-Scope / R15。
+
+### delta-2025-11-23-b3-fc-core
+**Sprint 03 R14 – B3-FC Core FindController Parity**
+
+交付内容：
+- [`src/TextBuffer/DocUI/DocUIFindController.cs`](../../src/TextBuffer/DocUI/DocUIFindController.cs) – 新建 DocUI controller，端到端移植 TS `CommonFindController` 行为（`StartFindAction`, `StartFindReplaceAction`, `NextMatchFindAction`, `NextSelectionMatchFindAction`, `Start` helper），实现 selection seeding、自动 regex 逃逸、search scope 持久化、focus 代理、存储/剪贴板接口 (`IFindControllerStorage`, `IFindControllerClipboard`).
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs) – 10 个 issue regression tests（#1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232 等），含 `TestEditorHost`, `TestFindControllerStorage`, `TestFindControllerClipboard` stubs，用于模拟 VS Code host 行为。
+- Harness/Data：`FindControllerHostOptions`, selection auto-escape helpers、`TrySeedSearchString`, `NormalizeSeededSearchString`，并扩展 `FindUtilities` 以服务 controller。
+- 文档：`docs/sprints/sprint-03.md`（R14 B3-FC 行）、`tests/TextBuffer.Tests/TestMatrix.md`（DocUIFindControllerTests 行 + rerun 命令）、`docs/reports/migration-log.md`（B3-FC 行）、`agent-team/handoffs/B3-FC-Result.md`（交付 & deferral 记录）、`AGENTS.md` / `agent-team/members/porter-cs.md` 最新 focus。
+
+验证：
+- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 10/10。
+- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 199/199；TestMatrix 更新 baseline。
+
+已知风险 / 后续：
+- 搜索范围生命周期（B3-FC-Scope / R15）与 Mac 系统剪贴板复刻尚未完成；DocUI overlay focus 状态持久化亦推迟到 R15。Deferrals 记录在 `agent-team/handoffs/B3-FC-Result.md`。
+- 现有 controller 依赖最简 host options；OI-015（DocUI Harness 标准化）将提炼通用 host。
+
+### delta-2025-11-23-b3-fc-scope
+**Sprint 03 R14/R15 – B3-FC Scope & Ctrl/Cmd+F3 Regression Fixes**
+
+交付内容：
+- [`DocUIFindController.cs`](../../src/TextBuffer/DocUI/DocUIFindController.cs) – `Start()` 仅在 `BuildSearchScope()` 返回非空时更新 `_state.SearchScope`，避免自动 find-in-selection 在光标折叠时清空范围（W1）。`NextSelectionMatchFindAction()` 在 `MoveToNextMatch()` 失败时必定调用 `Start(...)` 并重试（即使没有 seed），确保 Ctrl/Cmd+F3 在空白上也会打开 widget（W2）。
+- [`DocUIFindControllerTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs) – 新增 **SearchScopePersistsWhenSelectionCollapses**（覆盖 W1）与 **NextSelectionMatchOnWhitespaceRevealsWidget**（覆盖 W2）。
+- [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) – DocUIFindController 行与 targeted rerun 命令更新为 15/15 + `#delta-2025-11-23-b3-fc-scope` delta 标签。
+- [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) / [`agent-team/handoffs/B3-FC-Review.md`](../handoffs/B3-FC-Review.md) / [`agent-team/members/porter-cs.md`](../members/porter-cs.md) – 记录 W1/W2 问题关闭、测试命令与 reviewer 状态。
+
+验证：
+- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 15/15 绿色，覆盖新增 W1/W2 tests。
+
+文档/索引更新：
+- Sprint 03（R14/R15）与 QA Matrix 均引用 `#delta-2025-11-23-b3-fc-scope`。Migration log 新增行并链接至本 changefeed。B3-FC Review 文件将 W1/W2 标记为 resolved。
+
+后续：
+- 继续跟踪 R15 余项（Mac 全局剪贴板富文本、Find widget focus state persistence）与 R16 Decorations stickiness；OI-015 仍计划在下一批 DocUI harness 更新中整合。
+
+### delta-2025-11-23-b3-fc-lifecycle
+**Sprint 03 R15 – B3-FC Lifecycle & Reseed Parity**
+
+交付内容：
+- [`src/TextBuffer/DocUI/DocUIFindController.cs`](../../src/TextBuffer/DocUI/DocUIFindController.cs) – Ctrl+F 现只要 host 选项≠ `SeedSearchStringMode.Never` 就会重新从当前选区 seed；`StartFindReplaceAction` 遵循 `Never`（禁用选区+剪贴板 seed）；FindModel 改为 lazy create 并在 widget 隐藏时 dispose + 清空 match info；`Start()` 会在重新显示 widget 时折叠 replace 面板，避免 ESC 后 `IsReplaceRevealed` 卡住。
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs) – 新增 Ctrl+F reseed、`SeedSearchStringMode.Never` replace、防止隐藏后继续搜索、issue #41027 replace 折叠、Cmd+E multi-line/空光标（TS issues #47400/#109756）等 8 个回归测试。
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindSelectionTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindSelectionTests.cs) – 复用 selection harness 以验证 Cmd+E 行为；[`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) 更新 DocUI 行、QA 命令与总数 217/217。
+- 文档：`docs/plans/ts-test-alignment.md` 新增 Live Checkpoint，`docs/reports/migration-log.md` 记录 B3-FC-Lifecycle 行，Sprint 03 与 AGENTS 更新指向 `#delta-2025-11-23-b3-fc-lifecycle`。
+
+验证：
+- `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (26/26)
+- `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindSelectionTests --nologo` (4/4)
+- `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (217/217 全量)
+
+后续：
+- Mac 全局剪贴板 + focus sticky（B3-FC-R16）仍在计划中；Info-Indexer 继续监控 Cmd+E 相关的多选区/clipboard 场景。
+- Migration log 行已标记为 Done 并引用本 changefeed；DocMaintainer 将据此更新 Task Board / Sprint / AGENTS。
+
+### delta-2025-11-23-b3-fc-regexseed
+**Sprint 03 R15 – B3-FC Regex Seed Fix**
+
+- [`src/TextBuffer/DocUI/DocUIFindController.cs`](../../src/TextBuffer/DocUI/DocUIFindController.cs) 现仅在 `SelectionSeedMode.Single`（TS “single”）且 regex 启用时对 seeded 文本执行 `Regex.Escape`，`StartFindWithSelection`/Cmd+E 在 regex 模式下保持多行/括号字面文本，`Next/PreviousSelectionMatch` 复用该逻辑。
+- [`tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs) 新增 **StartFindWithSelectionDoesNotEscapeRegexCharacters** 回归，并在 `tests/TextBuffer.Tests/TestMatrix.md` 记录 27/27 rerun + `#delta-2025-11-23-b3-fc-regexseed` 标签。
+- 验证：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (27/27)；`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (218/218) 作为最新全量基线。
+- 文档：`docs/reports/migration-log.md` 新增 B3-FC-RegexSeed 行，AGENTS / Sprint 03 / TestMatrix 指向本 changefeed，更新 Cmd+E regex 多行 seed 修复状态。
+

@@ -19,7 +19,42 @@
 | Type Mapping | agent-team/type-mapping.md | TS↔C# 结构别名及字段含义 |
 | TS Source | ts/src/vs/editor/common/model/pieceTreeTextBuffer | 迁移源码与参考行为 |
 
+## Latest Focus (2025-11-23)
+- **Sprint 03 R15 – B3-FC-MultilineSeed (#delta-2025-11-23-b3-fc-multiline-seed):** DocUI find controller now tracks whether selection seeds should be regex-normalized so SelectionSeedMode.Multiple (Cmd+E/Ctrl+Shift+L) keeps literal text, while SelectionSeedMode.Single still escapes. Added `StartFindWithSelection keeps literal parentheses when regex enabled` regression plus helper plumbing so Next/PreviousSelectionMatch reuse the new flag. Targeted `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests` (27/27 green) and logged the change for Investigator's Investigator finding #1 follow-up.
+- **Sprint 03 R15 – B3-FC-Scope (#delta-2025-11-23-b3-fc-scope):** Patched `DocUIFindController` so `BuildSearchScope()` only overwrites `_state.SearchScope` when it returns a non-null range and ensured `NextSelectionMatchFindAction()` always reveals the widget + retries `MoveToNextMatch()`. Added `SearchScopePersistsWhenSelectionCollapses` and `NextSelectionMatchOnWhitespaceRevealsWidget` regressions plus TestMatrix/migration/changefeed updates.
+- **Sprint 03 R15 – B3-FC-Lifecycle (#delta-2025-11-23-b3-fc-lifecycle):** Find widget lifecycle + seeding polish: `StartFindAction` now reseeds from the latest selection whenever host option ≠ Never, `StartFindReplaceAction` respects the `SeedSearchStringMode.Never` guard (no selection/global clipboard seed), `_model` is lazily created + disposed when the widget hides (clearing match info), replace panel re-hides when reopening via Ctrl+F, and `StartFindWithSelectionAction` gained TS issue #47400/#109756 coverage (multi-line Cmd+E + caret-word seed). Docs/TestMatrix/migration log updated with new targeted commands (DocUIFindControllerTests 26/26, DocUIFindSelectionTests 4/4, full suite 217/217).
+- **Sprint 03 R12 – B3-FM (#delta-2025-11-23-b3-fm):** `FindModel.SelectAllMatches()` 现实现 TS 多光标语义，按范围排序 matches 并保留主光标，新增 `DocUIFindModelTests.Test28/Test29` 覆盖 `selectAllMatches` + issue #14143 案例。
+- **Sprint 03 R13 – B3-FSel (#delta-2025-11-23-b3-fsel):** 创建 `FindUtilities` + `IEditorSelectionContext`，实现 `GetSelectionSearchString`/`GetWordAtPosition` 并在 `DocUIFindSelectionTests` 复刻 TS `find.test.ts` 三套场景（光标词、单行选区、多行选区 null），为即将落地的 FindController seed 逻辑铺路。
+- **Sprint 03 R14 – B3-FC-Core (#delta-2025-11-23-b3-fc-core):** 落地 `DocUIFindController`（Start/Replace/NextSelection/FindWithSelection 等命令）、`FindControllerHostOptions`、Storage/Clipboard stubs 以及 `DocUIFindControllerTests` 覆盖 issue #1857/#3090/#6149/#41027/#9043 + scope auto-update (#27083/#58604) 与 `NextSelectionMatch`（issue #38232）场景，完成 host/test harness（`TestEditorHost`、`TestFindControllerStorage`、`TestFindControllerClipboard`）。
+- **Sprint 03 R15 – OI-013/OI-014/OI-015 DocUI polish (#delta-2025-11-24-find-parity):** 注入 host wordSeparators provider 到 `DocUIFindController`→`FindModel`→`FindReplaceState`，让 whole-word 搜索/seed 复用 Unicode classifier；新增 PreserveCase toggle 默认 + storage 持久化路径，Find widget 读 global clipboard 前先判空，`TestEditorContextOptions` 支持自定义分隔符。
+- **Signals:**
+  - `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` → 17/17 绿色（DocUI Find controller/model/selection 套件）。
+  - `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 204/204 绿色（最新全量基线）。文档：`TestMatrix.md`、`docs/sprints/sprint-03.md`、`docs/reports/migration-log.md`、`agent-team/handoffs/B3-FC-Result.md` 与 `agent-team/indexes/README.md` 已同步 `#delta-2025-11-24-find-parity`。
+- **Next:** R15（B3-FC-Scope）需补充 FindController 搜索范围生命周期 / 多选区视觉反馈、Mac 专属全局剪贴板（富文本）和 searchScope 重新进入策略；R16 继续推进 Decorations stickiness / DocUI overlay capture。Batch #3 完成顺序：B3-FC-Scope → B3-Decor-Stickiness，并将 OI-014（WordSeparator parity）挂到 R15 之后。
+
 ## Worklog
+- **2025-11-23 – Sprint 03 R15 (B3-FC regex selection seeding parity)**
+  - Refactored `DocUIFindController` seed plumbing so `TrySeedSearchString` carries a `shouldNormalize` flag; only `SelectionSeedMode.Single` escapes when regex is enabled, while `SelectionSeedMode.Multiple` (Cmd+E / StartFindWithSelection) now pipes literal multi-line text through. `Next/PreviousSelectionMatch` helpers flow the new flag, keeping their regex coverage intact.
+  - Added `StartFindWithSelection keeps literal parentheses when regex enabled` to `DocUIFindControllerTests`, documenting Investigator #1 repro (`foo(bar)` stays unescaped in regex mode) alongside the existing multi-line seeding regressions.
+  - Validation: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests` (27/27).
+- **2025-11-23 – Sprint 03 R15 (B3-FC fallback scope & Alt+Enter parity)**
+  - Updated `DocUIFindController.Start` to compute AutoFindInSelection scopes internally (so Next/Prev fallback starts pick them up) while persisting only non-empty ranges, and added `PreviousMatchFindAction`, `PreviousSelectionMatchFindAction`, plus `SelectAllMatchesAction` to surface `_model.SelectAllMatches()` through the host.
+  - Extended `DocUIFindControllerTests` with `AutoFindInSelectionAppliesDuringFallbackStart`, backward navigation parity cases (`Issue3090_PreviousMatchLoopsWithinSingleLine`, `Issue38232_PreviousSelectionMatchRegex`), and Alt+Enter coverage (`SelectAllMatchesActionAppliesSelections`, `SelectAllMatchesActionReturnsFalseWhenNoMatches`); updated `tests/TextBuffer.Tests/TestMatrix.md` DocUI row accordingly.
+  - Validation: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests` (20/20) and full `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (211/211).
+- **2025-11-23 – Sprint 03 R15 (B3-FC-Scope W1/W2)**
+  - Updated `DocUIFindController.Start` so `BuildSearchScope()` only overwrites `_state.SearchScope` when a non-null scope is produced, preserving find-in-selection ranges when the caret collapses. Tweaked `NextSelectionMatchFindAction()` to always call `Start(...)` after a failed `MoveToNextMatch()` (even without a seed) and retry, matching TS Ctrl/Cmd+F3 semantics.
+  - Added `DocUIFindControllerTests.SearchScopePersistsWhenSelectionCollapses` + `NextSelectionMatchOnWhitespaceRevealsWidget`, refreshed `TestMatrix.md` (DocUI row + targeted rerun 15/15), noted closure in `migration-log.md`, `agent-team/indexes/README.md#delta-2025-11-23-b3-fc-scope`, `B3-FC-Review.md`, and this memory file.
+  - Validation: `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (15/15). Changefeed + docs tagged `#delta-2025-11-23-b3-fc-scope` for Info-Indexer.
+- **2025-11-23 – Sprint 03 R15 (B3-FC-Lifecycle/Seeding)**
+  - Refined `DocUIFindController`: StartFind reseeds whenever host prefers selection (`SeedSearchStringMode != Never`), StartFindReplace honors the `Never` preference (skip selection + global clipboard), `_model` now lazy-initializes and disposes (clearing match counts) when the widget hides, and replace UI collapses if the widget was previously hidden. Added Cmd+E regressions (`issue #47400` multi-line, `issue #109756` caret word), Ctrl+F reseed regression, StartFindReplace “Never” guard test, and lifecycle test capturing match-count clearing.
+  - Updated docs (`TestMatrix.md`, `docs/plans/ts-test-alignment.md`, `docs/reports/migration-log.md`) with `#delta-2025-11-23-b3-fc-lifecycle`, bumped DocUI targeted rerun counts (DocUIFindControllerTests 26/26, DocUIFindSelectionTests 4/4) and total suite (217/217). Pending changefeed entry to broadcast the new delta.
+  - Validation: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (26/26), `--filter DocUIFindSelectionTests` (4/4), full `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (217/217).
+- **2025-11-24 – Sprint 03 R15 (OI-013/OI-014/OI-015 DocUI polish)**
+  - 将 host wordSeparators provider 贯穿 `DocUIFindController` → `FindModel` → `FindReplaceState` 并复用 `WordCharacterClassifierCache`，`FindUtilities` 现能根据 Unicode 分词器正确获取 hyphen/emoji 边界。
+  - 增加 PreserveCase toggle 默认值与 storage key，Find widget 新增 `TogglePreserveCase()` 流程；`FindModel` 构造注入 host 选项，`FindReplaceState.CreateSearchParams()` 使用 provide separators。
+  - `DocUIFindController` 在读取全局剪贴板时若 `string.IsNullOrEmpty` 则 no-op，避免空字符串覆盖查找文本；`DocUIFindControllerTests` 添加默认值/持久化/空剪贴板覆盖，`DocUIFindSelectionTests` + `DocUIFindModelTests` 追加自定义分隔符断言。
+  - Tests：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo`（17/17）+ `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（204/204）。
+  - 文档：更新 `tests/TextBuffer.Tests/TestMatrix.md`（新增 Test44 + hyphen regression + controller OI-013/OI-015 注记，总数 204），同步本 Worklog/Latest Focus，准备 `#delta-2025-11-24-find-parity` 撰写。
 - **2025-11-19**
   - 完成首轮 Onboarding，熟悉 AI Team 运作方式、Sprint 目标与 PT-004 期待成果。
   - 审核当前 C# 骨架，确认 `PieceTreeBuffer` 仍为占位，需从 Core 目录启动红黑树实现。
@@ -259,6 +294,12 @@
     - `LineRange.cs` 包含了 TS 中的 LineRange 类以及 C# 特有的 LineRangeSet 实现（用于高效的范围集合操作）
     - `RangeMapping.cs` 合并了 rangeMapping.ts 中的多个类（RangeMapping、LineRangeMapping、DetailedLineRangeMapping）及辅助函数
     - 整个 Diff 模块（16 个文件）现已全部完成溯源标注
+
+- **2025-11-23 – B3-FC-Core (R14)**
+  - 构建 `DocUIFindController`（Start/FindReplace/FindWithSelection/NextMatch/NextSelection/Replace/ReplaceAll/Toggle*），实现 focus + clipboard + storage 管线，并在 `TestEditorHost` 暴露 selections/edits/clipboard 模拟，使 controller 不依赖 VS Code runtime。新增 `TestFindControllerStorage`、`TestFindControllerClipboard` stub，复用 `FindUtilities` selection seed 逻辑。
+  - `DocUIFindControllerTests.cs` 复刻 TS `findController.test.ts` 核心场景：issue #1857（F3 reuse typed text）、#3090（单行循环）、#6149（regex seed auto-escape）、#41027（保持输入框内容）、#9043（隐藏 widget 清空 scope）、#27083/#58604（自动 scope 更新/空选区不更新）、#38232（NextSelectionMatch regex，无/有 widget）。
+  - 测试：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo`（10/10）+ 全量 `dotnet test ... --nologo`（199/199）。输出 `agent-team/handoffs/B3-FC-Result.md`、更新 `TestMatrix`/`Sprint 03`/`Migration Log`/`Indexes` 并广播 `#delta-2025-11-23-b3-fc-core`。
+  - 已知待办（移交 R15/R16）：searchScope UI 生命周期（多选区 / reopen 行为）、Mac 全局查找剪贴板富文本同步、FindWidget focus state persistence 以及 Decorations stickiness capture。
 
 - **2025-11-22 – B2-001 FindModel Stubs Creation (Batch #2 准备)**
   - 完成 **FindModel 基础设施（stubs）创建**，为 B2-002 核心逻辑实现铺路。
