@@ -22,14 +22,17 @@ namespace PieceTree.TextBuffer.DocUI
     /// </summary>
     public class FindDecorations : IDisposable
     {
-        private const int FindDecorationsOwnerId = 1000; // Unique owner ID for find decorations
+        private const double DefaultViewportHeightPx = 600d;
         
         private readonly TextModel _model;
+        private readonly int _ownerId;
+        private readonly Func<double?> _viewportHeightProvider;
         private readonly List<string> _decorationIds = new();
+        private readonly List<string> _overviewRulerApproximationDecorationIds = new();
         private readonly List<string> _findScopeDecorationIds = new();
         private string? _highlightedDecorationId;
+        private string? _rangeHighlightDecorationId;
         private TextPosition _startPosition;
-        private Range[]? _cachedFindScopes;
         
         // Decoration options (mimicking TS implementation)
         private static readonly ModelDecorationOptions CurrentFindMatchDecoration = new ModelDecorationOptions
@@ -38,7 +41,18 @@ namespace PieceTree.TextBuffer.DocUI
             Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
             ZIndex = 13,
             ClassName = "currentFindMatch",
-            ShowIfCollapsed = true
+            InlineClassName = "currentFindMatchInline",
+            ShowIfCollapsed = true,
+            OverviewRuler = new ModelDecorationOverviewRulerOptions
+            {
+                Color = "overviewRuler.findMatchForeground",
+                Position = OverviewRulerLane.Center,
+            },
+            Minimap = new ModelDecorationMinimapOptions
+            {
+                Color = "minimap.findMatch",
+                Position = MinimapPosition.Inline,
+            },
         }.Normalize();
 
         private static readonly ModelDecorationOptions FindMatchDecoration = new ModelDecorationOptions
@@ -47,7 +61,18 @@ namespace PieceTree.TextBuffer.DocUI
             Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
             ZIndex = 10,
             ClassName = "findMatch",
-            ShowIfCollapsed = true
+            InlineClassName = "findMatchInline",
+            ShowIfCollapsed = true,
+            OverviewRuler = new ModelDecorationOverviewRulerOptions
+            {
+                Color = "overviewRuler.findMatchForeground",
+                Position = OverviewRulerLane.Center,
+            },
+            Minimap = new ModelDecorationMinimapOptions
+            {
+                Color = "minimap.findMatch",
+                Position = MinimapPosition.Inline,
+            },
         }.Normalize();
 
         private static readonly ModelDecorationOptions FindMatchNoOverviewDecoration = new ModelDecorationOptions
@@ -55,7 +80,27 @@ namespace PieceTree.TextBuffer.DocUI
             Description = "find-match-no-overview",
             Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
             ClassName = "findMatch",
+            InlineClassName = "findMatchInline",
             ShowIfCollapsed = true
+        }.Normalize();
+
+        private static readonly ModelDecorationOptions FindMatchOnlyOverviewDecoration = new ModelDecorationOptions
+        {
+            Description = "find-match-only-overview",
+            Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+            OverviewRuler = new ModelDecorationOverviewRulerOptions
+            {
+                Color = "overviewRuler.findMatchForeground",
+                Position = OverviewRulerLane.Center,
+            },
+        }.Normalize();
+
+        private static readonly ModelDecorationOptions RangeHighlightDecoration = new ModelDecorationOptions
+        {
+            Description = "find-range-highlight",
+            Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+            ClassName = "rangeHighlight",
+            IsWholeLine = true,
         }.Normalize();
 
         private static readonly ModelDecorationOptions FindScopeDecoration = new ModelDecorationOptions
@@ -65,9 +110,11 @@ namespace PieceTree.TextBuffer.DocUI
             IsWholeLine = true
         }.Normalize();
 
-        public FindDecorations(TextModel model)
+        public FindDecorations(TextModel model, Func<double?>? viewportHeightProvider = null)
         {
             _model = model ?? throw new ArgumentNullException(nameof(model));
+            _ownerId = _model.AllocateDecorationOwnerId();
+            _viewportHeightProvider = viewportHeightProvider ?? (() => null);
             _startPosition = new TextPosition(1, 1);
         }
 
@@ -78,11 +125,6 @@ namespace PieceTree.TextBuffer.DocUI
 
         public Range[]? GetFindScopes()
         {
-            if (_cachedFindScopes != null)
-            {
-                return _cachedFindScopes;
-            }
-
             if (_findScopeDecorationIds.Count == 0)
             {
                 return null;
@@ -92,15 +134,19 @@ namespace PieceTree.TextBuffer.DocUI
             foreach (var id in _findScopeDecorationIds)
             {
                 var decoration = _model.GetDecorationById(id);
-                var range = decoration != null ? GetRangeFromDecoration(decoration) : null;
-                if (range != null)
+                if (decoration == null)
+                {
+                    continue;
+                }
+
+                var range = GetRangeFromDecoration(decoration);
+                if (range.HasValue)
                 {
                     scopes.Add(range.Value);
                 }
             }
 
-            _cachedFindScopes = scopes.Count == 0 ? null : scopes.ToArray();
-            return _cachedFindScopes;
+            return scopes.Count == 0 ? null : scopes.ToArray();
         }
 
         public TextPosition GetStartPosition()
@@ -121,6 +167,7 @@ namespace PieceTree.TextBuffer.DocUI
         {
             string? newCurrentDecorationId = null;
             int matchPosition = 0;
+            Range? highlightRange = null;
             
             if (nextMatch != null)
             {
@@ -135,14 +182,16 @@ namespace PieceTree.TextBuffer.DocUI
                         {
                             newCurrentDecorationId = _decorationIds[i];
                             matchPosition = i + 1; // 1-based position
+                            highlightRange = NormalizeHighlightRange(range.Value);
                             break;
                         }
                     }
                 }
             }
 
-            if (_highlightedDecorationId == newCurrentDecorationId)
+            if (_highlightedDecorationId != null && _highlightedDecorationId == newCurrentDecorationId)
             {
+                ReplaceRangeHighlight(highlightRange);
                 return matchPosition;
             }
 
@@ -174,7 +223,7 @@ namespace PieceTree.TextBuffer.DocUI
 
             if (idsToReplace.Count > 0)
             {
-                var result = _model.DeltaDecorations(FindDecorationsOwnerId, idsToReplace, replacements);
+                var result = _model.DeltaDecorations(_ownerId, idsToReplace, replacements);
                 for (int i = 0; i < idsToReplace.Count && i < result.Count; i++)
                 {
                     var oldIndex = _decorationIds.IndexOf(idsToReplace[i]);
@@ -190,6 +239,7 @@ namespace PieceTree.TextBuffer.DocUI
                 }
             }
 
+            ReplaceRangeHighlight(highlightRange);
             return matchPosition;
         }
 
@@ -200,26 +250,25 @@ namespace PieceTree.TextBuffer.DocUI
         public void Set(FindMatch[] findMatches, Range[]? findScopes)
         {
             var findMatchesOptions = FindMatchDecoration;
+            var overviewApproxDecorations = Array.Empty<ModelDeltaDecoration>();
             
             // Optimize for large result sets (TS: >1000 matches)
             if (findMatches.Length > 1000)
             {
                 findMatchesOptions = FindMatchNoOverviewDecoration;
+                overviewApproxDecorations = BuildOverviewDecorations(findMatches);
             }
 
             // Create decoration deltas for find matches
             var newFindMatchesDecorations = new List<ModelDeltaDecoration>(findMatches.Length);
             foreach (var match in findMatches)
             {
-                var startOffset = _model.GetOffsetAt(match.Range.Start);
-                var endOffset = _model.GetOffsetAt(match.Range.End);
-                var range = new TextRange(startOffset, endOffset);
-                newFindMatchesDecorations.Add(new ModelDeltaDecoration(range, findMatchesOptions));
+                newFindMatchesDecorations.Add(new ModelDeltaDecoration(ToTextRange(match.Range), findMatchesOptions));
             }
 
             // Replace old decorations with new ones
             var newDecorations = _model.DeltaDecorations(
-                FindDecorationsOwnerId,
+                _ownerId,
                 _decorationIds,
                 newFindMatchesDecorations
             );
@@ -229,33 +278,36 @@ namespace PieceTree.TextBuffer.DocUI
             
             // Reset highlighted decoration ID since we replaced all decorations
             _highlightedDecorationId = null;
+            ClearRangeHighlight();
+
+            // Overview ruler approximations
+            if (_overviewRulerApproximationDecorationIds.Count > 0 || overviewApproxDecorations.Length > 0)
+            {
+                var overview = _model.DeltaDecorations(_ownerId, _overviewRulerApproximationDecorationIds, overviewApproxDecorations);
+                _overviewRulerApproximationDecorationIds.Clear();
+                if (overview.Count > 0)
+                {
+                    _overviewRulerApproximationDecorationIds.AddRange(overview.Select(d => d.Id));
+                }
+            }
 
             // Update find scope decorations
             if (_findScopeDecorationIds.Count > 0)
             {
-                _model.DeltaDecorations(FindDecorationsOwnerId, _findScopeDecorationIds, null);
+                _model.DeltaDecorations(_ownerId, _findScopeDecorationIds, null);
                 _findScopeDecorationIds.Clear();
             }
-            _cachedFindScopes = null;
             
             if (findScopes != null && findScopes.Length > 0)
             {
-                var scopeDecorations = new List<ModelDeltaDecoration>();
+                var scopeDecorations = new List<ModelDeltaDecoration>(findScopes.Length);
                 foreach (var scope in findScopes)
                 {
-                    var startOffset = _model.GetOffsetAt(scope.Start);
-                    var endOffset = _model.GetOffsetAt(scope.End);
-                    var range = new TextRange(startOffset, endOffset);
-                    scopeDecorations.Add(new ModelDeltaDecoration(range, FindScopeDecoration));
+                    scopeDecorations.Add(new ModelDeltaDecoration(ToTextRange(scope), FindScopeDecoration));
                 }
                 
-                var scopeDecs = _model.DeltaDecorations(FindDecorationsOwnerId, null, scopeDecorations);
+                var scopeDecs = _model.DeltaDecorations(_ownerId, null, scopeDecorations);
                 _findScopeDecorationIds.AddRange(scopeDecs.Select(d => d.Id));
-                _cachedFindScopes = CloneRanges(findScopes);
-            }
-            else
-            {
-                _cachedFindScopes = null;
             }
         }
 
@@ -266,18 +318,24 @@ namespace PieceTree.TextBuffer.DocUI
         {
             if (_decorationIds.Count > 0)
             {
-                _model.DeltaDecorations(FindDecorationsOwnerId, _decorationIds, null);
+                _model.DeltaDecorations(_ownerId, _decorationIds, null);
                 _decorationIds.Clear();
             }
             
+            if (_overviewRulerApproximationDecorationIds.Count > 0)
+            {
+                _model.DeltaDecorations(_ownerId, _overviewRulerApproximationDecorationIds, null);
+                _overviewRulerApproximationDecorationIds.Clear();
+            }
+
             if (_findScopeDecorationIds.Count > 0)
             {
-                _model.DeltaDecorations(FindDecorationsOwnerId, _findScopeDecorationIds, null);
+                _model.DeltaDecorations(_ownerId, _findScopeDecorationIds, null);
                 _findScopeDecorationIds.Clear();
             }
             
             _highlightedDecorationId = null;
-            _cachedFindScopes = null;
+            ClearRangeHighlight();
         }
         
         /// <summary>
@@ -286,7 +344,6 @@ namespace PieceTree.TextBuffer.DocUI
         public void Reset()
         {
             ClearDecorations();
-            _startPosition = new TextPosition(1, 1);
         }
 
         /// <summary>
@@ -337,7 +394,7 @@ namespace PieceTree.TextBuffer.DocUI
                     _model.GetOffsetAt(editorSelection.Start),
                     _model.GetOffsetAt(editorSelection.End)
                 ),
-                FindDecorationsOwnerId
+                _ownerId
             );
             
             foreach (var decoration in decorationsInRange)
@@ -460,11 +517,116 @@ namespace PieceTree.TextBuffer.DocUI
             return null;
         }
         
-        private static Range[] CloneRanges(Range[] ranges)
+        private TextRange ToTextRange(Range range)
         {
-            var copy = new Range[ranges.Length];
-            Array.Copy(ranges, copy, ranges.Length);
-            return copy;
+            var startOffset = _model.GetOffsetAt(range.Start);
+            var endOffset = _model.GetOffsetAt(range.End);
+            return new TextRange(startOffset, endOffset);
+        }
+
+        private Range NormalizeHighlightRange(Range range)
+        {
+            if (range.StartLineNumber == range.EndLineNumber)
+            {
+                return range;
+            }
+
+            if (range.EndColumn != 1)
+            {
+                return range;
+            }
+
+            var previousLine = Math.Max(range.EndLineNumber - 1, range.StartLineNumber);
+            var previousLineMaxColumn = _model.GetLineMaxColumn(previousLine);
+            return new Range(range.StartLineNumber, range.StartColumn, previousLine, previousLineMaxColumn);
+        }
+
+        private void ReplaceRangeHighlight(Range? highlightRange)
+        {
+            ClearRangeHighlight();
+            if (!highlightRange.HasValue)
+            {
+                return;
+            }
+
+            var newId = _model.DeltaDecorations(_ownerId, null, new[]
+            {
+                new ModelDeltaDecoration(ToTextRange(highlightRange.Value), RangeHighlightDecoration),
+            });
+
+            if (newId.Count > 0)
+            {
+                _rangeHighlightDecorationId = newId[0].Id;
+            }
+        }
+
+        private void ClearRangeHighlight()
+        {
+            if (_rangeHighlightDecorationId == null)
+            {
+                return;
+            }
+
+            _model.DeltaDecorations(_ownerId, new[] { _rangeHighlightDecorationId }, null);
+            _rangeHighlightDecorationId = null;
+        }
+
+        private ModelDeltaDecoration[] BuildOverviewDecorations(FindMatch[] findMatches)
+        {
+            if (findMatches.Length == 0)
+            {
+                return Array.Empty<ModelDeltaDecoration>();
+            }
+
+            var mergeLinesDelta = CalculateMergeLinesDelta();
+            var decorations = new List<ModelDeltaDecoration>();
+            var prevStart = findMatches[0].Range.StartLineNumber;
+            var prevEnd = findMatches[0].Range.EndLineNumber;
+
+            for (int i = 1; i < findMatches.Length; i++)
+            {
+                var current = findMatches[i].Range;
+                if (prevEnd + mergeLinesDelta >= current.StartLineNumber)
+                {
+                    if (current.EndLineNumber > prevEnd)
+                    {
+                        prevEnd = current.EndLineNumber;
+                    }
+                    continue;
+                }
+
+                decorations.Add(CreateOverviewDecoration(prevStart, prevEnd));
+                prevStart = current.StartLineNumber;
+                prevEnd = current.EndLineNumber;
+            }
+
+            decorations.Add(CreateOverviewDecoration(prevStart, prevEnd));
+            return decorations.ToArray();
+        }
+
+        private int CalculateMergeLinesDelta()
+        {
+            var viewportHeight = _viewportHeightProvider() ?? DefaultViewportHeightPx;
+            if (viewportHeight <= 0)
+            {
+                viewportHeight = DefaultViewportHeightPx;
+            }
+            var lineCount = Math.Max(1, _model.GetLineCount());
+            var approxPixelsPerLine = viewportHeight / lineCount;
+            if (approxPixelsPerLine <= 0)
+            {
+                return 2;
+            }
+
+            var delta = (int)Math.Ceiling(3d / approxPixelsPerLine);
+            return Math.Max(2, delta);
+        }
+
+        private ModelDeltaDecoration CreateOverviewDecoration(int startLineNumber, int endLineNumber)
+        {
+            var start = new TextPosition(startLineNumber, 1);
+            var end = new TextPosition(Math.Max(startLineNumber, endLineNumber), 1);
+            return new ModelDeltaDecoration(new TextRange(_model.GetOffsetAt(start), _model.GetOffsetAt(end)), FindMatchOnlyOverviewDecoration);
         }
 
         private Range? GetRangeFromDecoration(ModelDecoration decoration)

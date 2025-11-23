@@ -43,7 +43,14 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             
             // Create FindModel (binds to Model and State)
             var configuredWordSeparators = options?.WordSeparators;
-            FindModel = new FindModel(Model, State, () => configuredWordSeparators);
+            Func<double?>? viewportHeightProvider = null;
+            if (options?.ViewportHeightPx.HasValue == true)
+            {
+                var value = options.ViewportHeightPx.Value;
+                viewportHeightProvider = () => value;
+            }
+
+            FindModel = new FindModel(Model, State, () => configuredWordSeparators, viewportHeightProvider);
             FindModel.SetSelection(_selection);
         }
 
@@ -247,5 +254,6 @@ namespace PieceTree.TextBuffer.Tests.DocUI
     public sealed class TestEditorContextOptions
     {
         public string? WordSeparators { get; init; }
+        public double? ViewportHeightPx { get; init; }
     }
 }

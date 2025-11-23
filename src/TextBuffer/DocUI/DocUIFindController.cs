@@ -64,6 +64,7 @@ namespace PieceTree.TextBuffer.DocUI
         public bool Loop { get; init; } = true;
         public bool EnableGlobalFindClipboard { get; init; }
         public bool IsMacPlatform { get; init; }
+        public double ViewportHeightPx { get; init; } = 600d;
 
         public bool UseGlobalFindClipboard => EnableGlobalFindClipboard && IsMacPlatform;
     }
@@ -122,6 +123,7 @@ namespace PieceTree.TextBuffer.DocUI
         private readonly IFindControllerClipboard _clipboard;
         private readonly EditorSelectionContext _selectionContext;
         private readonly Func<string?> _wordSeparatorsProvider;
+        private readonly Func<double?> _viewportHeightProvider;
         private FindFocusBehavior _focusBehavior = FindFocusBehavior.NoFocusChange;
         private bool _isDisposed;
         private FindModel? _model;
@@ -130,12 +132,14 @@ namespace PieceTree.TextBuffer.DocUI
             IEditorHost host,
             IFindControllerStorage? storage = null,
             IFindControllerClipboard? clipboard = null,
-            Func<string?>? wordSeparatorsProvider = null)
+            Func<string?>? wordSeparatorsProvider = null,
+            Func<double?>? viewportHeightProvider = null)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _state = new FindReplaceState();
             _storage = storage ?? new NullFindControllerStorage();
             _clipboard = clipboard ?? new NullFindControllerClipboard();
+            _viewportHeightProvider = viewportHeightProvider ?? (() => _host.Options.ViewportHeightPx);
             _wordSeparatorsProvider = wordSeparatorsProvider ?? (() => _host.Options.WordSeparators);
             _selectionContext = new EditorSelectionContext(_host.Model, _wordSeparatorsProvider);
             _state.OnFindReplaceStateChange += OnStateChanged;
@@ -460,7 +464,7 @@ namespace PieceTree.TextBuffer.DocUI
         {
             if (_model == null)
             {
-                _model = new FindModel(_host.Model, _state, _wordSeparatorsProvider);
+                _model = new FindModel(_host.Model, _state, _wordSeparatorsProvider, _viewportHeightProvider);
                 var selection = GetPrimarySelection();
                 _model.SetSelection(new Range(selection.SelectionStart, selection.SelectionEnd));
             }

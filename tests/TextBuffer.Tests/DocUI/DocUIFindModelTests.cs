@@ -2141,6 +2141,158 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             }, options);
         }
 
+        [Fact]
+        public void Test45_SearchScopeTracksEditsAfterTyping()
+        {
+            var text = new[] { "alpha beta gamma" };
+
+            TestEditorContext.RunTest(text, ctx =>
+            {
+                ctx.State.Change(searchString: "beta", moveCursor: false);
+
+                var scope = new[]
+                {
+                    new Core.Range(new TextPosition(1, 7), new TextPosition(1, 11))
+                };
+                ctx.State.Change(searchScope: scope, searchScopeProvided: true, moveCursor: false);
+
+                Assert.Equal(1, ctx.State.MatchesCount);
+
+                ctx.Model.PushEditOperations(new[]
+                {
+                    new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "delta ")
+                });
+
+                Assert.Equal(1, ctx.State.MatchesCount);
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 1, 13, 1, 17 },
+                    highlighted: new[] { 1, 13, 1, 17 },
+                    findDecorations: new[]
+                    {
+                        new[] { 1, 13, 1, 17 }
+                    }
+                );
+            });
+        }
+
+        // Regression guard for TS issue #27083 – multi-line scopes normalize to full lines.
+        [Fact]
+        public void Test46_MultilineScopeIsNormalizedToFullLines()
+        {
+            var text = new[]
+            {
+                "alpha and omega",
+                "second line"
+            };
+
+            TestEditorContext.RunTest(text, ctx =>
+            {
+                ctx.State.Change(searchString: "alpha", moveCursor: false);
+
+                var scope = new[]
+                {
+                    new Core.Range(new TextPosition(1, 4), new TextPosition(2, 1))
+                };
+                ctx.State.Change(searchScope: scope, searchScopeProvided: true, moveCursor: true);
+
+                Assert.Equal(1, ctx.State.MatchesCount);
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 1, 1, 1, 6 },
+                    highlighted: new[] { 1, 1, 1, 6 },
+                    findDecorations: new[]
+                    {
+                        new[] { 1, 1, 1, 6 }
+                    }
+                );
+            });
+        }
+
+        [Fact]
+        public void Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit()
+        {
+            var text = new[]
+            {
+                "scope header",
+                "match capture",
+                string.Empty
+            };
+
+            TestEditorContext.RunTest(text, ctx =>
+            {
+                ctx.State.Change(searchString: "(match)", replaceString: "$1!", isRegex: true, moveCursor: false);
+
+                var scope = new[]
+                {
+                    new Core.Range(new TextPosition(2, 1), new TextPosition(2, 14))
+                };
+                ctx.State.Change(searchScope: scope, searchScopeProvided: true, moveCursor: true);
+
+                ctx.FindModel.FindNext();
+
+                ctx.Model.PushEditOperations(new[]
+                {
+                    new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "intro\n")
+                });
+
+                ctx.FindModel.FindNext();
+                ctx.FindModel.Replace();
+
+                Assert.Equal("match! capture", ctx.Model.GetLineContent(3));
+            });
+        }
+
+        [Fact]
+        public void Test48_FlushEditKeepsFindNextProgress()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                ctx.State.Change(searchString: "hello", moveCursor: false);
+                ctx.SetPosition(8, 1);
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 8, 14, 8, 19 },
+                    highlighted: new[] { 8, 14, 8, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 6, 27, 6, 32 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+                Assert.Equal(4, ctx.State.MatchesPosition);
+
+                var documentEnd = ctx.Model.GetPositionAt(ctx.Model.GetLength());
+                var entireDocument = ctx.Model.GetValue();
+                ctx.Model.PushEditOperations(new[]
+                {
+                    new TextEdit(new TextPosition(1, 1), documentEnd, entireDocument)
+                });
+
+                ctx.FindModel.FindNext();
+
+                ctx.AssertFindState(
+                    cursor: new[] { 9, 14, 9, 19 },
+                    highlighted: new[] { 9, 14, 9, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 6, 27, 6, 32 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+                Assert.Equal(5, ctx.State.MatchesPosition);
+            });
+        }
+
         private static Range[] ToRanges(Selection[] selections)
         {
             var result = new Range[selections.Length];

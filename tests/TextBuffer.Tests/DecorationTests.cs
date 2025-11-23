@@ -3,6 +3,7 @@
 // Ported: 2025-11-20
 
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
@@ -168,6 +169,106 @@ namespace PieceTree.TextBuffer.Tests
             var fontChange = Assert.Single(captured.AffectedFontLines);
             Assert.Equal(DecorationOwnerIds.Default, fontChange.OwnerId);
             Assert.Equal(1, fontChange.LineNumber);
+        }
+
+        [Fact]
+        public void GetLineDecorationsReturnsVisibleMetadata()
+        {
+            var model = new TextModel("abc\ndef\nghi");
+            var owner = model.AllocateDecorationOwnerId();
+
+            var first = model.DeltaDecorations(owner, null, new[]
+            {
+                new ModelDeltaDecoration(new TextRange(0, 2), new ModelDecorationOptions { ShowIfCollapsed = true }),
+                new ModelDeltaDecoration(new TextRange(4, 4), new ModelDecorationOptions { ShowIfCollapsed = false }),
+            });
+
+            var line1 = model.GetLineDecorations(1);
+            Assert.Contains(line1, d => d.Id == first[0].Id);
+
+            var line2 = model.GetLineDecorations(2);
+            Assert.DoesNotContain(line2, d => d.Id == first[1].Id);
+
+            var ownerFiltered = model.GetLineDecorations(1, owner);
+            Assert.Single(ownerFiltered);
+        }
+
+        [Fact]
+        public void GetAllDecorationsFiltersByOwner()
+        {
+            var model = new TextModel("alpha beta");
+            var ownerA = model.AllocateDecorationOwnerId();
+            var ownerB = model.AllocateDecorationOwnerId();
+
+            var decorationA = model.AddDecoration(new TextRange(0, 5), ownerId: ownerA);
+            var decorationB = model.AddDecoration(new TextRange(6, 10), ownerId: ownerB);
+
+            var ownerAResults = model.GetAllDecorations(ownerA);
+            Assert.Single(ownerAResults);
+            Assert.Equal(decorationA.Id, ownerAResults[0].Id);
+
+            var anyResults = model.GetAllDecorations();
+            Assert.Equal(2, anyResults.Count);
+            Assert.Equal(decorationB.Id, model.GetDecorationIdsByOwner(ownerB).Single());
+        }
+
+        [Fact]
+        public void DecorationIdsByOwnerReflectsLifecycle()
+        {
+            var model = new TextModel("alpha beta");
+            var owner = model.AllocateDecorationOwnerId();
+
+            var added = model.DeltaDecorations(owner, null, new[]
+            {
+                new ModelDeltaDecoration(new TextRange(0, 5), ModelDecorationOptions.CreateSelectionOptions()),
+                new ModelDeltaDecoration(new TextRange(6, 10), ModelDecorationOptions.CreateSelectionOptions()),
+            });
+
+            var ids = model.GetDecorationIdsByOwner(owner);
+            Assert.Equal(added.Select(d => d.Id).OrderBy(id => id), ids.OrderBy(id => id));
+
+            model.DeltaDecorations(owner, new[] { added[0].Id }, null);
+            Assert.Single(model.GetDecorationIdsByOwner(owner));
+        }
+
+        [Fact]
+        public void DecorationsRaiseEventsForAddUpdateRemove()
+        {
+            var model = new TextModel("abc");
+            var owner = model.AllocateDecorationOwnerId();
+            var notifications = new List<TextModelDecorationsChangedEventArgs>();
+            model.OnDidChangeDecorations += (_, args) => notifications.Add(args);
+
+            var range = new TextRange(0, 2);
+            var added = model.DeltaDecorations(owner, null, new[] { new ModelDeltaDecoration(range, ModelDecorationOptions.CreateSelectionOptions()) });
+            Assert.NotEmpty(notifications);
+            notifications.Clear();
+
+            model.DeltaDecorations(owner, new[] { added[0].Id }, new[]
+            {
+                new ModelDeltaDecoration(new TextRange(0, 3), ModelDecorationOptions.CreateSelectionOptions()),
+            });
+            Assert.Single(notifications);
+            notifications.Clear();
+
+            model.RemoveAllDecorations(owner);
+            Assert.Single(notifications);
+        }
+
+        [Fact]
+        public void EditsPropagateDecorationChangeEvents()
+        {
+            var model = new TextModel("alpha beta");
+            var owner = model.AllocateDecorationOwnerId();
+            model.AddDecoration(new TextRange(0, 5), ownerId: owner);
+
+            var changes = 0;
+            model.OnDidChangeDecorations += (_, _) => changes++;
+
+            var editStart = model.GetPositionAt(0);
+            model.ApplyEdits(new[] { new TextEdit(editStart, editStart, "zz") });
+
+            Assert.True(changes > 0);
         }
 
         [Fact]

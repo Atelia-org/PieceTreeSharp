@@ -405,9 +405,80 @@ public class TextModel : ITextSearchAccess
     public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
         => _decorationTrees.Search(range, ownerIdFilter);
 
+    public IReadOnlyList<ModelDecoration> GetAllDecorations(int ownerIdFilter = DecorationOwnerIds.Any)
+    {
+        if (_decorationTrees.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var decorations = new List<ModelDecoration>();
+        foreach (var decoration in _decorationTrees.EnumerateAll())
+        {
+            if (ownerIdFilter != DecorationOwnerIds.Any && decoration.OwnerId != ownerIdFilter)
+            {
+                continue;
+            }
+
+            decorations.Add(decoration);
+        }
+
+        return decorations.Count == 0 ? Array.Empty<ModelDecoration>() : decorations;
+    }
+
+    public IReadOnlyList<ModelDecoration> GetLineDecorations(int lineNumber, int ownerIdFilter = DecorationOwnerIds.Any)
+    {
+        if (lineNumber < 1 || lineNumber > GetLineCount())
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var start = GetOffsetAt(new TextPosition(lineNumber, 1));
+        var end = lineNumber == GetLineCount()
+            ? _buffer.Length
+            : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
+
+        var range = new TextRange(start, end);
+        var decorations = _decorationTrees.Search(range, ownerIdFilter);
+        if (decorations.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        var filtered = new List<ModelDecoration>(decorations.Count);
+        foreach (var decoration in decorations)
+        {
+            if (decoration.IsCollapsed && !decoration.Options.ShowIfCollapsed)
+            {
+                continue;
+            }
+
+            filtered.Add(decoration);
+        }
+
+        return filtered.Count == 0 ? Array.Empty<ModelDecoration>() : filtered;
+    }
+
     public ModelDecoration? GetDecorationById(string decorationId)
     {
         return _decorationsById.GetValueOrDefault(decorationId);
+    }
+
+    public IReadOnlyList<string> GetDecorationIdsByOwner(int ownerId)
+    {
+        if (ownerId == DecorationOwnerIds.Any)
+        {
+            return _decorationsById.Count == 0
+                ? Array.Empty<string>()
+                : _decorationsById.Keys.ToArray();
+        }
+
+        if (!_decorationIdsByOwner.TryGetValue(ownerId, out var ids) || ids.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        return ids.ToArray();
     }
 
     public IReadOnlyList<ModelDecoration> DeltaDecorations(int ownerId, IReadOnlyList<string>? oldDecorationIds, IReadOnlyList<ModelDeltaDecoration>? newDecorations)

@@ -136,7 +136,14 @@ namespace PieceTree.TextBuffer.Decorations
 
         private void CollectOverlaps(Node? node, TextRange range, int ownerFilter, List<ModelDecoration> target)
         {
-            if (node == null || node.MaxEnd < range.StartOffset)
+            var queryStart = range.StartOffset;
+            var queryEndExclusive = range.EndOffset;
+            if (queryEndExclusive <= queryStart)
+            {
+                queryEndExclusive = queryStart == int.MaxValue ? int.MaxValue : queryStart + 1;
+            }
+
+            if (node == null || node.MaxEnd < queryStart)
             {
                 return;
             }
@@ -149,11 +156,11 @@ namespace PieceTree.TextBuffer.Decorations
             {
                 // TS Parity: Empty range uses [start, end) semantics (startOffset < endOffset, not <=)
                 // Reference: ts/src/vs/editor/common/model/intervalTree.ts:240-242
-                overlaps = currentRange.StartOffset >= range.StartOffset && currentRange.StartOffset < range.EndOffset;
+                overlaps = currentRange.StartOffset >= queryStart && currentRange.StartOffset < queryEndExclusive;
             }
             else
             {
-                overlaps = currentRange.StartOffset < range.EndOffset && currentRange.EndOffset > range.StartOffset;
+                overlaps = currentRange.StartOffset < queryEndExclusive && currentRange.EndOffset > queryStart;
             }
 
             if (overlaps)
@@ -164,7 +171,7 @@ namespace PieceTree.TextBuffer.Decorations
                 }
             }
 
-            if (currentRange.StartOffset < range.EndOffset)
+            if (currentRange.StartOffset < queryEndExclusive)
             {
                 CollectOverlaps(node.Right, range, ownerFilter, target);
             }

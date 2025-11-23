@@ -39,12 +39,18 @@ namespace PieceTree.TextBuffer.DocUI
         private TextPosition? _startPositionBeforeSelectionScope;
         // TS Parity: _ignoreModelContentChanged flag prevents double research after Replace/ReplaceAll
         private bool _ignoreModelContentChanged;
+        private bool _hasPendingSearchScopeOverride;
+        private Range[]? _pendingSearchScopeOverride;
 
-        public FindModel(TextModel model, FindReplaceState state, Func<string?>? wordSeparatorsProvider = null)
+        public FindModel(
+            TextModel model,
+            FindReplaceState state,
+            Func<string?>? wordSeparatorsProvider = null,
+            Func<double?>? viewportHeightProvider = null)
         {
             _model = model ?? throw new ArgumentNullException(nameof(model));
             _state = state ?? throw new ArgumentNullException(nameof(state));
-            _decorations = new FindDecorations(model);
+            _decorations = new FindDecorations(model, viewportHeightProvider);
             _wordSeparatorsProvider = wordSeparatorsProvider ?? (() => null);
             _currentSelection = new Range(new TextPosition(1, 1), new TextPosition(1, 1));
             _modelContentChangedHandler = OnModelContentChanged;
@@ -114,6 +120,7 @@ namespace PieceTree.TextBuffer.DocUI
                 if (e.SearchScope)
                 {
                     HandleSearchScopeTransition();
+                    SetPendingSearchScopeOverride(_state.SearchScope);
                 }
                 Research(e.MoveCursor);
             }
@@ -194,39 +201,102 @@ namespace PieceTree.TextBuffer.DocUI
 
         private Range[]? ResolveFindScopes()
         {
-            var searchScope = _state.SearchScope;
-            return NormalizeFindScopes(searchScope);
+            if (TryConsumePendingSearchScopeOverride(out var pendingOverride))
+            {
+                return NormalizeScopes(pendingOverride);
+            }
+
+            var hydratedScopes = CloneRanges(_decorations.GetFindScopes());
+            if (hydratedScopes != null)
+            {
+                return NormalizeScopes(hydratedScopes);
+            }
+
+            var stateScopes = CloneRanges(_state.SearchScope);
+            return NormalizeScopes(stateScopes);
         }
 
-        private Range[]? NormalizeFindScopes(Range[]? findScopes)
+        private Range[]? GetActiveFindScopesForReplace()
         {
-            if (findScopes == null || findScopes.Length == 0)
+            var hydratedScopes = CloneRanges(_decorations.GetFindScopes());
+            if (hydratedScopes != null)
+            {
+                return NormalizeScopes(hydratedScopes);
+            }
+
+            var stateScopes = CloneRanges(_state.SearchScope);
+            return NormalizeScopes(stateScopes);
+        }
+
+        private void SetPendingSearchScopeOverride(Range[]? scopes)
+        {
+            _pendingSearchScopeOverride = CloneRanges(scopes);
+            _hasPendingSearchScopeOverride = true;
+        }
+
+        private bool TryConsumePendingSearchScopeOverride(out Range[]? overrideValue)
+        {
+            if (!_hasPendingSearchScopeOverride)
+            {
+                overrideValue = null;
+                return false;
+            }
+
+            _hasPendingSearchScopeOverride = false;
+            overrideValue = _pendingSearchScopeOverride;
+            _pendingSearchScopeOverride = null;
+            return true;
+        }
+
+        private static Range[]? CloneRanges(Range[]? scopes)
+        {
+            if (scopes == null || scopes.Length == 0)
             {
                 return null;
             }
 
-            var normalized = new Range[findScopes.Length];
-            for (int i = 0; i < findScopes.Length; i++)
+            var clone = new Range[scopes.Length];
+            for (int i = 0; i < scopes.Length; i++)
             {
-                var scope = findScopes[i];
-                if (scope.StartLineNumber != scope.EndLineNumber)
-                {
-                    var endLineNumber = scope.EndLineNumber;
-                    if (scope.EndColumn == 1 && endLineNumber > scope.StartLineNumber)
-                    {
-                        endLineNumber--;
-                    }
+                var source = scopes[i];
+                clone[i] = new Range(source.Start, source.End);
+            }
+            return clone;
+        }
 
-                    var maxColumn = _model.GetLineMaxColumn(endLineNumber);
-                    normalized[i] = new Range(scope.StartLineNumber, 1, endLineNumber, maxColumn);
-                }
-                else
-                {
-                    normalized[i] = scope;
-                }
+        private Range[]? NormalizeScopes(Range[]? scopes)
+        {
+            if (scopes == null || scopes.Length == 0)
+            {
+                return null;
             }
 
-            return normalized;
+            var normalized = new List<Range>(scopes.Length);
+            foreach (var scope in scopes)
+            {
+                var startLine = scope.StartLineNumber;
+                var endLine = scope.EndLineNumber;
+                if (endLine < startLine)
+                {
+                    continue;
+                }
+
+                if (startLine == endLine)
+                {
+                    normalized.Add(scope);
+                    continue;
+                }
+
+                var normalizedStart = new TextPosition(startLine, 1);
+                var normalizedEndLine = scope.EndColumn == 1
+                    ? Math.Max(startLine, endLine - 1)
+                    : endLine;
+                var normalizedEndColumn = _model.GetLineMaxColumn(normalizedEndLine);
+                var normalizedEnd = new TextPosition(normalizedEndLine, normalizedEndColumn);
+                normalized.Add(new Range(normalizedStart, normalizedEnd));
+            }
+
+            return normalized.Count == 0 ? null : normalized.ToArray();
         }
 
         private IReadOnlyList<FindMatch> FindMatches(Range[]? findScopes, bool captureMatches, int limitResultCount)
@@ -862,10 +932,11 @@ namespace PieceTree.TextBuffer.DocUI
             }
 
             var searchParams = CreateSearchParams();
+            var activeScopes = GetActiveFindScopesForReplace();
             FindMatch? match;
-            if (_state.SearchScope != null && _state.SearchScope.Length > 0)
+            if (activeScopes != null && activeScopes.Length > 0)
             {
-                match = _model.FindNextMatch(searchParams, range.Start, _state.SearchScope, findInSelection: true, captureMatches: true);
+                match = _model.FindNextMatch(searchParams, range.Start, activeScopes, findInSelection: true, captureMatches: true);
             }
             else
             {
