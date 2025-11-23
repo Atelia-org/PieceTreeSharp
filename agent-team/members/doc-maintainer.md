@@ -28,8 +28,10 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-22（Batch #1 文档同步完成）
+- **Last Update:** 2025-11-24（Doc review on staged docs）
 - **Recent Actions:**
+  - 2025-11-24：DocMaintainer sweep —— 修复 `agent-team/indexes/README.md#delta-2025-11-23-b3-decor-stickiness` 标题缩进、去重 `docs/plans/ts-test-alignment.md` Live Checkpoints、在 `AGENTS.md`、`docs/sprints/sprint-03.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`tests/TextBuffer.Tests/TestMatrix.md` 补入 `#delta-2025-11-24-b3-docui-staged`/`#delta-2025-11-24-find-scope`/`#delta-2025-11-24-find-replace-scope` 引用，并校正 `agent-team/members/porter-cs.md` changefeed 锚点与本记忆档 focus 区域。
+  - 2025-11-24：完成 doc review（`agent-team/handoffs/doc-review-20251124.md`），记录并（由主循环）修复 `#delta-2025-11-23-b3-decor-stickiness` changefeed 缺口、DocUIFindDecorationsTests 8/8→9/9 统计、`B3-DocUI-StagedFixes` 迁移日志 changefeed 标记以及状态提醒落后问题，确保治理文档现已与最新 delta 对齐。
   - 2025-11-22：完成 B1-DOC 任务 — 同步 Batch #1 – ReplacePattern 成果到 `AGENTS.md`（新增进展条目）、`docs/sprints/sprint-03.md`（B1-DOC Done + Progress Log R4）、`agent-team/task-board.md`（AA4-008 Done + changefeed）、`docs/plans/ts-test-alignment.md`（Live Checkpoints + Appendix 状态），确保所有文档统一引用 `#delta-2025-11-22`。交付 `agent-team/handoffs/B1-DOC-Result.md` 汇报。
   - 2025-11-22：创建 `docs/tasks/source-attribution-task.md`（PT-007 任务指导），定义 C# 文件头溯源注释的统一格式规范、执行流程和验收标准，支持移植代码 TS 源追溯与原创代码标注。
   - 2025-11-22：记录 Porter coding / QA waiting / Info-Indexer 准备 `#delta-2025-11-22` 的状态检查，暂缓修改 `AGENTS.md`、`docs/sprints/sprint-02.md`、`agent-team/task-board.md`、`docs/reports/migration-log.md`，先完成 changefeed 模板片段与链接占位符预装，待 delta 落地即可套用。
@@ -42,6 +44,12 @@
   - 2025-11-19：协助整理 AI Team Playbook、模板。
   - 2025-11-19：在 Org Self-Improvement 会议中提交 DocMaintainer 声明，锁定 PT-006 迁移日志模板、OI-001 正交性稽核产物、OI-004 Task Board 分层策略，并明确对 Info-Indexer/Planner 的交付期待。
   - 2025-11-19：执行 PT-006（Migration Log & changefeed wiring），落地 `docs/reports/migration-log.md` 表格、更新 `docs/reports/consistency/consistency-report-20251119.md`、`AGENTS.md`、`docs/sprints/sprint-00.md`、`agent-team/task-board.md`，为状态编辑者植入“先查 migration log + changefeed”提醒。
+
+## Latest Focus
+### 2025-11-24
+- **B3 DocUI staged changefeed同步**：`AGENTS.md`、`docs/sprints/sprint-03.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`tests/TextBuffer.Tests/TestMatrix.md` 均已引用 `docs/reports/migration-log.md` + `agent-team/indexes/README.md#delta-2025-11-24-b3-docui-staged`；提醒编辑者在追加 DocUI/Decorations 状态时必须同时更新 migration log + changefeed，并引用 QA handoff（B3-DocUI-StagedFixes）。
+- **DocUI scope/regression 文档一致性**：`#delta-2025-11-24-find-scope` / `#delta-2025-11-24-find-replace-scope` targeted rerun命令现收录在 TestMatrix / TS 计划 / Sprint 02；若未来继续编辑 FindModel、Task Board、AGENTS，请核实 rerun 行与 `FullyQualifiedName~FindModelTests` 计数保持 45/45+。
+- **风险提醒**：`FullyQualifiedName~DocUIFindModelTests` filter 仍返回 0/0 —— 在 TS 计划 / QA handoff 中已标注，待 Porter/QA 决定是否重命名测试类或更新 QA 文案；在此之前，所有文档应优先引用 `FullyQualifiedName~FindModelTests` 命令。
 
 ## Upcoming Goals (1-3 runSubAgent calls)
 1. **Changefeed Adoption Sweep (0.5 call)**：继续把 Info-Indexer/migration log 提醒扩展到 `docs/sprints/sprint-org-self-improvement.md` 与 2025-11-19 会议纪要，统一状态更新协议。

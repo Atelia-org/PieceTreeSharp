@@ -28,7 +28,7 @@
 - `deepwiki/` 备用：若分析篇幅过长，再与 DocMaintainer 协调发布。
 
 ## Worklog
-- **Last Update:** 2025-11-23
+- **Last Update:** 2025-11-24
 - **Recent Actions:**
   - 2025-11-19: 在 `docs/meetings/meeting-20251119-org-self-improvement.md` 提交 Investigator-TS 陈述，记录 PieceTree 覆盖现状、blind spots、协作需求与文档治理建议。
   - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
@@ -131,6 +131,13 @@
 3. 下一位执行者请基于“Upcoming Goals”继续推进或更新类型映射表。
 
 ## Latest Focus
+### 2025-11-24
+- **DocUI Find scope复查**：核对 `FindModel.ResolveFindScopes`+`NormalizeScopes`（src/TextBuffer/DocUI/FindModel.cs 194-258）以及 `FindDecorations.GetFindScopes`（src/TextBuffer/DocUI/FindDecorations.cs 126-149），配合 `DocUIFindModelTests.Test45_SearchScopeTracksEditsAfterTyping`、`DocUIFindModelTests.Test46_MultilineScopeIsNormalizedToFullLines` 与 `DocUIFindDecorationsTests.FindScopesTrackEdits`，确认 F2（scope tracking）与 F3（scope normalization）已按 TS `_normalizeFindScopes` 行为恢复；TestMatrix CL4.F5 行附 `#delta-2025-11-24-find-scope`，`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44 绿。
+- **仍存缺口**：`FindModel.GetMatchesForReplace` (src/TextBuffer/DocUI/FindModel.cs 915-931) 仍直接把 `_state.SearchScope` 传给 `TextModel.FindNextMatch`；scope 在用户编辑后该数组不会更新，regex replace in selection 场景会重新以旧坐标求捕获组，可能拿到 `null`。
+- **TODO**：Porter 调整 `GetMatchesForReplace` 以复用 `ResolveFindScopes()` 的归一化范围，并补一个“scope 内编辑后依旧能 regex replace” DocUIFindModel 回归；QA 在 `tests/TextBuffer.Tests/TestMatrix.md` CL4.F5 行挂上新测试 ID，并重新执行 `dotnet test --filter FullyQualifiedName~DocUIFindModelTests` 保持 rerun 记录。
+- **B3 DocUI Staged Review**：完成 `DocUIFindController/FindModel/FindDecorations`、`TextModel` 装饰 API 暂存对比与 TS 源 (`findDecorations.ts`, `findModel.ts`, `textModel.ts`) 差异梳理，归档于 `agent-team/handoffs/B3-DocUI-StagedReview-20251124.md`，落地 CI×2（Reset 错误地重置 `_startPosition`、零宽 selection 无法识别当前 match）与 W×2（>1000 match 仍绘制 inline spans、`GetLineDecorations` 缺少 filter 标志），并提出对应修复/测试建议。
+
+### 2025-11-23
 - **日期**: 2025-11-23
 - **Batch #3 范围确认**: 覆盖剩余 DocUI Find 相关测试（`findModel.test.ts` 中 `selectAllMatches` + primary cursor (`#14143`)；`find.test.ts` 中 `getSelectionSearchString` 三类场景；`findController.test.ts` 中动作/域/持久化/自动逃逸/多行选区作用域/选区种子/选项持久化 等逻辑分组）以及尚未迁移的底层测试集（PieceTree fuzz & invariants、Diff char-change / pretty heuristics、modelDecorations stickiness/per-line、textModelSearch word boundary matrix）。
 - **DocUI FC delta (2025-11-23)**: 复审确认 word separator / clipboard plumbing 已覆盖 Batch #3，但需 Porter 修复 (1) `Start()` 在 `UpdateSearchScope=true` 且当前选区为空时误清空 scope；(2) `NextSelectionMatchFindAction()` 无法 seed 时未调用 `Start()`，导致 Ctrl/Cmd+F3 在空白处无法唤起 Find widget。Fix 后需补 scope persistence 与 whitespace Ctrl/Cmd+F3 两个 DocUIFindControllerTests。
@@ -144,3 +151,7 @@
 - **Word Boundary Matrix**: 增补 ASCII/标点/下划线/数字/emoji/CJK；暂未实现 Intl.Segmenter → CJK 行为标记 `ExpectedDifferentBoundary`。
 - **Delta Tags 预留**: `#delta-2025-11-23-b3-fm`, `#delta-2025-11-23-b3-fsel`, `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-23-b3-fc-scope`, `#delta-2025-11-23-b3-decor-stickiness`, `#delta-2025-11-23-b3-piecetree-fuzz`, `#delta-2025-11-23-b3-diff-pretty`。
 - **下一步**: 进入 R12（B3-FM）：实现 `selectAllMatches` & primary cursor 保持测试移植与 C# API 对齐；准备 R13 getSelectionSearchString；为 Controller 核心/Scope 子批次预置 harness 桩。
+  - 2025-11-23 (B3-Decor-INV): 专注 `findDecorations.ts` / `modelDecorations.test.ts` / `findController.ts` 与 C# `FindDecorations.cs` / `DocUIFindController.cs` / `TextModel.cs` 的 stickiness + decoration parity；梳理出 6 大缺口（range highlight、overview ruler throttling、TrackedRangeStickiness 矩阵、`GetLineDecorations`/`GetAllDecorations` API、DocUI harness 未验证 overlay/owner、QA Matrix 标记错误）并在 `agent-team/handoffs/B3-Decor-INV.md` 写出 Porter/QA/DocMaintainer plan，future delta `#delta-2025-11-23-b3-decor-stickiness`。
+    - 2025-11-23 (B3-Decor-Stickiness-Review): 复审 Porter 暂存补丁后确认 scope caching/trim 及 overview throttling 仍与 TS 不符，写入 `agent-team/handoffs/B3-Decor-Stickiness-Review.md`，列出 3×CI（移除 `_cachedFindScopes`、保留原始 scope range、恢复 `mergeLinesDelta` 计算）与 2×W（`FindDecorationsOwnerId` 需动态分配、DocUIFindDecorationsTests/TestMatrix 误报覆盖）。
+  - 2025-11-24 (AA4-Review-INV): 巡检 Batch #3 staged patches（FindDecorations/FindModel/TextModel/TestMatrix），在 `agent-team/handoffs/AA4-Review-INV.md` 记录 Scope Tracking + Normalization 两项阻断及 CL4.F5 覆盖偏差，回传 Porter/QA TODO。
+  - 2025-11-24 (B3-DocUI-StagedReview): 审查 `DocUIFindController/FindDecorations/FindModel` 最新暂存差异与 `TextModel` 装饰 API 变更，对照 VS Code `findDecorations.ts` / `findModel.ts` / `textModel.ts`，在 `agent-team/handoffs/B3-DocUI-StagedReview-20251124.md` 登记 2×CI（Reset 起点失效、零宽 selection 无法映射 match position）+ 2×W（大结果 inline throttling 未生效、TextModel 缺少 filter 标志）及修复/测试建议。

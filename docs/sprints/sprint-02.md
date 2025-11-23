@@ -7,7 +7,7 @@
   - `docs/reports/migration-log.md` & `agent-team/indexes/README.md` 记录 AA4 变更，AGENTS / Sprint / Task Board 同步至 Info-Indexer 最新 changefeed。
   - DocUI MarkdownRenderer 展现搜索/替换 overlay、chunk 元数据显示、Cursor word selection 标记，形成对 LLM 友好的多层装饰输出。
 
-**Status Edits Reminder:** 在更新本 Sprint 任何状态前先查阅 `docs/reports/migration-log.md` 以及 `agent-team/indexes/README.md#delta-2025-11-20` / `#delta-2025-11-21`，并在备注中引用对应条目。
+**Status Edits Reminder:** 在更新本 Sprint 任何状态前先查阅 `docs/reports/migration-log.md` 以及 `agent-team/indexes/README.md#delta-2025-11-20` / `#delta-2025-11-21` / `#delta-2025-11-22` / `#delta-2025-11-23` / `#delta-2025-11-23-b3-decor-stickiness` / `#delta-2025-11-23-b3-decor-stickiness-review` / `#delta-2025-11-24-find-scope` / `#delta-2025-11-24-find-replace-scope` / `#delta-2025-11-24-b3-docui-staged`，并在备注中引用对应条目。
 
 ## Backlog Snapshot
 | Priority | Task | Description & Deliverables | runSubAgent Budget | Owner | Target Date | Dependencies | Status / Notes |
@@ -53,3 +53,4 @@
 
 ## Progress Log
 - 2025-11-20：Sprint 02 立项 —— 更新 `agent-team/task-board.md` 至 Phase 7 (AA4)，创建本文件与 `docs/reports/audit-checklist-aa4.md` 计划 CL5~CL8，等待 Investigator runSubAgent。
+- 2025-11-24：DocUI FindModel scope tracking/normalization 与 scoped regex replace parity 完成（`#delta-2025-11-24-find-scope`、`#delta-2025-11-24-find-replace-scope`），`DocUIFindModelTests` 新增 Test45~47，targeted `PIECETREE_DEBUG=0 dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45 绿，TestMatrix/Migration Log/AA4-Review handoff均已更新。

@@ -217,3 +217,42 @@ Handoff / 参考：
 - 验证：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (27/27)；`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (218/218) 作为最新全量基线。
 - 文档：`docs/reports/migration-log.md` 新增 B3-FC-RegexSeed 行，AGENTS / Sprint 03 / TestMatrix 指向本 changefeed，更新 Cmd+E regex 多行 seed 修复状态。
 
+### delta-2025-11-23-b3-decor-stickiness
+**Sprint 03 R16 – B3-Decor Stickiness & Decoration APIs**
+
+- 代码：`src/TextBuffer/DocUI/FindDecorations.cs` 补齐 range highlight trimming、overview throttling（>1000 命中合并）、scope normalization 与 minimap/overview 元数据；`src/TextBuffer/TextModel.cs` 新增 `GetAllDecorations` / `GetLineDecorations` / `GetDecorationIdsByOwner` API；测试层引入 `tests/TextBuffer.Tests/DecorationStickinessTests.cs`、扩展 `tests/TextBuffer.Tests/DecorationTests.cs`，并创建 `tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs`（范围高亮、wrap-around、scope 裁剪）。
+- 测试：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（233/233，3.0s）；`dotnet test ... --filter DecorationStickinessTests --nologo`（4/4）；`dotnet test ... --filter DocUIFindDecorationsTests --nologo`（6/6）。
+- 文档：`tests/TextBuffer.Tests/TestMatrix.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md`、`docs/reports/migration-log.md`、`agent-team/task-board.md`、`AGENTS.md` 与 `agent-team/handoffs/B3-Decor-PORTER.md` 均记录该交付并引用本 changefeed。
+
+### delta-2025-11-23-b3-decor-stickiness-review
+**Sprint 03 R18 – B3-Decor Review (CI-1/CI-2/CI-3 + W-1/W-2)**
+
+- 代码：`src/TextBuffer/DocUI/FindDecorations.cs` 去除 `_cachedFindScopes`、保留 scope 原始换行、将 overview merge 逻辑接入 host `ViewportHeightPx` 并使用 `AllocateDecorationOwnerId()`；`FindModel` / `DocUIFindController` / `tests/TextBuffer.Tests/DocUI/TestEditorContext.cs` 传递 viewport provider；`DocUIFindDecorationsTests` 增补 newline/track-edits/viewport throttling；`agent-team/handoffs/B3-Decor-Stickiness-Review.md` 记录整改细节。
+- 测试：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（235/235，2.9s）；`dotnet test ... --filter DocUIFindDecorationsTests --nologo`（9/9）；`dotnet test ... --filter DecorationStickinessTests --nologo`（4/4）。
+- 文档：`tests/TextBuffer.Tests/TestMatrix.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md`、`docs/reports/migration-log.md`、`agent-team/task-board.md`、`AGENTS.md` 均切换为 `#delta-2025-11-23-b3-decor-stickiness-review`，记录 R18 关闭 CI/W 及新的测试基线。
+
+### delta-2025-11-24-find-scope
+**AA4 Review – DocUI FindModel scope tracking & normalization regression fix**
+
+- 代码：[`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) 新增 pending search-scope override 与 `ResolveFindScopes()` 装饰优先逻辑，仅在消费一次 `_state.SearchScope` 后转由 `_decorations.GetFindScopes()` 跟踪编辑偏移，并复刻 TS 多行 scope 归一化（起点列强制 1、尾行针对 `endColumn==1` 回退一行 + `GetLineMaxColumn`).
+- 测试：[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 `Test45_SearchScopeTracksEditsAfterTyping`（范围随输入漂移仍保持 1 个匹配）与 `Test46_MultilineScopeIsNormalizedToFullLines`（TS #27083），`tests/TextBuffer.Tests/TestMatrix.md` 记录 `#delta-2025-11-24-find-scope` 以及 targeted rerun。
+- 计划：[`agent-team/handoffs/B3-FM-MultiSelection-Plan.md`](../../agent-team/handoffs/B3-FM-MultiSelection-Plan.md) 协调剩余 TS Test07/08 multi-selection 场景（Task Board：`B3-FM-MSel-INV` / `B3-FM-MSel-PORT`），待 Investigator 输出审核文档并由 Porter 扩展 `TestEditorContext` + `FindModel` 后补齐 43/43 parity。
+- 文档：迁移日志新增 `B3-FM-Scope` 行，TaskMatrix changefeed + targeted rerun（`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44），并创建 Porter handoff `agent-team/handoffs/AA4-Review-Porter.md` 供 QA/Investigator 复审。
+- 备注：依 AA4 Reviewer 指示仍保留 `PIECETREE_DEBUG=0 dotnet test ... --filter DocUIFindModelTests --nologo` 命令（VSTest 0 matches）作为审计记录；实际验证以 FullyQualifiedName 过滤执行。迁移日志 / TestMatrix / 本 changefeed 均指向该 delta。
+
+### delta-2025-11-24-find-replace-scope
+**AA4 Review – DocUI FindModel scoped regex replace parity**
+
+- 代码：[`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) 的 `GetMatchesForReplace()` 现复用 `ResolveFindScopes()` → `NormalizeScopes()`，与导航/Research 路径一致地从 `FindDecorations` 读取实时范围，避免在 scoped 编辑后落入旧 `_state.SearchScope`。
+- 测试：[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**，并在 `tests/TextBuffer.Tests/TestMatrix.md` 上记下 `#delta-2025-11-24-find-replace-scope` targeted rerun（`PIECETREE_DEBUG=0 dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45）。
+- 文档：`docs/reports/migration-log.md` 追加 B3-FM-ReplaceScope 行，`agent-team/handoffs/AA4-Review-INV.md` 将 F4（replace scope capture desync）标记为 Resolved；Task Board/Sprint/TestMatrix 也同步引用本 delta。
+- 后续：B3-FM Multi-selection 任务仍待 Investigator/Porter 完结（`B3-FM-MSel-*`），但 scoped replace regression 已关闭。
+
+### delta-2025-11-24-b3-docui-staged
+**Sprint 03 R19 – B3 DocUI Staged Fixes (FindDecorations reset + caret overlaps)**
+
+- 代码：[`src/TextBuffer/DocUI/FindDecorations.cs`](../../src/TextBuffer/DocUI/FindDecorations.cs) 取消 `Reset()` 内 `_startPosition` 置零，保持与 TS `findDecorations.ts` 一致；[`src/TextBuffer/Decorations/IntervalTree.cs`](../../src/TextBuffer/Decorations/IntervalTree.cs) 在 `CollectOverlaps()` 中将零长度查询扩展为 `[offset, offset+1)` 以捕获折叠光标命中；[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 **Test48_FlushEditKeepsFindNextProgress**；[`tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs) 新增 **CollapsedCaretAtMatchStartReturnsIndex**；`tests/TextBuffer.Tests/TestMatrix.md` 更新 DocUI 行与 rerun 指令。
+- 测试：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` (46/46)；`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` (9/9)；根据规范仍执行 `--filter FullyQualifiedName~DocUIFindModelTests`（0/0，记录为 alias 待修）。
+- 文档：迁移日志已添加 B3-DocUI-StagedFixes 行；交付与 QA 详情见 [`agent-team/handoffs/B3-DocUI-StagedFixes-20251124.md`](../handoffs/B3-DocUI-StagedFixes-20251124.md) 与 [`agent-team/handoffs/B3-DocUI-StagedFixes-QA-20251124.md`](../handoffs/B3-DocUI-StagedFixes-QA-20251124.md)；`tests/TextBuffer.Tests/TestMatrix.md` 的 DocUI 行与 targeted rerun 表记录了本次 delta 及新测试。
+- 风险 / 后续：`DocUIFindModelTests` 类名仍与历史 filter 不匹配，需后续调整；DocUI multi-cursor parity（Batch #3 余项）保持在任务板上。
+
