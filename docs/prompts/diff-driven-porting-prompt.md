@@ -5,7 +5,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
 ---
 
 **System Context**
-- **Goal**: Port VS Code PieceTree (`ts/src/vs/editor/common/model/pieceTreeTextBuffer`) into `src/PieceTree.TextBuffer`.
+- **Goal**: Port VS Code PieceTree (`ts/src/vs/editor/common/model/pieceTreeTextBuffer`) into `src/TextBuffer`.
 - **Philosophy**: You are the **CPU/Controller**; SubAgents are **Accelerators**.
   - **Data Plane**: `agent-team/handoffs/` (High bandwidth, detailed briefs/logs).
   - **Control Plane**: `agent-team/task-board.md` (Low bandwidth, status flags).
@@ -24,7 +24,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
 2. **Phase 1: Investigation (Offloaded)**
    - **Action**: Call `runSubAgent` (`subagentType="Investigator-TS"`).
    - **Prompt**:
-     > "Analyze [TS Files] and compare with current C# implementation in `src/PieceTree.TextBuffer`.
+     > "Analyze [TS Files] and compare with current C# implementation in `src/TextBuffer`.
      > **DO NOT** output the analysis here.
      > Write a detailed Diff Brief to `agent-team/handoffs/${TASK_ID}-Brief.md`.
      > Include: TS symbols, invariants, missing C# coverage, edge cases, and 2-3 TS tests to port."
@@ -33,7 +33,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
    - **Action**: Call `runSubAgent` (`subagentType="Porter-CS"`).
    - **Prompt**:
      > "Read `agent-team/handoffs/${TASK_ID}-Brief.md`.
-     > Implement the logic in `src/PieceTree.TextBuffer/...`.
+    > Implement the logic in `src/TextBuffer/<target-file>.cs`.
      > **NEVER** use `insert_edit_into_file`.
      > Run tests: `dotnet test ...`.
      > Write a summary of changes and test results to `agent-team/handoffs/${TASK_ID}-Result.md`."

@@ -1,21 +1,21 @@
 # Porter-CS Memory
 
 ## Role & Mission
-- **Focus Area:** 将 TypeScript PieceTree 逻辑逐步移植到 `PieceTree.TextBuffer`
+- **Focus Area:** 将 TypeScript PieceTree 逻辑逐步移植到 `src/TextBuffer`
 - **Primary Deliverables:** C# 源码、xUnit 覆盖、性能基准脚手架
 - **Key Stakeholders:** Investigator-TS、QA-Automation、DocMaintainer
 
 ## Onboarding Summary (2025-11-19)
 - 阅读/速览：`AGENTS.md` 时间线、`agent-team/ai-team-playbook.md`、`agent-team/main-loop-methodology.md`、两份 2025-11-19 会议纪要、`docs/sprints/sprint-00.md`、`docs/sprints/sprint-org-self-improvement.md`、`agent-team/task-board.md`（PT-004 聚焦）。
-- 立即 C# 目标：根据 PT-004 在 `PieceTree.TextBuffer/Core` 完成 PieceTreeNode + 红黑树骨架，并按 Investigator-TS 的类型映射预留接口。
-- 代码与测试记录：所有实现/测试日志将写入 `src/PieceTree.TextBuffer/README.md` 的“Porting Log”子节，并在本文件 Worklog 中附指针。
+- 立即 C# 目标：根据 PT-004 在 `src/TextBuffer/Core` 完成 PieceTreeNode + 红黑树骨架，并按 Investigator-TS 的类型映射预留接口。
+- 代码与测试记录：所有实现/测试日志将写入 `src/TextBuffer/README.md` 的“Porting Log”子节，并在本文件 Worklog 中附指针。
 
 ## Knowledge Index
 | Topic | Files / Paths | Notes |
 | --- | --- | --- |
-| Core Library Skeleton | src/PieceTree.TextBuffer/Core | 主要的 PieceTree 结构放置点 |
-| Buffer Entry Point | src/PieceTree.TextBuffer/PieceTreeBuffer.cs | 提供公共 API，需逐步替换占位实现 |
-| Tests | src/PieceTree.TextBuffer.Tests/UnitTest1.cs | 先期可扩展基础 xUnit 框架 |
+| Core Library Skeleton | src/TextBuffer/Core | 主要的 PieceTree 结构放置点 |
+| Buffer Entry Point | src/TextBuffer/PieceTreeBuffer.cs | 提供公共 API，需逐步替换占位实现 |
+| Tests | tests/TextBuffer.Tests/UnitTest1.cs | 先期可扩展基础 xUnit 框架 |
 | Type Mapping | agent-team/type-mapping.md | TS↔C# 结构别名及字段含义 |
 | TS Source | ts/src/vs/editor/common/model/pieceTreeTextBuffer | 迁移源码与参考行为 |
 
@@ -23,7 +23,7 @@
 - **2025-11-19**
   - 完成首轮 Onboarding，熟悉 AI Team 运作方式、Sprint 目标与 PT-004 期待成果。
   - 审核当前 C# 骨架，确认 `PieceTreeBuffer` 仍为占位，需从 Core 目录启动红黑树实现。
-  - 记录代码/测试日志归档位置（`src/PieceTree.TextBuffer/README.md`）。
+  - 记录代码/测试日志归档位置（`src/TextBuffer/README.md`）。
 - **2025-11-19 – Org Self-Improvement Mtg**
   - 评估 C# 端缺口（仅余 `ChunkBuffer`/`PieceSegment` + `StringBuilder` 缓冲），确认 PT-004 首阶段需先落 `PieceTreeNode`/sentinel/Tree 容器。
   - 与 Planner/Investigator/QA/DocMaintainer 对齐依赖：获取 Builder/Search/PrefixSum 类型映射、runSubAgent 模板拆分、QA 属性测试入口及 Porting Log 写入约定。
@@ -31,57 +31,57 @@
 - **2025-11-19 – PT-004.M2 drop**
   - 将 `PieceTreeBuffer` 接上 `ChunkBuffer` → `PieceTreeBuilder` → `PieceTreeModel` 流水线，`FromChunks`/`Length`/`GetText`/`ApplyEdit` 均以 PieceTree 数据驱动。
   - `ChunkBuffer` 新增 line-start/CRLF 计算与 `Slice` helper，`PieceSegment.Empty`、builder result 等保证 sentinel 元数据，`ApplyEdit` 暂以“重建整棵树”作为 TODO 记录的降级方案。
-  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，4 tests：multi-chunk builder + CRLF edit 覆盖）。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（pass，4 tests：multi-chunk builder + CRLF edit 覆盖）。
   - Risks: 每次编辑仍需重建树（性能/暂时性），Search stub 依旧待 Investigator-TS 完善类型映射后再规划 PT-007。
 - **2025-11-19 – PT-004 literal translation spike**
-  - 在 `src/PieceTree.TextBuffer/PortingDrafts/PieceTreeBase.literal.cs.txt` 新建 Literal C# 版本，完成 TypeScript `pieceTreeBase.ts` 开头到搜索逻辑的 1:1 结构移植并标注剩余 TODO，供后续增量补全与 Info-Indexer 建立 PortingDrafts 钩子。
+  - 在 `src/TextBuffer/PortingDrafts/PieceTreeBase.literal.cs.txt` 新建 Literal C# 版本，完成 TypeScript `pieceTreeBase.ts` 开头到搜索逻辑的 1:1 结构移植并标注剩余 TODO，供后续增量补全与 Info-Indexer 建立 PortingDrafts 钩子。
 
 - **2025-11-19 – PT-004 line infra/cache drop**
-  - 按类型映射要求实现 `LineStartTable`/`LineStartBuilder`（`src/PieceTree.TextBuffer/Core/LineStarts.cs`）并让 `ChunkBuffer` 保存 CR/LF/CRLF 计数与 `IsBasicAscii` 标志，PieceTreeBuilder 重用该元数据。
-  - 新增 `PieceTreeSearchCache`（`src/PieceTree.TextBuffer/Core/PieceTreeSearchCache.cs`）及 `PieceTreeModel` 缓存钩子，后续 `nodeAt`/`getLineContent` 可复用缓存且在插入时自动失效。
-  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，7 tests）。
+  - 按类型映射要求实现 `LineStartTable`/`LineStartBuilder`（`src/TextBuffer/Core/LineStarts.cs`）并让 `ChunkBuffer` 保存 CR/LF/CRLF 计数与 `IsBasicAscii` 标志，PieceTreeBuilder 重用该元数据。
+  - 新增 `PieceTreeSearchCache`（`src/TextBuffer/Core/PieceTreeSearchCache.cs`）及 `PieceTreeModel` 缓存钩子，后续 `nodeAt`/`getLineContent` 可复用缓存且在插入时自动失效。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（pass，7 tests）。
 - **2025-11-19 – PT-004 positions/API drop**
   - 增加 `TextPosition` 结构与 `PieceTreeBuffer` 的 `GetPositionAt` / `GetOffsetAt` / `GetLineLength` / `GetLineCharCode` / `GetCharCode` API，暂以全文快照+`LineStartBuilder` 计算坐标，后续将替换为 tree-aware 实现。
-  - 在 `PieceTree.TextBuffer.Tests/UnitTest1.cs` 移植 TS `prefix sum` 风格断言，覆盖 offset→position round trip、CRLF 行长与行内字符编码，测试总数扩展至 10。
-  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，10 tests）。
+  - 在 `tests/TextBuffer.Tests/UnitTest1.cs` 移植 TS `prefix sum` 风格断言，覆盖 offset→position round trip、CRLF 行长与行内字符编码，测试总数扩展至 10。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（pass，10 tests）。
 
 - **2025-11-19 – PT-004 insert/delete drop**
   - 实现 `PieceTreeModel.Edit.cs`，包含 `Insert`、`Delete`、`RbDelete`、`DeleteFixup` 等核心红黑树编辑逻辑，替换了之前的重建树方案。
   - `PieceTreeNode` 增加 `Next()`、`Detach()` 及属性 setter 以支持树操作。
   - `PieceTreeBuffer.ApplyEdit` 更新为调用 `_model.Delete` 和 `_model.Insert`。
   - 移植 TS 基础编辑测试至 `PieceTreeBaseTests.cs`，覆盖 `BasicInsertDelete`、`MoreInserts`、`MoreDeletes`。
-  - Tests: `dotnet test PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（pass，13 tests）。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（pass，13 tests）。
 
 - **2025-11-19 – PT-005 Search**
   - 实现 `PieceTreeSearcher` (C# Regex wrapper) 与 `SearchTypes` (SearchData, FindMatch, Range)。
   - 实现 `PieceTreeModel.Search.cs`，包含 `FindMatchesLineByLine`、`FindMatchesInNode`、`FindMatchesInLine` 等核心搜索逻辑。
   - 移植 TS 搜索逻辑，包括多行搜索、简单字符串搜索优化、Regex 搜索。
   - 新增 `PieceTreeSearchTests.cs`，覆盖基本字符串搜索、Regex 搜索、多行搜索。
-  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 16 tests)。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (pass, 16 tests)。
 
 - **2025-11-19 – PT-008 Snapshot**
   - 创建 `ITextSnapshot` 接口与 `PieceTreeSnapshot` 实现，支持基于 `PieceTreeModel` 的不可变快照读取。
   - 更新 `PieceTreeModel` 以暴露 `Buffers` 并提供 `CreateSnapshot` 方法。
   - 新增 `PieceTreeSnapshotTests.cs`，覆盖快照读取与不可变性验证（即使 Model 变更，Snapshot 内容保持不变）。
-  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 18 tests)。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (pass, 18 tests)。
 
 - **2025-11-19 – PT-009 Line Optimization**
   - 在 `PieceTreeModel.cs` 中引入 `LastVisitedLine` 结构与 `_lastVisitedLine` 字段，实现单行缓存。
   - 更新 `PieceTreeModel.Search.cs` 中的 `GetLineContent` 以利用缓存，并在 `PieceTreeModel.Edit.cs` 的 `Insert`/`Delete` 中失效缓存。
   - 在 `PieceTreeBuffer` 中暴露 `GetLineContent` 以供测试。
   - 新增 `PieceTreeBaseTests.cs` 测试用例 `GetLineContent_Cache_Invalidation_Insert` 和 `GetLineContent_Cache_Invalidation_Delete`，验证缓存失效逻辑。
-  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (pass, 20 tests)。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (pass, 20 tests)。
 - **2025-11-20 – AA3-004 CL2 Search Fixes**
   - 将 `SearchTypes.ParseSearchRequest` 切换为 `RegexOptions.ECMAScript` 并添加 Unicode wildcard 改写辅助，`PieceTreeSearcher` 也确保 Regex 处于 ECMAScript 模式。
   - 收紧 `WordCharacterClassifier`（仅接受配置的符号 + SPACE/TAB/CR/LF），恢复 TS word-boundary 行为并避免 NBSP/EN SPACE 误判。
   - 新增 AA3 审计覆盖：`\bcaf\b` 边界、ASCII-only digits、Unicode 分隔符、emoji 量词、多选区 regex；记录于 `PieceTreeSearchTests.cs` 与 `TextModelSearchTests.cs`。
   - 文档：创建 `agent-team/handoffs/AA3-004-Result.md`，更新 `docs/reports/migration-log.md` 与 `agent-team/indexes/README.md#delta-2025-11-20`。
-  - Tests: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。
+  - Tests: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（84/84）。
 
 - **2025-11-20 – AA3-008 Decorations/DocUI**
   - 复刻 TS decoration 存储：引入 `DecorationsTrees`（regular/overview/injected）与共享 `DecorationRangeUpdater` stickiness 逻辑，`TextModel` 现可查询字体/注入文本/边距装饰并在 `OnDidChangeDecorations` 事件中输出 minimap/overview/glyph/line号/行高/字体元数据。
   - 升级 `MarkdownRenderer` 与选项结构，支持多 owner filter、z-index 排序、注入文本 markers、glyph/margin/overview/minimap 注记，DocUI 行尾附带注解标签。
-  - Tests：在 `DecorationTests` 添加 metadata round-trip & 事件断言，在 `MarkdownRendererTests` 覆盖 owner filter 列表、注入文本、glyph/minimap 注解；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（85/85）。
+  - Tests：在 `DecorationTests` 添加 metadata round-trip & 事件断言，在 `MarkdownRendererTests` 覆盖 owner filter 列表、注入文本、glyph/minimap 注解；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（85/85）。
   - 文档：创建 `agent-team/handoffs/AA3-008-Result.md`，更新 Task Board / Sprint / AGENTS / Migration Log / Changefeed。
 
 - **Upcoming Goals (runSubAgent 粒度):**
@@ -116,11 +116,11 @@
   - New directive (AA4 Batch #1 – ReplacePattern): before implementation deliver a checklist covering touched files (`ReplacePattern.cs`, DocUI controllers, fixtures, harness JSON/tests), API surface synopsis, migration-log entry template (include QA commands & DocUI snapshots), and risk/dependency plan (WordSeparator cache, harness substitutes). Output must reference Planner checkpoints and broadcast feed `#delta-2025-11-22` once artifacts land.
  - **2025-11-22 – Batch #1 ReplacePattern Kickoff**
    - Began scoping C# runtime drop for `ReplacePattern` (port TS `replacePattern.ts` helpers + `ReplacePatternResult`/`ReplacePatternRequest` types) and lined up DocUI harness needs (`DocUITestHost`, `DocUIReplacePatternTests`, `DocUIReplacePatternFixtures`).
-   - TODO next session: map TS `replacePattern.test.ts` cases to `PieceTree.TextBuffer.Tests/DocUIReplacePatternTests.cs`, stub runtime entry in `src/PieceTree.TextBuffer/Search/ReplacePattern.cs`, scaffold DocUI harness under `src/PieceTree.TextBuffer.Tests/DocUI/` with test JSON ingestion, update `docs/plans/ts-test-alignment.md#Batch-1` checkpoints.
+  - TODO next session: map TS `replacePattern.test.ts` cases to `tests/TextBuffer.Tests/ReplacePatternTests.cs`, stub runtime entry in `src/TextBuffer/Core/ReplacePattern.cs`, scaffold DocUI harness under `tests/TextBuffer.Tests/DocUI/` with test JSON ingestion, update `docs/plans/ts-test-alignment.md#Batch-1` checkpoints.
    - Dependencies/blockers: need Investigator-TS to confirm WordSeparator + regex expansion semantics, confirm DocUI harness telemetry path, ensure `DocUIHarness.json` sample assets merge cleanly with `ts/test/` snapshots.
 - **2025-11-22 – Batch #1 ReplacePattern Plan Update**
   - Captured deliverable breakdown for runtime skeleton (`ReplacePattern.cs`), DocUI controller, and tests, plus doc/report touchpoints (AA4-008 result + migration log) ahead of implementation.
-  - Logged evidence plan (`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`, DocUI capture artifacts) and reiterated outstanding blockers (fixture export pipeline, WordSeparator spec from Investigator-TS).
+  - Logged evidence plan (`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`, DocUI capture artifacts) and reiterated outstanding blockers (fixture export pipeline, WordSeparator spec from Investigator-TS).
   - Ready to drop initial code diffs + documentation updates once green-lit; this entry reflects current memory sync per Porter-CS instructions.
 - **2025-11-22 – Batch #1 ReplacePattern Skeleton Draft (Porter-CS)**
   - Re-read Batch #1 directives; prepping concrete runtime/controller/test skeletons so editors can wire up parity quickly.
@@ -152,18 +152,18 @@
 
 - **2025-11-22 – B1-PORTER ReplacePattern Implementation (Batch #1 Complete)**
   - **实现文件**:
-    - `src/PieceTree.TextBuffer/Core/ReplacePattern.cs`: 完整移植 TS replacePattern.ts 的核心逻辑
+    - `src/TextBuffer/Core/ReplacePattern.cs`: 完整移植 TS replacePattern.ts 的核心逻辑
       - `ReplacePattern` 类：支持静态值和动态片段两种模式
       - `ReplacePiece` 类：表示替换片段（静态文本或捕获组引用）
       - `ReplacePatternParser.ParseReplaceString()`: 解析替换字符串，支持 `$1`, `$&`, `$$`, `\n`, `\t`, `\\`, `\u`, `\U`, `\l`, `\L` 等模式
       - `BuildReplaceStringWithCasePreserved()`: 实现大小写保持逻辑（支持连字符、下划线分隔的单词）
-    - `src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`: DocUI 替换控制器
+    - `src/TextBuffer/Rendering/DocUIReplaceController.cs`: DocUI 替换控制器
       - `Replace()`: 单次替换操作
       - `ReplaceAll()`: 批量替换操作
       - `ExecuteReplace()`: 执行替换并应用到 TextModel（预留 TODO 供 Batch #2）
       - `DocUIReplaceHelper.QuickReplace()`: 测试辅助方法
   - **测试文件**:
-    - `src/PieceTree.TextBuffer.Tests/ReplacePatternTests.cs`: 23 个测试用例
+    - `tests/TextBuffer.Tests/ReplacePatternTests.cs`: 23 个测试用例
       - 基础解析测试：无转义、Tab、换行、转义反斜杠、尾部反斜杠、未知转义
       - 捕获组测试：`$0`, `$1-$9`, `$10-$99`, `$$`, `$&`
       - 大小写修饰符测试：`\u`, `\U`, `\l`, `\L`
@@ -174,7 +174,7 @@
       - 大小写保持测试：基础、连字符、下划线、集成测试
   - **测试结果**:
     - ✅ 全量测试通过：142/142（新增 23 个 ReplacePattern 测试）
-    - 命令：`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`
+    - 命令：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`
   - **已知差异**:
     - C# Regex 和 JavaScript Regex 的捕获组语义存在细微差异（已在测试注释中标注）
     - 空捕获组 `()` 在 C# 中返回空字符串 `""`，JavaScript 可能有不同行为（已调整测试期望）
@@ -263,18 +263,18 @@
 - **2025-11-22 – B2-001 FindModel Stubs Creation (Batch #2 准备)**
   - 完成 **FindModel 基础设施（stubs）创建**，为 B2-002 核心逻辑实现铺路。
   - 新增文件：
-    - `src/PieceTree.TextBuffer/DocUI/FindReplaceState.cs`: 管理 find/replace 状态，包含搜索参数、flags、匹配计数、事件通知
+    - `src/TextBuffer/DocUI/FindReplaceState.cs`: 管理 find/replace 状态，包含搜索参数、flags、匹配计数、事件通知
       - 实现 `CreateSearchParams()` 方法，将 state 转换为 `SearchParams`（集成 WholeWord 支持）
       - 包含 `Change()` 方法统一更新状态并触发事件
       - 实现 `ChangeMatchInfo()` 更新匹配计数和当前匹配
-    - `src/PieceTree.TextBuffer/DocUI/FindDecorations.cs`: 管理 find match 装饰（高亮）
+    - `src/TextBuffer/DocUI/FindDecorations.cs`: 管理 find match 装饰（高亮）
       - Stub 实现，预留 TODO(B2-002) 标记用于核心逻辑
       - 基础方法：`SetCurrentMatch()`, `SetAllMatches()`, `ClearDecorations()`, `GetAllMatchRanges()`
-    - `src/PieceTree.TextBuffer/DocUI/FindModel.cs`: FindModel 核心类（空壳）
+    - `src/TextBuffer/DocUI/FindModel.cs`: FindModel 核心类（空壳）
       - 构造函数接受 `TextModel` 和 `FindReplaceState`
       - 核心方法全部预置 TODO(B2-002) 标记：`FindNext()`, `FindPrevious()`, `Replace()`, `ReplaceAll()`, `SelectAllMatches()`
       - 辅助方法：`UpdateDecorations()`, `UpdateState()`（均为空壳）
-    - `src/PieceTree.TextBuffer.Tests/DocUI/FindModelStubTests.cs`: 验证测试（7 个测试）
+    - `tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`: 验证测试（7 个测试，Stub 阶段）
       - `FindReplaceState_CreateSearchParams_CreatesValidParams`: 验证 SearchParams 创建（WholeWord=true）
       - `FindReplaceState_CreateSearchParams_WithoutWholeWord_NoWordSeparators`: 验证 WholeWord=false 时无 wordSeparators
       - `FindDecorations_InitialState_HasZeroDecorations`: 验证初始装饰数为 0
@@ -363,7 +363,7 @@
 
 - **2025-11-22 – B2-002 FindModel Core Logic Implementation ✅ COMPLETE**
   - **实现文件**:
-    - `src/PieceTree.TextBuffer/DocUI/FindDecorations.cs`: 完整实现装饰管理
+    - `src/TextBuffer/DocUI/FindDecorations.cs`: 完整实现装饰管理
       - `Set()`: 批量创建/更新 find match 装饰，支持大结果集优化（>1000 matches 使用简化装饰）
       - `SetCurrentMatch()`: 高亮当前匹配，返回 1-based 位置
       - `ClearDecorations()` / `Reset()`: 清除装饰和重置状态
@@ -371,7 +371,7 @@
       - `GetCurrentMatchesPosition()`: 获取选区对应的匹配位置
       - `MatchBeforePosition()` / `MatchAfterPosition()`: 查找前/后匹配（支持 wrap-around）
       - 装饰选项：`CurrentFindMatchDecoration` (zIndex=13)、`FindMatchDecoration` (zIndex=10)、`FindMatchNoOverviewDecoration`、`FindScopeDecoration`
-    - `src/PieceTree.TextBuffer/DocUI/FindModel.cs`: 核心逻辑实现
+    - `src/TextBuffer/DocUI/FindModel.cs`: 核心逻辑实现
       - `Research()`: 执行搜索并更新装饰和状态
       - `FindNext()` / `FindPrevious()`: 导航到下一个/上一个匹配
       - `MoveToNextMatch()` / `MoveToPrevMatch()`: 内部导航逻辑
@@ -382,10 +382,10 @@
       - `GetReplacePattern()`: 根据 IsRegex 创建 ReplacePattern
       - `GetMatchesForReplace()`: 为替换获取 capture groups
       - 事件驱动：监听 `FindReplaceState.OnFindReplaceStateChange`，自动触发重新搜索
-    - `src/PieceTree.TextBuffer/TextModel.cs`: 新增公共 API
+    - `src/TextBuffer/TextModel.cs`: 新增公共 API
       - `GetDecorationById()`: 根据 ID 获取装饰（用于 FindDecorations 访问装饰详情）
   - **测试文件**:
-    - `src/PieceTree.TextBuffer.Tests/DocUI/FindModelStubTests.cs` → `FindModelTests.cs`: 扩展为 16 个测试用例
+    - `tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`: 扩展为 16 个测试用例（接替早期 Stub 文件）
       - 基础测试（7 个）：State/Decorations/Construction/Dispose/Event
       - 搜索测试（2 个）：`BasicSearch_FindsMatches`、`SearchWithNoMatches_ReturnsZero`
       - 导航测试（1 个）：`FindNext_NavigatesToNextMatch`
@@ -393,7 +393,7 @@
       - Regex测试（2 个）：`RegexSearch_FindsMatches`、`RegexReplace_WithCaptureGroups`
   - **测试结果**:
     - ✅ 全量测试通过：156/156（新增 9 个 FindModel 功能测试，总数 149 → 156）
-    - 命令：`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`
+    - 命令：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`
   - **集成要点**:
     - ✅ 集成 Batch #1 `ReplacePattern`：支持静态替换、正则替换、capture groups、case-preserving
     - ✅ 装饰管理：使用 `TextModel.DeltaDecorations()` 创建/删除装饰，owner ID = 1000
@@ -414,10 +414,10 @@
     - TypeScript 源：`ts/src/vs/editor/contrib/find/browser/findDecorations.ts` (Lines: 1-349)
 
 ## Testing & Validation Plan
-- 默认使用 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。
+- 默认使用 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` 进行单元测试，按 PT-004 每阶段至少补一个针对 Node/Tree API 的断言。必要时添加 BenchmarkDotNet 基准（待骨架稳定）。
 - 关键红黑树操作需辅以调试断言（如节点颜色/黑高），计划构建 Debug-only 验证方法供 QA 复用。
 
 ## Hand-off Checklist
-1. 所有代码位于 `src/PieceTree.TextBuffer` 并通过 `dotnet test`。
+1. 所有代码位于 `src/TextBuffer` 并通过 `dotnet test`。
 2. Tests or validations performed? 若本轮涉及实现，需提供结果。
-3. 下一位接手者读取“Upcoming Goals”并续写实现，同时参考 `src/PieceTree.TextBuffer/README.md` Porting Log 获取代码/测试细节。
+3. 下一位接手者读取“Upcoming Goals”并续写实现，同时参考 `src/TextBuffer/README.md` Porting Log 获取代码/测试细节。

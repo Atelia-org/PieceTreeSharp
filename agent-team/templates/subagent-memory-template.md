@@ -9,7 +9,7 @@
 | Topic | Files / Paths | Notes |
 | --- | --- | --- |
 | Piece Tree Core | ts/src/vs/editor/common/model/pieceTreeTextBuffer | <how to load> |
-| C# Port | src/PieceTree.TextBuffer | <status> |
+| C# Port | src/TextBuffer | <status> |
 | Changefeed / Index Hooks | agent-team/indexes/README.md#delta-20251119 | <what was consumed or published> |
 
 _Add or remove rows as needed; document any changefeed or index references (link + status) here._

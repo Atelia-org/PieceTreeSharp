@@ -55,7 +55,7 @@
       - 失效：在 `Insert` 和 `Delete` 方法中重置缓存。
       - 测试：建议添加访问同一行多次、修改后访问的测试用例。
   - 2025-11-20: 完成 AA3-005 CL3 审计（Diff prettify & move metadata）。
-    - 对比 `ts/src/vs/editor/common/diff/defaultLinesDiffComputer/*.ts` / `rangeMapping.ts` 与 C# `src/PieceTree.TextBuffer/Diff/*`，梳理缺失的 `LinesDiff`/`DetailedLineRangeMapping` 数据、move detection 与 heuristics/timeout 选项差异。
+    - 对比 `ts/src/vs/editor/common/diff/defaultLinesDiffComputer/*.ts` / `rangeMapping.ts` 与 C# `src/TextBuffer/Diff/*`，梳理缺失的 `LinesDiff`/`DetailedLineRangeMapping` 数据、move detection 与 heuristics/timeout 选项差异。
     - 评估 `TextModel`/`Decorations`/`MarkdownRenderer` 消费路径，确认 DocUI 目前无法携带 diff/move 元数据，并在 `agent-team/handoffs/AA3-005-Audit.md` 给出 F1–F4 建议与 QA 钩子。
     - 更新 `docs/reports/audit-checklist-aa3.md` CL3 行状态，提示 Porter/QA 后续依赖。
   - 2025-11-20: 完成 AA3-007 CL4 审计（Decorations & DocUI）。

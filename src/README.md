@@ -5,8 +5,8 @@ This directory contains the starter .NET solution that will eventually host the 
 ## Layout
 
 - `PieceTree.sln` – root solution file
-- `PieceTree.TextBuffer/` – class library that will house the Piece Tree port
-- `PieceTree.TextBuffer.Tests/` – xUnit test project for fast regression coverage
+- `src/TextBuffer/` – class library that will house the Piece Tree port
+- `tests/TextBuffer.Tests/` – xUnit test project for fast regression coverage
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This directory contains the starter .NET solution that will eventually host the 
 ## Common commands
 
 ```bash
-cd /repos/PieceTreeSharp/src
+cd /repos/PieceTree
 # restore packages
  dotnet restore
 # run the test suite

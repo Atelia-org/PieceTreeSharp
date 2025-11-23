@@ -38,138 +38,138 @@
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Core/ChunkBuffer.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 27-98) | Buffer management |
-| `PieceTree.TextBuffer/Core/ChunkUtilities.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` | Utility functions |
-| `PieceTree.TextBuffer/Core/ITextSnapshot.cs` | Complete | `vs/editor/common/model.ts` | Interface definition |
-| `PieceTree.TextBuffer/Core/LineStarts.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 27-98) | Line indexing |
-| `PieceTree.TextBuffer/Core/PieceSegment.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` | Piece structure |
-| `PieceTree.TextBuffer/Core/PieceTreeBuilder.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` (Lines: 67-188) | Tree builder |
-| `PieceTree.TextBuffer/Core/PieceTreeDebug.cs` | Complete | N/A (Original C# implementation) | Debug utilities |
-| `PieceTree.TextBuffer/Core/PieceTreeModel.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 268-1882) | Core model |
-| `PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 800-1500) | Edit operations |
-| `PieceTree.TextBuffer/Core/PieceTreeModel.Search.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 1500-1800) | Search operations |
-| `PieceTree.TextBuffer/Core/PieceTreeNode.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/rbTreeBase.ts` (Lines: 8-425) | Red-black tree node |
+| `src/TextBuffer/Core/ChunkBuffer.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 27-98) | Buffer management |
+| `src/TextBuffer/Core/ChunkUtilities.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` | Utility functions |
+| `src/TextBuffer/Core/ITextSnapshot.cs` | Complete | `vs/editor/common/model.ts` | Interface definition |
+| `src/TextBuffer/Core/LineStarts.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 27-98) | Line indexing |
+| `src/TextBuffer/Core/PieceSegment.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` | Piece structure |
+| `src/TextBuffer/Core/PieceTreeBuilder.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` (Lines: 67-188) | Tree builder |
+| `src/TextBuffer/Core/PieceTreeDebug.cs` | Complete | N/A (Original C# implementation) | Debug utilities |
+| `src/TextBuffer/Core/PieceTreeModel.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 268-1882) | Core model |
+| `src/TextBuffer/Core/PieceTreeModel.Edit.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 800-1500) | Edit operations |
+| `src/TextBuffer/Core/PieceTreeModel.Search.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 1500-1800) | Search operations |
+| `src/TextBuffer/Core/PieceTreeNode.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/rbTreeBase.ts` (Lines: 8-425) | Red-black tree node |
 
 ### 2. Core Support Types - 8 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Core/PieceTreeSearchCache.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 100-268) | Search cache |
-| `PieceTree.TextBuffer/Core/PieceTreeSearcher.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 1500-1700) | Search implementation |
-| `PieceTree.TextBuffer/Core/PieceTreeSnapshot.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts` (Lines: 50-150) | Snapshot |
-| `PieceTree.TextBuffer/Core/PieceTreeTextBufferFactory.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` (Lines: 190-350) | Factory |
-| `PieceTree.TextBuffer/Core/Range.Extensions.cs` | Complete | `vs/editor/common/core/range.ts` (Lines: 50-150) | Range utilities |
-| `PieceTree.TextBuffer/Core/SearchTypes.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` + `wordCharacterClassifier.ts` | Search data structures (multi-source) |
-| `PieceTree.TextBuffer/Core/Selection.cs` | Complete | `vs/editor/common/core/selection.ts` (Lines: 1-100) | Selection type |
-| `PieceTree.TextBuffer/Core/TextMetadataScanner.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 100-150) | Metadata scanning |
+| `src/TextBuffer/Core/PieceTreeSearchCache.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 100-268) | Search cache |
+| `src/TextBuffer/Core/PieceTreeSearcher.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 1500-1700) | Search implementation |
+| `src/TextBuffer/Core/PieceTreeSnapshot.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts` (Lines: 50-150) | Snapshot |
+| `src/TextBuffer/Core/PieceTreeTextBufferFactory.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` (Lines: 190-350) | Factory |
+| `src/TextBuffer/Core/Range.Extensions.cs` | Complete | `vs/editor/common/core/range.ts` (Lines: 50-150) | Range utilities |
+| `src/TextBuffer/Core/SearchTypes.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` + `wordCharacterClassifier.ts` | Search data structures (multi-source) |
+| `src/TextBuffer/Core/Selection.cs` | Complete | `vs/editor/common/core/selection.ts` (Lines: 1-100) | Selection type |
+| `src/TextBuffer/Core/TextMetadataScanner.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (Lines: 100-150) | Metadata scanning |
 
 ### 3. Cursor - 9 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Cursor/Cursor.cs` | Complete | `vs/editor/common/cursor/oneCursor.ts` (Lines: 15-200) | Main cursor class |
-| `PieceTree.TextBuffer/Cursor/CursorCollection.cs` | Complete | `vs/editor/common/cursor/cursorCollection.ts` (Lines: 15-250) | Multi-cursor |
-| `PieceTree.TextBuffer/Cursor/CursorColumns.cs` | Complete | `vs/editor/common/cursor/cursorColumnSelection.ts` (Lines: 10-50) | Column calculations |
-| `PieceTree.TextBuffer/Cursor/CursorContext.cs` | Complete | `vs/editor/common/cursor/cursorContext.ts` (Lines: 10-23) | Cursor context |
-| `PieceTree.TextBuffer/Cursor/CursorState.cs` | Complete | `vs/editor/common/cursorCommon.ts` (Lines: 271-340) | Cursor state |
-| `PieceTree.TextBuffer/Cursor/SnippetController.cs` | Complete | `vs/editor/contrib/snippet/browser/snippetController2.ts` (Lines: 30-500) | Snippet controller |
-| `PieceTree.TextBuffer/Cursor/SnippetSession.cs` | Complete | `vs/editor/contrib/snippet/browser/snippetSession.ts` (Lines: 30-600) | Snippet session |
-| `PieceTree.TextBuffer/Cursor/WordCharacterClassifier.cs` | Complete | `vs/editor/common/core/wordCharacterClassifier.ts` (Lines: 20-150) | Word classification |
-| `PieceTree.TextBuffer/Cursor/WordOperations.cs` | Complete | `vs/editor/common/cursor/cursorWordOperations.ts` (Lines: 50-800) | Word operations |
+| `src/TextBuffer/Cursor/Cursor.cs` | Complete | `vs/editor/common/cursor/oneCursor.ts` (Lines: 15-200) | Main cursor class |
+| `src/TextBuffer/Cursor/CursorCollection.cs` | Complete | `vs/editor/common/cursor/cursorCollection.ts` (Lines: 15-250) | Multi-cursor |
+| `src/TextBuffer/Cursor/CursorColumns.cs` | Complete | `vs/editor/common/cursor/cursorColumnSelection.ts` (Lines: 10-50) | Column calculations |
+| `src/TextBuffer/Cursor/CursorContext.cs` | Complete | `vs/editor/common/cursor/cursorContext.ts` (Lines: 10-23) | Cursor context |
+| `src/TextBuffer/Cursor/CursorState.cs` | Complete | `vs/editor/common/cursorCommon.ts` (Lines: 271-340) | Cursor state |
+| `src/TextBuffer/Cursor/SnippetController.cs` | Complete | `vs/editor/contrib/snippet/browser/snippetController2.ts` (Lines: 30-500) | Snippet controller |
+| `src/TextBuffer/Cursor/SnippetSession.cs` | Complete | `vs/editor/contrib/snippet/browser/snippetSession.ts` (Lines: 30-600) | Snippet session |
+| `src/TextBuffer/Cursor/WordCharacterClassifier.cs` | Complete | `vs/editor/common/core/wordCharacterClassifier.ts` (Lines: 20-150) | Word classification |
+| `src/TextBuffer/Cursor/WordOperations.cs` | Complete | `vs/editor/common/cursor/cursorWordOperations.ts` (Lines: 50-800) | Word operations |
 
 ### 4. Decorations - 6 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Decorations/DecorationChange.cs` | Complete | `vs/editor/common/model/textModel.ts` | Change tracking |
-| `PieceTree.TextBuffer/Decorations/DecorationOwnerIds.cs` | Complete | `vs/editor/common/model/textModel.ts` | Owner ID management |
-| `PieceTree.TextBuffer/Decorations/DecorationRangeUpdater.cs` | Complete | `vs/editor/common/model/intervalTree.ts` (Lines: 410-510) | Range updates |
-| `PieceTree.TextBuffer/Decorations/DecorationsTrees.cs` | Complete | N/A (Original C# implementation) | Multi-tree structure |
-| `PieceTree.TextBuffer/Decorations/IntervalTree.cs` | Complete | `vs/editor/common/model/intervalTree.ts` (Lines: 142-1100) | Interval tree |
-| `PieceTree.TextBuffer/Decorations/ModelDecoration.cs` | Complete | `vs/editor/common/model.ts` (Multi-source) | Decoration model |
+| `src/TextBuffer/Decorations/DecorationChange.cs` | Complete | `vs/editor/common/model/textModel.ts` | Change tracking |
+| `src/TextBuffer/Decorations/DecorationOwnerIds.cs` | Complete | `vs/editor/common/model/textModel.ts` | Owner ID management |
+| `src/TextBuffer/Decorations/DecorationRangeUpdater.cs` | Complete | `vs/editor/common/model/intervalTree.ts` (Lines: 410-510) | Range updates |
+| `src/TextBuffer/Decorations/DecorationsTrees.cs` | Complete | N/A (Original C# implementation) | Multi-tree structure |
+| `src/TextBuffer/Decorations/IntervalTree.cs` | Complete | `vs/editor/common/model/intervalTree.ts` (Lines: 142-1100) | Interval tree |
+| `src/TextBuffer/Decorations/ModelDecoration.cs` | Complete | `vs/editor/common/model.ts` (Multi-source) | Decoration model |
 
 ### 5. Diff Algorithms - 16 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Diff/Algorithms/DiffAlgorithm.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts` | Base algorithm interfaces |
-| `PieceTree.TextBuffer/Diff/Algorithms/DynamicProgrammingDiffing.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/dynamicProgrammingDiffing.ts` (Lines: 10-150) | DP algorithm |
-| `PieceTree.TextBuffer/Diff/Algorithms/MyersDiffAlgorithm.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/myersDiffAlgorithm.ts` (Lines: 15-200) | Myers algorithm |
-| `PieceTree.TextBuffer/Diff/Array2D.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts` (Lines: 200-230) | 2D array utility |
-| `PieceTree.TextBuffer/Diff/ComputeMovedLines.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/computeMovedLines.ts` (Lines: 20-800) | Move detection |
-| `PieceTree.TextBuffer/Diff/DiffComputer.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer.ts` (Lines: 30-600) | Main computer |
-| `PieceTree.TextBuffer/Diff/DiffComputerOptions.cs` | Complete | Multi-source: `defaultLinesDiffComputer.ts` + `linesDiffComputer.ts` | Options |
-| `PieceTree.TextBuffer/Diff/DiffMove.cs` | Complete | `vs/editor/common/diff/linesDiffComputer.ts` (Lines: 50-80) | Move data |
-| `PieceTree.TextBuffer/Diff/DiffResult.cs` | Pending | `vs/editor/common/diff/*` | Result structure |
-| `PieceTree.TextBuffer/Diff/HeuristicSequenceOptimizations.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/heuristicSequenceOptimizations.ts` | Optimizations |
-| `PieceTree.TextBuffer/Diff/LineRange.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/utils.ts` | Line range |
-| `PieceTree.TextBuffer/Diff/LineRangeFragment.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/*` | Range fragment |
-| `PieceTree.TextBuffer/Diff/LineSequence.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/lineSequence.ts` | Line sequence |
-| `PieceTree.TextBuffer/Diff/LinesSliceCharSequence.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/linesSliceCharSequence.ts` | Char sequence |
-| `PieceTree.TextBuffer/Diff/OffsetRange.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/utils.ts` | Offset range |
-| `PieceTree.TextBuffer/Diff/RangeMapping.cs` | Pending | `vs/editor/common/diff/rangeMapping.ts` | Range mapping |
+| `src/TextBuffer/Diff/Algorithms/DiffAlgorithm.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts` | Base algorithm interfaces |
+| `src/TextBuffer/Diff/Algorithms/DynamicProgrammingDiffing.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/dynamicProgrammingDiffing.ts` (Lines: 10-150) | DP algorithm |
+| `src/TextBuffer/Diff/Algorithms/MyersDiffAlgorithm.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/myersDiffAlgorithm.ts` (Lines: 15-200) | Myers algorithm |
+| `src/TextBuffer/Diff/Array2D.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/algorithms/diffAlgorithm.ts` (Lines: 200-230) | 2D array utility |
+| `src/TextBuffer/Diff/ComputeMovedLines.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/computeMovedLines.ts` (Lines: 20-800) | Move detection |
+| `src/TextBuffer/Diff/DiffComputer.cs` | Complete | `vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer.ts` (Lines: 30-600) | Main computer |
+| `src/TextBuffer/Diff/DiffComputerOptions.cs` | Complete | Multi-source: `defaultLinesDiffComputer.ts` + `linesDiffComputer.ts` | Options |
+| `src/TextBuffer/Diff/DiffMove.cs` | Complete | `vs/editor/common/diff/linesDiffComputer.ts` (Lines: 50-80) | Move data |
+| `src/TextBuffer/Diff/DiffResult.cs` | Pending | `vs/editor/common/diff/*` | Result structure |
+| `src/TextBuffer/Diff/HeuristicSequenceOptimizations.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/heuristicSequenceOptimizations.ts` | Optimizations |
+| `src/TextBuffer/Diff/LineRange.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/utils.ts` | Line range |
+| `src/TextBuffer/Diff/LineRangeFragment.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/*` | Range fragment |
+| `src/TextBuffer/Diff/LineSequence.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/lineSequence.ts` | Line sequence |
+| `src/TextBuffer/Diff/LinesSliceCharSequence.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/linesSliceCharSequence.ts` | Char sequence |
+| `src/TextBuffer/Diff/OffsetRange.cs` | Pending | `vs/editor/common/diff/defaultLinesDiffComputer/utils.ts` | Offset range |
+| `src/TextBuffer/Diff/RangeMapping.cs` | Pending | `vs/editor/common/diff/rangeMapping.ts` | Range mapping |
 
 ### 6. Rendering - 2 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/Rendering/MarkdownRenderOptions.cs` | Pending | `vs/editor/*` | Render options |
-| `PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs` | Pending | `vs/editor/*` | Renderer implementation |
+| `src/TextBuffer/Rendering/MarkdownRenderOptions.cs` | Pending | `vs/editor/*` | Render options |
+| `src/TextBuffer/Rendering/MarkdownRenderer.cs` | Pending | `vs/editor/*` | Renderer implementation |
 
 ### 7. Services & Top-level - 11 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer/EditStack.cs` | Complete | `vs/editor/common/model/editStack.ts` (Lines: 384-452) | Undo/redo stack |
-| `PieceTree.TextBuffer/PieceTreeBuffer.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts` (Lines: 33-630) | Main buffer |
-| `PieceTree.TextBuffer/Properties/AssemblyInfo.cs` | Complete | N/A (Original C# implementation) | C# assembly metadata |
-| `PieceTree.TextBuffer/SearchHighlightOptions.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` | Search options |
-| `PieceTree.TextBuffer/Services/ILanguageConfigurationService.cs` | Complete | `vs/editor/common/languages/languageConfigurationRegistry.ts` + C# implementation | Service interface |
-| `PieceTree.TextBuffer/Services/IUndoRedoService.cs` | Complete | `vs/platform/undoRedo/common/undoRedo.ts` + C# implementation | Service interface |
-| `PieceTree.TextBuffer/TextModel.cs` | Complete | `vs/editor/common/model/textModel.ts` (Lines: 120-2688) | Text model |
-| `PieceTree.TextBuffer/TextModelDecorationsChangedEventArgs.cs` | Complete | `vs/editor/common/textModelEvents.ts` | Event args |
-| `PieceTree.TextBuffer/TextModelOptions.cs` | Complete | `vs/editor/common/model.ts` + `core/misc/textModelDefaults.ts` | Model options |
-| `PieceTree.TextBuffer/TextModelSearch.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` | Search |
-| `PieceTree.TextBuffer/TextPosition.cs` | Complete | `vs/editor/common/core/position.ts` (Lines: 9-200+) | Position type |
+| `src/TextBuffer/EditStack.cs` | Complete | `vs/editor/common/model/editStack.ts` (Lines: 384-452) | Undo/redo stack |
+| `src/TextBuffer/PieceTreeBuffer.cs` | Complete | `vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.ts` (Lines: 33-630) | Main buffer |
+| `src/TextBuffer/Properties/AssemblyInfo.cs` | Complete | N/A (Original C# implementation) | C# assembly metadata |
+| `src/TextBuffer/SearchHighlightOptions.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` | Search options |
+| `src/TextBuffer/Services/ILanguageConfigurationService.cs` | Complete | `vs/editor/common/languages/languageConfigurationRegistry.ts` + C# implementation | Service interface |
+| `src/TextBuffer/Services/IUndoRedoService.cs` | Complete | `vs/platform/undoRedo/common/undoRedo.ts` + C# implementation | Service interface |
+| `src/TextBuffer/TextModel.cs` | Complete | `vs/editor/common/model/textModel.ts` (Lines: 120-2688) | Text model |
+| `src/TextBuffer/TextModelDecorationsChangedEventArgs.cs` | Complete | `vs/editor/common/textModelEvents.ts` | Event args |
+| `src/TextBuffer/TextModelOptions.cs` | Complete | `vs/editor/common/model.ts` + `core/misc/textModelDefaults.ts` | Model options |
+| `src/TextBuffer/TextModelSearch.cs` | Complete | `vs/editor/common/model/textModelSearch.ts` | Search |
+| `src/TextBuffer/TextPosition.cs` | Complete | `vs/editor/common/core/position.ts` (Lines: 9-200+) | Position type |
 
 ### 8. Core Tests - 12 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer.Tests/AA005Tests.cs` | Complete | N/A (Original C# implementation) | AA-005 CRLF validation |
-| `PieceTree.TextBuffer.Tests/PieceTreeBaseTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 214-265) | Base insert/delete tests |
-| `PieceTree.TextBuffer.Tests/PieceTreeBuilderTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 1500+) | Builder tests |
-| `PieceTree.TextBuffer.Tests/PieceTreeFactoryTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 100+) | Factory tests |
-| `PieceTree.TextBuffer.Tests/PieceTreeModelTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Model optimization tests |
-| `PieceTree.TextBuffer.Tests/PieceTreeNormalizationTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 1730+) | EOL normalization |
-| `PieceTree.TextBuffer.Tests/PieceTreeSearchTests.cs` | Complete | `vs/editor/test/common/model/textModelSearch.test.ts` | Search tests |
-| `PieceTree.TextBuffer.Tests/PieceTreeSnapshotTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Snapshot tests |
-| `PieceTree.TextBuffer.Tests/TextModelTests.cs` | Complete | `vs/editor/test/common/model/textModel.test.ts` | TextModel tests |
-| `PieceTree.TextBuffer.Tests/TextModelSearchTests.cs` | Complete | `vs/editor/test/common/model/textModelSearch.test.ts` | Search tests |
-| `PieceTree.TextBuffer.Tests/DecorationTests.cs` | Complete | `vs/editor/test/common/model/model.decorations.test.ts` | Decoration tests |
-| `PieceTree.TextBuffer.Tests/DiffTests.cs` | Complete | `vs/editor/test/common/diff/defaultLinesDiffComputer.test.ts` | Diff tests |
+| `tests/TextBuffer.Tests/AA005Tests.cs` | Complete | N/A (Original C# implementation) | AA-005 CRLF validation |
+| `tests/TextBuffer.Tests/PieceTreeBaseTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 214-265) | Base insert/delete tests |
+| `tests/TextBuffer.Tests/PieceTreeBuilderTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 1500+) | Builder tests |
+| `tests/TextBuffer.Tests/PieceTreeFactoryTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 100+) | Factory tests |
+| `tests/TextBuffer.Tests/PieceTreeModelTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Model optimization tests |
+| `tests/TextBuffer.Tests/PieceTreeNormalizationTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` (Lines: 1730+) | EOL normalization |
+| `tests/TextBuffer.Tests/PieceTreeSearchTests.cs` | Complete | `vs/editor/test/common/model/textModelSearch.test.ts` | Search tests |
+| `tests/TextBuffer.Tests/PieceTreeSnapshotTests.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Snapshot tests |
+| `tests/TextBuffer.Tests/TextModelTests.cs` | Complete | `vs/editor/test/common/model/textModel.test.ts` | TextModel tests |
+| `tests/TextBuffer.Tests/TextModelSearchTests.cs` | Complete | `vs/editor/test/common/model/textModelSearch.test.ts` | Search tests |
+| `tests/TextBuffer.Tests/DecorationTests.cs` | Complete | `vs/editor/test/common/model/model.decorations.test.ts` | Decoration tests |
+| `tests/TextBuffer.Tests/DiffTests.cs` | Complete | `vs/editor/test/common/diff/defaultLinesDiffComputer.test.ts` | Diff tests |
 
 ### 9. Feature Tests - 10 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer.Tests/ColumnSelectionTests.cs` | Complete | `vs/editor/contrib/multicursor/test/browser/multicursor.test.ts` | Column selection tests |
-| `PieceTree.TextBuffer.Tests/CRLFFuzzTests.cs` | Complete | N/A (Original C# implementation) | CRLF fuzzing |
-| `PieceTree.TextBuffer.Tests/CursorMultiSelectionTests.cs` | Complete | `vs/editor/contrib/multicursor/test/browser/multicursor.test.ts` | Multi-selection |
-| `PieceTree.TextBuffer.Tests/CursorTests.cs` | Complete | `vs/editor/test/common/controller/cursorAtomicMoveOperations.test.ts` | Cursor tests |
-| `PieceTree.TextBuffer.Tests/CursorWordOperationsTests.cs` | Complete | `vs/editor/contrib/wordOperations/test/browser/wordOperations.test.ts` | Word operations |
-| `PieceTree.TextBuffer.Tests/MarkdownRendererTests.cs` | Complete | N/A (Original C# implementation) | Renderer tests |
-| `PieceTree.TextBuffer.Tests/SnippetControllerTests.cs` | Complete | `vs/editor/contrib/snippet/test/browser/snippetController2.test.ts` + `snippetSession.test.ts` | Snippet tests |
-| `PieceTree.TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs` | Complete | N/A (Original C# implementation) | Snippet fuzzing |
-| `PieceTree.TextBuffer.Tests/UnitTest1.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Core buffer tests |
-| `PieceTree.TextBuffer.Tests/Helpers/FuzzLogCollector.cs` | Complete | N/A (Original C# implementation) | Fuzzing helper |
+| `tests/TextBuffer.Tests/ColumnSelectionTests.cs` | Complete | `vs/editor/contrib/multicursor/test/browser/multicursor.test.ts` | Column selection tests |
+| `tests/TextBuffer.Tests/CRLFFuzzTests.cs` | Complete | N/A (Original C# implementation) | CRLF fuzzing |
+| `tests/TextBuffer.Tests/CursorMultiSelectionTests.cs` | Complete | `vs/editor/contrib/multicursor/test/browser/multicursor.test.ts` | Multi-selection |
+| `tests/TextBuffer.Tests/CursorTests.cs` | Complete | `vs/editor/test/common/controller/cursorAtomicMoveOperations.test.ts` | Cursor tests |
+| `tests/TextBuffer.Tests/CursorWordOperationsTests.cs` | Complete | `vs/editor/contrib/wordOperations/test/browser/wordOperations.test.ts` | Word operations |
+| `tests/TextBuffer.Tests/MarkdownRendererTests.cs` | Complete | N/A (Original C# implementation) | Renderer tests |
+| `tests/TextBuffer.Tests/SnippetControllerTests.cs` | Complete | `vs/editor/contrib/snippet/test/browser/snippetController2.test.ts` + `snippetSession.test.ts` | Snippet tests |
+| `tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs` | Complete | N/A (Original C# implementation) | Snippet fuzzing |
+| `tests/TextBuffer.Tests/UnitTest1.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Core buffer tests |
+| `tests/TextBuffer.Tests/Helpers/FuzzLogCollector.cs` | Complete | N/A (Original C# implementation) | Fuzzing helper |
 
 ### 10. Test Helpers - 2 files
 
 | File Path | Status | TS Source | Notes |
 |-----------|--------|-----------|-------|
-| `PieceTree.TextBuffer.Tests/Helpers/PieceTreeModelTestHelpers.cs` | Complete | N/A (Original C# implementation) | Test helpers |
-| `PieceTree.TextBuffer.Tests/PieceTreeTestHelpers.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Test utilities |
+| `tests/TextBuffer.Tests/Helpers/PieceTreeModelTestHelpers.cs` | Complete | N/A (Original C# implementation) | Test helpers |
+| `tests/TextBuffer.Tests/PieceTreeTestHelpers.cs` | Complete | `vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | Test utilities |
 
 ---
 
@@ -186,7 +186,7 @@
 ## Notes
 
 ### TS Source Paths Base
-All TypeScript sources are relative to: `/repos/PieceTree/ts/src/`
+All TypeScript sources are relative to: `./ts/src/`
 
 ### Common TS Locations
 - **Core PieceTree**: `vs/editor/common/model/pieceTreeTextBuffer/`

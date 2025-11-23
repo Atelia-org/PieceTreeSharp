@@ -9,7 +9,7 @@
 
 ## 1. 任务目标
 
-为 `src/PieceTree.TextBuffer/` 目录下所有 C# 文件添加统一格式的文件头注释，明确标注其对应的 TypeScript 原版实现来源，方便后续维护、对比和审计。
+为 `src/TextBuffer/` 目录下所有 C# 文件添加统一格式的文件头注释，明确标注其对应的 TypeScript 原版实现来源，方便后续维护、对比和审计。
 
 ---
 
@@ -113,7 +113,7 @@ public readonly struct Range
 
 ### 3.1 定位 TS 原版文件
 
-1. **已知对应关系**：参考 `src/PieceTree.TextBuffer/README.md` 和 `docs/reports/migration-log.md` 查找已记录的移植关系。
+1. **已知对应关系**：参考 `src/TextBuffer/README.md` 和 `docs/reports/migration-log.md` 查找已记录的移植关系。
 
 2. **命名推断**：C# 文件名通常与 TS 文件名对应：
    - `PieceTreeModel.cs` → `pieceTreeBase.ts` 或 `pieceTreeTextBuffer.ts`
@@ -216,7 +216,7 @@ grep -n "export class PieceTreeBase" ts/src/vs/editor/common/model/pieceTreeText
 ### 步骤 1：盘点待处理文件
 
 ```bash
-find src/PieceTree.TextBuffer -name "*.cs" -type f | grep -v "obj/" | grep -v "bin/"
+find src/TextBuffer -name "*.cs" -type f | grep -v "obj/" | grep -v "bin/"
 ```
 
 ### 步骤 2：批量处理
@@ -260,7 +260,7 @@ find src/PieceTree.TextBuffer -name "*.cs" -type f | grep -v "obj/" | grep -v "b
 
 ### 必须达成：
 
-- ✅ 所有 `src/PieceTree.TextBuffer/**/*.cs` 文件（除自动生成文件）都有文件头注释
+- ✅ 所有 `src/TextBuffer/**/*.cs` 文件（除自动生成文件）都有文件头注释
 - ✅ 移植代码标注了 TS 源文件路径和类型名
 - ✅ 原创代码标注了 "Original C# implementation" 和用途
 - ✅ 格式统一，遵循本文档规范
@@ -328,9 +328,9 @@ find_ts_source "PieceTreeBase"
 ## 8. 参考资料
 
 - **TS 源代码路径:** `ts/src/vs/editor/`
-- **C# 实现路径:** `src/PieceTree.TextBuffer/`
+- **C# 实现路径:** `src/TextBuffer/`
 - **移植日志:** `docs/reports/migration-log.md`
-- **项目 README:** `src/PieceTree.TextBuffer/README.md`
+- **项目 README:** `src/TextBuffer/README.md`
 - **类型映射参考:** `agent-team/type-mapping.md`
 
 ---

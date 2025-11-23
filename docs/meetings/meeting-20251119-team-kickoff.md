@@ -27,8 +27,8 @@
 | Task | Example Prompt / Inputs | Assignee | Target File(s) | Status |
 | --- | --- | --- | --- | --- |
 | PT-003: 类型映射扩展 | "分析 pieceTreeBase 类型并更新 type-mapping.md" | Investigator-TS | agent-team/type-mapping.md | Planned |
-| RBTree C# 骨架 | "按照 Investigator 输出实现 PieceTreeNode + RB tree" | Porter-CS | src/PieceTree.TextBuffer/Core | Planned |
-| 测试策略草案 | "编写 QA 测试矩阵" | QA-Automation | src/PieceTree.TextBuffer.Tests | Planned |
+| RBTree C# 骨架 | "按照 Investigator 输出实现 PieceTreeNode + RB tree" | Porter-CS | src/TextBuffer/Core | Planned |
+| 测试策略草案 | "编写 QA 测试矩阵" | QA-Automation | tests/TextBuffer.Tests | Planned |
 | 迁移日志文档 | "创建 migration-log.md 并首批记录" | DocMaintainer | docs/ | Planned |
 
 ## Parking Lot

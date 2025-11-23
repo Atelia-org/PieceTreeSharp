@@ -40,13 +40,13 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | **RBTree Skeleton** | `PieceTreeModel` (Insert/Delete) | Verified | `PieceTreeBaseTests.cs` (BasicInsertDelete, MoreInserts, MoreDeletes) |
 | **Search** | `PieceTreeSearcher` | Verified | `PieceTreeSearchTests.cs` (BasicStringFind, RegexFind, MultilineFind) |
 | **Snapshot** | `PieceTreeSnapshot` | Verified | `PieceTreeSnapshotTests.cs` (SnapshotReadsContent, SnapshotIsImmutable) |
-| **Normalization** | `PieceTreeNormalizer` (via Builder) | Verified | `PieceTreeNormalizationTests.cs` (Delete_CR_In_CRLF, Line_Breaks_Replacement) |
+| **Normalization** | `PieceTreeModel.NormalizeEOL` + `ChunkUtilities.NormalizeChunks` | Verified | `PieceTreeNormalizationTests.cs` (Delete_CR_In_CRLF, Line_Breaks_Replacement) |
 
 ## AA3-009 – Decorations & DocUI Regression Coverage
 
 | Scenario | Focus | Signals | Status | Reference |
 | --- | --- | --- | --- | --- |
-| CL4.F1 – Decoration metadata round-trip & queries | Injected text line buckets, margin/glyph/font helpers, overview/minimap metadata | `DecorationTests.DecorationOptionsParityRoundTripsMetadata`, `DecorationTests.InjectedTextQueriesSurfaceLineMetadata`, `DecorationTests.DecorationsChangedEventIncludesMetadata` | Covered | `src/PieceTree.TextBuffer.Tests/DecorationTests.cs` |
+| CL4.F1 – Decoration metadata round-trip & queries | Injected text line buckets, margin/glyph/font helpers, overview/minimap metadata | `DecorationTests.DecorationOptionsParityRoundTripsMetadata`, `DecorationTests.InjectedTextQueriesSurfaceLineMetadata`, `DecorationTests.DecorationsChangedEventIncludesMetadata` | Covered | `tests/TextBuffer.Tests/DecorationTests.cs` |
 | CL4.F3 – Stickiness & `forceMoveMarkers` parity | `DecorationRangeUpdater` honoring TS semantics for collapsed ranges and forced moves | Covered | `DecorationTests.ForceMoveMarkersOverridesStickinessDefaults` |
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 
@@ -86,38 +86,38 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | --- | ---: | ---: | ---: | ---: | --- |
 | 2025-11-23 (Batch #2) | 187 | 187 | 0 | X.Xs | `dotnet test --logger "trx;LogFileName=batch2-full.trx" --nologo` – B2 FindModel QA baseline (+45 tests from 142). TRX: `TestResults/batch2-full.trx`. |
 | 2025-11-22 (Batch #1) | 142 | 142 | 0 | 2.6s | `dotnet test --logger "trx;LogFileName=batch1-full.trx" --nologo` – B1 ReplacePattern QA baseline (+23 tests from 119). TRX: `TestResults/batch1-full.trx`. |
-| 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
+| 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
 | 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
 
 ### Targeted reruns (AA4-009, 2025-11-21)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
-| `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
+| `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
 
 ### Targeted reruns (Batch #1, 2025-11-22)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --logger "trx;LogFileName=batch1-replacepattern.trx" --nologo` | 23/23 green (1.6s) | ReplacePattern专项测试验证。TRX: `TestResults/batch1-replacepattern.trx`. 覆盖解析、捕获组、大小写操作、JS语义等全部23个测试用例。 |
+| `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --logger "trx;LogFileName=batch1-replacepattern.trx" --nologo` | 23/23 green (1.6s) | ReplacePattern专项测试验证。TRX: `TestResults/batch1-replacepattern.trx`. 覆盖解析、捕获组、大小写操作、JS语义等全部23个测试用例。 |
 
 ### Batch #1 (TS Portability) Validation Commands
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
 
 ### Batch #2 (FindModel) Validation Commands
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch2-full.trx"` | Full-suite baseline before/after Batch #2 drops | 实际 142 → 187 测试（+45）；用于验证 FindModel 集成不破坏既有测试。 |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~DocUIFindModelTests" --logger "trx;LogFileName=TestResults/batch2-findmodel.trx"` | FindModel 专项测试（15 个核心场景） | 验证增量搜索、findNext/Prev、replace、replaceAll、wholeWord、decorations 同步、matches count 更新。参考 B2-QA-Result.md 的 P0/P1/P2 分级。 |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~WordBoundaryTests" --logger "trx;LogFileName=TestResults/batch2-wordboundary.trx"` | Word boundary 专项测试（10 个边界场景） | **Deferred to Batch #3** – WordBoundary tests尚未登陆 187 基线，保留命令模板以备下批落地。 |
-| `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~TextModelSearchTests" --logger "trx;LogFileName=TestResults/batch2-textsearch.trx"` | TextModelSearch 扩展测试（包含 wholeWord 场景） | 验证 wholeWord + regex/simple/case-insensitive/multiline 组合（新增 5 个测试）。 |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch2-full.trx"` | Full-suite baseline before/after Batch #2 drops | 实际 142 → 187 测试（+45）；用于验证 FindModel 集成不破坏既有测试。 |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~DocUIFindModelTests" --logger "trx;LogFileName=TestResults/batch2-findmodel.trx"` | FindModel 专项测试（15 个核心场景） | 验证增量搜索、findNext/Prev、replace、replaceAll、wholeWord、decorations 同步、matches count 更新。参考 B2-QA-Result.md 的 P0/P1/P2 分级。 |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~WordBoundaryTests" --logger "trx;LogFileName=TestResults/batch2-wordboundary.trx"` | Word boundary 专项测试（10 个边界场景） | **Deferred to Batch #3** – WordBoundary tests尚未登陆 187 基线，保留命令模板以备下批落地。 |
+| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~TextModelSearchTests" --logger "trx;LogFileName=TestResults/batch2-textsearch.trx"` | TextModelSearch 扩展测试（包含 wholeWord 场景） | 验证 wholeWord + regex/simple/case-insensitive/multiline 组合（新增 5 个测试）。 |
 
 ### Batch #1 ReplacePattern Checklist
 

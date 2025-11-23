@@ -16,7 +16,7 @@
 | Index Catalog | `agent-team/indexes/README.md` | 记录命名规范 & 审核流程，首个索引会在此注册
 | Core Docs Index (planned) | `agent-team/indexes/core-docs-index.md`, `AGENTS.md`, `docs/sprints`, `docs/meetings` | 汇总每个核心文档的用途、责任人与最近更新时间，支撑 OI-001
 | Task Board Linkage | `agent-team/task-board.md`（OI-001~OI-004） | 跟踪组织改进任务状态，方便引用 runSubAgent 预算
-| QA/Test Assets Index (planned) | `agent-team/indexes/qa-test-assets-index.md`, `PieceTree.TextBuffer.Tests`, QA 会议记录 | 映射测试矩阵、基准计划与代码文件，供 QA-Automation 查阅
+| QA/Test Assets Index (planned) | `agent-team/indexes/qa-test-assets-index.md`, `tests/TextBuffer.Tests`, QA 会议记录 | 映射测试矩阵、基准计划与代码文件，供 QA-Automation 查阅
 | TS↔C# Crosswalk Index (planned) | `agent-team/indexes/ts-cs-crosswalk-index.md`, `agent-team/type-mapping.md`, `ts/src/vs/editor/...` | 追踪类型映射进度，补足 `type-mapping.md` 之外的上下文
 | TS Test Alignment Plan | `docs/plans/ts-test-alignment.md`, `docs/sprints/sprint-02.md`, Porter handoffs | 记录 ReplacePattern Batch#1 及后续 batch 的 TS 测试对齐 checkpoint 与证据需求
 | Main Loop & Template Notes | `agent-team/main-loop-methodology.md`, `agent-team/ai-team-playbook.md` | 记录 runSubAgent 输入模板、Info-Indexer 钩子位置
@@ -32,7 +32,7 @@
 - **2025-11-21:** 规划下一波 OI-011 delta，聚焦 AA4-007.BF1 → AA4-008：整理所需输入（迁移日志行、AA4-008 handoffs、QA baseline、DocUI snapshot 路径）并预先对齐 AGENTS / `docs/sprints/sprint-02.md` / `agent-team/task-board.md` 同步顺序，确保 Porter/QA 完成后可立即广播。 |
 - **2025-11-22:** 确认 `docs/plans/ts-test-alignment.md` 由 DocMaintainer 维护 TS 测试对齐 checkpoint，Batch #1（ReplacePattern）规划完成，Info-Indexer 需在 changefeed 落地时联动 AGENTS/Sprint-02/Task Board/TestMatrix/迁移日志，并为后续批次准备证据模板。
 - **2025-11-22:** 记录 Porter 已敲定 Batch #1 ReplacePattern 实施方案、QA 已准备 fixtures/tests/snapshots、`docs/plans/ts-test-alignment.md` Live Checkpoints 捕获所有角色输入；等待 Porter/QA 交付落地后，立即编纂 delta-2025-11-22 changefeed，并将必要证据（TRX、DocUI、TestMatrix、迁移日志）映射到广播步骤。
-- **2025-11-22:** 回读 `docs/plans/ts-test-alignment.md` / `src/PieceTree.TextBuffer.Tests/TestMatrix.md` / `docs/reports/migration-log.md`，确认 Porter 已开工 ReplacePattern 代码、QA fixture/snapshot 模板就绪但尚待实际代码；建立 `agent-team/indexes/README.md#delta-2025-11-22` 发布前置清单（迁移日志占位行、TestMatrix 引用、计划 checkpoint 链接），并记录缺失证据（Porter commit/fixture `cases.json`、QA TRX/snapshots、DocUI Markdown）以便落地后即时广播。
+- **2025-11-22:** 回读 `docs/plans/ts-test-alignment.md` / `tests/TextBuffer.Tests/TestMatrix.md` / `docs/reports/migration-log.md`，确认 Porter 已开工 ReplacePattern 代码、QA fixture/snapshot 模板就绪但尚待实际代码；建立 `agent-team/indexes/README.md#delta-2025-11-22` 发布前置清单（迁移日志占位行、TestMatrix 引用、计划 checkpoint 链接），并记录缺失证据（Porter commit/fixture `cases.json`、QA TRX/snapshots、DocUI Markdown）以便落地后即时广播。
 - **2025-11-22:** 完成 Batch #1 – ReplacePattern changefeed 发布：在 `agent-team/indexes/README.md` 创建 `#delta-2025-11-22` 条目（包含 3 个交付文件、2 个 TS 源文件、142/142 测试结果、QA/Porter 报告链接、已知差异与 TODO 标记），更新 `docs/reports/migration-log.md` 新增 Batch #1 条目（+23 tests, 142 total, 引用 changefeed delta），创建 `agent-team/handoffs/B1-INFO-Result.md` 汇报交付物与下一步建议，并更新本记忆文件记录任务成果。
 - **2025-11-22:** 完成 OI-REFRESH 任务：创建 `agent-team/indexes/oi-backlog.md` 登记 OI-012~015（DocUI 测试框架、Snapshot 工具、WordSeparator 完整对齐、DocUI Harness 标准化），在 `agent-team/indexes/README.md` 添加 OI Backlog 索引行与 `#delta-2025-11-22 (OI Backlog)` 条目，创建 `agent-team/handoffs/OI-REFRESH-Result.md` 汇报交付物与下一步建议；所有技术债来源已追溯到 `B2-INV-Result.md` 调研成果，等待 Planner 决策 OI-013/OI-012 启动时机。
 
@@ -57,5 +57,5 @@
 - **Structure Expectations:** `Goal`（为何建立）、`Source Docs`（含链接/路径）、`Summary Table`（列出文档/资产、位置、负责人、最近更新）、`Gaps & Actions`（直接映射 OI 任务）、`Update Log`（时间戳 + 变更）。
 - **Initial Targets:**
   - `core-docs-index.md`：覆盖 `AGENTS.md`、`docs/sprints/*`、`docs/meetings/*`，标注文档用途与最新决策。
-  - `qa-test-assets-index.md`：罗列 QA 测试矩阵、`PieceTree.TextBuffer.Tests` 目录、性能基准计划。
+  - `qa-test-assets-index.md`：罗列 QA 测试矩阵、`tests/TextBuffer.Tests` 目录、性能基准计划。
   - `ts-cs-crosswalk-index.md`：串联 `agent-team/type-mapping.md` 与 `ts/src/vs/editor/common/model/pieceTreeTextBuffer`，标记已迁移与待迁移部分。

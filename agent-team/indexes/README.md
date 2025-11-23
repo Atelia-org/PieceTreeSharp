@@ -16,36 +16,36 @@
 ## Delta (2025-11-19)
 - Added: 创建 `core-docs-index.md`（OI-002），覆盖 AGENTS / Sprint / Meeting / Task Board / Main Loop / Playbook。
 - Compressed: 暂无（等待 DocMaintainer 执行 OI-001/OI-004）。
-- Updated: 登记 PT-003 类型映射（`agent-team/type-mapping.md`）与 PT-004/005 产物（`src/PieceTree.TextBuffer/README.md#porting-log`、`src/PieceTree.TextBuffer.Tests/TestMatrix.md`）的引用，供后续 changefeed 消费。
-- Updated: 登记 PT-010 产物（`src/PieceTree.TextBuffer/Core/PieceTreeNormalizer.cs`、`src/PieceTree.TextBuffer.Tests/PieceTreeNormalizationTests.cs`）与 Handoffs（`agent-team/handoffs/PT-010-Brief.md`、`agent-team/handoffs/PT-010-Result.md`）。
-- Updated: 登记 PT-011 产物（`src/PieceTree.TextBuffer.Tests/TestMatrix.md` 更新）与 Handoffs（`agent-team/handoffs/PT-011-Result.md`）。PT-004/PT-005 状态变更为 Done。
+- Updated: 登记 PT-003 类型映射（`agent-team/type-mapping.md`）与 PT-004/005 产物（`src/TextBuffer/README.md#porting-log`、`tests/TextBuffer.Tests/TestMatrix.md`）的引用，供后续 changefeed 消费。
+- Updated: 登记 PT-010 产物（`src/TextBuffer/Core/PieceTreeModel.cs`、`src/TextBuffer/Core/ChunkUtilities.cs`、`tests/TextBuffer.Tests/PieceTreeNormalizationTests.cs`）与 Handoffs（`agent-team/handoffs/PT-010-Brief.md`、`agent-team/handoffs/PT-010-Result.md`）。
+- Updated: 登记 PT-011 产物（`tests/TextBuffer.Tests/TestMatrix.md` 更新）与 Handoffs（`agent-team/handoffs/PT-011-Result.md`）。PT-004/PT-005 状态变更为 Done。
 - Updated: 登记 Phase 2 (TM-001~TM-005) 产物：`TextModel.cs`, `Selection.cs`, `Cursor.cs` 及对应测试。Tests (33/33) 通过。
 - Updated: 登记 Phase 3 (DF-001~DF-005) 产物：`DiffComputer.cs`, `IntervalTree.cs`, `MarkdownRenderer.cs` 及对应测试。Tests (50/50) 通过。
 - Updated: 登记 Phase 4 (AA-001~AA-006) 产物：Audit Reports, `PieceTreeModel` (Split CRLF/Cache), `PieceTreeSearcher` (Word Search), `Cursor` (Sticky Column) 及对应测试。Tests (56/56) 通过。
 - Blocked: Planner 仍需在 OI-003 中补充 runSubAgent 模板的 Indexing Hooks，Info-Indexer 暂以 README 记载待办。
 
 ## Delta (2025-11-20)
-- Updated: 登记 AA2-005 Remediation：`src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs`（CRLF 修复 + 元数据回填）、`PieceTreeNode.cs`（Detach 标记）、`PieceTreeSearchCache.cs`（失效策略）与 `UnitTest1.cs` 新增 CRLF/Metadata/SearchCache 测试。`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（60/60）结果同步至迁移日志。
-- Updated: 登记 AA2-005 Undo/Redo 复刻：`src/PieceTree.TextBuffer/TextModel.cs`、`EditStack.cs`、`TextModelOptions.cs` 与 `TextModelTests.cs`。顶层 API 现包含 `pushEditOperations/pushEOL/setEOL/undo/redo`、模型选项解析、`OnDidChangeOptions` / `OnDidChangeLanguage` 事件及 6 个新增单元测试；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（66/66）。
-- Updated: 登记 AA2-006 搜索/差异/装饰补丁：`PieceTreeSearcher.cs` 现支持 Unicode 正则捕获与单词边界，`DiffComputer.cs`/`DiffComputerOptions.cs` 引入 prettify & move 跟踪，`Decorations/IntervalTree.cs` 与 `ModelDeltaDecoration.cs` 加入 stickiness 与 owner delta，`TextModel.cs`、`Cursor.cs`、`MarkdownRenderer.cs` 则消费这些事件；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（71/71）。
+- Updated: 登记 AA2-005 Remediation：`src/TextBuffer/Core/PieceTreeModel.Edit.cs`（CRLF 修复 + 元数据回填）、`PieceTreeNode.cs`（Detach 标记）、`PieceTreeSearchCache.cs`（失效策略）与 `UnitTest1.cs` 新增 CRLF/Metadata/SearchCache 测试。`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（60/60）结果同步至迁移日志。
+- Updated: 登记 AA2-005 Undo/Redo 复刻：`src/TextBuffer/TextModel.cs`、`EditStack.cs`、`TextModelOptions.cs` 与 `TextModelTests.cs`。顶层 API 现包含 `pushEditOperations/pushEOL/setEOL/undo/redo`、模型选项解析、`OnDidChangeOptions` / `OnDidChangeLanguage` 事件及 6 个新增单元测试；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（66/66）。
+- Updated: 登记 AA2-006 搜索/差异/装饰补丁：`PieceTreeSearcher.cs` 现支持 Unicode 正则捕获与单词边界，`DiffComputer.cs`/`DiffComputerOptions.cs` 引入 prettify & move 跟踪，`Decorations/IntervalTree.cs` 与 `ModelDeltaDecoration.cs` 加入 stickiness 与 owner delta，`TextModel.cs`、`Cursor.cs`、`MarkdownRenderer.cs` 则消费这些事件；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（71/71）。
 - Added: Sprint 01（AA3）立项——创建 `docs/sprints/sprint-01.md`、`docs/reports/audit-checklist-aa3.md`，并将 `agent-team/task-board.md` 切换为 Phase 6（AA3/OI），旧板存档至 `agent-team/task-board-v5-archive.md` 以承载 Phase 5 历史。CL1~CL4 清单将通过 runSubAgent 串联 Investigator/Porter/QA/Info-Indexer。
-- Updated: 登记 AA3-003 TextModel 选项 / Undo / 多选区搜索补丁：`TextModel.cs`、`TextModelOptions.cs`、`EditStack.cs`、`TextModelSearch.cs` 以及新建的 `Services/ILanguageConfigurationService.cs` 与 `Services/IUndoRedoService.cs`。测试扩展 `TextModelTests` 与 `TextModelSearchTests`（`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`）。
-- Updated: 登记 AA3-004 CL2 Search/Regex 修复：`SearchTypes.cs` 应用 ECMAScript 选项与 Unicode wildcard 改写，`PieceTreeSearcher.cs` 强制 ECMAScript 运行模式，`PieceTreeSearchTests.cs`/`TextModelSearchTests.cs` 补入 caf 边界、digit-only、NBSP/EN SPACE、emoji 量词与多选区回归；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（84/84）。
-- Updated: 登记 AA3-006 Diff/move parity：`DiffComputer.cs`/`DiffComputerOptions.cs`/`DiffResult.cs` 现产生 TS 风格 `LinesDiff` + `DiffMove` 元数据，新建 `LineRange*`/`RangeMapping`/`ComputeMovedLines` 等基础设施，并在 `DiffTests.cs` 增补 word diff、trim-whitespace、move detection、timeout 覆盖；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（80/80）。
-- Updated: 登记 AA3-008 Decorations/DocUI parity：`DecorationsTrees.cs`、`DecorationRangeUpdater.cs`、`TextModel.cs`、`TextModelDecorationsChangedEventArgs.cs`、`MarkdownRenderer.cs`/`MarkdownRenderOptions.cs` 及对应测试（`DecorationTests`、`MarkdownRendererTests`）已完成 TS stickiness/metadata/DocUI 对齐；`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（85/85）。
-- Updated: 记录 AA3-009 QA 复核结果，`agent-team/handoffs/AA3-009-QA.md` / `docs/reports/audit-checklist-aa3.md#cl4` / `src/PieceTree.TextBuffer.Tests/TestMatrix.md` / `docs/sprints/sprint-01.md` / `AGENTS.md` 均注明 88/88 装饰&DocUI 覆盖，并引用既有 AA3-008 delta；无需新增 `docs/reports/migration-log.md` 行，但 Task Board & Sprint log 现统一指向本条 changefeed，确认 AGENTS / Sprint 01 / Task Board 三者已对齐 AA3-009 完成状态。
+- Updated: 登记 AA3-003 TextModel 选项 / Undo / 多选区搜索补丁：`TextModel.cs`、`TextModelOptions.cs`、`EditStack.cs`、`TextModelSearch.cs` 以及新建的 `Services/ILanguageConfigurationService.cs` 与 `Services/IUndoRedoService.cs`。测试扩展 `TextModelTests` 与 `TextModelSearchTests`（`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`）。
+- Updated: 登记 AA3-004 CL2 Search/Regex 修复：`SearchTypes.cs` 应用 ECMAScript 选项与 Unicode wildcard 改写，`PieceTreeSearcher.cs` 强制 ECMAScript 运行模式，`PieceTreeSearchTests.cs`/`TextModelSearchTests.cs` 补入 caf 边界、digit-only、NBSP/EN SPACE、emoji 量词与多选区回归；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（84/84）。
+- Updated: 登记 AA3-006 Diff/move parity：`DiffComputer.cs`/`DiffComputerOptions.cs`/`DiffResult.cs` 现产生 TS 风格 `LinesDiff` + `DiffMove` 元数据，新建 `LineRange*`/`RangeMapping`/`ComputeMovedLines` 等基础设施，并在 `DiffTests.cs` 增补 word diff、trim-whitespace、move detection、timeout 覆盖；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（80/80）。
+- Updated: 登记 AA3-008 Decorations/DocUI parity：`DecorationsTrees.cs`、`DecorationRangeUpdater.cs`、`TextModel.cs`、`TextModelDecorationsChangedEventArgs.cs`、`MarkdownRenderer.cs`/`MarkdownRenderOptions.cs` 及对应测试（`DecorationTests`、`MarkdownRendererTests`）已完成 TS stickiness/metadata/DocUI 对齐；`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（85/85）。
+- Updated: 记录 AA3-009 QA 复核结果，`agent-team/handoffs/AA3-009-QA.md` / `docs/reports/audit-checklist-aa3.md#cl4` / `tests/TextBuffer.Tests/TestMatrix.md` / `docs/sprints/sprint-01.md` / `AGENTS.md` 均注明 88/88 装饰&DocUI 覆盖，并引用既有 AA3-008 delta；无需新增 `docs/reports/migration-log.md` 行，但 Task Board & Sprint log 现统一指向本条 changefeed，确认 AGENTS / Sprint 01 / Task Board 三者已对齐 AA3-009 完成状态。
 ## Delta (2025-11-21)
 
-- 2025-11-21 | AA4-005/AA4-006 | Porter + QA fixes added. Test baseline: 105/105 | [`src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeBuilder.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeTextBufferFactory.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeTextBufferFactory.cs), [`src/PieceTree.TextBuffer/Core/ChunkUtilities.cs`](../../src/PieceTree.TextBuffer/Core/ChunkUtilities.cs), [`src/PieceTree.TextBuffer/Core/TextMetadataScanner.cs`](../../src/PieceTree.TextBuffer/Core/TextMetadataScanner.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeModel.Edit.cs), [`src/PieceTree.TextBuffer/Core/PieceTreeModel.cs`](../../src/PieceTree.TextBuffer/Core/PieceTreeModel.cs), [`src/PieceTree.TextBuffer.Tests/AA005Tests.cs`](../../src/PieceTree.TextBuffer.Tests/AA005Tests.cs), [`src/PieceTree.TextBuffer.Tests/PieceTreeModelTests.cs`](../../src/PieceTree.TextBuffer.Tests/PieceTreeModelTests.cs), [`src/PieceTree.TextBuffer.Tests/CRLFFuzzTests.cs`](../../src/PieceTree.TextBuffer.Tests/CRLFFuzzTests.cs) | `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` (105/105) | Y | Porter fixes for CL5/CL6 (AA4-005/AA4-006) integrated; QA verified baseline and re-ran fuzz/targeted CRLF cases (see [`agent-team/handoffs/AA4-009-QA.md`](../../agent-team/handoffs/AA4-009-QA.md)). Delta recorded in `docs/reports/migration-log.md` rows for AA4-005/AA4-006.
-- 2025-11-21 | AA4-007.BF1 | Snippet placeholder navigation now references live `ModelDecoration` ranges, eliminating infinite `NextPlaceholder` loops and keeping placeholder offsets consistent after earlier cursor edits. | [`src/PieceTree.TextBuffer/Cursor/SnippetSession.cs`](../../src/PieceTree.TextBuffer/Cursor/SnippetSession.cs), [`src/PieceTree.TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs`](../../src/PieceTree.TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs) | `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.SnippetMultiCursorFuzzTests.SnippetAndMultiCursor_Fuzz_NoCrashesAndInvariantsHold" --nologo` (1/1); `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` (115/115) | Y | Refer to migration log row `AA4-007.BF1`; fuzz hangs are now reproducible via seed 12345 and no longer loop indefinitely.
+- 2025-11-21 | AA4-005/AA4-006 | Porter + QA fixes added. Test baseline: 105/105 | [`src/TextBuffer/Core/PieceTreeBuilder.cs`](../../src/TextBuffer/Core/PieceTreeBuilder.cs), [`src/TextBuffer/Core/PieceTreeTextBufferFactory.cs`](../../src/TextBuffer/Core/PieceTreeTextBufferFactory.cs), [`src/TextBuffer/Core/ChunkUtilities.cs`](../../src/TextBuffer/Core/ChunkUtilities.cs), [`src/TextBuffer/Core/TextMetadataScanner.cs`](../../src/TextBuffer/Core/TextMetadataScanner.cs), [`src/TextBuffer/Core/PieceTreeModel.Edit.cs`](../../src/TextBuffer/Core/PieceTreeModel.Edit.cs), [`src/TextBuffer/Core/PieceTreeModel.cs`](../../src/TextBuffer/Core/PieceTreeModel.cs), [`tests/TextBuffer.Tests/AA005Tests.cs`](../../tests/TextBuffer.Tests/AA005Tests.cs), [`tests/TextBuffer.Tests/PieceTreeModelTests.cs`](../../tests/TextBuffer.Tests/PieceTreeModelTests.cs), [`tests/TextBuffer.Tests/CRLFFuzzTests.cs`](../../tests/TextBuffer.Tests/CRLFFuzzTests.cs) | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (105/105) | Y | Porter fixes for CL5/CL6 (AA4-005/AA4-006) integrated; QA verified baseline and re-ran fuzz/targeted CRLF cases (see [`agent-team/handoffs/AA4-009-QA.md`](../../agent-team/handoffs/AA4-009-QA.md)). Delta recorded in `docs/reports/migration-log.md` rows for AA4-005/AA4-006.
+- 2025-11-21 | AA4-007.BF1 | Snippet placeholder navigation now references live `ModelDecoration` ranges, eliminating infinite `NextPlaceholder` loops and keeping placeholder offsets consistent after earlier cursor edits. | [`src/TextBuffer/Cursor/SnippetSession.cs`](../../src/TextBuffer/Cursor/SnippetSession.cs), [`tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs`](../../tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs) | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.SnippetMultiCursorFuzzTests.SnippetAndMultiCursor_Fuzz_NoCrashesAndInvariantsHold" --nologo` (1/1); `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (115/115) | Y | Refer to migration log row `AA4-007.BF1`; fuzz hangs are now reproducible via seed 12345 and no longer loop indefinitely.
 
 ## Delta (2025-11-22)
 
 ### Batch #1 – ReplacePattern Implementation (AA4-008)
 - **交付文件**:
-  - [`src/PieceTree.TextBuffer/Core/ReplacePattern.cs`](../../src/PieceTree.TextBuffer/Core/ReplacePattern.cs) (561 lines)
-  - [`src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs) (119 lines)
-  - [`src/PieceTree.TextBuffer.Tests/ReplacePatternTests.cs`](../../src/PieceTree.TextBuffer.Tests/ReplacePatternTests.cs) (356 lines, 23 tests)
+  - [`src/TextBuffer/Core/ReplacePattern.cs`](../../src/TextBuffer/Core/ReplacePattern.cs) (561 lines)
+  - [`src/TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/TextBuffer/Rendering/DocUIReplaceController.cs) (119 lines)
+  - [`tests/TextBuffer.Tests/ReplacePatternTests.cs`](../../tests/TextBuffer.Tests/ReplacePatternTests.cs) (356 lines, 23 tests)
 - **TS 源文件**:
   - `ts/src/vs/editor/contrib/find/browser/replacePattern.ts`
   - `ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts`
@@ -53,7 +53,7 @@
 - **QA 报告**: [`agent-team/handoffs/B1-QA-Result.md`](../../agent-team/handoffs/B1-QA-Result.md)
 - **Porter 交付**: [`agent-team/handoffs/B1-PORTER-Result.md`](../../agent-team/handoffs/B1-PORTER-Result.md)
 - **迁移日志**: [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) (新增 Batch #1 条目)
-- **TestMatrix**: [`src/PieceTree.TextBuffer.Tests/TestMatrix.md`](../../src/PieceTree.TextBuffer.Tests/TestMatrix.md) (新增 ReplacePattern 行)
+- **TestMatrix**: [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) (新增 ReplacePattern 行)
 - **已知差异**: C#/JavaScript Regex 空捕获组行为（已文档化，非阻塞）
 - **TODO 标记**: FindModel 集成、WordSeparator 上下文（Batch #2）
 
@@ -62,11 +62,11 @@
 - **修复内容**:
   1. **TestMatrix.md / ts-test-alignment.md**: 移除不存在的 `DocUIReplacePatternTests` 类名、`resources/docui/replace-pattern/*.json` fixtures 、`__snapshots__/docui/replace-pattern/*.md` 引用；更正为实际的 `ReplacePatternTests.cs`（inline 测试数据）。
   2. **DocUIReplaceController.cs**: `ExecuteReplace` 从静默 no-op 改为 `throw new NotImplementedException(...)`，避免调用者误以为替换已执行。
-- **验证**: `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --nologo` (23/23 通过)
+- **验证**: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~ReplacePatternTests" --nologo` (23/23 通过)
 - **相关文件**:
-  - [`src/PieceTree.TextBuffer.Tests/TestMatrix.md`](../../src/PieceTree.TextBuffer.Tests/TestMatrix.md)
+  - [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)
   - [`docs/plans/ts-test-alignment.md`](../../docs/plans/ts-test-alignment.md)
-  - [`src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/PieceTree.TextBuffer/Rendering/DocUIReplaceController.cs)
+  - [`src/TextBuffer/Rendering/DocUIReplaceController.cs`](../../src/TextBuffer/Rendering/DocUIReplaceController.cs)
 - **迁移日志**: 已添加 "Batch #1 文档修正" 条目
 
 ## Delta (2025-11-22 - OI Backlog)
@@ -87,9 +87,9 @@
 **Batch #2 – FindModel 完成 (Final QA 187/187)**
 
 交付物：
-- 测试文件 (4): [`DocUIFindModelTests.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) (39 tests), [`LineCountTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/LineCountTest.cs), [`RegexTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/RegexTest.cs), [`EmptyStringRegexTest.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/EmptyStringRegexTest.cs)
-- 实现文件 (3): [`FindModel.cs`](../../src/PieceTree.TextBuffer/DocUI/FindModel.cs), [`FindDecorations.cs`](../../src/PieceTree.TextBuffer/DocUI/FindDecorations.cs), [`FindReplaceState.cs`](../../src/PieceTree.TextBuffer/DocUI/FindReplaceState.cs)
-- Harness: [`TestEditorContext.cs`](../../src/PieceTree.TextBuffer.Tests/DocUI/TestEditorContext.cs)
+- 测试文件 (4): [`DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) (39 tests), [`LineCountTest.cs`](../../tests/TextBuffer.Tests/DocUI/LineCountTest.cs), [`RegexTest.cs`](../../tests/TextBuffer.Tests/DocUI/RegexTest.cs), [`EmptyStringRegexTest.cs`](../../tests/TextBuffer.Tests/DocUI/EmptyStringRegexTest.cs)
+- 实现文件 (3): [`FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs), [`FindDecorations.cs`](../../src/TextBuffer/DocUI/FindDecorations.cs), [`FindReplaceState.cs`](../../src/TextBuffer/DocUI/FindReplaceState.cs)
+- Harness: [`TestEditorContext.cs`](../../tests/TextBuffer.Tests/DocUI/TestEditorContext.cs)
 
 CI 修复列表：
 - CI-1 / CI-2 / CI-3 零宽 (^ / $ / ^.*$/^$) 末尾空行匹配与装饰残留问题全部修复；范围扩展至 `model length + 1` 捕获末尾零宽装饰，Search 控制流与 TS `do...while` 行为对齐。
@@ -112,8 +112,8 @@ Handoff 文件：
 - 补充 DocUI FindController 层与 selection-derived search 行为测试。 
 
 性能与一致性微优化 (FR-01 / FR-02):
-- 修改：[`FindModel.cs`](../../src/PieceTree.TextBuffer/DocUI/FindModel.cs) 增加 `_ignoreModelContentChanged` 标志位，在 Replace / ReplaceAll 内包裹 `PushEditOperations` 期间抑制双重 `Research()`，与 TS 行为对齐（避免重复 recompute）。
-- 修改：[`SearchTypes.cs`](../../src/PieceTree.TextBuffer/Core/SearchTypes.cs) 引入 `WordCharacterClassifierCache`（10-entry LRU），`ParseSearchRequest` 复用缓存，移植 TS `getMapForWordSeparators` 语义，降低频繁 whole-word 匹配构造开销。
+- 修改：[`FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) 增加 `_ignoreModelContentChanged` 标志位，在 Replace / ReplaceAll 内包裹 `PushEditOperations` 期间抑制双重 `Research()`，与 TS 行为对齐（避免重复 recompute）。
+- 修改：[`SearchTypes.cs`](../../src/TextBuffer/Core/SearchTypes.cs) 引入 `WordCharacterClassifierCache`（10-entry LRU），`ParseSearchRequest` 复用缓存，移植 TS `getMapForWordSeparators` 语义，降低频繁 whole-word 匹配构造开销。
 - 测试：全量基线保持 187/187，通过快速 re-run 验证无回归；FindModel 专项测试未需变更（逻辑透明优化）。
 - 迁移日志：新增行见 [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) 2025-11-23 FR-01 / FR-02。
 - 后续：计划在 Batch #3 加入缓存命中率统计测试 & ReplaceAll undo 分组 parity（单步撤销）。

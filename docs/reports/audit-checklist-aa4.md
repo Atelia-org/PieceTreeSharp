@@ -5,7 +5,7 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 ## Scope & Workflow
 1. 每个清单条目（CL#）由 Investigator-TS 通过 `runSubAgent` 产出分析，写入本文档与 `agent-team/handoffs/AA4-00X-*.md`。
 2. Porter-CS 按条目下“Proposed Fixes” 执行实现/测试，完成后更新 `docs/reports/migration-log.md`、`agent-team/indexes/README.md` changefeed 及 handoff。
-3. QA-Automation 在“Validation Hooks” 区域登记新增/扩展测试，并在 run log 中附 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` 结果。
+3. QA-Automation 在“Validation Hooks” 区域登记新增/扩展测试，并在 run log 中附 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` 结果。
 4. Info-Indexer / DocMaintainer 在条目完成后同步 Sprint / Task Board / AGENTS，保持 changefeed 指针一致。
 
 ## Checklist Overview
@@ -22,13 +22,13 @@ Purpose: 为 Sprint 02 建立 CL5~CL8“发现 → 修复 → 验证”流水线
 - **Investigator Notes:** 详见 `agent-team/handoffs/AA4-001-Audit.md`。关键缺口：chunk splitting/CRLF 修复（carryover + AverageBufferSize）、BOM 丢失、`containsRTL/containsUnusualLineTerminators/isBasicASCII` 未暴露、缺少 `PieceTreeTextBufferFactory`（含 `Create(defaultEOL)` / `GetFirstLineText`）、`DefaultEndOfLine` 选举与 Normalize-EOL 流程均偏离 TS。共列出 6 条 F1~F6（High×2、Medium×4）。
 - **Proposed Fixes:** 增补 builder/factory 管线、在 `PieceTreeBuildResult` 保留 BOM+metadata、复刻 `_getEOL` 与 normalize window、将 chunk 分片 helper 复用至 `CreateNewPieces`。Porter 交付记录 `agent-team/handoffs/AA4-005-Result.md`。
 - **Porter Status (2025-11-20):** `PieceTreeBuilder` 现通过 `ChunkUtilities.SplitText/NormalizeChunks` 分片，`PieceTreeTextBufferFactory` 负责 BOM/EOL/metadata 输出，`PieceTreeBuffer` 缓存 builder 选项并在 `PieceTreeModel.Insert` 中复用新 helper。新增 `PieceTreeBuilderTests`（chunk + BOM + CR carryover）、`PieceTreeFactoryTests`（preview/EOL heuristics）、`PieceTreeTestHelpers` 以及扩展的 `AA005Tests`（CRLF 修复）。
-- **Validation Hooks:** `PieceTreeBuilderTests`, `PieceTreeFactoryTests`, `AA005Tests` 均纳入 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`（95/95）。QA-AA4-009 需在回归中扩展 builder/metadata fuzz cases后再行收口。 
+- **Validation Hooks:** `PieceTreeBuilderTests`, `PieceTreeFactoryTests`, `AA005Tests` 均纳入 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`（95/95）。QA-AA4-009 需在回归中扩展 builder/metadata fuzz cases后再行收口。 
 
 ### CL6 – ChangeBuffer / CRLF / Large Edits
 - **Investigator Notes:** 详见 `agent-team/handoffs/AA4-002-Audit.md`。F1~F6 覆盖 change buffer append heuristics 缺失、 `_lastChangeBufferPos` 状态缺口、CRLF repair stub、`AverageBufferSize` 拆 chunk缺失、`GetLineFeedCnt` metadata 偏差与 SearchCache 粒度失配。
 - **Proposed Fixes:** 恢复 change buffer 语义（复用 buffer0、跟踪 `_lastChangeBufferPos`）、完整移植 TS CRLF/linefeed 逻辑、实现 chunk splitting + metadata recompute + cache validate（`ComputeBufferMetadata`）。
-- **Validation Hooks:** `PieceTreeBaseTests`（change buffer fuzz）、`PieceTreeNormalizationTests`（CRLF insert/delete）、`PieceTreeBuilderTests`/`PieceTreeSearchTests`（AverageBufferSize + cache reuse）、`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`。
-- **QA Rerun (2025-11-21, AA4-009):** `PIECETREE_DEBUG=0 dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj --nologo` produced 119/119 passing; targeted commands (`--filter FullyQualifiedName~PieceTreeBuilderTests|PieceTreeFactoryTests`, `FullyQualifiedName~CRLF_RandomFuzz_1000`) also green with fuzz logs redirected to `/tmp/aa4-009-fuzz-logs` (seed 123).
+- **Validation Hooks:** `PieceTreeBaseTests`（change buffer fuzz）、`PieceTreeNormalizationTests`（CRLF insert/delete）、`PieceTreeBuilderTests`/`PieceTreeSearchTests`（AverageBufferSize + cache reuse）、`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`。
+- **QA Rerun (2025-11-21, AA4-009):** `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` produced 119/119 passing; targeted commands (`--filter FullyQualifiedName~PieceTreeBuilderTests|PieceTreeFactoryTests`, `FullyQualifiedName~CRLF_RandomFuzz_1000`) also green with fuzz logs redirected to `/tmp/aa4-009-fuzz-logs` (seed 123).
 
 ### CL7 – Cursor WordOps & Snippet Semantics
 - **Investigator Notes:** `agent-team/handoffs/AA4-003-Audit.md` 登记 F1–F4：①缺失 `CursorsController`/`CursorCollection`/`CursorContext` 等多光标基建，DocUI 只有一个光标；②没有 `WordOperations`/`WordCharacterClassifier`，Ctrl+Arrow/删除/wordPart 均退化为逐字符；③未实现 `ColumnSelection`、`CursorConfiguration`、可见列换算以及 `TextModel` 的行辅助接口，导致 Alt+拖拽/垂直移动无法对齐；④完全缺少 `SnippetController2`/`SnippetSession`，`Cursor.cs` 里仍是 TODO，DocUI 也无法渲染 tabstop/choice 装饰。

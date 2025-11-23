@@ -25,7 +25,7 @@
 | B1-DOC | AGENTS/Sprint/Task Board 更新 | DocMaintainer | 4 | `AGENTS.md`, `docs/sprints/sprint-03.md`, `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | ✅ Done |
 | B2-INV | WordSeparator spec & DocUI widget 测试定位 | Investigator-TS | 5 | `docs/plans/ts-test-alignment.md` Appendix, notes | Planned |
 | B2-PLAN | Batch #2 调度方案 | Planner | 6 | `agent-team/task-board.md`, `docs/plans/ts-test-alignment.md` | Planned |
-| B2-QA | Batch #2 测试矩阵扩展 | QA-Automation | 7 | `src/PieceTree.TextBuffer.Tests/TestMatrix.md`, QA memo | ✅ Done |
+| B2-QA | Batch #2 测试矩阵扩展 | QA-Automation | 7 | `tests/TextBuffer.Tests/TestMatrix.md`, QA memo | ✅ Done |
 | OI-REFRESH | OI backlog 记录 OI-012~015 | Info-Indexer | 8 | `agent-team/indexes/oi-backlog.md` | ✅ Done |
 
 ## Progress Log

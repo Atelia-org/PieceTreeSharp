@@ -17,7 +17,7 @@
 
 ## Immediate Plans
 1. **Consolidate PT-004/PT-005**: With PT-010 (Normalization) done, the core PieceTree is likely feature-complete for a "v1".
-   - Action: Review `src/PieceTree.TextBuffer` against `PT-004` scope. If `Insert/Delete/Search/Snapshot/Normalize` are present, mark PT-004 Done.
+   - Action: Review `src/TextBuffer` against `PT-004` scope. If `Insert/Delete/Search/Snapshot/Normalize` are present, mark PT-004 Done.
    - Action: Review `TestMatrix.md` against current 23 tests. If coverage is sufficient for v1, mark PT-005 Done.
 2. **Next Phase Planning**:
    - Identify what's needed to make this a usable "TextBuffer" for the LLM DocUI.

@@ -3,7 +3,7 @@
 - **Theme / Goal:** 继续推进 TS↔C# 对照审核，聚焦 PieceTree Builder/ChangeBuffer、增量编辑、Cursor WordOps 与 DocUI Find/Replace 管线，确保 DocUI-ready 体验覆盖 chunk 构建到搜索装饰全链路。
 - **Success Criteria:**
   - CL5~CL8（见 `docs/reports/audit-checklist-aa4.md`）完成 Investigator 审计与 Porter 修复交付，差异清单与实现结果分别落地 handoff 文件。
-  - Builder/ChangeBuffer/Cursor/DocUI 相关测试补齐，`dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj` ≥ 92 项保持绿色，并在 `src/PieceTree.TextBuffer.Tests/TestMatrix.md` 登记新覆盖。
+  - Builder/ChangeBuffer/Cursor/DocUI 相关测试补齐，`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` ≥ 92 项保持绿色，并在 `tests/TextBuffer.Tests/TestMatrix.md` 登记新覆盖。
   - `docs/reports/migration-log.md` & `agent-team/indexes/README.md` 记录 AA4 变更，AGENTS / Sprint / Task Board 同步至 Info-Indexer 最新 changefeed。
   - DocUI MarkdownRenderer 展现搜索/替换 overlay、chunk 元数据显示、Cursor word selection 标记，形成对 LLM 友好的多层装饰输出。
 
@@ -20,7 +20,7 @@
 | P0 | AA4-006 | Porter-CS：按 CL6 结果实现 ChangeBuffer/CRLF/large edit 修复，更新 tests & 文档。 | 3 | Porter-CS | 2025-11-25 | AA4-002 | Done – 2025-11-21 Porter+QA 验证（见 `agent-team/handoffs/AA4-006-Result.md`、`docs/reports/migration-log.md`「AA4-006 (QA Verified)」行与 `agent-team/indexes/README.md#delta-2025-11-21`）；`PieceTreeModelTests`、`CRLFFuzzTests`、`TestMatrix.md` 已记录。 |
 | P1 | AA4-007 | Porter-CS：实现 Cursor word/snippet/multi-select 语义，更新 MarkdownRenderer/DocUI 展示。 | 3 | Porter-CS | 2025-11-26 | AA4-003 | Planned |
 | P1 | AA4-008 | Porter-CS：实现 DocUI Find/Replace overlays + capture decorations，`MarkdownRenderer`/`TextModelSearch` 同步。 | 3 | Porter-CS | 2025-11-26 | AA4-004 | Planned |
-| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Done – QA revalidation 完成（`agent-team/handoffs/AA4-009-QA.md`、`src/PieceTree.TextBuffer.Tests/TestMatrix.md`），`PIECETREE_DEBUG=0 dotnet test ... --nologo` 记录 119/119 基线并在 `agent-team/indexes/README.md#delta-2025-11-21` 广播。 |
+| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Done – QA revalidation 完成（`agent-team/handoffs/AA4-009-QA.md`、`tests/TextBuffer.Tests/TestMatrix.md`），`PIECETREE_DEBUG=0 dotnet test ... --nologo` 记录 119/119 基线并在 `agent-team/indexes/README.md#delta-2025-11-21` 广播。 |
 | P0 | OI-011 | Info-Indexer：发布 AA4 changefeed、更新 `core-docs-index`、同步 AGENTS/Sprint/Task Board。 | 1 | Info-Indexer | 2025-11-28 | 全部 AA4 deliverables | Planned |
 
 ## Plan
@@ -30,7 +30,7 @@
 
 ### Milestone 2 – Porter Remediation (Nov 23–26)
 - Deliverables: `agent-team/handoffs/AA4-005/006/007/008`, 代码补丁 + 迁移日志 + changefeed delta。
-- Tests / Validation: 各主题需附 `dotnet test src/PieceTree.TextBuffer.Tests/PieceTree.TextBuffer.Tests.csproj`，必要时新增目标化测试（Builder chunk、ChangeBuffer CRLF、Cursor wordOps、DocUI search overlay）。
+- Tests / Validation: 各主题需附 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj`，必要时新增目标化测试（Builder chunk、ChangeBuffer CRLF、Cursor wordOps、DocUI search overlay）。
 
 ### Milestone 3 – QA & Broadcast (Nov 26–28)
 - Deliverables: AA4-009 QA 报告、`TestMatrix.md` 更新、AGENTS/Sprint/Task Board/Indexes 同步、DocUI demo 片段。

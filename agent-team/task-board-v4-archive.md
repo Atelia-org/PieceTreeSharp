@@ -6,12 +6,12 @@
 
 | ID | Description | Owner | Key Artifacts | runSubAgent Budget | Status | Latest Update |
 | --- | --- | --- | --- | --- | --- | --- |
-| AA-001 | Audit Core PieceTree (RBTree, Cache, Optimizations) | Investigator-TS | `src/PieceTree.TextBuffer/PieceTreeModel.cs` | 2 | Done | `agent-team/handoffs/AA-001-Audit.md` |
-| AA-002 | Audit TextModel & Buffers (Line starts, BOM/EOL, Versioning) | Investigator-TS | `src/PieceTree.TextBuffer/TextModel.cs` | 2 | Done | `agent-team/handoffs/AA-002-Audit.md` |
-| AA-003 | Audit Search & Interaction (Regex, Word separators, Cursor) | Investigator-TS | `src/PieceTree.TextBuffer/Search/PieceTreeSearcher.cs` | 2 | Done | `agent-team/handoffs/AA-003-Audit.md` |
-| AA-004 | Audit Diff & Decorations (Myers, IntervalTree vs List) | Investigator-TS | `src/PieceTree.TextBuffer/Diff/DiffComputer.cs` | 2 | Done | `agent-team/handoffs/AA-004-Audit.md` |
-| AA-005 | Remediation - Core & Model (Fix gaps from AA-001/002) | Porter-CS | `src/PieceTree.TextBuffer/Core` | 2 | Done | `agent-team/handoffs/AA-005-Result.md` |
-| AA-006 | Remediation - Search & Features (Fix gaps from AA-003/004) | Porter-CS | `src/PieceTree.TextBuffer/Search` | 2 | Done | `agent-team/handoffs/AA-006-Result.md` |
+| AA-001 | Audit Core PieceTree (RBTree, Cache, Optimizations) | Investigator-TS | `src/TextBuffer/Core/PieceTreeModel.cs` | 2 | Done | `agent-team/handoffs/AA-001-Audit.md` |
+| AA-002 | Audit TextModel & Buffers (Line starts, BOM/EOL, Versioning) | Investigator-TS | `src/TextBuffer/TextModel.cs` | 2 | Done | `agent-team/handoffs/AA-002-Audit.md` |
+| AA-003 | Audit Search & Interaction (Regex, Word separators, Cursor) | Investigator-TS | `src/TextBuffer/Core/PieceTreeSearcher.cs`<br>`src/TextBuffer/TextModelSearch.cs` | 2 | Done | `agent-team/handoffs/AA-003-Audit.md` |
+| AA-004 | Audit Diff & Decorations (Myers, IntervalTree vs List) | Investigator-TS | `src/TextBuffer/Diff/DiffComputer.cs` | 2 | Done | `agent-team/handoffs/AA-004-Audit.md` |
+| AA-005 | Remediation - Core & Model (Fix gaps from AA-001/002) | Porter-CS | `src/TextBuffer/Core` | 2 | Done | `agent-team/handoffs/AA-005-Result.md` |
+| AA-006 | Remediation - Search & Features (Fix gaps from AA-003/004) | Porter-CS | `src/TextBuffer/Core/PieceTreeSearcher.cs`<br>`src/TextBuffer/TextModelSearch.cs`<br>`src/TextBuffer/Decorations` | 2 | Done | `agent-team/handoffs/AA-006-Result.md` |
 | OI-008 | Phase 4 Documentation & Indexing | Info-Indexer | `agent-team/indexes/core-docs-index.md` | 1 | Planned | - |
 
 ## Reference & Logs
