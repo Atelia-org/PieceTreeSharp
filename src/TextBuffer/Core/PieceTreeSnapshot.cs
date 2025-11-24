@@ -4,7 +4,6 @@
 // Ported: 2025-11-19
 
 using System.Collections.Generic;
-using System.Text;
 
 namespace PieceTree.TextBuffer.Core;
 
@@ -13,27 +12,38 @@ internal sealed class PieceTreeSnapshot : ITextSnapshot
     private readonly IReadOnlyList<PieceSegment> _pieces;
     private readonly IReadOnlyList<ChunkBuffer> _buffers;
     private readonly string _bom;
+    private int _index;
 
     public PieceTreeSnapshot(PieceTreeModel model, string bom)
     {
         _pieces = new List<PieceSegment>(model.EnumeratePiecesInOrder());
         _buffers = new List<ChunkBuffer>(model.Buffers);
-        _bom = bom;
+        _bom = bom ?? string.Empty;
+        _index = 0;
     }
 
     public string? Read()
     {
         if (_pieces.Count == 0)
         {
-            return _bom;
+            if (_index == 0)
+            {
+                _index++;
+                return _bom;
+            }
+
+            return null;
         }
 
-        var sb = new StringBuilder(_bom);
-        foreach (var piece in _pieces)
+        if (_index >= _pieces.Count)
         {
-            var buffer = _buffers[piece.BufferIndex];
-            sb.Append(buffer.Slice(piece.Start, piece.End));
+            return null;
         }
-        return sb.ToString();
+
+        var isFirstPiece = _index == 0;
+        var piece = _pieces[_index++];
+        var buffer = _buffers[piece.BufferIndex];
+        var slice = buffer.Slice(piece.Start, piece.End);
+        return isFirstPiece ? _bom + slice : slice;
     }
 }

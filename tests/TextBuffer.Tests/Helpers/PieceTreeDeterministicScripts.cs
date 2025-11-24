@@ -220,4 +220,52 @@ internal static class PieceTreeDeterministicScripts
         InsertStep(4, "\n\n\r\n", "cls-random-chunk-bug4-insert-1"),
         InsertStep(3, "\r\n\n\n", "cls-random-chunk-bug4-insert-2"),
     };
+
+    #region Search offset cache (TS lines 1810-1884)
+
+    public const string SearchOffsetRenderWhitespaceSeed = "class Name{\n\t\n\t\t\tget() {\n\n\t\t\t}\n\t\t}";
+    public const string SearchOffsetNormalizedSeedWithoutTrailingLf = "abc";
+    public const string SearchOffsetNormalizedSeedWithTrailingLf = "abc\n";
+
+    public static PieceTreeScriptStep[] SearchOffsetRenderWhitespace { get; } = new[]
+    {
+        InsertStep(12, "s", "search-offset-render-step-01"),
+        InsertStep(13, "e", "search-offset-render-step-02"),
+        InsertStep(14, "t", "search-offset-render-step-03"),
+        InsertStep(15, "()", "search-offset-render-step-04"),
+        DeleteStep(16, 1, "search-offset-render-step-05"),
+        InsertStep(17, "()", "search-offset-render-step-06"),
+        DeleteStep(18, 1, "search-offset-render-step-07"),
+        InsertStep(18, "}", "search-offset-render-step-08"),
+        InsertStep(12, "\n", "search-offset-render-step-09"),
+        DeleteStep(12, 1, "search-offset-render-step-10"),
+        DeleteStep(18, 1, "search-offset-render-step-11"),
+        InsertStep(18, "}", "search-offset-render-step-12"),
+        DeleteStep(17, 2, "search-offset-render-step-13"),
+        DeleteStep(16, 1, "search-offset-render-step-14"),
+        InsertStep(16, ")", "search-offset-render-step-15"),
+        DeleteStep(15, 2, "search-offset-render-step-16"),
+    };
+
+    public static PieceTreeScriptStep[] SearchOffsetNormalizedEolCase1 { get; } = new[]
+    {
+        InsertStep(3, "def\nabc", "search-offset-norm-case1-insert-1"),
+    };
+
+    public static PieceTreeScriptStep[] SearchOffsetNormalizedEolCase2 { get; } = new[]
+    {
+        InsertStep(4, "def\nabc", "search-offset-norm-case2-insert-1"),
+    };
+
+    public static PieceTreeScriptStep[] SearchOffsetNormalizedEolCase3 { get; } = new[]
+    {
+        InsertStep(2, "def\nabc", "search-offset-norm-case3-insert-1"),
+    };
+
+    public static PieceTreeScriptStep[] SearchOffsetNormalizedEolCase4 { get; } = new[]
+    {
+        InsertStep(3, "def\nabc", "search-offset-norm-case4-insert-1"),
+    };
+
+    #endregion
 }

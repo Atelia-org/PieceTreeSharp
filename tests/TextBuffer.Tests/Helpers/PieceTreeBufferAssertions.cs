@@ -5,6 +5,7 @@
 
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 
+using System;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Xunit;
@@ -45,5 +46,46 @@ internal static class PieceTreeBufferAssertions
     {
         var actual = harness.GetLineContent(lineNumber);
         Assert.Equal(expectedContent, actual);
+    }
+
+    public static void AssertState(PieceTreeFuzzHarness harness, string phase)
+    {
+        harness.AssertState(phase);
+    }
+
+    public static void AssertLineStarts(PieceTreeFuzzHarness harness, string phase)
+    {
+        var expectedStarts = LineStartBuilder.Build(harness.ExpectedText).LineStarts;
+        for (var i = 0; i < expectedStarts.Count; i++)
+        {
+            var offset = expectedStarts[i];
+            var position = harness.GetPositionAt(offset);
+            Assert.Equal(i + 1, position.LineNumber);
+            Assert.Equal(1, position.Column);
+        }
+    }
+
+    public static void AssertSearchCachePrimed(PieceTreeFuzzHarness harness, string phase = "search-cache", params int[] offsets)
+    {
+        var model = harness.Buffer.InternalModel;
+        var bufferLength = harness.Buffer.Length;
+        var probes = offsets is { Length: > 0 }
+            ? offsets
+            : new[] { 0, bufferLength / 2, bufferLength };
+
+        foreach (var probe in probes)
+        {
+            var clamped = Math.Clamp(probe, 0, Math.Max(0, bufferLength));
+            var hit = model.NodeAt(clamped);
+            if (hit.Node is null)
+            {
+                continue;
+            }
+
+            var cached = model.TryGetCachedNodeByOffset(clamped, out var cachedNode, out var cachedStartOffset);
+            Assert.True(cached, $"Search cache did not contain an entry at offset {clamped} (phase: {phase})");
+            Assert.Same(hit.Node, cachedNode);
+            Assert.Equal(hit.NodeStartOffset, cachedStartOffset);
+        }
     }
 }

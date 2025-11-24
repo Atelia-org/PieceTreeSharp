@@ -192,6 +192,13 @@ public class TextModel : ITextSearchAccess
 
     public string GetValue() => _buffer.GetText();
 
+    public ITextSnapshot CreateSnapshot(bool preserveBom = false)
+    {
+        var bom = preserveBom ? _buffer.GetBom() : string.Empty;
+        var snapshot = _buffer.InternalModel.CreateSnapshot(bom);
+        return new TextModelSnapshot(snapshot);
+    }
+
     public string GetValueInRange(Range range, EndOfLinePreference preference = EndOfLinePreference.TextDefined)
     {
         return preference switch

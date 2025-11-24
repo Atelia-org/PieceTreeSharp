@@ -1,10 +1,11 @@
 // Source: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 // - Tests: Snapshot immutability and content reading
-// Ported: 2025-11-19
+// Ported: 2025-11-19 (updated 2025-11-25 to use TextModel snapshots)
 
 using Xunit;
+using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using System.Collections.Generic;
+using PieceTree.TextBuffer.Tests.Helpers;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -13,44 +14,26 @@ public class PieceTreeSnapshotTests
     [Fact]
     public void SnapshotReadsContent()
     {
-        // Arrange
-        var text = "Hello World";
-        var buffers = new List<ChunkBuffer> { ChunkBuffer.FromText(text) };
-        var model = new PieceTreeModel(buffers);
-        model.InsertPieceAtEnd(new PieceSegment(0, new BufferCursor(0, 0), new BufferCursor(0, 11), 0, 11));
+        var model = new TextModel("Hello World");
+        var snapshot = model.CreateSnapshot();
 
-        // Act
-        var snapshot = model.CreateSnapshot("");
-        var content = snapshot.Read();
-
-        // Assert
-        Assert.Equal("Hello World", content);
+        Assert.Equal("Hello World", SnapshotReader.ReadAll(snapshot));
     }
 
     [Fact]
     public void SnapshotIsImmutable()
     {
-        // Arrange
-        var text = "Hello";
-        var buffers = new List<ChunkBuffer> { ChunkBuffer.FromText(text) };
-        var model = new PieceTreeModel(buffers);
-        model.InsertPieceAtEnd(new PieceSegment(0, new BufferCursor(0, 0), new BufferCursor(0, 5), 0, 5));
+        var model = new TextModel("Hello");
+        var snapshot = model.CreateSnapshot();
+        var snapshotContent = SnapshotReader.ReadAll(snapshot);
+        Assert.Equal("Hello", snapshotContent);
 
-        var snapshot = model.CreateSnapshot("");
-        Assert.Equal("Hello", snapshot.Read());
+        model.ApplyEdits(new[]
+        {
+            new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), " World")
+        });
 
-        // Act - Modify the tree
-        // Add a new buffer and a new piece
-        var text2 = " World";
-        buffers.Add(ChunkBuffer.FromText(text2));
-        model.InsertPieceAtEnd(new PieceSegment(1, new BufferCursor(0, 0), new BufferCursor(0, 6), 0, 6));
-
-        // Assert
-        // Snapshot should still be "Hello"
-        Assert.Equal("Hello", snapshot.Read());
-        
-        // Model should be "Hello World"
-        // We can verify model length or content if we had a helper, but TotalLength is enough
-        Assert.Equal(11, model.TotalLength);
+        Assert.Equal("Hello", snapshotContent);
+        Assert.Equal("Hello World", model.GetValue());
     }
 }
