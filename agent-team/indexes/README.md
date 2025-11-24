@@ -37,7 +37,7 @@
 ## Delta (2025-11-21)
 
 - 2025-11-21 | AA4-005/AA4-006 | Porter + QA fixes added. Test baseline: 105/105 | [`src/TextBuffer/Core/PieceTreeBuilder.cs`](../../src/TextBuffer/Core/PieceTreeBuilder.cs), [`src/TextBuffer/Core/PieceTreeTextBufferFactory.cs`](../../src/TextBuffer/Core/PieceTreeTextBufferFactory.cs), [`src/TextBuffer/Core/ChunkUtilities.cs`](../../src/TextBuffer/Core/ChunkUtilities.cs), [`src/TextBuffer/Core/TextMetadataScanner.cs`](../../src/TextBuffer/Core/TextMetadataScanner.cs), [`src/TextBuffer/Core/PieceTreeModel.Edit.cs`](../../src/TextBuffer/Core/PieceTreeModel.Edit.cs), [`src/TextBuffer/Core/PieceTreeModel.cs`](../../src/TextBuffer/Core/PieceTreeModel.cs), [`tests/TextBuffer.Tests/AA005Tests.cs`](../../tests/TextBuffer.Tests/AA005Tests.cs), [`tests/TextBuffer.Tests/PieceTreeModelTests.cs`](../../tests/TextBuffer.Tests/PieceTreeModelTests.cs), [`tests/TextBuffer.Tests/CRLFFuzzTests.cs`](../../tests/TextBuffer.Tests/CRLFFuzzTests.cs) | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (105/105) | Y | Porter fixes for CL5/CL6 (AA4-005/AA4-006) integrated; QA verified baseline and re-ran fuzz/targeted CRLF cases (see [`agent-team/handoffs/AA4-009-QA.md`](../../agent-team/handoffs/AA4-009-QA.md)). Delta recorded in `docs/reports/migration-log.md` rows for AA4-005/AA4-006.
-- 2025-11-21 | AA4-007.BF1 | Snippet placeholder navigation now references live `ModelDecoration` ranges, eliminating infinite `NextPlaceholder` loops and keeping placeholder offsets consistent after earlier cursor edits. | [`src/TextBuffer/Cursor/SnippetSession.cs`](../../src/TextBuffer/Cursor/SnippetSession.cs), [`tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs`](../../tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs) | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.SnippetMultiCursorFuzzTests.SnippetAndMultiCursor_Fuzz_NoCrashesAndInvariantsHold" --nologo` (1/1); `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (115/115) | Y | Refer to migration log row `AA4-007.BF1`; fuzz hangs are now reproducible via seed 12345 and no longer loop indefinitely.
+- 2025-11-21 | AA4-007.BF1 | Snippet placeholder navigation now references live `ModelDecoration` ranges, eliminating infinite `NextPlaceholder` loops and keeping placeholder offsets consistent after earlier cursor edits. | [`src/TextBuffer/Cursor/SnippetSession.cs`](../../src/TextBuffer/Cursor/SnippetSession.cs), [`tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs`](../../tests/TextBuffer.Tests/SnippetMultiCursorFuzzTests.cs) | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.SnippetMultiCursorFuzzTests.SnippetAndMultiCursor_Fuzz_NoCrashesAndInvariantsHold" --nologo` (1/1); `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (115/115) | Y | Refer to migration log row `AA4-007.BF1`; fuzz hangs are now reproducible via seed 12345 and no longer loop indefinitely.
 
 ## Delta (2025-11-22)
 
@@ -128,7 +128,7 @@ Handoff 文件：
 - [`agent-team/handoffs/B3-FM-Result.md`](../handoffs/B3-FM-Result.md) – Porter handoff，含变更、测试、风险、后续动作。
 
 验证：
-- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 186/186，全量绿；FM-01/FM-02 断言覆盖搜索范围排序 + 主光标不变。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 186/186，全量绿；FM-01/FM-02 断言覆盖搜索范围排序 + 主光标不变。
 
 文档/索引更新：
 - `agent-team/members/porter-cs.md#Latest Focus (2025-11-23)`、`docs/sprints/sprint-03.md` (R12)、`docs/reports/migration-log.md`（B3-FM 行）同步引用本 delta。
@@ -146,7 +146,7 @@ Handoff 文件：
 - 文档更新：`tests/TextBuffer.Tests/TestMatrix.md`（DocUIFindSelectionTests 行记为 ✅、基线 189/189）、`docs/sprints/sprint-03.md`（R13 记录）、`docs/reports/migration-log.md`（B3-FSel 行）。
 
 验证：
-- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 189/189 绿色（新增 3 个 DocUI selection 测试，见 TestMatrix `#delta-2025-11-23-b3-fsel` 行）。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 189/189 绿色（新增 3 个 DocUI selection 测试，见 TestMatrix `#delta-2025-11-23-b3-fsel` 行）。
 
 Handoff / 参考：
 - [`agent-team/handoffs/B3-FSel-Result.md`](../handoffs/B3-FSel-Result.md) – Porter 交付说明、测试命令、后续行动。
@@ -166,8 +166,8 @@ Handoff / 参考：
 - 文档：`docs/sprints/sprint-03.md`（R14 B3-FC 行）、`tests/TextBuffer.Tests/TestMatrix.md`（DocUIFindControllerTests 行 + rerun 命令）、`docs/reports/migration-log.md`（B3-FC 行）、`agent-team/handoffs/B3-FC-Result.md`（交付 & deferral 记录）、`AGENTS.md` / `agent-team/members/porter-cs.md` 最新 focus。
 
 验证：
-- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 10/10。
-- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 199/199；TestMatrix 更新 baseline。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 10/10。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – 199/199；TestMatrix 更新 baseline。
 
 已知风险 / 后续：
 - 搜索范围生命周期（B3-FC-Scope / R15）与 Mac 系统剪贴板复刻尚未完成；DocUI overlay focus 状态持久化亦推迟到 R15。Deferrals 记录在 `agent-team/handoffs/B3-FC-Result.md`。
@@ -183,7 +183,7 @@ Handoff / 参考：
 - [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) / [`agent-team/handoffs/B3-FC-Review.md`](../handoffs/B3-FC-Review.md) / [`agent-team/members/porter-cs.md`](../members/porter-cs.md) – 记录 W1/W2 问题关闭、测试命令与 reviewer 状态。
 
 验证：
-- `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 15/15 绿色，覆盖新增 W1/W2 tests。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` – 15/15 绿色，覆盖新增 W1/W2 tests。
 
 文档/索引更新：
 - Sprint 03（R14/R15）与 QA Matrix 均引用 `#delta-2025-11-23-b3-fc-scope`。Migration log 新增行并链接至本 changefeed。B3-FC Review 文件将 W1/W2 标记为 resolved。
@@ -214,7 +214,7 @@ Handoff / 参考：
 
 - [`src/TextBuffer/DocUI/DocUIFindController.cs`](../../src/TextBuffer/DocUI/DocUIFindController.cs) 现仅在 `SelectionSeedMode.Single`（TS “single”）且 regex 启用时对 seeded 文本执行 `Regex.Escape`，`StartFindWithSelection`/Cmd+E 在 regex 模式下保持多行/括号字面文本，`Next/PreviousSelectionMatch` 复用该逻辑。
 - [`tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs) 新增 **StartFindWithSelectionDoesNotEscapeRegexCharacters** 回归，并在 `tests/TextBuffer.Tests/TestMatrix.md` 记录 27/27 rerun + `#delta-2025-11-23-b3-fc-regexseed` 标签。
-- 验证：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (27/27)；`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (218/218) 作为最新全量基线。
+- 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` (27/27)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (218/218) 作为最新全量基线。
 - 文档：`docs/reports/migration-log.md` 新增 B3-FC-RegexSeed 行，AGENTS / Sprint 03 / TestMatrix 指向本 changefeed，更新 Cmd+E regex 多行 seed 修复状态。
 
 ### delta-2025-11-23-b3-decor-stickiness
@@ -237,14 +237,14 @@ Handoff / 参考：
 - 代码：[`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) 新增 pending search-scope override 与 `ResolveFindScopes()` 装饰优先逻辑，仅在消费一次 `_state.SearchScope` 后转由 `_decorations.GetFindScopes()` 跟踪编辑偏移，并复刻 TS 多行 scope 归一化（起点列强制 1、尾行针对 `endColumn==1` 回退一行 + `GetLineMaxColumn`).
 - 测试：[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 `Test45_SearchScopeTracksEditsAfterTyping`（范围随输入漂移仍保持 1 个匹配）与 `Test46_MultilineScopeIsNormalizedToFullLines`（TS #27083），`tests/TextBuffer.Tests/TestMatrix.md` 记录 `#delta-2025-11-24-find-scope` 以及 targeted rerun。
 - 计划：[`agent-team/handoffs/B3-FM-MultiSelection-Plan.md`](../../agent-team/handoffs/B3-FM-MultiSelection-Plan.md) 协调剩余 TS Test07/08 multi-selection 场景（Task Board：`B3-FM-MSel-INV` / `B3-FM-MSel-PORT`），待 Investigator 输出审核文档并由 Porter 扩展 `TestEditorContext` + `FindModel` 后补齐 43/43 parity。
-- 文档：迁移日志新增 `B3-FM-Scope` 行，TaskMatrix changefeed + targeted rerun（`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44），并创建 Porter handoff `agent-team/handoffs/AA4-Review-Porter.md` 供 QA/Investigator 复审。
-- 备注：依 AA4 Reviewer 指示仍保留 `PIECETREE_DEBUG=0 dotnet test ... --filter DocUIFindModelTests --nologo` 命令（VSTest 0 matches）作为审计记录；实际验证以 FullyQualifiedName 过滤执行。迁移日志 / TestMatrix / 本 changefeed 均指向该 delta。
+- 文档：迁移日志新增 `B3-FM-Scope` 行，TaskMatrix changefeed + targeted rerun（`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44），并创建 Porter handoff `agent-team/handoffs/AA4-Review-Porter.md` 供 QA/Investigator 复审。
+- 备注：AA4 Reviewer 先前建议保留 `--filter DocUIFindModelTests` 作为审计记录，但该 alias 已正式退役；后续仅记录/执行 `FullyQualifiedName~FindModelTests` 过滤器以避免 0/0 误报。迁移日志 / TestMatrix / 本 changefeed 均指向该 delta。
 
 ### delta-2025-11-24-find-replace-scope
 **AA4 Review – DocUI FindModel scoped regex replace parity**
 
 - 代码：[`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) 的 `GetMatchesForReplace()` 现复用 `ResolveFindScopes()` → `NormalizeScopes()`，与导航/Research 路径一致地从 `FindDecorations` 读取实时范围，避免在 scoped 编辑后落入旧 `_state.SearchScope`。
-- 测试：[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**，并在 `tests/TextBuffer.Tests/TestMatrix.md` 上记下 `#delta-2025-11-24-find-replace-scope` targeted rerun（`PIECETREE_DEBUG=0 dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45）。
+- 测试：[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**，并在 `tests/TextBuffer.Tests/TestMatrix.md` 上记下 `#delta-2025-11-24-find-replace-scope` targeted rerun（`export PIECETREE_DEBUG=0 && dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45）。
 - 文档：`docs/reports/migration-log.md` 追加 B3-FM-ReplaceScope 行，`agent-team/handoffs/AA4-Review-INV.md` 将 F4（replace scope capture desync）标记为 Resolved；Task Board/Sprint/TestMatrix 也同步引用本 delta。
 - 后续：B3-FM Multi-selection 任务仍待 Investigator/Porter 完结（`B3-FM-MSel-*`），但 scoped replace regression 已关闭。
 
@@ -252,7 +252,27 @@ Handoff / 参考：
 **Sprint 03 R19 – B3 DocUI Staged Fixes (FindDecorations reset + caret overlaps)**
 
 - 代码：[`src/TextBuffer/DocUI/FindDecorations.cs`](../../src/TextBuffer/DocUI/FindDecorations.cs) 取消 `Reset()` 内 `_startPosition` 置零，保持与 TS `findDecorations.ts` 一致；[`src/TextBuffer/Decorations/IntervalTree.cs`](../../src/TextBuffer/Decorations/IntervalTree.cs) 在 `CollectOverlaps()` 中将零长度查询扩展为 `[offset, offset+1)` 以捕获折叠光标命中；[`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) 新增 **Test48_FlushEditKeepsFindNextProgress**；[`tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs) 新增 **CollapsedCaretAtMatchStartReturnsIndex**；`tests/TextBuffer.Tests/TestMatrix.md` 更新 DocUI 行与 rerun 指令。
-- 测试：`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` (46/46)；`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` (9/9)；根据规范仍执行 `--filter FullyQualifiedName~DocUIFindModelTests`（0/0，记录为 alias 待修）。
+- 测试：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` (46/46)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` (9/9)。DocUI FindModel alias (`FullyQualifiedName~DocUIFindModelTests`) 不再执行，以免 rerun 0/0。
 - 文档：迁移日志已添加 B3-DocUI-StagedFixes 行；交付与 QA 详情见 [`agent-team/handoffs/B3-DocUI-StagedFixes-20251124.md`](../handoffs/B3-DocUI-StagedFixes-20251124.md) 与 [`agent-team/handoffs/B3-DocUI-StagedFixes-QA-20251124.md`](../handoffs/B3-DocUI-StagedFixes-QA-20251124.md)；`tests/TextBuffer.Tests/TestMatrix.md` 的 DocUI 行与 targeted rerun 表记录了本次 delta 及新测试。
 - 风险 / 后续：`DocUIFindModelTests` 类名仍与历史 filter 不匹配，需后续调整；DocUI multi-cursor parity（Batch #3 余项）保持在任务板上。
+
+### delta-2025-11-24-b3-fm-multisel
+**Sprint 03 R21/R22 – B3-FM Multi-Selection Parity**
+
+- **Changes** `tests/TextBuffer.Tests/DocUI/TestEditorContext.cs` 现支持 `SetSelections`/`GetSelections` 并将多选区直接注入 `FindModel`; `src/TextBuffer/DocUI/FindModel.cs` 引入 `SetSelections(IReadOnlyList<Range> selections, int? primaryIndex)` 与主光标排序，以保持 TS `SelectAllMatches`/scope wrap 行为；`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs` 重新启用 **Test07_MultiSelectionFindModelNextStaysInScopeOverlap** / **Test08_MultiSelectionFindModelNextStaysInScope**，`tests/TextBuffer.Tests/TestMatrix.md` DocUI 行更新为 43/43 并记录本次 rerun；`docs/sprints/sprint-03.md` Run 21/22 将 Porter + QA 结果登记为 `#delta-2025-11-24-b3-fm-multisel`。
+- **Key files** [`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs), [`tests/TextBuffer.Tests/DocUI/TestEditorContext.cs`](../../tests/TextBuffer.Tests/DocUI/TestEditorContext.cs), [`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs), [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md), [`docs/sprints/sprint-03.md`](../../docs/sprints/sprint-03.md).
+- **Validation** (per [`agent-team/handoffs/B3-FM-MultiSelection-QA.md`](../handoffs/B3-FM-MultiSelection-QA.md))
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test07_MultiSelectionFindModelNextStaysInScopeOverlap|FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test08_MultiSelectionFindModelNextStaysInScope" --nologo` → 2/2 passed (1.7s)
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` → 48/48 passed (3.3s)
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 242/242 passed (2.9s)
+- **References & notes** Investigator capture: [`agent-team/handoffs/B3-FM-MultiSelection-Audit.md`](../handoffs/B3-FM-MultiSelection-Audit.md); Porter delivery: [`agent-team/handoffs/B3-FM-MultiSelection-PORT.md`](../handoffs/B3-FM-MultiSelection-PORT.md); QA report: [`agent-team/handoffs/B3-FM-MultiSelection-QA.md`](../handoffs/B3-FM-MultiSelection-QA.md); migration log entry: [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) row **B3-FM-MultiSel**. Legacy filter `FullyQualifiedName~DocUIFindModelTests` is now deprecated—future scripts must adopt `FullyQualifiedName~FindModelTests` when running DocUI FindModel suites.
+
+### delta-2025-11-24-find-primary
+**AA4 Review – Primary Selection Ordering & Dead State Cleanup**
+
+- **Fix scope**: Addresses Investigator findings in [`agent-team/handoffs/AA4-FindModel-Review-INV.md`](../handoffs/AA4-FindModel-Review-INV.md) by making `FindModel.SetSelections` default to primary index 0 (VS Code contract) and removing the unused `_selectionCollection/_primarySelectionIndex` fields.
+- **Code changes**: [`src/TextBuffer/DocUI/FindModel.cs`](../../src/TextBuffer/DocUI/FindModel.cs) now clones incoming selections, clamps the optional `primaryIndex`, and stores only `_currentSelection`. [`tests/TextBuffer.Tests/DocUI/TestEditorContext.cs`](../../tests/TextBuffer.Tests/DocUI/TestEditorContext.cs) mirrors the first-selection-as-primary rule and still falls back to `(1,1)` when callers omit inputs.
+- **Regression coverage**: [`tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindModelTests.cs) adds **Test49_SelectAllMatchesRespectsPrimarySelectionOrder**, ensuring `SelectAllMatches()` keeps the caller-provided primary selection at index 0 while the remaining matches stay sorted. `tests/TextBuffer.Tests/TestMatrix.md` documents the new test count (Tests44–49) plus the rerun command.
+- **Docs / handoff**: Porter summary [`agent-team/handoffs/AA4-FindModel-Review-PORT.md`](../handoffs/AA4-FindModel-Review-PORT.md) and migration log row “B3-FM-PrimarySelection” capture the fix and evidence so DocMaintainer/QA/Planner can reference a single anchor.
+- **Validation**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` → 49/49 (3.4s). No additional suites required.
 

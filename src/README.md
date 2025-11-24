@@ -15,7 +15,6 @@ This directory contains the starter .NET solution that will eventually host the 
 ## Common commands
 
 ```bash
-cd /repos/PieceTree
 # restore packages
  dotnet restore
 # run the test suite

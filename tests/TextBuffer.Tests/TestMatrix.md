@@ -14,7 +14,7 @@
 | DecorationStickinessTests | `TrackedRangeStickiness` matrix (insert at edges, forceMoveMarkers overrides) | [ts/src/vs/editor/test/common/model/modelDecorations.test.ts](../../ts/src/vs/editor/test/common/model/modelDecorations.test.ts) | B | Implemented | Mirrors TS “Decorations and editing” insert-before/after expectations across the four stickiness modes; targeted suite (`DecorationStickinessTests.cs`) + rerun command documented below. |
 | DocUIFindDecorationsTests | DocUI find overlay parity (range highlight trimming, scope resolution, overview throttling, wrap helpers) | [ts/src/vs/editor/contrib/find/browser/findDecorations.ts](../../ts/src/vs/editor/contrib/find/browser/findDecorations.ts) | B | Implemented | Validates range highlight trimming, live scope resolution (newline retention + edit tracking), viewport-aware overview approximation, `GetCurrentMatchesPosition`, and wrap-around helpers; latest delta `#delta-2025-11-24-b3-docui-staged` adds **CollapsedCaretAtMatchStartReturnsIndex** to guard caret overlap + reset scenarios for Porter’s FindDecorations fix. |
 | MarkdownRendererTests | DocUI diff overlay + owner routing | [TODO – locate DocUI find widget snapshot/browser smoke tests (ts/test/browser/*)](../../docs/plans/ts-test-alignment.md#appendix-%E2%80%93-ts-test-inventory-placeholder) | C | Implemented (partial) | Snapshot parity for diff markers landed; upstream TS widget tests still unidentified → Info-Indexer to surface canonical path. |
-| DocUIFindModelTests | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ In progress (41/43 + Tests44-48) | Batch #2 已落地 39 个 TS parity 测试；Batch #3 (B3-FM) 追加 SelectAllMatches FM-01/FM-02（范围排序 + 主光标保持），随后补上 **Test44_WholeWordRespectsCustomWordSeparators**、范围修复回归 **Test45_SearchScopeTracksEditsAfterTyping**/**Test46_MultilineScopeIsNormalizedToFullLines**（TS #27083）以及 **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**。最新 `DocUIFindModelTests.Test48_FlushEditKeepsFindNextProgress` 覆盖 Porter 的 DocUI flush edit fix，确保 decoration reset 后 `FindNext` 进度不被重置。余下 2 个 multi-cursor/selection 场景依旧待处理。Harness：`DocUI/TestEditorContext.cs`。`#delta-2025-11-24-find-replace-scope`. |
+| DocUIFindModelTests | DocUI find model binding + overlays | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ Complete (43/43 + Tests44-49) | Batch #2 已落地 39 个 TS parity 测试；Batch #3 (`#delta-2025-11-24-find-scope`, `#delta-2025-11-24-find-replace-scope`) 追加 Tests44–48；B3-FM multi-selection (`#delta-2025-11-24-b3-fm-multisel`) 重新启用 **Test07_MultiSelectionFindModelNextStaysInScopeOverlap** 与 **Test08_MultiSelectionFindModelNextStaysInScope**，Harness `DocUI/TestEditorContext.cs` 现支持 `SetSelections` 多光标注入并同步 `FindModel.SetSelections`。最新 delta `#delta-2025-11-24-find-primary` 引入 **Test49_SelectAllMatchesRespectsPrimarySelectionOrder** 并在 2025-11-24 rerun（PIECETREE_DEBUG=0）中记录 49/49 green（2.6s），确认 Tests07/08/49 持续通过。Commands: (1) `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test07_MultiSelectionFindModelNextStaysInScopeOverlap|FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test08_MultiSelectionFindModelNextStaysInScope" --nologo` → 2/2, 1.7s；(2) `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` → 49/49, 2.6s；(3) `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 242/242, 2.9s. |
 | DocUIFindModelTests – B3-FM subset | SelectAllMatches search-scope ordering + primary cursor fidelity | [ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts) | B | ✅ Complete (2/2) | `DocUIFindModelTests.Test28/Test29` 覆盖 TS `selectAllMatches` + issue #14143 case；匹配多光标并按 range 排序，保持主光标不变。 |
 | WordBoundaryTests | Word separator + boundary validation | [ts/src/vs/editor/common/core/wordCharacterClassifier.ts](../../ts/src/vs/editor/common/core/wordCharacterClassifier.ts) | A | Deferred (Batch #3) | 10 个测试覆盖 ASCII separators、Unicode、multi-char operators（`->`、`::`）；文档化 CJK/Thai 限制（无 Intl.Segmenter）。扩展 TextModelSearchTests.cs 添加 5 个 wholeWord 场景（regex/simple/case-insensitive/multiline 组合）。 |
 | DocUIFindControllerTests | FindController command parity（issue #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232 + scope persistence + whitespace Ctrl/Cmd+F3 + Alt+Enter parity） | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | B | ✅ Complete (+ OI-013/OI-015) | `DocUIFindControllerTests.cs` + `TestEditorHost`/storage/clipboard stubs cover navigation loops、regex seed auto-escape、scope lifecycle、replace focus、selection-seeded regex、auto find-in-selection fallback (**AutoFindInSelectionAppliesDuringFallbackStart**), backward helpers (**Issue3090_PreviousMatchLoopsWithinSingleLine** / **Issue38232_PreviousSelectionMatchRegex**) 与 Alt+Enter wiring (**SelectAllMatchesActionAppliesSelections**). PreserveCase 默认值/存储回填、EmptyClipboard no-op、SearchScope persistence + whitespace Ctrl/Cmd+F3 regressions tracked via `#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`; 最新 `#delta-2025-11-23-b3-fc-lifecycle` 覆盖 Ctrl+F reseed parity、`SeedSearchStringMode.Never` replace 护栏、Cmd+E multi-line/word seeds（issues #47400/#109756）、FindModel lifecycle/disposal 测试；`#delta-2025-11-23-b3-fc-regexseed` 新增 Cmd+E regex 多行选择保持字面文本（27 测试）。 |
@@ -54,8 +54,8 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 | CL4.F5 – Find decorations stickiness + TextModel decoration queries | Range highlight trimming, overview throttling, `GetAllDecorations`/`GetLineDecorations` APIs, DocUI navigation helpers | Covered | `DecorationStickinessTests.InsertionsAtEdgesMatchStickinessMatrix`, `DocUIFindDecorationsTests.RangeHighlightTrimsTrailingBlankLines`, `DocUIFindDecorationsTests.FindScopesPreserveTrailingNewline`, `DocUIFindDecorationsTests.FindScopesTrackEdits`, `DocUIFindDecorationsTests.OverviewThrottlingRespectsViewportHeight`, `DecorationTests.GetLineDecorationsReturnsVisibleMetadata` |
 
-**Total Tests Passing**: 235 (`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, Sprint 03 B3-Decor review baseline)
-**Date**: 2025-11-23
+**Total Tests Passing**: 242 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, Sprint 03 B3-FM multi-selection QA close-out)
+**Date**: 2025-11-24
 
 ## AA4-005 (CL5) & AA4-006 (CL6) Porter-added tests (2025-11-21)
 
@@ -88,79 +88,94 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-24 (Batch #3 – B3-FM MultiSelection) | 242 | 242 | 0 | 2.9s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – DocUI FindModel multi-selection scope parity run（Tests07/08 重启 + prior scope fixes）并作为 Sprint 03 QA 关账基线；`#delta-2025-11-24-b3-fm-multisel`. |
 | 2025-11-23 (Batch #3 – B3-Decor Stickiness Review) | 235 | 235 | 0 | 2.9s | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – CI-1/CI-2/CI-3 + W-1/W-2 fixes (live scopes, newline retention, viewport-aware overview, dynamic owner) (`#delta-2025-11-23-b3-decor-stickiness-review`). |
 | 2025-11-23 (Batch #3 – B3-Decor Stickiness) | 233 | 233 | 0 | 3.0s | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Range highlight/overview/stickiness parity run (`#delta-2025-11-23-b3-decor-stickiness`). |
-| 2025-11-23 (B3-FC-RegexSeed hotfix) | 218 | 218 | 0 | 3.3s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Full suite after regex seeding fix (`#delta-2025-11-23-b3-fc-regexseed`). |
-| 2025-11-23 (Batch #3 – B3-FC-Core) | 199 | 199 | 0 | 6.9s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – DocUI FindController core parity run (`#delta-2025-11-23-b3-fc-core`). |
-| 2025-11-23 (Batch #3 – B3-FSel) | 189 | 189 | 0 | 3.5s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Find selection helper parity run (`#delta-2025-11-23-b3-fsel`). |
-| 2025-11-23 (Batch #3 – B3-FM) | 186 | 186 | 0 | 3.0s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – B3 SelectAllMatches parity run (#delta-2025-11-23-b3-fm). |
+| 2025-11-23 (B3-FC-RegexSeed hotfix) | 218 | 218 | 0 | 3.3s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Full suite after regex seeding fix (`#delta-2025-11-23-b3-fc-regexseed`). |
+| 2025-11-23 (Batch #3 – B3-FC-Core) | 199 | 199 | 0 | 6.9s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – DocUI FindController core parity run (`#delta-2025-11-23-b3-fc-core`). |
+| 2025-11-23 (Batch #3 – B3-FSel) | 189 | 189 | 0 | 3.5s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Find selection helper parity run (`#delta-2025-11-23-b3-fsel`). |
+| 2025-11-23 (Batch #3 – B3-FM) | 186 | 186 | 0 | 3.0s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – B3 SelectAllMatches parity run (#delta-2025-11-23-b3-fm). |
 | 2025-11-23 (Batch #2) | 187 | 187 | 0 | X.Xs | `dotnet test --logger "trx;LogFileName=batch2-full.trx" --nologo` – B2 FindModel QA baseline (+45 tests from 142). TRX: `TestResults/batch2-full.trx`. |
 | 2025-11-22 (Batch #1) | 142 | 142 | 0 | 2.6s | `dotnet test --logger "trx;LogFileName=batch1-full.trx" --nologo` – B1 ReplacePattern QA baseline (+23 tests from 119). TRX: `TestResults/batch1-full.trx`. |
-| 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
+| 2025-11-21 18:05 UTC | 119 | 119 | 0 | 7.4s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (AA4-009 revalidation after Porter-CS drop; deterministic full-suite count recorded for CL5/CL6). |
 | 2025-11-21 09:10 UTC | 105 | 105 | 0 | 2.1s | Earlier AA4-006 verification baseline before Porter-CS expanded CL5/CL6 suites (kept for historical comparison). |
 
 ### Targeted reruns (B3-Decor Review, 2025-11-23)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindDecorationsTests --nologo` | 9/9 green | Validates live scope tracking (newline retention + edit tracking), viewport-aware overview throttling, plus new **CollapsedCaretAtMatchStartReturnsIndex** guard for caret overlap regressions (`#delta-2025-11-23-b3-decor-stickiness-review`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindDecorationsTests --nologo` | 9/9 green | Validates live scope tracking (newline retention + edit tracking), viewport-aware overview throttling, plus new **CollapsedCaretAtMatchStartReturnsIndex** guard for caret overlap regressions (`#delta-2025-11-23-b3-decor-stickiness-review`). |
 
 ### Targeted reruns (B3-FM, 2025-11-23)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~DocUIFindModelTests.Test28|FullyQualifiedName~DocUIFindModelTests.Test29" --nologo` | 2/2 green | SelectAllMatches regression sweep for FM-01/FM-02 (`#delta-2025-11-23-b3-fm`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests.Test28|FullyQualifiedName~FindModelTests.Test29" --nologo` | 2/2 green | SelectAllMatches regression sweep for FM-01/FM-02 (`#delta-2025-11-23-b3-fm`). |
 
 ### Targeted reruns (B3-FSel, 2025-11-23)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindSelectionTests --nologo` | 4/4 green | Selection-derived seed heuristics (cursor word, single-line selection, multi-line null) + hyphen separator regression run (`#delta-2025-11-23-b3-fsel`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindSelectionTests --nologo` | 4/4 green | Selection-derived seed heuristics (cursor word, single-line selection, multi-line null) + hyphen separator regression run (`#delta-2025-11-23-b3-fsel`). |
 
 ### Targeted reruns (B3-FC, 2025-11-23)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` | 27/27 green | DocUI FindController parity run covering issues #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232，加上 Ctrl+F reseed、`SeedSearchStringMode.Never` replace、Cmd+E multi-line/word seeds（issues #47400/#109756）、lifecycle disposal（`#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`、`#delta-2025-11-23-b3-fc-lifecycle`）及 **regex multi-line seed literal parity** (`#delta-2025-11-23-b3-fc-regexseed`). |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` | 17/17 green (1.6s, **pre-DocUIFindDecorations baseline**) | Aggregated DocUI find suites (controller/model/selection) re-ran after preserve-case/word-separator/clipboard restage; log mirrored into `agent-team/handoffs/AA4-009-QA.md` (`#delta-2025-11-23-docuifind`). Post-2025-11-24 runs expect 39/39; see section below. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DocUIFindControllerTests --nologo` | 27/27 green | DocUI FindController parity run covering issues #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232，加上 Ctrl+F reseed、`SeedSearchStringMode.Never` replace、Cmd+E multi-line/word seeds（issues #47400/#109756）、lifecycle disposal（`#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`、`#delta-2025-11-23-b3-fc-lifecycle`）及 **regex multi-line seed literal parity** (`#delta-2025-11-23-b3-fc-regexseed`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` | 17/17 green (1.6s, **pre-DocUIFindDecorations baseline**) | Aggregated DocUI find suites (controller/model/selection) re-ran after preserve-case/word-separator/clipboard restage; log mirrored into `agent-team/handoffs/AA4-009-QA.md` (`#delta-2025-11-23-docuifind`). Post-2025-11-24 runs expect 39/39; see section below. |
 
 ### Targeted reruns (delta-2025-11-24-find-scope)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 44/44 green | Confirms DocUI FindModel scope overrides hydrate via decorations after edits and multi-line scopes follow TS #27083 normalization (`#delta-2025-11-24-find-scope`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 44/44 green | Confirms DocUI FindModel scope overrides hydrate via decorations after edits and multi-line scopes follow TS #27083 normalization (`#delta-2025-11-24-find-scope`). |
 
 ### Targeted reruns (delta-2025-11-24-find-replace-scope)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 45/45 green | Extends the scope regression sweep with **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**, ensuring `FindModel.GetMatchesForReplace` hydrates search scopes from live decorations before computing regex captures (`#delta-2025-11-24-find-replace-scope`). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 45/45 green | Extends the scope regression sweep with **Test47_RegexReplaceWithinScopeUsesLiveRangesAfterEdit**, ensuring `FindModel.GetMatchesForReplace` hydrates search scopes from live decorations before computing regex captures (`#delta-2025-11-24-find-replace-scope`). |
 
 ### Targeted reruns (delta-2025-11-24-find-flush-edit)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 46/46 green | Adds **Test48_FlushEditKeepsFindNextProgress** to the sweep, guarding Porter’s DocUI flush edit fix so `FindNext` progress survives decoration resets. (`FullyQualifiedName~DocUIFindModelTests` filter continues to report 0 matches because the suite is emitted as `PieceTree.TextBuffer.Tests.DocUI.FindModelTests`.) |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 46/46 green | Adds **Test48_FlushEditKeepsFindNextProgress** to the sweep, guarding Porter’s DocUI flush edit fix so `FindNext` progress survives decoration resets. (Legacy alias `FullyQualifiedName~DocUIFindModelTests` has been retired because the suite compiles as `PieceTree.TextBuffer.Tests.DocUI.FindModelTests`.) |
 
 ### Targeted reruns (delta-2025-11-24-b3-docui-staged)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 46/46 green | Re-ran the FindModel suite after staging fixes to confirm **Test48_FlushEditKeepsFindNextProgress** stays green alongside Tests45–47; logged under `agent-team/handoffs/B3-DocUI-StagedFixes-QA-20251124.md` and tied to `#delta-2025-11-24-b3-docui-staged`. |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` | 9/9 green | Captures the collapsed-caret regression guard (**CollapsedCaretAtMatchStartReturnsIndex**) plus scope tracking checks for the staged FindDecorations reset. See `docs/reports/migration-log.md` B3-DocUI-StagedFixes 行与 `agent-team/indexes/README.md#delta-2025-11-24-b3-docui-staged`. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 46/46 green | Re-ran the FindModel suite after staging fixes to confirm **Test48_FlushEditKeepsFindNextProgress** stays green alongside Tests45–47; logged under `agent-team/handoffs/B3-DocUI-StagedFixes-QA-20251124.md` and tied to `#delta-2025-11-24-b3-docui-staged`. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` | 9/9 green | Captures the collapsed-caret regression guard (**CollapsedCaretAtMatchStartReturnsIndex**) plus scope tracking checks for the staged FindDecorations reset. See `docs/reports/migration-log.md` B3-DocUI-StagedFixes 行与 `agent-team/indexes/README.md#delta-2025-11-24-b3-docui-staged`. |
 
 ### Targeted reruns (DocUIFind umbrella refresh, 2025-11-24)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` | 39/39 green | Updated expectation for the DocUI find umbrella filter; now also captures `DocUIFindDecorationsTests` and related suites added after `#delta-2025-11-23-docuifind`. Verified during QA handoff `agent-team/handoffs/AA4-Review-QA.md`. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~DocUIFind --nologo` | 39/39 green | Updated expectation for the DocUI find umbrella filter; now also captures `DocUIFindDecorationsTests` and related suites added after `#delta-2025-11-23-docuifind`. Verified during QA handoff `agent-team/handoffs/AA4-Review-QA.md`. |
+
+### Targeted reruns (delta-2025-11-24-b3-fm-multisel)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test07_MultiSelectionFindModelNextStaysInScopeOverlap|FullyQualifiedName=PieceTree.TextBuffer.Tests.DocUI.FindModelTests.Test08_MultiSelectionFindModelNextStaysInScope" --nologo` | 2/2 green (1.7s) | Validates overlapping + disjoint multi-selection scope parity lifted from TS Test07/08; harness now feeds multiple selections before hydrating find scopes. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` | 48/48 green (3.3s) | Confirms the entire DocUI FindModel suite (Tests01–48) including new multi-selection cases. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` | 242/242 green (2.9s) | Full TextBuffer sweep used to close QA for B3-FM multi-selection and publish `#delta-2025-11-24-b3-fm-multisel`. |
+
+### Targeted reruns (delta-2025-11-24-find-primary)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` | 49/49 green (2.6s) | Latest 2025-11-24 rerun capturing Tests07/08/49 for QA evidence; confirms **Test49_SelectAllMatchesRespectsPrimarySelectionOrder** stays green post-primary ordering fix per `#delta-2025-11-24-find-primary`. |
 
 ### Targeted reruns (AA4-009, 2025-11-21)
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
-| `PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBuilderTests|FullyQualifiedName~PieceTreeFactoryTests" --nologo` | 7/7 green | Spot check of CL5 builder/factory regressions (AcceptChunk + preview helpers) to ensure Porter-CS changes remain stable. |
+| `export PIECETREE_DEBUG=0 PIECETREE_FUZZ_LOG_DIR=/tmp/aa4-009-fuzz-logs dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLF_RandomFuzz_1000 --nologo` | 1/1 green | Deterministic CRLF fuzz harness (seed 123). Fuzz logs configured to land under `/tmp/aa4-009-fuzz-logs` via `FuzzLogCollector`; no file emitted because the run completed without failures. |
 
 ### Targeted reruns (Batch #1, 2025-11-22)
 
@@ -172,18 +187,18 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch1-full.trx"` | Full-suite baseline before/after TS Batch #1 drops | Captures aggregate parity; TRX stored under `TestResults/` for changefeed attachments. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~ReplacePatternTests --logger "trx;LogFileName=TestResults/batch1-replacepattern.trx"` | Targeted ReplacePattern parity run | Executes escape/backref/case-modifier/preserve-case matrix from `ReplacePatternTests.cs` (23 inline xUnit tests, no external fixtures). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter FullyQualifiedName~MarkdownRendererDocUI --logger "trx;LogFileName=TestResults/batch1-markdown.trx"` | Markdown renderer overlay regression sweep | Reuses existing Markdown renderer overlay tests; ensures overlays remain portable when TS snapshots change. |
 
 ### Batch #2 (FindModel) Validation Commands
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch2-full.trx"` | Full-suite baseline before/after Batch #2 drops | 实际 142 → 187 测试（+45）；用于验证 FindModel 集成不破坏既有测试。 |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~DocUIFindModelTests" --logger "trx;LogFileName=TestResults/batch2-findmodel.trx"` | FindModel 专项测试（15 个核心场景） | 验证增量搜索、findNext/Prev、replace、replaceAll、wholeWord、decorations 同步、matches count 更新。参考 B2-QA-Result.md 的 P0/P1/P2 分级。 |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~WordBoundaryTests" --logger "trx;LogFileName=TestResults/batch2-wordboundary.trx"` | Word boundary 专项测试（10 个边界场景） | **Deferred to Batch #3** – WordBoundary tests尚未登陆 187 基线，保留命令模板以备下批落地。 |
-| `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~TextModelSearchTests" --logger "trx;LogFileName=TestResults/batch2-textsearch.trx"` | TextModelSearch 扩展测试（包含 wholeWord 场景） | 验证 wholeWord + regex/simple/case-insensitive/multiline 组合（新增 5 个测试）。 |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo --logger "trx;LogFileName=TestResults/batch2-full.trx"` | Full-suite baseline before/after Batch #2 drops | 实际 142 → 187 测试（+45）；用于验证 FindModel 集成不破坏既有测试。 |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~FindModelTests" --logger "trx;LogFileName=TestResults/batch2-findmodel.trx"` | FindModel 专项测试（15 个核心场景） | 验证增量搜索、findNext/Prev、replace、replaceAll、wholeWord、decorations 同步、matches count 更新。参考 B2-QA-Result.md 的 P0/P1/P2 分级。 |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~WordBoundaryTests" --logger "trx;LogFileName=TestResults/batch2-wordboundary.trx"` | Word boundary 专项测试（10 个边界场景） | **Deferred to Batch #3** – WordBoundary tests尚未登陆 187 基线，保留命令模板以备下批落地。 |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --no-build --nologo --filter "FullyQualifiedName~TextModelSearchTests" --logger "trx;LogFileName=TestResults/batch2-textsearch.trx"` | TextModelSearch 扩展测试（包含 wholeWord 场景） | 验证 wholeWord + regex/simple/case-insensitive/multiline 组合（新增 5 个测试）。 |
 
 ### Batch #1 ReplacePattern Checklist
 

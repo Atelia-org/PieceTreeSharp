@@ -30,8 +30,10 @@
 ## Worklog
 - **Last Update:** 2025-11-24
 - **Recent Actions:**
+  - 2025-11-24: 完成 AA4 FindModel staged review（`AA4-FindModel-Review-INV.md`），核对 `FindModel.SetSelections`/`TestEditorContext.SetSelections` 与 TS `findModel.test.ts` / vscode.d.ts 合约，记录主光标索引与 write-only selection cache 两项差异，并给出 rerun 建议 (`dotnet test --filter FindModelTests`).
+  - 2025-11-24: 关闭 AA4 Primary Selection review（`#delta-2025-11-24-b3-fm-multisel`, `#delta-2025-11-24-find-primary`）；复核 `src/TextBuffer/DocUI/FindModel.cs`、`tests/TextBuffer.Tests/DocUI/TestEditorContext.cs`、`DocUIFindModelTests`（Test07/08/49）与 TS `findModel.ts` / `findModel.test.ts`，确认主光标排序与多选 scope 行为对齐，并在 `AA4-FindModel-Review-INV.md` 记录结论。
+  - 2025-11-24: 完成 `B3-FM-MultiSelection-Audit`（Test07/08 多选区范围表 + F1/F2/F3 缺口），指导 Porter 扩展 TestEditorContext/FindModel 并预留 changefeed `#delta-2025-11-24-b3-fm-multisel`，同步更新 TS 计划与任务板 TODO。
   - 2025-11-19: 在 `docs/meetings/meeting-20251119-org-self-improvement.md` 提交 Investigator-TS 陈述，记录 PieceTree 覆盖现状、blind spots、协作需求与文档治理建议。
-  - 完成核心流程/会议/冲刺/任务文档的首轮通读并提取 Investigator 相关里程碑。
   - 列出 PieceTree 及其依赖 TS 文件的研读顺序，标记与类型映射、索引输出的映射关系。
   - 明确将成果写回 `type-mapping.md` 与未来索引文件，便于 Planner 跟踪 PT/OI 交付。
   - 2025-11-19: 完成 PT-003 mapping pass（PieceSegment、PieceTreeNode、Searcher、BufferRange、helpers），在 `agent-team/type-mapping.md` 写入 invariants/QA hints/TODOs 并附 Diff Summary，标出 WordSeparators→.NET 映射仍待定义以便 Porter/QA 提前知晓。
@@ -132,9 +134,10 @@
 
 ## Latest Focus
 ### 2025-11-24
-- **DocUI Find scope复查**：核对 `FindModel.ResolveFindScopes`+`NormalizeScopes`（src/TextBuffer/DocUI/FindModel.cs 194-258）以及 `FindDecorations.GetFindScopes`（src/TextBuffer/DocUI/FindDecorations.cs 126-149），配合 `DocUIFindModelTests.Test45_SearchScopeTracksEditsAfterTyping`、`DocUIFindModelTests.Test46_MultilineScopeIsNormalizedToFullLines` 与 `DocUIFindDecorationsTests.FindScopesTrackEdits`，确认 F2（scope tracking）与 F3（scope normalization）已按 TS `_normalizeFindScopes` 行为恢复；TestMatrix CL4.F5 行附 `#delta-2025-11-24-find-scope`，`PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44 绿。
+- **DocUI Find scope复查**：核对 `FindModel.ResolveFindScopes`+`NormalizeScopes`（src/TextBuffer/DocUI/FindModel.cs 194-258）以及 `FindDecorations.GetFindScopes`（src/TextBuffer/DocUI/FindDecorations.cs 126-149），配合 `DocUIFindModelTests.Test45_SearchScopeTracksEditsAfterTyping`、`DocUIFindModelTests.Test46_MultilineScopeIsNormalizedToFullLines` 与 `DocUIFindDecorationsTests.FindScopesTrackEdits`，确认 F2（scope tracking）与 F3（scope normalization）已按 TS `_normalizeFindScopes` 行为恢复；TestMatrix CL4.F5 行附 `#delta-2025-11-24-find-scope`，`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` 44/44 绿。
 - **仍存缺口**：`FindModel.GetMatchesForReplace` (src/TextBuffer/DocUI/FindModel.cs 915-931) 仍直接把 `_state.SearchScope` 传给 `TextModel.FindNextMatch`；scope 在用户编辑后该数组不会更新，regex replace in selection 场景会重新以旧坐标求捕获组，可能拿到 `null`。
-- **TODO**：Porter 调整 `GetMatchesForReplace` 以复用 `ResolveFindScopes()` 的归一化范围，并补一个“scope 内编辑后依旧能 regex replace” DocUIFindModel 回归；QA 在 `tests/TextBuffer.Tests/TestMatrix.md` CL4.F5 行挂上新测试 ID，并重新执行 `dotnet test --filter FullyQualifiedName~DocUIFindModelTests` 保持 rerun 记录。
+- **AA4 primary-selection close-out**：复核 `FindModel.SetSelections` / `TestEditorContext.SetSelections` 新实现 + DocUIFindModelTests.Test07/08/49，逐项对照 TS `findModel.ts` / `findModel.test.ts`（selectAllMatches、multi-selection scopes），确认主光标排序、选区克隆与 scope hydration 均与 VS Code 一致；`AA4-FindModel-Review-INV.md` 现标注两项差异已解决，暂无新增 TODO。
+- **TODO**：Porter 调整 `GetMatchesForReplace` 以复用 `ResolveFindScopes()` 的归一化范围，并补一个“scope 内编辑后依旧能 regex replace” DocUIFindModel 回归；QA 在 `tests/TextBuffer.Tests/TestMatrix.md` CL4.F5 行挂上新测试 ID，并重新执行 `dotnet test --filter FullyQualifiedName~FindModelTests` 保持 rerun 记录。
 - **B3 DocUI Staged Review**：完成 `DocUIFindController/FindModel/FindDecorations`、`TextModel` 装饰 API 暂存对比与 TS 源 (`findDecorations.ts`, `findModel.ts`, `textModel.ts`) 差异梳理，归档于 `agent-team/handoffs/B3-DocUI-StagedReview-20251124.md`，落地 CI×2（Reset 错误地重置 `_startPosition`、零宽 selection 无法识别当前 match）与 W×2（>1000 match 仍绘制 inline spans、`GetLineDecorations` 缺少 filter 标志），并提出对应修复/测试建议。
 
 ### 2025-11-23

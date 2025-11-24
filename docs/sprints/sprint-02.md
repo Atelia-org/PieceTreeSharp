@@ -20,7 +20,7 @@
 | P0 | AA4-006 | Porter-CS：按 CL6 结果实现 ChangeBuffer/CRLF/large edit 修复，更新 tests & 文档。 | 3 | Porter-CS | 2025-11-25 | AA4-002 | Done – 2025-11-21 Porter+QA 验证（见 `agent-team/handoffs/AA4-006-Result.md`、`docs/reports/migration-log.md`「AA4-006 (QA Verified)」行与 `agent-team/indexes/README.md#delta-2025-11-21`）；`PieceTreeModelTests`、`CRLFFuzzTests`、`TestMatrix.md` 已记录。 |
 | P1 | AA4-007 | Porter-CS：实现 Cursor word/snippet/multi-select 语义，更新 MarkdownRenderer/DocUI 展示。 | 3 | Porter-CS | 2025-11-26 | AA4-003 | Planned |
 | P1 | AA4-008 | Porter-CS：实现 DocUI Find/Replace overlays + capture decorations，`MarkdownRenderer`/`TextModelSearch` 同步。 | 3 | Porter-CS | 2025-11-26 | AA4-004 | Planned |
-| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Done – QA revalidation 完成（`agent-team/handoffs/AA4-009-QA.md`、`tests/TextBuffer.Tests/TestMatrix.md`），`PIECETREE_DEBUG=0 dotnet test ... --nologo` 记录 119/119 基线并在 `agent-team/indexes/README.md#delta-2025-11-21` 广播。 |
+| P0 | AA4-009 | QA-Automation：扩展 Builder/ChangeBuffer/Cursor/DocUI 测试，记录最新 `dotnet test` 基线与 `TestMatrix` 更新。 | 2 | QA-Automation | 2025-11-27 | AA4-005~008 | Done – QA revalidation 完成（`agent-team/handoffs/AA4-009-QA.md`、`tests/TextBuffer.Tests/TestMatrix.md`），`export PIECETREE_DEBUG=0 && dotnet test ... --nologo` 记录 119/119 基线并在 `agent-team/indexes/README.md#delta-2025-11-21` 广播。 |
 | P0 | OI-011 | Info-Indexer：发布 AA4 changefeed、更新 `core-docs-index`、同步 AGENTS/Sprint/Task Board。 | 1 | Info-Indexer | 2025-11-28 | 全部 AA4 deliverables | Planned |
 
 ## Plan
@@ -53,4 +53,4 @@
 
 ## Progress Log
 - 2025-11-20：Sprint 02 立项 —— 更新 `agent-team/task-board.md` 至 Phase 7 (AA4)，创建本文件与 `docs/reports/audit-checklist-aa4.md` 计划 CL5~CL8，等待 Investigator runSubAgent。
-- 2025-11-24：DocUI FindModel scope tracking/normalization 与 scoped regex replace parity 完成（`#delta-2025-11-24-find-scope`、`#delta-2025-11-24-find-replace-scope`），`DocUIFindModelTests` 新增 Test45~47，targeted `PIECETREE_DEBUG=0 dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45 绿，TestMatrix/Migration Log/AA4-Review handoff均已更新。
+- 2025-11-24：DocUI FindModel scope tracking/normalization 与 scoped regex replace parity 完成（`#delta-2025-11-24-find-scope`、`#delta-2025-11-24-find-replace-scope`），`DocUIFindModelTests` 新增 Test45~47，targeted `export PIECETREE_DEBUG=0 && dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` 45/45 绿，TestMatrix/Migration Log/AA4-Review handoff均已更新。
