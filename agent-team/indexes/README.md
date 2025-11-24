@@ -290,6 +290,13 @@ Handoff / 参考：
 - 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeFuzzHarnessTests --nologo` (10/10，≈53s)。
 - 文档：`tests/TextBuffer.Tests/TestMatrix.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md` 均记录 `#delta-2025-11-24-b3-piecetree-fuzz`，迁移日志新增 “B3-PieceTree-Fuzz-Review” 行。
 
+### delta-2025-11-24-b3-piecetree-deterministic
+**Sprint 03 R28 – PieceTree deterministic suites + helper shims**
+
+- 代码：新增 [`tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs) 与 [`tests/TextBuffer.Tests/Helpers/PieceTreeScript.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeScript.cs) 共同的 MIT 头/attribution，并扩展 [`tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`](../../tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs) 以复刻 TS `prefix sum for line feed`、`offset 2 position`、`get text in range`、随机 bug scripts；`tests/TextBuffer.Tests/TestMatrix.md` 列表 now anchors the suite under本 delta。
+- 验证：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo` (22/22)。
+- 文档：TestMatrix baseline + targeted rerun表指向 `#delta-2025-11-24-b3-piecetree-deterministic`；迁移日志 `docs/reports/migration-log.md` 新增 “B3-PieceTree-Deterministic” 行，提供 QA rerun 命令。
+
 ### delta-2025-11-24-b3-sentinel
 **B3-TestFailures – 每个 PieceTreeModel 拥有独立 sentinel**
 
