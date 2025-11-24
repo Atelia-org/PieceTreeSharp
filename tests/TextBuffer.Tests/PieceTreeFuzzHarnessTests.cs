@@ -5,6 +5,7 @@ using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Tests.Helpers;
+using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
 using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
@@ -12,36 +13,6 @@ namespace PieceTree.TextBuffer.Tests;
 public sealed class PieceTreeFuzzHarnessTests
 {
     private const string TsAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n";
-
-    private enum ScriptOperation
-    {
-        Insert,
-        Delete,
-    }
-
-    private sealed record ScriptStep(ScriptOperation Operation, int Offset, string? Text, int Length, string Phase);
-
-    private static ScriptStep InsertStep(int offset, string text, string phase) => new(ScriptOperation.Insert, offset, text, 0, phase);
-
-    private static ScriptStep DeleteStep(int offset, int length, string phase) => new(ScriptOperation.Delete, offset, null, length, phase);
-
-    private static void RunScript(PieceTreeFuzzHarness harness, params ScriptStep[] steps)
-    {
-        foreach (var step in steps)
-        {
-            switch (step.Operation)
-            {
-                case ScriptOperation.Insert:
-                    harness.Insert(step.Offset, step.Text, step.Phase);
-                    break;
-                case ScriptOperation.Delete:
-                    harness.Delete(step.Offset, step.Length, step.Phase);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(step.Operation), step.Operation, "Unsupported script operation");
-            }
-        }
-    }
 
     private static string CreateTsRandomString(Random random, int len)
     {
@@ -213,6 +184,110 @@ public sealed class PieceTreeFuzzHarnessTests
             DeleteStep(3, 4, "random-delete-3-step-13"));
 
         harness.AssertState("random-delete-3-final");
+    }
+
+    [Fact]
+    public void RandomInsertDeleteCrBugOneMatchesTsScript()
+    {
+        // Mirrors TS "random insert/delete \r bug 1" (pieceTreeTextBuffer.test.ts lines 404-432).
+        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugOneMatchesTsScript), initialText: "a", seedOverride: 65536);
+        RunScript(
+            harness,
+            DeleteStep(0, 1, "cr-bug-1-delete-1"),
+            InsertStep(0, "\r\r\n\n", "cr-bug-1-insert-1"),
+            DeleteStep(3, 1, "cr-bug-1-delete-2"),
+            InsertStep(2, "\n\n\ra", "cr-bug-1-insert-2"),
+            DeleteStep(4, 3, "cr-bug-1-delete-3"),
+            InsertStep(2, "\na\r\r", "cr-bug-1-insert-3"),
+            InsertStep(6, "\ra\n\n", "cr-bug-1-insert-4"),
+            InsertStep(0, "aa\n\n", "cr-bug-1-insert-5"),
+            InsertStep(5, "\n\na\r", "cr-bug-1-insert-6"));
+
+        harness.AssertState("random-insert-delete-cr-bug-1-final");
+    }
+
+    [Fact]
+    public void RandomInsertDeleteCrBugTwoMatchesTsScript()
+    {
+        // Mirrors TS "random insert/delete \r bug 2" (pieceTreeTextBuffer.test.ts lines 432-460).
+        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugTwoMatchesTsScript), initialText: "a", seedOverride: 65537);
+        RunScript(
+            harness,
+            InsertStep(1, "\naa\r", "cr-bug-2-insert-1"),
+            DeleteStep(0, 4, "cr-bug-2-delete-1"),
+            InsertStep(1, "\r\r\na", "cr-bug-2-insert-2"),
+            InsertStep(2, "\n\r\ra", "cr-bug-2-insert-3"),
+            DeleteStep(4, 1, "cr-bug-2-delete-2"),
+            InsertStep(8, "\r\n\r\r", "cr-bug-2-insert-4"),
+            InsertStep(7, "\n\n\na", "cr-bug-2-insert-5"),
+            InsertStep(13, "a\n\na", "cr-bug-2-insert-6"),
+            DeleteStep(17, 3, "cr-bug-2-delete-3"),
+            InsertStep(2, "a\ra\n", "cr-bug-2-insert-7"));
+
+        harness.AssertState("random-insert-delete-cr-bug-2-final");
+    }
+
+    [Fact]
+    public void RandomInsertDeleteCrBugThreeMatchesTsScript()
+    {
+        // Mirrors TS "random insert/delete \r bug 3" (pieceTreeTextBuffer.test.ts lines 460-490).
+        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugThreeMatchesTsScript), initialText: "a", seedOverride: 65538);
+        RunScript(
+            harness,
+            InsertStep(0, "\r\na\r", "cr-bug-3-insert-1"),
+            DeleteStep(2, 3, "cr-bug-3-delete-1"),
+            InsertStep(2, "a\r\n\r", "cr-bug-3-insert-2"),
+            DeleteStep(4, 2, "cr-bug-3-delete-2"),
+            InsertStep(4, "a\n\r\n", "cr-bug-3-insert-3"),
+            InsertStep(1, "aa\n\r", "cr-bug-3-insert-4"),
+            InsertStep(7, "\na\r\n", "cr-bug-3-insert-5"),
+            InsertStep(5, "\n\na\r", "cr-bug-3-insert-6"),
+            InsertStep(10, "\r\r\n\r", "cr-bug-3-insert-7"),
+            DeleteStep(21, 3, "cr-bug-3-delete-3"));
+
+        harness.AssertState("random-insert-delete-cr-bug-3-final");
+    }
+
+    [Fact]
+    public void RandomInsertDeleteCrBugFourMatchesTsScript()
+    {
+        // Mirrors TS "random insert/delete \r bug 4" (pieceTreeTextBuffer.test.ts lines 490-520).
+        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugFourMatchesTsScript), initialText: "a", seedOverride: 65539);
+        RunScript(
+            harness,
+            DeleteStep(0, 1, "cr-bug-4-delete-1"),
+            InsertStep(0, "\naaa", "cr-bug-4-insert-1"),
+            InsertStep(2, "\n\naa", "cr-bug-4-insert-2"),
+            DeleteStep(1, 4, "cr-bug-4-delete-2"),
+            DeleteStep(3, 1, "cr-bug-4-delete-3"),
+            DeleteStep(1, 2, "cr-bug-4-delete-4"),
+            DeleteStep(0, 1, "cr-bug-4-delete-5"),
+            InsertStep(0, "a\n\n\r", "cr-bug-4-insert-3"),
+            InsertStep(2, "aa\r\n", "cr-bug-4-insert-4"),
+            InsertStep(3, "a\naa", "cr-bug-4-insert-5"));
+
+        harness.AssertState("random-insert-delete-cr-bug-4-final");
+    }
+
+    [Fact]
+    public void RandomInsertDeleteCrBugFiveMatchesTsScript()
+    {
+        // Mirrors TS "random insert/delete \r bug 5" (pieceTreeTextBuffer.test.ts lines 520-550).
+        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugFiveMatchesTsScript), initialText: string.Empty, seedOverride: 65540);
+        RunScript(
+            harness,
+            InsertStep(0, "\n\n\n\r", "cr-bug-5-insert-1"),
+            InsertStep(1, "\n\n\n\r", "cr-bug-5-insert-2"),
+            InsertStep(2, "\n\r\r\r", "cr-bug-5-insert-3"),
+            InsertStep(8, "\n\r\n\r", "cr-bug-5-insert-4"),
+            DeleteStep(5, 2, "cr-bug-5-delete-1"),
+            InsertStep(4, "\n\r\r\r", "cr-bug-5-insert-5"),
+            InsertStep(8, "\n\n\n\r", "cr-bug-5-insert-6"),
+            DeleteStep(0, 7, "cr-bug-5-delete-2"),
+            InsertStep(1, "\r\n\r\r", "cr-bug-5-insert-7"),
+            InsertStep(15, "\n\r\r\r", "cr-bug-5-insert-8"));
+
+        harness.AssertState("random-insert-delete-cr-bug-5-final");
     }
 
     [Fact]

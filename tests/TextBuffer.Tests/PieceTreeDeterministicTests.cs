@@ -1,0 +1,378 @@
+using PieceTree.TextBuffer;
+using PieceTree.TextBuffer.Core;
+using Range = PieceTree.TextBuffer.Core.Range;
+using PieceTree.TextBuffer.Tests.Helpers;
+using Xunit;
+using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
+
+namespace PieceTree.TextBuffer.Tests;
+
+/// <summary>
+/// Ports deterministic suites from ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts.
+/// </summary>
+public sealed class PieceTreeDeterministicTests
+{
+    #region Prefix sum for line feed (TS lines ~560-720)
+
+    [Fact]
+    public void PrefixSumBasicMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumBasicMatchesTsExpectations), initialText: "1\n2\n3\n4");
+        PieceTreeBufferAssertions.AssertLineCount(harness, 4);
+        PieceTreeBufferAssertions.AssertPositions(
+            harness,
+            (0, new TextPosition(1, 1)),
+            (1, new TextPosition(1, 2)),
+            (2, new TextPosition(2, 1)),
+            (3, new TextPosition(2, 2)),
+            (4, new TextPosition(3, 1)),
+            (5, new TextPosition(3, 2)),
+            (6, new TextPosition(4, 1)));
+        PieceTreeBufferAssertions.AssertOffsets(
+            harness,
+            (new TextPosition(1, 1), 0),
+            (new TextPosition(1, 2), 1),
+            (new TextPosition(2, 1), 2),
+            (new TextPosition(2, 2), 3),
+            (new TextPosition(3, 1), 4),
+            (new TextPosition(3, 2), 5),
+            (new TextPosition(4, 1), 6));
+        harness.AssertState("prefix-sum-basic");
+    }
+
+    [Fact]
+    public void PrefixSumAppendMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumAppendMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        harness.Insert(8, "fh\ni\njk", "prefix-sum-append-insert");
+
+        PieceTreeBufferAssertions.AssertLineCount(harness, 6);
+        PieceTreeBufferAssertions.AssertPositions(harness, (9, new TextPosition(4, 4)));
+        PieceTreeBufferAssertions.AssertOffsets(harness, (new TextPosition(1, 1), 0));
+    }
+
+    [Fact]
+    public void PrefixSumInsertMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        harness.Insert(7, "fh\ni\njk", "prefix-sum-insert");
+
+        PieceTreeBufferAssertions.AssertLineCount(harness, 6);
+        PieceTreeBufferAssertions.AssertPositions(
+            harness,
+            (6, new TextPosition(4, 1)),
+            (7, new TextPosition(4, 2)),
+            (8, new TextPosition(4, 3)),
+            (9, new TextPosition(4, 4)),
+            (12, new TextPosition(6, 1)),
+            (13, new TextPosition(6, 2)),
+            (14, new TextPosition(6, 3)));
+        PieceTreeBufferAssertions.AssertOffsets(
+            harness,
+            (new TextPosition(4, 1), 6),
+            (new TextPosition(4, 2), 7),
+            (new TextPosition(4, 3), 8),
+            (new TextPosition(4, 4), 9),
+            (new TextPosition(6, 1), 12),
+            (new TextPosition(6, 2), 13),
+            (new TextPosition(6, 3), 14));
+    }
+
+    [Fact]
+    public void PrefixSumDeleteMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteMatchesTsExpectations), initialText: "a\nb\nc\ndefh\ni\njk");
+        harness.Delete(7, 2, "prefix-sum-delete");
+
+        Assert.Equal("a\nb\nc\ndh\ni\njk", harness.Buffer.GetText());
+        PieceTreeBufferAssertions.AssertLineCount(harness, 6);
+        AssertDhState(harness);
+    }
+
+    [Fact]
+    public void PrefixSumAddDeleteSequenceMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumAddDeleteSequenceMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        harness.Insert(8, "fh\ni\njk", "prefix-sum-add-delete-insert");
+        harness.Delete(7, 2, "prefix-sum-add-delete-delete");
+
+        Assert.Equal("a\nb\nc\ndh\ni\njk", harness.Buffer.GetText());
+        PieceTreeBufferAssertions.AssertLineCount(harness, 6);
+        AssertDhState(harness);
+    }
+
+    [Fact]
+    public void PrefixSumInsertRandomBugOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertRandomBugOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, " ZX \n Z\nZ\n YZ\nY\nZXX ", "prefix-sum-insert-bug1-step1"),
+            InsertStep(14, "X ZZ\nYZZYZXXY Y XY\n ", "prefix-sum-insert-bug1-step2"));
+    }
+
+    [Fact]
+    public void PrefixSumInsertRandomBugTwoMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertRandomBugTwoMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "ZYZ\nYY XY\nX \nZ Y \nZ ", "prefix-sum-insert-bug2-step1"),
+            InsertStep(3, "XXY \n\nY Y YYY  ZYXY ", "prefix-sum-insert-bug2-step2"));
+    }
+
+    [Fact]
+    public void PrefixSumDeleteRandomBugOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "ba\na\nca\nba\ncbab\ncaa ", "prefix-sum-delete-bug1-1"),
+            InsertStep(13, "cca\naabb\ncac\nccc\nab ", "prefix-sum-delete-bug1-2"),
+            DeleteStep(5, 8, "prefix-sum-delete-bug1-3"),
+            DeleteStep(30, 2, "prefix-sum-delete-bug1-4"),
+            InsertStep(24, "cbbacccbac\nbaaab\n\nc ", "prefix-sum-delete-bug1-5"),
+            DeleteStep(29, 3, "prefix-sum-delete-bug1-6"),
+            DeleteStep(23, 9, "prefix-sum-delete-bug1-7"),
+            DeleteStep(21, 5, "prefix-sum-delete-bug1-8"),
+            DeleteStep(30, 3, "prefix-sum-delete-bug1-9"),
+            InsertStep(3, "cb\nac\nc\n\nacc\nbb\nb\nc ", "prefix-sum-delete-bug1-10"),
+            DeleteStep(19, 5, "prefix-sum-delete-bug1-11"),
+            InsertStep(18, "\nbb\n\nacbc\ncbb\nc\nbb\n ", "prefix-sum-delete-bug1-12"),
+            InsertStep(65, "cbccbac\nbc\n\nccabba\n ", "prefix-sum-delete-bug1-13"),
+            InsertStep(77, "a\ncacb\n\nac\n\n\n\n\nabab ", "prefix-sum-delete-bug1-14"),
+            DeleteStep(30, 9, "prefix-sum-delete-bug1-15"),
+            InsertStep(45, "b\n\nc\nba\n\nbbbba\n\naa\n ", "prefix-sum-delete-bug1-16"),
+            InsertStep(82, "ab\nbb\ncabacab\ncbc\na ", "prefix-sum-delete-bug1-17"),
+            DeleteStep(123, 9, "prefix-sum-delete-bug1-18"),
+            DeleteStep(71, 2, "prefix-sum-delete-bug1-19"),
+            InsertStep(33, "acaa\nacb\n\naa\n\nc\n\n\n\n ", "prefix-sum-delete-bug1-20"));
+    }
+
+    [Fact]
+    public void PrefixSumDeleteRandomBugRbTreeOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree1-1"),
+            DeleteStep(0, 5, "prefix-sum-delete-rbtree1-2"),
+            InsertStep(0, "ZXYY\nX\nZ\n", "prefix-sum-delete-rbtree1-3"),
+            InsertStep(10, "\nXY\nYXYXY", "prefix-sum-delete-rbtree1-4"));
+    }
+
+    [Fact]
+    public void PrefixSumDeleteRandomBugRbTreeTwoMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeTwoMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree2-1"),
+            InsertStep(0, "ZXYY\nX\nZ\n", "prefix-sum-delete-rbtree2-2"),
+            InsertStep(10, "\nXY\nYXYXY", "prefix-sum-delete-rbtree2-3"),
+            InsertStep(8, "YZXY\nZ\nYX", "prefix-sum-delete-rbtree2-4"),
+            InsertStep(12, "XX\nXXYXYZ", "prefix-sum-delete-rbtree2-5"),
+            DeleteStep(0, 4, "prefix-sum-delete-rbtree2-6"));
+    }
+
+    [Fact]
+    public void PrefixSumDeleteRandomBugRbTreeThreeMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeThreeMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree3-1"),
+            DeleteStep(7, 2, "prefix-sum-delete-rbtree3-2"),
+            DeleteStep(6, 1, "prefix-sum-delete-rbtree3-3"),
+            DeleteStep(0, 5, "prefix-sum-delete-rbtree3-4"),
+            InsertStep(0, "ZXYY\nX\nZ\n", "prefix-sum-delete-rbtree3-5"),
+            InsertStep(10, "\nXY\nYXYXY", "prefix-sum-delete-rbtree3-6"),
+            InsertStep(8, "YZXY\nZ\nYX", "prefix-sum-delete-rbtree3-7"),
+            InsertStep(12, "XX\nXXYXYZ", "prefix-sum-delete-rbtree3-8"),
+            DeleteStep(0, 4, "prefix-sum-delete-rbtree3-9"),
+            DeleteStep(30, 3, "prefix-sum-delete-rbtree3-10"));
+    }
+
+    #endregion
+
+    #region Offset 2 position (TS lines ~720-760)
+
+    [Fact]
+    public void OffsetToPositionRandomBugOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(OffsetToPositionRandomBugOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "huuyYzUfKOENwGgZLqn ", "offset2pos-bug1-1"),
+            DeleteStep(18, 2, "offset2pos-bug1-2"),
+            DeleteStep(3, 1, "offset2pos-bug1-3"),
+            DeleteStep(12, 4, "offset2pos-bug1-4"),
+            InsertStep(3, "hMbnVEdTSdhLlPevXKF ", "offset2pos-bug1-5"),
+            DeleteStep(22, 8, "offset2pos-bug1-6"),
+            InsertStep(4, "S umSnYrqOmOAV\nEbZJ ", "offset2pos-bug1-7"));
+    }
+
+    #endregion
+
+    #region Get text in range (TS lines ~760-940)
+
+    [Fact]
+    public void GetTextInRangeReturnsExpectedSegments()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeReturnsExpectedSegments), initialText: "a\nb\nc\nde");
+        harness.Insert(8, "fh\ni\njk", "range-basic-insert");
+        harness.Delete(7, 2, "range-basic-delete");
+
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(1, 1), new TextPosition(1, 3)), "a\n");
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(2, 1), new TextPosition(2, 3)), "b\n");
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(3, 1), new TextPosition(3, 3)), "c\n");
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(4, 1), new TextPosition(4, 4)), "dh\n");
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(5, 1), new TextPosition(5, 3)), "i\n");
+        PieceTreeBufferAssertions.AssertValueInRange(harness, new Range(new TextPosition(6, 1), new TextPosition(6, 3)), "jk");
+    }
+
+    [Fact]
+    public void GetTextInRangeRandomValueSequence()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomValueSequence), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "ZXXY", "range-random-1"),
+            InsertStep(1, "XZZY", "range-random-2"),
+            InsertStep(5, "\nX\n\n", "range-random-3"),
+            InsertStep(3, "\nXX\n", "range-random-4"),
+            InsertStep(12, "YYYX", "range-random-5"));
+    }
+
+    [Fact]
+    public void GetTextInRangeHandlesEmptyRange()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeHandlesEmptyRange), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "XZ\nZ", "range-empty-1"),
+            DeleteStep(0, 3, "range-empty-2"),
+            DeleteStep(0, 1, "range-empty-3"),
+            InsertStep(0, "ZYX\n", "range-empty-4"),
+            DeleteStep(0, 4, "range-empty-5"));
+
+        var value = harness.GetValueInRange(new Range(TextPosition.Origin, TextPosition.Origin));
+        Assert.Equal(string.Empty, value);
+    }
+
+    [Fact]
+    public void GetTextInRangeRandomBugOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomBugOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "huuyYzUfKOENwGgZLqn ", "range-bug1-1"),
+            DeleteStep(18, 2, "range-bug1-2"),
+            DeleteStep(3, 1, "range-bug1-3"),
+            DeleteStep(12, 4, "range-bug1-4"),
+            InsertStep(3, "hMbnVEdTSdhLlPevXKF ", "range-bug1-5"),
+            DeleteStep(22, 8, "range-bug1-6"),
+            InsertStep(4, "S umSnYrqOmOAV\nEbZJ ", "range-bug1-7"));
+    }
+
+    [Fact]
+    public void GetTextInRangeRandomBugTwoMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomBugTwoMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "xfouRDZwdAHjVXJAMV\n ", "range-bug2-1"),
+            InsertStep(16, "dBGndxpFZBEAIKykYYx ", "range-bug2-2"),
+            DeleteStep(7, 6, "range-bug2-3"),
+            DeleteStep(9, 7, "range-bug2-4"),
+            DeleteStep(17, 6, "range-bug2-5"),
+            DeleteStep(0, 4, "range-bug2-6"),
+            InsertStep(9, "qvEFXCNvVkWgvykahYt ", "range-bug2-7"),
+            DeleteStep(4, 6, "range-bug2-8"),
+            InsertStep(11, "OcSChUYT\nzPEBOpsGmR ", "range-bug2-9"),
+            InsertStep(15, "KJCozaXTvkE\nxnqAeTz ", "range-bug2-10"));
+    }
+
+    [Fact]
+    public void GetLineRawContentSingleLineMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentSingleLineMatchesTsExpectations), initialText: "1");
+        Assert.Equal("1", harness.Buffer.InternalModel.GetLineRawContent(1));
+
+        harness.Insert(1, "2", "line-content-single-insert");
+        Assert.Equal("12", harness.Buffer.InternalModel.GetLineRawContent(1));
+    }
+
+    [Fact]
+    public void GetLineRawContentMultipleLinesMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentMultipleLinesMatchesTsExpectations), initialText: "1\n2\n3\n4");
+        Assert.Equal("1\n", harness.Buffer.InternalModel.GetLineRawContent(1));
+        Assert.Equal("2\n", harness.Buffer.InternalModel.GetLineRawContent(2));
+        Assert.Equal("3\n", harness.Buffer.InternalModel.GetLineRawContent(3));
+        Assert.Equal("4", harness.Buffer.InternalModel.GetLineRawContent(4));
+    }
+
+    [Fact]
+    public void GetLineRawContentAfterMutationsMatchesTsExpectations()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentAfterMutationsMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        harness.Insert(8, "fh\ni\njk", "line-content-after-insert");
+        harness.Delete(7, 2, "line-content-after-delete");
+
+        Assert.Equal("a\n", harness.Buffer.InternalModel.GetLineRawContent(1));
+        Assert.Equal("b\n", harness.Buffer.InternalModel.GetLineRawContent(2));
+        Assert.Equal("c\n", harness.Buffer.InternalModel.GetLineRawContent(3));
+        Assert.Equal("dh\n", harness.Buffer.InternalModel.GetLineRawContent(4));
+        Assert.Equal("i\n", harness.Buffer.InternalModel.GetLineRawContent(5));
+        Assert.Equal("jk", harness.Buffer.InternalModel.GetLineRawContent(6));
+    }
+
+    [Fact]
+    public void GetTextInRangeRandomOneMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomOneMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "J eNnDzQpnlWyjmUu\ny ", "range-random-one-1"),
+            InsertStep(0, "QPEeRAQmRwlJqtZSWhQ ", "range-random-one-2"),
+            DeleteStep(5, 1, "range-random-one-3"));
+    }
+
+    [Fact]
+    public void GetTextInRangeRandomTwoMatchesTsScript()
+    {
+        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomTwoMatchesTsScript), initialText: string.Empty);
+        RunScript(
+            harness,
+            InsertStep(0, "DZoQ tglPCRHMltejRI ", "range-random-two-1"),
+            InsertStep(10, "JRXiyYqJ qqdcmbfkKX ", "range-random-two-2"),
+            DeleteStep(16, 3, "range-random-two-3"),
+            DeleteStep(25, 1, "range-random-two-4"),
+            InsertStep(18, "vH\nNlvfqQJPm\nSFkhMc ", "range-random-two-5"));
+    }
+
+    #endregion
+
+    private static void AssertDhState(PieceTreeFuzzHarness harness)
+    {
+        PieceTreeBufferAssertions.AssertPositions(
+            harness,
+            (6, new TextPosition(4, 1)),
+            (7, new TextPosition(4, 2)),
+            (8, new TextPosition(4, 3)),
+            (9, new TextPosition(5, 1)),
+            (11, new TextPosition(6, 1)),
+            (12, new TextPosition(6, 2)),
+            (13, new TextPosition(6, 3)));
+        PieceTreeBufferAssertions.AssertOffsets(
+            harness,
+            (new TextPosition(4, 1), 6),
+            (new TextPosition(4, 2), 7),
+            (new TextPosition(4, 3), 8),
+            (new TextPosition(5, 1), 9),
+            (new TextPosition(6, 1), 11),
+            (new TextPosition(6, 2), 12),
+            (new TextPosition(6, 3), 13));
+    }
+}
