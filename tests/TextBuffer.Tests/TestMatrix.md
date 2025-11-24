@@ -59,7 +59,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 | CL4.F5 – Find decorations stickiness + TextModel decoration queries | Range highlight trimming, overview throttling, `GetAllDecorations`/`GetLineDecorations` APIs, DocUI navigation helpers | Covered | `DecorationStickinessTests.InsertionsAtEdgesMatchStickinessMatrix`, `DocUIFindDecorationsTests.RangeHighlightTrimsTrailingBlankLines`, `DocUIFindDecorationsTests.FindScopesPreserveTrailingNewline`, `DocUIFindDecorationsTests.FindScopesTrackEdits`, `DocUIFindDecorationsTests.OverviewThrottlingRespectsViewportHeight`, `DecorationTests.GetLineDecorationsReturnsVisibleMetadata` |
 
-**Total Tests Passing**: 321 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, 59.7s, 2025-11-25 Sprint 03 Run R30 — tagged `#delta-2025-11-25-b3-textmodel-snapshot`, evidence in `agent-team/handoffs/B3-TextModel-Snapshot-QA.md`)
+**Total Tests Passing**: 324 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, 58.2s, 2025-11-25 Sprint 03 Run R31 — tagged `#delta-2025-11-25-b3-search-offset`, evidence in `agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`)
 **Date**: 2025-11-25
 
 ## B3-PieceTree-Fuzz Harness (Sprint 03 R25 – #delta-2025-11-23-b3-piecetree-fuzz)
@@ -121,6 +121,7 @@ Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) an
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-25 (B3-Search-Offset QA R31) | 324 | 324 | 0 | 58.2s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` — Full TextBuffer sweep paired with the search offset cache drop; targeted rerun logged below and summarized in `agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md` for changefeed `#delta-2025-11-25-b3-search-offset`. |
 | 2025-11-25 (B3-TextModel-Snapshot QA R30) | 321 | 321 | 0 | 59.7s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` — Snapshot wrapper validation run for `#delta-2025-11-25-b3-textmodel-snapshot`; paired with the targeted snapshot/search/deterministic filters listed below and logged in `agent-team/handoffs/B3-TextModel-Snapshot-QA.md`. |
 | 2025-11-25 (B3-PieceTree-Snapshot QA R29) | 312 | 312 | 0 | 53.6s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` — Sprint 03 Run R29 verification of `#delta-2025-11-25-b3-piecetree-snapshot`; paired with targeted filter (4/4, 1.7s) and summarized in `agent-team/handoffs/B3-PieceTree-Snapshot-QA.md`. |
 | 2025-11-25 (B3-PieceTree-Deterministic-CRLF QA) | 308 | 308 | 0 | 67.2s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – QA reran the full suite after CRLF + centralized line-start expansion; deterministic filter (50/50, 3.5s) logged separately under `Targeted reruns` per [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../../agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md). |
@@ -200,6 +201,12 @@ Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) an
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSnapshotParityTests --nologo` | 4/4 green (1.7s) | Replays TS `bug #45564` + `immutable snapshot 1/2/3` parity scripts to ensure the wrapper still surfaces identical chunk sequences; evidence in `agent-team/handoffs/B3-TextModel-Snapshot-QA.md`. |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSearchOffsetCacheTests --nologo` | 5/5 green (1.7s) | Guards the search offset cache so the new wrapper doesn’t perturb cached offsets or invalidation semantics; tied to `#delta-2025-11-25-b3-textmodel-snapshot`. |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo` | 50/50 green (1.6s) | Re-ran the deterministic prefix-sum/CRLF harness to prove the snapshot change leaves PieceTree invariants untouched; logged alongside the TextModel snapshot QA evidence. |
+
+### Targeted reruns (#delta-2025-11-25-b3-search-offset)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSearchOffsetCacheTests --nologo` | 5/5 green (4.3s) | Dedicated rerun for the search offset cache drop; evidence captured for changefeed `#delta-2025-11-25-b3-search-offset` and summarized in `agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`. |
 
 ### Targeted reruns (delta-2025-11-25-b3-bom)
 

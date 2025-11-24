@@ -311,3 +311,46 @@ Handoff / 参考：
 - 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBaseTests.GetLineContent_Cache_Invalidation" --nologo` (2/2)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeNormalizationTests" --nologo` (3/3)；`export PIECETREE_DEBUG=0 && dotnet test -v m` (253/253)。
 - 文档：`docs/plans/ts-test-alignment.md`、Planner / QA memory 与 TestMatrix summary 区已标注 `#delta-2025-11-24-b3-getlinecontent`，迁移日志同步记录。
 
+### delta-2025-11-25-b3-piecetree-deterministic-crlf
+**Sprint 03 R29 – PieceTree deterministic CRLF + centralized line-start suites**
+
+- 交付内容：`tests/TextBuffer.Tests/Helpers/PieceTreeDeterministicScripts.cs` 新增脚本数据表，`tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs` 扩充 28 个 Facts（CRLF delete regressions、CRLF random bug 1-10、centralized lineStarts delete/random/chunk 16 cases），配合既有 `PieceTreeFuzzHarness` 断言 `testLinesContent`/`testLineStarts`。`tests/TextBuffer.Tests/TestMatrix.md` 记录最新 50/50 deterministic 目标与 QA rerun 指令。
+- 测试：QA 2025-11-25 使用 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo`（50/50，3.5s）与 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（308/308，67.2s）完成 rerun；结果回填至 `tests/TextBuffer.Tests/TestMatrix.md` 的 `#delta-2025-11-25-b3-piecetree-deterministic-crlf` 行并收录在 [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../handoffs/B3-PieceTree-Deterministic-CRLF-QA.md)。
+- 文档：迁移日志新增 “B3-PieceTree-Deterministic-CRLF” 行，TestMatrix 更新 PieceTreeDeterministicTests 行/targeted rerun 表并标注已完成的 rerun 结果，Porter memory + handoff 指向本 delta。
+- 风险/后续：当前 PieceTree 全量基线已提升至 308/308，仍需排期补完 snapshot/search offset cache/chunk/random/buffer API deterministic 套件；本次 QA 已结案，但 DocMaintainer/Planner 需沿用本 changefeed 追踪这些剩余 suites 的 TestMatrix 与 handoff 占位。
+
+### delta-2025-11-25-b3-piecetree-snapshot
+**Sprint 03 R28 – Snapshot streaming parity + TS deterministics**
+
+- 代码：`src/TextBuffer/Core/PieceTreeSnapshot.cs` 现按照 TS `pieceTreeSnapshot.ts` 顺序流式读取片段，首次 `Read()` 在 `_index`==0 时发出 BOM，然后逐块返回 piece 切片直到 `_index == _pieces.Length`（空 snapshot 立即返回 null）。`src/TextBuffer/TextModel.cs` 新增 `CreateSnapshot(bool preserveBom = false)`（转发至底层 `PieceTreeModel.CreateSnapshot`），并在 `tests` 下添加 `Helpers/SnapshotReader.cs` 以一次性读取 snapshot（防止 double-read 破坏内部索引）。
+- 测试：`tests/TextBuffer.Tests/PieceTreeSnapshotTests.cs` 迁移至 `TextModel.CreateSnapshot()` + `SnapshotReader`, `tests/TextBuffer.Tests/PieceTreeSnapshotParityTests.cs` 新增 4 个 TS deterministics（`bug #45564`, `immutable snapshot 1/2/3`）。QA rerun：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSnapshotParityTests --nologo`（4/4，1.7s） + 全量 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（312/312，58.7s）。
+- 文档：`tests/TextBuffer.Tests/TestMatrix.md` 添加 PieceTreeSnapshotParityTests 行 + QA 命令，`docs/reports/migration-log.md` 新增 “B3-PieceTree-Snapshot” 行，`agent-team/handoffs/B3-PieceTree-Snapshot-PORT.md` 记录交付/验证/后续项，`agent-team/members/porter-cs.md` 更新 memory，`docs/sprints/sprint-03.md` Run #R28 捕捉本次 drop。
+- 风险/后续：Snapshot streaming 目前依赖 `TextModel.CreateSnapshot()` 仅供测试调用；DocMaintainer 将在后续 delta 中跟踪 Snapshot tool automation（OI-013）。Planner 需确保 SnapshotReader helper 维持 ASCII-only output 并在 QA 指南中提醒“读取 snapshot 只能一次性完成”。
+
+### delta-2025-11-25-b3-textmodel-snapshot
+**Sprint 03 R33/R34 – TextModel snapshot wrapper parity & QA sweep**
+
+- 代码：新增 [`src/TextBuffer/TextModelSnapshot.cs`](../../src/TextBuffer/TextModelSnapshot.cs) 以 TS `TextModelSnapshot` 为蓝本，按 64KB 阈值聚合底层 `ITextSnapshot` 输出并跳过空块/缓存 EOF；[`src/TextBuffer/TextModel.cs`](../../src/TextBuffer/TextModel.cs) 的 `CreateSnapshot(bool preserveBom = false)` 现返回该包装器，从而让上层 API 观察到与 VS Code 相同的 chunk 粒度与内存占用。
+- 测试：`tests/TextBuffer.Tests/TextModelSnapshotTests.cs` 新增 4 个 Facts（类型检查、阈值聚合、空块跳过、EOS 缓存）；同时复跑 `PieceTreeSnapshotTests`、`PieceTreeSnapshotParityTests`、`PieceTreeSearchOffsetCacheTests`、`PieceTreeDeterministicTests` 以证明 wrapper 不影响 PieceTree 行为，并执行全量 `dotnet test`。QA 命令：
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter TextModelSnapshotTests --nologo` (4/4, 1.6s)
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSnapshotTests --nologo` (2/2, 1.7s)
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSnapshotParityTests --nologo` (4/4, 1.7s)
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSearchOffsetCacheTests --nologo` (5/5, 1.7s)
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeDeterministicTests --nologo` (50/50, 1.6s)
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (321/321, 59.7s)
+- 文档：`tests/TextBuffer.Tests/TestMatrix.md` 增加 TextModelSnapshot 区块与上述命令；`docs/sprints/sprint-03.md` Progress Log 记录 R33/R34；`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`AGENTS.md`、`docs/reports/migration-log.md` 同步引用本 delta；详情见 [`agent-team/handoffs/B3-TextModel-Snapshot-PORT.md`](../handoffs/B3-TextModel-Snapshot-PORT.md) 与 [`agent-team/handoffs/B3-TextModel-Snapshot-QA.md`](../handoffs/B3-TextModel-Snapshot-QA.md)。
+- 风险/后续：`SnapshotReader` 在 C# 端引入 `MaxChunks` 防护（TS 无此限制），该差异已在 DocMaintainer 备忘；若未来实现 Snapshot 工具链（OI-013），需确认 64KB 聚合策略与自动化快照输出兼容。
+
+### delta-2025-11-25-b3-bom
+**Sprint 03 R34 – PieceTreeBuffer BOM metadata parity**
+
+- 交付：新增 [`tests/TextBuffer.Tests/PieceTreeBufferBomTests.cs`](../../tests/TextBuffer.Tests/PieceTreeBufferBomTests.cs)（3 个 Facts）覆盖 TS `getBOM` 行为：1）`PieceTreeBuffer` 以 UTF-8 BOM 前缀初始化时，BOM 仅写入 `_bom` 元数据且 `GetText()` 不含 `\uFEFF`；2）当首个 chunk 只有 BOM 时，后续 chunk 仍继承 `_bom`; 3）无 BOM 时返回空字符串。`tests/TextBuffer.Tests/TestMatrix.md` 已登记该新套件与 targeted rerun 指令。
+- 测试：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeBufferBomTests --nologo` (3/3, 2.2s)。
+- 文档：迁移日志添加 [`B3-PieceTree-Bom`](../../docs/reports/migration-log.md#b3-piecetree-bom) 行；TestMatrix 第一张表引入 `PieceTreeBufferBomTests` 行并在 targeted rerun 区记录 `#delta-2025-11-25-b3-bom`；AGENTS / Sprint 03 / Task Board 将本 changefeed 作为 GetBOM 覆盖的唯一指针。
+- 风险/后续：`PieceTreeBuffer` 仍通过 rebuild-on-edit 模式写入 `_bom`，未来增量编辑接入后需确认 `ApplyEdit` 不触碰 BOM 元数据；OI backlog 暂无 BOM 相关未结事项。
+
+### delta-2025-11-25-b3-search-offset
+- **Scope:** [`tests/TextBuffer.Tests/PieceTreeSearchOffsetCacheTests.cs`](../../tests/TextBuffer.Tests/PieceTreeSearchOffsetCacheTests.cs) 现复刻 TS search-offset cache 套件（render whitespace + 4 种归一化 EOL 插入），配套脚本与断言落在 [`tests/TextBuffer.Tests/Helpers/PieceTreeDeterministicScripts.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeDeterministicScripts.cs) 与 [`tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs)，并新增 `AssertSearchCachePrimed` 以确保脚本结束时缓存与 final snapshot 对齐。
+- **QA evidence:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSearchOffsetCacheTests --nologo` → 5/5 @ 4.3s；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 324/324 @ 58.2s（两次 rerun 均由 [`agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`](../handoffs/B3-PieceTree-SearchOffset-QA.md) 记录）。
+- **Documentation hooks:** `tests/TextBuffer.Tests/TestMatrix.md` 新增 search-offset 行与 targeted/full rerun 指令；迁移日志行 [`docs/reports/migration-log.md#b3-searchoffset`](../../docs/reports/migration-log.md#b3-searchoffset) 和 handoffs [`agent-team/handoffs/B3-PieceTree-SearchOffset-PORT.md`](../handoffs/B3-PieceTree-SearchOffset-PORT.md) / [`agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`](../handoffs/B3-PieceTree-SearchOffset-QA.md) 共同指回本 changefeed；后续跟进：无（QA 结论为 “no blocking follow-ups”）。
+

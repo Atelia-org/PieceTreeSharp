@@ -28,8 +28,11 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-24（B3-FM multi-selection documentation sweep）
+- **Last Update:** 2025-11-25（B3 search-offset + snapshot doc sweep）
 - **Recent Actions:**
+  - 2025-11-25：完成 `#delta-2025-11-25-b3-piecetree-deterministic-crlf` / `#delta-2025-11-25-b3-piecetree-snapshot` / `#delta-2025-11-25-b3-textmodel-snapshot` / `#delta-2025-11-25-b3-search-offset` 文档对齐：`AGENTS.md` 新增四条进展 + 状态提示锚点扩展、Task Board B3-SearchOffset-QA/INFO/DOC 行置为 ✅ 并附 5/5 + 324/324 rerun 统计、`docs/sprints/sprint-03.md` 增加 R33/R34、`docs/plans/ts-test-alignment.md` PieceTree 行改为 Priority #2 Completed、`agent-team/members/doc-maintainer.md` 记下本次 sweep。
+  - 2025-11-25：清理 `agent-team/indexes/README.md#delta-2025-11-25-b3-piecetree-deterministic-crlf`，移除待 QA 文案、记录 50/50 + 308/308 rerun 结果，并提醒 snapshot/search offset/chunk/random/buffer API 套件仍需 follow-up。
+  - 2025-11-25：同步 `#delta-2025-11-25-b3-piecetree-deterministic-crlf` QA 证据——在 `agent-team/indexes/README.md`、`docs/reports/migration-log.md`、`tests/TextBuffer.Tests/TestMatrix.md` 记录 50/50 deterministic rerun（3.5s）+ 308/308 full suite（67.2s），并指向 [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../handoffs/B3-PieceTree-Deterministic-CRLF-QA.md)。
   - 2025-11-24：Propagated `#delta-2025-11-24-b3-fm-multisel` references across `AGENTS.md`、`agent-team/task-board.md`（B3-FM-MSel rows）、`docs/plans/ts-test-alignment.md` Live Checkpoints，并复核 `docs/reports/migration-log.md` + `agent-team/handoffs/B3-FM-MultiSelection-*.md` 以保持 changefeed/QA 链一致。
   - 2025-11-24：DocMaintainer sweep —— 修复 `agent-team/indexes/README.md#delta-2025-11-23-b3-decor-stickiness` 标题缩进、去重 `docs/plans/ts-test-alignment.md` Live Checkpoints、在 `AGENTS.md`、`docs/sprints/sprint-03.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`tests/TextBuffer.Tests/TestMatrix.md` 补入 `#delta-2025-11-24-b3-docui-staged`/`#delta-2025-11-24-find-scope`/`#delta-2025-11-24-find-replace-scope` 引用，并校正 `agent-team/members/porter-cs.md` changefeed 锚点与本记忆档 focus 区域。
   - 2025-11-24：筹备 `#delta-2025-11-23-b3-piecetree-fuzz` / `#delta-2025-11-24-b3-piecetree-fuzz` / `#delta-2025-11-24-b3-sentinel` / `#delta-2025-11-24-b3-getlinecontent` changefeed 计划，整理 Info-Indexer 缺口、迁移日志调整点与 AGENTS/Sprint/TS 计划/Planner 记忆的 placeholder 字样替换需求，准备交付给 Porter 执行。

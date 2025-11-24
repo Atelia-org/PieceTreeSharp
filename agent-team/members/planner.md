@@ -22,7 +22,13 @@
 | TS Test Alignment | docs/plans/ts-test-alignment.md | Batch #1 ReplacePattern runtime/tests/harness checklists与 QA/Info-Indexer 依赖的主计划。 |
 
 ## Worklog
-- **Last Update:** 2025-11-24
+- **Last Update:** 2025-11-25
+- **Recent Actions (2025-11-25):**
+  - Drafted `## Run Plan – 2025-11-25` under `agent-team/handoffs/B3-Snapshot-Review-20251125.md`, wiring Investigator-TS → Porter-CS → QA-Automation → DocMaintainer steps, enumerating the required `dotnet test` filters/tool commands, binding everything to changefeeds `#delta-2025-11-25-b3-piecetree-snapshot` / `#delta-2025-11-25-b3-search-offset`, and reminding every downstream subagent to refresh their memory docs before reporting.
+  - Skimmed the staged snapshot/search-offset deltas, captured the audit + workflow plan in `agent-team/handoffs/B3-Snapshot-Review-20251125.md`, and flagged the missing C# `TextModelSnapshot` wrapper so Investigator → Porter → QA can realign with `pieceTreeBase.ts` / `textModel.ts`.
+  - Authored `agent-team/handoffs/B3-PieceTree-SearchOffset-PLAN.md`, locking changefeed `#delta-2025-11-25-b3-search-offset`, run order (INV → PORT → QA → INFO → DOC), and helper/command expectations for the search offset cache deterministics.
+  - Refreshed `agent-team/task-board.md`: marked B3 snapshot as complete, flipped all B3 fuzz rows to the proper `#delta-2025-11-23/24-b3-piecetree-fuzz` anchors, and added the new search-offset rows with budgets plus dependencies.
+  - Logged Sprint 03 Run R30 so the main agent knows Investigator-TS must kick off `B3-SearchOffset-INV` next; ensured Sprint/TestMatrix references now anticipate the upcoming changefeed.
 - **Recent Actions (2025-11-24):**
   - 将 Investigator `agent-team/handoffs/B3-PieceTree-Fuzz-INV.md` 转化为 `agent-team/handoffs/B3-PieceTree-Fuzz-PLAN.md`，确认 R24→R28（Harness→Deterministic→CRLF/Search→QA→DocMaintainer/Info-Indexer）可在 Sprint 03 (至 11-29) 内完成，并设置失效保护：若 R24 未在 11-25 10:00 UTC 合入，则自动将 R26 以后滑入 Sprint 04。
   - 更新 `agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md` 并引用 Info-Indexer 已发布的 `#delta-2025-11-23-b3-piecetree-fuzz` / `#delta-2025-11-24-b3-piecetree-fuzz`，新增 B3-Fuzz-Harness/Deterministic/QA/Doc 行并在 Sprint Progress Log 记录 R24 规划结果。
@@ -43,11 +49,12 @@
   - 复核 Sprint OI-01 与审计要求，确认 Planner 记忆已捕捉新模板依赖与 Info-Indexer handoff。
 
 ## Upcoming Goals (runSubAgent-sized)
-1. **B3-TestFailures review orchestration：** 跟进 per-model sentinel / trimmed `GetLineContent` 审阅链路（INV → Porter → QA），确保 handoff、迁移日志与 TestMatrix 在 `#delta-2025-11-24-b3-sentinel` / `#delta-2025-11-24-b3-getlinecontent` 下对齐。
-2. **Batch #2 执行监控**：每日跟踪 B2-001~005 进度（Task Board 状态），若 B2-003 DocUI harness 超预算则触发风险应对计划（分两步执行）。
-3. **Batch #3 规划准备**：在 B2-004 完成后（预计 2025-11-27）启动 FindController 命令层规划（依赖 EditorAction/ContextKey/Clipboard services）。
-4. **OI-003 – Adoption Pass:** 验证各 SubAgent 在下一轮调用中使用新模板并标记 changefeed checkpoint；收集反馈准备后续迭代。
-5. **OI-001/OI-004 接口落地：** 与 DocMaintainer、Info-Indexer 共建"索引输入 -> Task Board 精简"流水线，确保审计结果能直接转化为 backlog 调整提案。
+1. **B3-Snapshot follow-up:** Trigger Investigator on `B3-Snapshot-Review-20251125` to diff-check `PieceTreeSnapshot`/`TextModelSnapshot` parity, then shepherd Porter + QA through the wrapper implementation + targeted reruns.
+2. **B3-SearchOffset execution:** Trigger `B3-SearchOffset-INV` immediately (R31) so Porter can land `PieceTreeSearchOffsetCacheTests` and unblock QA/Info-Indexer for `#delta-2025-11-25-b3-search-offset`.
+3. **B3-TestFailures review orchestration:** Keep per-model sentinel / trimmed `GetLineContent` follow-ups aligned with `#delta-2025-11-24-b3-sentinel` and `#delta-2025-11-24-b3-getlinecontent` (handoff → Porter → QA).
+4. **Batch #2 execution monitoring:** Continue daily check-ins on B2-001~005 (now winding down) to ensure documentation remains consistent and identify any late spillover.
+5. **OI-003 adoption pass:** Confirm each SubAgent uses the refreshed template/changefeed hooks; capture feedback for the next template iteration.
+6. **OI-001/OI-004 pipeline:** Partner with DocMaintainer + Info-Indexer on the “index input -> Task Board” bridge so audit deltas translate directly into backlog proposals.
 
 ## Blocking Issues
 - 无阻塞项（Batch #2 已完成规划，等待主 Agent 启动 B2-001）。
