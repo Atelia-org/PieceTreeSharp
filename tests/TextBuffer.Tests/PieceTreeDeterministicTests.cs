@@ -10,6 +10,7 @@ using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Tests.Helpers;
 using Xunit;
+using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeDeterministicScripts;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
 
 namespace PieceTree.TextBuffer.Tests;
@@ -361,6 +362,246 @@ public sealed class PieceTreeDeterministicTests
 
     #endregion
 
+    #region CRLF normalization (TS lines 1054-1292)
+
+    // These deterministic delete tests intentionally overlap with PieceTreeNormalizationTests
+    // so the CRLF suite remains contiguous with the original TS ordering.
+    [Fact]
+    public void CrlfDeleteCrInCrlfOneMatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfOneMatchesTsScript));
+        harness.Insert(0, "a\r\nb", "crlf-delete-1-insert");
+        harness.Delete(0, 2, "crlf-delete-1-delete");
+        PieceTreeBufferAssertions.AssertLineCount(harness, 2);
+        harness.AssertState("crlf-delete-1-final");
+    }
+
+    [Fact]
+    public void CrlfDeleteCrInCrlfTwoMatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfTwoMatchesTsScript));
+        harness.Insert(0, "a\r\nb", "crlf-delete-2-insert");
+        harness.Delete(2, 2, "crlf-delete-2-delete");
+        PieceTreeBufferAssertions.AssertLineCount(harness, 2);
+        harness.AssertState("crlf-delete-2-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug01MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug01MatchesTsScript));
+        RunScript(harness, CrlfRandomBug01);
+        harness.AssertState("crlf-random-bug-01-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug02MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug02MatchesTsScript));
+        RunScript(harness, CrlfRandomBug02);
+        harness.AssertState("crlf-random-bug-02-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug03MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug03MatchesTsScript));
+        RunScript(harness, CrlfRandomBug03);
+        harness.AssertState("crlf-random-bug-03-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug04MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug04MatchesTsScript));
+        RunScript(harness, CrlfRandomBug04);
+        harness.AssertState("crlf-random-bug-04-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug05MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug05MatchesTsScript));
+        RunScript(harness, CrlfRandomBug05);
+        harness.AssertState("crlf-random-bug-05-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug06MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug06MatchesTsScript));
+        RunScript(harness, CrlfRandomBug06);
+        harness.AssertState("crlf-random-bug-06-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug07MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug07MatchesTsScript));
+        RunScript(harness, CrlfRandomBug07);
+        harness.AssertState("crlf-random-bug-07-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug08MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug08MatchesTsScript));
+        RunScript(harness, CrlfRandomBug08);
+        harness.AssertState("crlf-random-bug-08-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug09MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug09MatchesTsScript));
+        RunScript(harness, CrlfRandomBug09);
+        harness.AssertState("crlf-random-bug-09-final");
+    }
+
+    [Fact]
+    public void CrlfRandomBug10MatchesTsScript()
+    {
+        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug10MatchesTsScript));
+        RunScript(harness, CrlfRandomBug10);
+        harness.AssertState("crlf-random-bug-10-final");
+    }
+
+    #endregion
+
+    #region Centralized lineStarts with CRLF (TS lines 1294-1589)
+
+    [Fact]
+    public void CentralizedLineStartsDeleteCrlfOneMatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfOneMatchesTsScript), normalizeChunks: false, "a\r\nb");
+        harness.Delete(2, 2, "cls-delete-crlf-1");
+        PieceTreeBufferAssertions.AssertLineCount(harness, 2);
+        harness.AssertState("cls-delete-crlf-1-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsDeleteCrlfTwoMatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfTwoMatchesTsScript), normalizeChunks: true, "a\r\nb");
+        harness.Delete(0, 2, "cls-delete-crlf-2");
+        PieceTreeBufferAssertions.AssertLineCount(harness, 2);
+        harness.AssertState("cls-delete-crlf-2-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug01MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug01MatchesTsScript), normalizeChunks: false, "\n\n\r\r");
+        RunScript(harness, CentralizedLineStartsRandomBug01);
+        harness.AssertState("cls-random-bug-01-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug02MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
+        RunScript(harness, CentralizedLineStartsRandomBug02);
+        harness.AssertState("cls-random-bug-02-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug03MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug03MatchesTsScript), normalizeChunks: false, "\n\n\n\r");
+        RunScript(harness, CentralizedLineStartsRandomBug03);
+        harness.AssertState("cls-random-bug-03-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug04MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug04MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        RunScript(harness, CentralizedLineStartsRandomBug04);
+        harness.AssertState("cls-random-bug-04-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug05MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug05MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        RunScript(harness, CentralizedLineStartsRandomBug05);
+        harness.AssertState("cls-random-bug-05-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug06MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug06MatchesTsScript), normalizeChunks: false, "\n\r\r\n");
+        RunScript(harness, CentralizedLineStartsRandomBug06);
+        harness.AssertState("cls-random-bug-06-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug07MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug07MatchesTsScript), normalizeChunks: false, "\r\n\n\r");
+        RunScript(harness, CentralizedLineStartsRandomBug07);
+        harness.AssertState("cls-random-bug-07-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug08MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug08MatchesTsScript), normalizeChunks: false, "\r\r\n\n");
+        RunScript(harness, CentralizedLineStartsRandomBug08);
+        harness.AssertState("cls-random-bug-08-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug09MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug09MatchesTsScript), normalizeChunks: false, "qneW");
+        RunScript(harness, CentralizedLineStartsRandomBug09);
+        harness.AssertState("cls-random-bug-09-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomBug10MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug10MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        RunScript(harness, CentralizedLineStartsRandomBug10);
+        harness.AssertState("cls-random-bug-10-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomChunkBug01MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug01MatchesTsScript), normalizeChunks: false, "\n\r\r\n\n\n\r\n\r");
+        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug01);
+        AssertFinalText(harness, expected, "cls-random-chunk-bug-01-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomChunkBug02MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\n\n\r\n\r\n\r\r\n\n\n\r\r\n\r\n");
+        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug02);
+        AssertFinalText(harness, expected, "cls-random-chunk-bug-02-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomChunkBug03MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug03MatchesTsScript), normalizeChunks: false, "\r\n\n\n\n\n\n\r\n");
+        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug03);
+        AssertFinalText(harness, expected, "cls-random-chunk-bug-03-final");
+    }
+
+    [Fact]
+    public void CentralizedLineStartsRandomChunkBug04MatchesTsScript()
+    {
+        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug04MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
+        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug04);
+        AssertFinalText(harness, expected, "cls-random-chunk-bug-04-final");
+    }
+
+    #endregion
+
     private static void AssertDhState(PieceTreeFuzzHarness harness)
     {
         PieceTreeBufferAssertions.AssertPositions(
@@ -381,5 +622,21 @@ public sealed class PieceTreeDeterministicTests
             (new TextPosition(6, 1), 11),
             (new TextPosition(6, 2), 12),
             (new TextPosition(6, 3), 13));
+    }
+
+    private static PieceTreeFuzzHarness CreateCrlfHarness(string testName)
+    {
+        return new PieceTreeFuzzHarness(testName, new[] { string.Empty }, normalizeChunks: false);
+    }
+
+    private static PieceTreeFuzzHarness CreateHarnessFromChunks(string testName, bool normalizeChunks, params string[] chunks)
+    {
+        return new PieceTreeFuzzHarness(testName, chunks, normalizeChunks);
+    }
+
+    private static void AssertFinalText(PieceTreeFuzzHarness harness, string expected, string phase)
+    {
+        Assert.Equal(expected, harness.Buffer.GetText());
+        harness.AssertState(phase);
     }
 }

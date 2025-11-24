@@ -8,7 +8,7 @@
 | PieceTreeModelTests | Piece insert/delete invariants, CRLF repair, fuzz | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Covers metadata rebuild + CRLF fuzz; extend for invariant asserts once Porter exposes EnumeratePieces API. |
 | PieceTreeBaseTests | RB-tree basics, cache invalidation, trimmed line content | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | `#delta-2025-11-24-b3-getlinecontent`: cache invalidation tests assert trimmed `GetLineContent` and pin raw terminators via `GetLineRawContent`, mirroring TS `splitLines` expectations. |
 | PieceTreeSearchTests | PieceTree-level search helpers + fuzz harness | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Provides deterministic search + fuzz parity; waiting on PT-005.S9 BufferRange/SearchContext map for full property coverage. |
-| PieceTreeDeterministicTests | Prefix-sum / offset-mapping / range-extraction deterministic suites | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Added (Sprint 03 R28) | Mirrors TS `prefix sum for line feed`, `offset 2 position`, and `get text in range` blocks via `PieceTreeFuzzHarness` helpers; anchored at `#delta-2025-11-24-b3-piecetree-deterministic`. |
+| PieceTreeDeterministicTests | Prefix-sum / offset / range + CRLF normalization + centralized line-start suites | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Verified (Sprint 03 R29 / 50 Facts) | Adds TS CRLF normalization bug battery + centralized line-start/chunk variants (lines 1054-1589) atop the existing deterministic harness; anchored在 `#delta-2025-11-25-b3-piecetree-deterministic-crlf`，QA reran `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo` -> 50/50 green (3.5s, 2025-11-25) per [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../../agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md). |
 | TextModelTests | TextModel lifecycle, BOM/EOL options | [ts/src/vs/editor/test/common/model/textModel.test.ts](../../ts/src/vs/editor/test/common/model/textModel.test.ts) | B | Implemented | `TextModelTests.cs` includes initialization + CRLF normalization; services layer stubs still pending for event stream parity. |
 | TextModelSearchTests | Regex/word search parameters, CRLF payloads | [ts/src/vs/editor/test/common/model/textModelSearch.test.ts](../../ts/src/vs/editor/test/common/model/textModelSearch.test.ts) | B | Implemented | Core regex + multiline coverage exists; Tier-B gaps = word-boundary + separator maps noted in AA4-008 blockers. |
 | DiffTests | DiffComputer heuristics (line/char, trim flags) | [ts/src/vs/editor/test/common/diff/diffComputer.test.ts](../../ts/src/vs/editor/test/common/diff/diffComputer.test.ts) | B | Implemented | Legacy diff logic ported; char-change pretty diff + whitespace flag cases still TODO for parity. |
@@ -57,8 +57,8 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 | CL4.F5 – Find decorations stickiness + TextModel decoration queries | Range highlight trimming, overview throttling, `GetAllDecorations`/`GetLineDecorations` APIs, DocUI navigation helpers | Covered | `DecorationStickinessTests.InsertionsAtEdgesMatchStickinessMatrix`, `DocUIFindDecorationsTests.RangeHighlightTrimsTrailingBlankLines`, `DocUIFindDecorationsTests.FindScopesPreserveTrailingNewline`, `DocUIFindDecorationsTests.FindScopesTrackEdits`, `DocUIFindDecorationsTests.OverviewThrottlingRespectsViewportHeight`, `DecorationTests.GetLineDecorationsReturnsVisibleMetadata` |
 
-**Total Tests Passing**: 280 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, 2025-11-24 deterministic suites drop)
-**Date**: 2025-11-24
+**Total Tests Passing**: 308 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, 67.2s, 2025-11-25 B3-PieceTree-Deterministic-CRLF QA baseline)
+**Date**: 2025-11-25
 
 ## B3-PieceTree-Fuzz Harness (Sprint 03 R25 – #delta-2025-11-23-b3-piecetree-fuzz)
 
@@ -84,6 +84,7 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | Offset ↔ Position mapping | R28 | Ports TS `offset 2 position` suites so `GetPositionAt` and `GetOffsetAt` remain bijective after mixed edits. | Porter-CS | Added (pass) | `PieceTreeDeterministicTests.OffsetToPositionRandomBugOneMatchesTsScript` |
 | GetValueInRange & raw line content | R28 | Recreates TS `get text in range` coverage, validating `GetValueInRange`, `GetLineRawContent`, and CRLF normalization across edits (including empty ranges). | Porter-CS | Added (pass) | `PieceTreeDeterministicTests.GetTextInRange*`, `GetLineRawContent*` |
 | Range bug scripts | R28 | Covers random bug suites from TS (lines ~760-940) to guard mixed insert/delete/replace sequences with CR/LF payloads. | Porter-CS | Added (pass) | `PieceTreeDeterministicTests.GetTextInRangeRandomBug*` |
+| CRLF normalization & centralized lineStarts | R29 | Ports TS `CRLF` + `centralized lineStarts with CRLF` suites (lines 1054-1589), including delete regressions, random bug scripts, and chunk variants; harness assertions cover line-count, raw contents, and line-start tables. | Porter-CS | Added (QA verified 50/50, 3.5s) | `PieceTreeDeterministicTests.Crlf*`, `CentralizedLineStarts*` — evidence in [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../../agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md). |
 
 Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) and `PieceTreeScript` (insert/delete/replace scripting) under `tests/TextBuffer.Tests/Helpers/` to keep deterministic scripts aligned with TS fixtures.
 
@@ -118,6 +119,7 @@ Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) an
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-25 (B3-PieceTree-Deterministic-CRLF QA) | 308 | 308 | 0 | 67.2s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – QA reran the full suite after CRLF + centralized line-start expansion; deterministic filter (50/50, 3.5s) logged separately under `Targeted reruns` per [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../../agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md). |
 | 2025-11-24 (B3-PieceTree-Deterministic) | 280 | 280 | 0 | 53.0s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Adds `PieceTreeDeterministicTests` (22 facts + helpers) mirroring TS prefix-sum/offset/range suites; anchors to `#delta-2025-11-24-b3-piecetree-deterministic`. |
 | 2025-11-24 (B3-TestFailures fix) | 253 | 253 | 0 | 59.3s | `export PIECETREE_DEBUG=0 && dotnet test -v m` – Latest rerun confirming per-model sentinel + `GetLineContent` parity fixes (`#delta-2025-11-24-b3-sentinel`, `#delta-2025-11-24-b3-getlinecontent`). |
 | 2025-11-24 (Sprint 03 R25 – B3-PieceTree-Fuzz Harness) | 245 | 245 | 0 | 4.1s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Harness utilities + RB-tree invariant audit (`#delta-2025-11-23-b3-piecetree-fuzz`). |
@@ -178,10 +180,11 @@ Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) an
 | --- | --- | --- |
 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeFuzzHarnessTests --nologo` | 2/2 green | Harness smoke: deterministic seed loop + corruption detection assertions (`#delta-2025-11-23-b3-piecetree-fuzz`). |
 
-### Targeted reruns (B3-PieceTree-Deterministic, 2025-11-24)
+### Targeted reruns (B3-PieceTree-Deterministic-CRLF, 2025-11-25)
 
 | Command | Result | Notes |
 | --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo` | 50/50 green (3.5s) | 2025-11-25 QA rerun validating CRLF normalization + centralized line-start deterministic suites; see [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../../agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md). |
 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests --nologo` | 22/22 green | Verifies TS prefix-sum/offset/range deterministic suites via `PieceTreeDeterministicTests`; anchors to `#delta-2025-11-24-b3-piecetree-deterministic`. |
 
 ### Targeted reruns (delta-2025-11-24-b3-docui-staged)
