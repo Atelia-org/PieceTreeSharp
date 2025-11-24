@@ -514,6 +514,13 @@ internal sealed partial class PieceTreeModel
 
     internal void AssertPieceIntegrity()
     {
+        ValidatePieceMetadata();
+        ValidateTreeInvariants();
+        _searchCache.Validate(GetOffsetOfNode, TotalLength);
+    }
+
+    private void ValidatePieceMetadata()
+    {
         var aggregatedLength = 0;
         var aggregatedLineFeeds = 0;
 
@@ -545,8 +552,106 @@ internal sealed partial class PieceTreeModel
         {
             throw new InvalidOperationException($"TotalLineFeeds mismatch: aggregated pieces = {aggregatedLineFeeds}, tree metadata = {TotalLineFeeds}.");
         }
+    }
 
-        _searchCache.Validate(GetOffsetOfNode, TotalLength);
+    private void ValidateTreeInvariants()
+    {
+        if (_sentinel.Color != NodeColor.Black
+            || !ReferenceEquals(_sentinel.Left, _sentinel)
+            || !ReferenceEquals(_sentinel.Right, _sentinel)
+            || !ReferenceEquals(_sentinel.Parent, _sentinel))
+        {
+            throw new InvalidOperationException("Sentinel invariants violated: sentinel must remain black and self-referential.");
+        }
+
+        if (_sentinel.SizeLeft != 0 || _sentinel.LineFeedsLeft != 0 || _sentinel.AggregatedLength != 0 || _sentinel.AggregatedLineFeeds != 0)
+        {
+            throw new InvalidOperationException($"Sentinel metadata must remain zero (sizeLeft={_sentinel.SizeLeft}, lfLeft={_sentinel.LineFeedsLeft}, aggLen={_sentinel.AggregatedLength}, aggLf={_sentinel.AggregatedLineFeeds}).");
+        }
+
+        if (ReferenceEquals(_root, _sentinel))
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(_root.Parent, _sentinel))
+        {
+            throw new InvalidOperationException("Root parent must point to sentinel.");
+        }
+
+        if (_root.Color != NodeColor.Black)
+        {
+            throw new InvalidOperationException("Root must be black (TS assertTreeInvariants parity).");
+        }
+
+        _ = AssertNodeInvariants(_root);
+    }
+
+    private int AssertNodeInvariants(PieceTreeNode node)
+    {
+        if (ReferenceEquals(node, _sentinel))
+        {
+            return 1;
+        }
+
+        if (!ReferenceEquals(node.Left, _sentinel) && !ReferenceEquals(node.Left.Parent, node))
+        {
+            throw new InvalidOperationException($"Left parent mismatch at {DescribeNode(node)}.");
+        }
+
+        if (!ReferenceEquals(node.Right, _sentinel) && !ReferenceEquals(node.Right.Parent, node))
+        {
+            throw new InvalidOperationException($"Right parent mismatch at {DescribeNode(node)}.");
+        }
+
+        if (node.Color == NodeColor.Red)
+        {
+            if (node.Left.Color != NodeColor.Black || node.Right.Color != NodeColor.Black)
+            {
+                throw new InvalidOperationException($"Red node must have black children ({DescribeNode(node)}).");
+            }
+        }
+
+        var leftBlackHeight = AssertNodeInvariants(node.Left);
+        var rightBlackHeight = AssertNodeInvariants(node.Right);
+        if (leftBlackHeight != rightBlackHeight)
+        {
+            throw new InvalidOperationException($"Black height mismatch at {DescribeNode(node)} (left={leftBlackHeight}, right={rightBlackHeight}).");
+        }
+
+        var leftAggregatedLength = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLength;
+        if (node.SizeLeft != leftAggregatedLength)
+        {
+            throw new InvalidOperationException($"SizeLeft mismatch at {DescribeNode(node)} expected={leftAggregatedLength} actual={node.SizeLeft}.");
+        }
+
+        var leftAggregatedLineFeeds = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLineFeeds;
+        if (node.LineFeedsLeft != leftAggregatedLineFeeds)
+        {
+            throw new InvalidOperationException($"LineFeedsLeft mismatch at {DescribeNode(node)} expected={leftAggregatedLineFeeds} actual={node.LineFeedsLeft}.");
+        }
+
+        var rightAggregatedLength = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLength;
+        var expectedAggregatedLength = leftAggregatedLength + node.Piece.Length + rightAggregatedLength;
+        if (node.AggregatedLength != expectedAggregatedLength)
+        {
+            throw new InvalidOperationException($"AggregatedLength mismatch at {DescribeNode(node)} expected={expectedAggregatedLength} actual={node.AggregatedLength}.");
+        }
+
+        var rightAggregatedLineFeeds = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLineFeeds;
+        var expectedAggregatedLineFeeds = leftAggregatedLineFeeds + node.Piece.LineFeedCount + rightAggregatedLineFeeds;
+        if (node.AggregatedLineFeeds != expectedAggregatedLineFeeds)
+        {
+            throw new InvalidOperationException($"AggregatedLineFeeds mismatch at {DescribeNode(node)} expected={expectedAggregatedLineFeeds} actual={node.AggregatedLineFeeds}.");
+        }
+
+        return leftBlackHeight + (node.Color == NodeColor.Black ? 1 : 0);
+    }
+
+    private static string DescribeNode(PieceTreeNode node)
+    {
+        var piece = node.Piece;
+        return $"buf={piece.BufferIndex} start=({piece.Start.Line},{piece.Start.Column}) end=({piece.End.Line},{piece.End.Column}) len={piece.Length}";
     }
 }
 

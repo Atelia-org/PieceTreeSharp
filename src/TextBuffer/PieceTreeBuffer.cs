@@ -184,8 +184,10 @@ public sealed class PieceTreeBuffer
 		lineNumber = Math.Clamp(lineNumber, 1, lineStarts.Count);
 		var lineStart = lineStarts[lineNumber - 1];
 		var lineEnd = lineNumber < lineStarts.Count ? lineStarts[lineNumber] : snapshot.Length;
-		var lineContentLength = lineEnd - lineStart - MeasureLineBreak(snapshot, lineStart, lineEnd);
-		var clampedColumn = Math.Clamp(column, 1, lineContentLength + 1);
+		var lineBreakLength = MeasureLineBreak(snapshot, lineStart, lineEnd);
+		var lineContentLength = Math.Max(0, lineEnd - lineStart - lineBreakLength);
+		var maxColumn = Math.Max(1, lineContentLength + lineBreakLength + 1);
+		var clampedColumn = Math.Clamp(column, 1, maxColumn);
 		return lineStart + clampedColumn - 1;
 	}
 

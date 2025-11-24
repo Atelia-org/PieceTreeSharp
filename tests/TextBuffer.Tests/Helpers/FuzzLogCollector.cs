@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;
@@ -34,6 +35,11 @@ internal sealed class FuzzLogCollector : IDisposable
         }
     }
 
+    public void AddOperation(FuzzOperationLogEntry entry)
+    {
+        _entries.Add(entry.ToString());
+    }
+
     public string FlushToFile()
     {
         if (!string.IsNullOrWhiteSpace(_explicitPath))
@@ -58,5 +64,40 @@ internal sealed class FuzzLogCollector : IDisposable
     public void Dispose()
     {
         _entries.Clear();
+    }
+}
+
+internal readonly record struct FuzzOperationLogEntry(
+    string Operation,
+    int Iteration,
+    int Offset,
+    int Length,
+    string? Text,
+    int Seed)
+{
+    public override string ToString()
+    {
+        var sanitized = Sanitize(Text);
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "[{0:00000}] op={1} offset={2} length={3} seed={4} text=\"{5}\"",
+            Iteration,
+            Operation,
+            Offset,
+            Length,
+            Seed,
+            sanitized);
+    }
+
+    private static string Sanitize(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal);
     }
 }

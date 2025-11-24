@@ -258,8 +258,23 @@ internal sealed partial class PieceTreeModel
         {
             return _lastVisitedLine.Value;
         }
+
         _lastVisitedLine.LineNumber = lineNumber;
-        _lastVisitedLine.Value = GetLineRawContent(lineNumber);
+        var lastLineNumber = TotalLineFeeds + 1;
+        if (lineNumber == lastLineNumber)
+        {
+            _lastVisitedLine.Value = GetLineRawContent(lineNumber);
+        }
+        else if (_eolNormalized)
+        {
+            _lastVisitedLine.Value = GetLineRawContent(lineNumber, _eol.Length);
+        }
+        else
+        {
+            var rawContent = GetLineRawContent(lineNumber);
+            _lastVisitedLine.Value = TrimTrailingLineFeed(rawContent);
+        }
+
         return _lastVisitedLine.Value;
     }
 
@@ -404,5 +419,31 @@ internal sealed partial class PieceTreeModel
         }
 
         return Math.Min(index, limit);
+    }
+
+    private static string TrimTrailingLineFeed(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        var lastChar = text[^1];
+        if (lastChar == '\n')
+        {
+            if (text.Length >= 2 && text[^2] == '\r')
+            {
+                return text.Substring(0, text.Length - 2);
+            }
+
+            return text.Substring(0, text.Length - 1);
+        }
+
+        if (lastChar == '\r')
+        {
+            return text.Substring(0, text.Length - 1);
+        }
+
+        return text;
     }
 }
