@@ -776,7 +776,7 @@ internal sealed partial class PieceTreeModel
 
     private PieceTreeNode RbInsertRight(PieceTreeNode node, PieceSegment p)
     {
-        var z = new PieceTreeNode(p, NodeColor.Red);
+        var z = new PieceTreeNode(p, NodeColor.Red, _sentinel);
         z.Left = _sentinel;
         z.Right = _sentinel;
         z.Parent = _sentinel;
@@ -808,7 +808,7 @@ internal sealed partial class PieceTreeModel
 
     private PieceTreeNode RbInsertLeft(PieceTreeNode node, PieceSegment p)
     {
-        var z = new PieceTreeNode(p, NodeColor.Red);
+        var z = new PieceTreeNode(p, NodeColor.Red, _sentinel);
         z.Left = _sentinel;
         z.Right = _sentinel;
         z.Parent = _sentinel;

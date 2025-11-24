@@ -14,7 +14,7 @@ public class PieceTreeModelTests
 {
     private static string ReadPieceText(PieceTreeModel model, PieceTreeNode node)
     {
-        if (node is null || ReferenceEquals(node, PieceTreeNode.Sentinel) || node.Piece.Length == 0)
+        if (node is null || ReferenceEquals(node, model.Sentinel) || node.Piece.Length == 0)
         {
             return string.Empty;
         }

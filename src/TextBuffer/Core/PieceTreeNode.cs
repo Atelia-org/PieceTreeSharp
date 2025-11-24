@@ -2,6 +2,8 @@
 // - Class: TreeNode (Lines: 8-425)
 // Ported: 2025-11-19
 
+using System;
+
 namespace PieceTree.TextBuffer.Core;
 
 internal enum NodeColor
@@ -12,13 +14,33 @@ internal enum NodeColor
 
 internal sealed class PieceTreeNode
 {
-    internal PieceTreeNode(PieceSegment piece, NodeColor color)
+    private readonly PieceTreeNode _sentinel;
+
+    private PieceTreeNode()
     {
+        Piece = PieceSegment.Empty;
+        Color = NodeColor.Black;
+        _sentinel = this;
+        Parent = this;
+        Left = this;
+        Right = this;
+        SizeLeft = 0;
+        LineFeedsLeft = 0;
+        AggregatedLength = 0;
+        AggregatedLineFeeds = 0;
+        IsDetached = false;
+    }
+
+    internal PieceTreeNode(PieceSegment piece, NodeColor color, PieceTreeNode sentinel)
+    {
+        ArgumentNullException.ThrowIfNull(sentinel);
+
         Piece = piece;
         Color = color;
-        Left = Sentinel;
-        Right = Sentinel;
-        Parent = Sentinel;
+        _sentinel = sentinel;
+        Left = sentinel;
+        Right = sentinel;
+        Parent = sentinel;
         SizeLeft = 0;
         LineFeedsLeft = 0;
         AggregatedLength = piece.Length;
@@ -26,8 +48,8 @@ internal sealed class PieceTreeNode
         IsDetached = false;
     }
 
-    public PieceTreeNode(PieceSegment piece)
-        : this(piece, NodeColor.Red)
+    internal PieceTreeNode(PieceSegment piece, PieceTreeNode sentinel)
+        : this(piece, NodeColor.Red, sentinel)
     {
     }
 
@@ -51,16 +73,16 @@ internal sealed class PieceTreeNode
 
     internal bool IsDetached { get; private set; }
 
-    public static PieceTreeNode Sentinel { get; } = CreateSentinel();
-
-    internal bool IsSentinel => ReferenceEquals(this, Sentinel);
+    internal bool IsSentinel => ReferenceEquals(this, _sentinel);
 
     internal PieceTreeNode Next()
     {
-        if (!ReferenceEquals(Right, Sentinel))
+        var sentinel = _sentinel;
+
+        if (!ReferenceEquals(Right, sentinel))
         {
             var node = Right;
-            while (!ReferenceEquals(node.Left, Sentinel))
+            while (!ReferenceEquals(node.Left, sentinel))
             {
                 node = node.Left;
             }
@@ -68,7 +90,7 @@ internal sealed class PieceTreeNode
         }
 
         var current = this;
-        while (!ReferenceEquals(current.Parent, Sentinel))
+        while (!ReferenceEquals(current.Parent, sentinel))
         {
             if (ReferenceEquals(current.Parent.Left, current))
             {
@@ -77,19 +99,21 @@ internal sealed class PieceTreeNode
             current = current.Parent;
         }
 
-        if (ReferenceEquals(current.Parent, Sentinel))
+        if (ReferenceEquals(current.Parent, sentinel))
         {
-            return Sentinel;
+            return sentinel;
         }
         return current.Parent;
     }
 
     internal PieceTreeNode Prev()
     {
-        if (!ReferenceEquals(Left, Sentinel))
+        var sentinel = _sentinel;
+
+        if (!ReferenceEquals(Left, sentinel))
         {
             var node = Left;
-            while (!ReferenceEquals(node.Right, Sentinel))
+            while (!ReferenceEquals(node.Right, sentinel))
             {
                 node = node.Right;
             }
@@ -97,7 +121,7 @@ internal sealed class PieceTreeNode
         }
 
         var current = this;
-        while (!ReferenceEquals(current.Parent, Sentinel))
+        while (!ReferenceEquals(current.Parent, sentinel))
         {
             if (ReferenceEquals(current.Parent.Right, current))
             {
@@ -106,43 +130,28 @@ internal sealed class PieceTreeNode
             current = current.Parent;
         }
 
-        if (ReferenceEquals(current.Parent, Sentinel))
+        if (ReferenceEquals(current.Parent, sentinel))
         {
-            return Sentinel;
+            return sentinel;
         }
         return current.Parent;
     }
 
     internal void Detach()
     {
-        Parent = Sentinel;
-        Left = Sentinel;
-        Right = Sentinel;
+        Parent = _sentinel;
+        Left = _sentinel;
+        Right = _sentinel;
         IsDetached = true;
     }
 
-    private static PieceTreeNode CreateSentinel()
-    {
-        var sentinel = new PieceTreeNode(PieceSegment.Empty, NodeColor.Black)
-        {
-            AggregatedLength = 0,
-            AggregatedLineFeeds = 0,
-            SizeLeft = 0,
-            LineFeedsLeft = 0
-        };
-
-        sentinel.Parent = sentinel;
-        sentinel.Left = sentinel;
-        sentinel.Right = sentinel;
-        sentinel.IsDetached = false;
-        return sentinel;
-    }
+    internal static PieceTreeNode CreateSentinel() => new();
 
     internal void ResetLinks()
     {
-        Parent = Sentinel;
-        Left = Sentinel;
-        Right = Sentinel;
+        Parent = _sentinel;
+        Left = _sentinel;
+        Right = _sentinel;
         SizeLeft = 0;
         LineFeedsLeft = 0;
         AggregatedLength = Piece.Length;

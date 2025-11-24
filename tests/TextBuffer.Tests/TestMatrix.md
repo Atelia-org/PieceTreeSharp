@@ -6,6 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | PieceTreeBuilderTests | Builder chunk split, BOM/metadata retention | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Mirrors Builder cases (`AcceptChunk_*`) incl. CRLF carryover per AA4-005. |
 | PieceTreeModelTests | Piece insert/delete invariants, CRLF repair, fuzz | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Covers metadata rebuild + CRLF fuzz; extend for invariant asserts once Porter exposes EnumeratePieces API. |
+| PieceTreeBaseTests | RB-tree basics, cache invalidation, trimmed line content | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | `#delta-2025-11-24-b3-getlinecontent`: cache invalidation tests assert trimmed `GetLineContent` and pin raw terminators via `GetLineRawContent`, mirroring TS `splitLines` expectations. |
 | PieceTreeSearchTests | PieceTree-level search helpers + fuzz harness | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | Provides deterministic search + fuzz parity; waiting on PT-005.S9 BufferRange/SearchContext map for full property coverage. |
 | TextModelTests | TextModel lifecycle, BOM/EOL options | [ts/src/vs/editor/test/common/model/textModel.test.ts](../../ts/src/vs/editor/test/common/model/textModel.test.ts) | B | Implemented | `TextModelTests.cs` includes initialization + CRLF normalization; services layer stubs still pending for event stream parity. |
 | TextModelSearchTests | Regex/word search parameters, CRLF payloads | [ts/src/vs/editor/test/common/model/textModelSearch.test.ts](../../ts/src/vs/editor/test/common/model/textModelSearch.test.ts) | B | Implemented | Core regex + multiline coverage exists; Tier-B gaps = word-boundary + separator maps noted in AA4-008 blockers. |
@@ -20,6 +21,7 @@
 | DocUIFindControllerTests | FindController command parity（issue #1857/#3090/#6149/#41027/#9043/#27083/#58604/#38232 + scope persistence + whitespace Ctrl/Cmd+F3 + Alt+Enter parity） | [ts/src/vs/editor/contrib/find/test/browser/findController.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/findController.test.ts) | B | ✅ Complete (+ OI-013/OI-015) | `DocUIFindControllerTests.cs` + `TestEditorHost`/storage/clipboard stubs cover navigation loops、regex seed auto-escape、scope lifecycle、replace focus、selection-seeded regex、auto find-in-selection fallback (**AutoFindInSelectionAppliesDuringFallbackStart**), backward helpers (**Issue3090_PreviousMatchLoopsWithinSingleLine** / **Issue38232_PreviousSelectionMatchRegex**) 与 Alt+Enter wiring (**SelectAllMatchesActionAppliesSelections**). PreserveCase 默认值/存储回填、EmptyClipboard no-op、SearchScope persistence + whitespace Ctrl/Cmd+F3 regressions tracked via `#delta-2025-11-23-b3-fc-core`、`#delta-2025-11-23-b3-fc-scope`; 最新 `#delta-2025-11-23-b3-fc-lifecycle` 覆盖 Ctrl+F reseed parity、`SeedSearchStringMode.Never` replace 护栏、Cmd+E multi-line/word seeds（issues #47400/#109756）、FindModel lifecycle/disposal 测试；`#delta-2025-11-23-b3-fc-regexseed` 新增 Cmd+E regex 多行选择保持字面文本（27 测试）。 |
 | DocUIFindSelectionTests | Selection-derived search string heuristics | [ts/src/vs/editor/contrib/find/test/browser/find.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/find.test.ts) | A | ✅ Complete (+ hyphen regression) | `DocUIFindSelectionTests.cs` ports the 3 `find.test.ts` cases (cursor word seed, single-line selection, multiline null) using `SelectionTestContext` 并新增 **RespectsCustomWordSeparatorsHyphen** 覆盖 OI-014（wordSeparators plumbing）。Tracks `#delta-2025-11-23-b3-fsel`. |
 | ReplacePatternTests | ReplacePattern parser + case preservation | [ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts](../../ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts) | A | ✅ Complete | Batch #1 (2025-11-22) – 23 tests covering escape/backslash chains, `$n`/`$&` permutations, `\u/\l/\U/\L` case ops, JS semantics, preserve-case helpers. Files: `ReplacePatternTests.cs`, `Core/ReplacePattern.cs`, `Rendering/DocUIReplaceController.cs`. |
+| PieceTreeNormalizationTests | CR/LF normalization edge cases + raw line coverage | [ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts](../../ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts) | B | Implemented | `#delta-2025-11-24-b3-getlinecontent`: normalization suite now expects trimmed `GetLineContent` output and asserts `GetLineRawContent` to ensure CR/LF bytes remain in backing buffers. |
 
 Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, text shape nuances, chunk layout, and which validation signals currently execute in xUnit.
 
@@ -54,8 +56,23 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | CL4.F4 – DocUI diff snapshot plumbing | Markdown renderer emits diff markers (add/delete/insertion) using decoration metadata | Covered | `MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` |
 | CL4.F5 – Find decorations stickiness + TextModel decoration queries | Range highlight trimming, overview throttling, `GetAllDecorations`/`GetLineDecorations` APIs, DocUI navigation helpers | Covered | `DecorationStickinessTests.InsertionsAtEdgesMatchStickinessMatrix`, `DocUIFindDecorationsTests.RangeHighlightTrimsTrailingBlankLines`, `DocUIFindDecorationsTests.FindScopesPreserveTrailingNewline`, `DocUIFindDecorationsTests.FindScopesTrackEdits`, `DocUIFindDecorationsTests.OverviewThrottlingRespectsViewportHeight`, `DecorationTests.GetLineDecorationsReturnsVisibleMetadata` |
 
-**Total Tests Passing**: 242 (`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`, Sprint 03 B3-FM multi-selection QA close-out)
+**Total Tests Passing**: 253 (`export PIECETREE_DEBUG=0 && dotnet test -v m`, 2025-11-24 QA rerun for `#delta-2025-11-24-b3-sentinel` / `#delta-2025-11-24-b3-getlinecontent`)
 **Date**: 2025-11-24
+
+## B3-PieceTree-Fuzz Harness (Sprint 03 R25 – #delta-2025-11-23-b3-piecetree-fuzz)
+
+| Test | Scope | Focus | Owner | Status | Reference |
+| --- | --- | --- | --- | --- | --- |
+| PieceTreeFuzzHarnessTests.FuzzHarnessRunsShortDeterministicSequence | R25 | Deterministic harness run (env-seeded RNG) verifying per-iteration inserts/deletes plus range diff snapshots | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.FuzzHarnessRunsShortDeterministicSequence` |
+| PieceTreeFuzzHarnessTests.HarnessDetectsExternalCorruption | R25 | Ensures harness detects external mutations by diffing expected vs actual text/logs | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.HarnessDetectsExternalCorruption` |
+| PieceTreeFuzzHarnessTests.RandomTestOneMatchesTsScript | CI-1 | Replays TS `random test 1` insert script (lines 271-285) via harness helper, validating deterministic parity (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomTestOneMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomTestTwoMatchesTsScript | CI-1 | Replays TS `random test 2` insert script (lines 285-296) to guard offset ordering (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomTestTwoMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomTestThreeMatchesTsScript | CI-1 | Replays TS `random test 3` (lines 296-312) to ensure chained inserts + CRLF payloads stay deterministic (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomTestThreeMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomDeleteOneMatchesTsScript | CI-1 | Ports TS `random delete 1` mix of inserts/deletes (lines 331-360) (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomDeleteOneMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomDeleteTwoMatchesTsScript | CI-1 | Ports TS `random delete 2` (lines 360-385) to guard delete-vs-insert ordering (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomDeleteTwoMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomDeleteThreeMatchesTsScript | CI-1 | Ports TS `random delete 3` (lines 385-404) including CRLF insert + delete spans (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomDeleteThreeMatchesTsScript` |
+| PieceTreeFuzzHarnessTests.RandomChunksMatchesTsSuite | CI-2 | Multi-chunk seeding (5×1000) fuzz loop w/ deterministic RNG to mirror TS `random chunks` (lines 1668-1708) (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomChunksMatchesTsSuite` |
+| PieceTreeFuzzHarnessTests.RandomChunksTwoMatchesTsSuite | CI-2 | Multi-chunk seeding (1×1000) + per-iteration asserts for TS `random chunks 2` (lines 1708-1725) (#delta-2025-11-24-b3-piecetree-fuzz) | Porter-CS | Added (pass) | `PieceTreeFuzzHarnessTests.RandomChunksTwoMatchesTsSuite` |
 
 ## AA4-005 (CL5) & AA4-006 (CL6) Porter-added tests (2025-11-21)
 
@@ -88,6 +105,8 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 ### Test baseline (dotnet test)
 | Date | Total | Passed | Failed | Duration | Notes |
 | --- | ---: | ---: | ---: | ---: | --- |
+| 2025-11-24 (B3-TestFailures fix) | 253 | 253 | 0 | 59.3s | `export PIECETREE_DEBUG=0 && dotnet test -v m` – Latest rerun confirming per-model sentinel + `GetLineContent` parity fixes (`#delta-2025-11-24-b3-sentinel`, `#delta-2025-11-24-b3-getlinecontent`). |
+| 2025-11-24 (Sprint 03 R25 – B3-PieceTree-Fuzz Harness) | 245 | 245 | 0 | 4.1s | `PIECETREE_DEBUG=0 dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Harness utilities + RB-tree invariant audit (`#delta-2025-11-23-b3-piecetree-fuzz`). |
 | 2025-11-24 (Batch #3 – B3-FM MultiSelection) | 242 | 242 | 0 | 2.9s | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – DocUI FindModel multi-selection scope parity run（Tests07/08 重启 + prior scope fixes）并作为 Sprint 03 QA 关账基线；`#delta-2025-11-24-b3-fm-multisel`. |
 | 2025-11-23 (Batch #3 – B3-Decor Stickiness Review) | 235 | 235 | 0 | 2.9s | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – CI-1/CI-2/CI-3 + W-1/W-2 fixes (live scopes, newline retention, viewport-aware overview, dynamic owner) (`#delta-2025-11-23-b3-decor-stickiness-review`). |
 | 2025-11-23 (Batch #3 – B3-Decor Stickiness) | 233 | 233 | 0 | 3.0s | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` – Range highlight/overview/stickiness parity run (`#delta-2025-11-23-b3-decor-stickiness`). |
@@ -139,6 +158,12 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 
 ### Targeted reruns (delta-2025-11-24-find-flush-edit)
 
+### Targeted reruns (B3-PieceTree-Fuzz Harness, 2025-11-24)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeFuzzHarnessTests --nologo` | 2/2 green | Harness smoke: deterministic seed loop + corruption detection assertions (`#delta-2025-11-23-b3-piecetree-fuzz`). |
+
 | Command | Result | Notes |
 | --- | --- | --- |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~FindModelTests --nologo` | 46/46 green | Adds **Test48_FlushEditKeepsFindNextProgress** to the sweep, guarding Porter’s DocUI flush edit fix so `FindNext` progress survives decoration resets. (Legacy alias `FullyQualifiedName~DocUIFindModelTests` has been retired because the suite compiles as `PieceTree.TextBuffer.Tests.DocUI.FindModelTests`.) |
@@ -169,6 +194,19 @@ Coverage snapshot for PieceTree buffer scenarios. Dimensions track edit types, t
 | Command | Result | Notes |
 | --- | --- | --- |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` | 49/49 green (2.6s) | Latest 2025-11-24 rerun capturing Tests07/08/49 for QA evidence; confirms **Test49_SelectAllMatchesRespectsPrimarySelectionOrder** stays green post-primary ordering fix per `#delta-2025-11-24-find-primary`. |
+
+### Targeted reruns (#delta-2025-11-24-b3-getlinecontent)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBaseTests.GetLineContent_Cache_Invalidation" --nologo` | Historical: 2/2 green (1.9s); 2025-11-24 rerun: Total=2, Passed=2, Failed=0, Duration=3.8s | Verifies the cache invalidation tests now expect trimmed `GetLineContent` values and assert `GetLineRawContent` to ensure terminators remain in the backing buffer. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeNormalizationTests" --nologo` | Historical: 3/3 green (1.7s); 2025-11-24 rerun: Total=3, Passed=3, Failed=0, Duration=1.6s | Confirms the normalization suite mirrors TS `splitLines` semantics while still checking raw CR/LF bytes via `GetLineRawContent`. |
+
+### Targeted reruns (#delta-2025-11-24-b3-sentinel)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.PieceTreeFuzzHarnessTests.RandomDeleteThreeMatchesTsScript" --nologo` | Historical: 1/1 green (1.6s); 2025-11-24 rerun: Total=1, Passed=1, Failed=0, Duration=1.6s | Ensures per-model sentinels keep `ValidateTreeInvariants` stable while the fuzz harness exercises delete fixups that previously tripped the shared sentinel. |
 
 ### Targeted reruns (AA4-009, 2025-11-21)
 

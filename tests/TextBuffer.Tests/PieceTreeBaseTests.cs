@@ -68,14 +68,16 @@ public class PieceTreeBaseTests
         
         // Cache miss -> load
         var line2 = buffer.GetLineContent(2);
-        Assert.Equal("Line 2\n", line2);
+        Assert.Equal("Line 2", line2);
+        Assert.Equal("Line 2\n", buffer.InternalModel.GetLineRawContent(2));
         
         // Insert in Line 2 (at start of line 2, offset 7)
         buffer.ApplyEdit(7, 0, "Modified "); // "Line 1\nModified Line 2\nLine 3"
         
         // Should get updated content (cache invalidated)
         var line2Modified = buffer.GetLineContent(2);
-        Assert.Equal("Modified Line 2\n", line2Modified);
+        Assert.Equal("Modified Line 2", line2Modified);
+        Assert.Equal("Modified Line 2\n", buffer.InternalModel.GetLineRawContent(2));
     }
 
     [Fact]
@@ -85,13 +87,15 @@ public class PieceTreeBaseTests
         
         // Cache miss -> load
         var line2 = buffer.GetLineContent(2);
-        Assert.Equal("Line 2\n", line2);
+        Assert.Equal("Line 2", line2);
+        Assert.Equal("Line 2\n", buffer.InternalModel.GetLineRawContent(2));
         
         // Delete from Line 2 (at start of line 2, offset 7, length 5 "Line ")
         buffer.ApplyEdit(7, 5, null); // "Line 1\n2\nLine 3"
         
         // Should get updated content (cache invalidated)
         var line2Modified = buffer.GetLineContent(2);
-        Assert.Equal("2\n", line2Modified);
+        Assert.Equal("2", line2Modified);
+        Assert.Equal("2\n", buffer.InternalModel.GetLineRawContent(2));
     }
 }

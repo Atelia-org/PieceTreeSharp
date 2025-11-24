@@ -14,7 +14,7 @@ internal sealed partial class PieceTreeModel
     public const int ChangeBufferId = 0;
     private const int AverageBufferSize = ChunkUtilities.DefaultChunkSize;
 
-    private readonly PieceTreeNode _sentinel = PieceTreeNode.Sentinel;
+    private readonly PieceTreeNode _sentinel = PieceTreeNode.CreateSentinel();
     private readonly PieceTreeSearchCache _searchCache = new();
     private struct LastVisitedLine { public int LineNumber; public string Value; }
     private LastVisitedLine _lastVisitedLine;
@@ -41,6 +41,8 @@ internal sealed partial class PieceTreeModel
     public int PieceCount => _count;
 
     internal IReadOnlyList<ChunkBuffer> Buffers => _buffers;
+
+    internal PieceTreeNode Sentinel => _sentinel;
 
     public int TotalLength => ReferenceEquals(_root, _sentinel) ? 0 : _root.AggregatedLength;
 
@@ -220,7 +222,7 @@ internal sealed partial class PieceTreeModel
         var insertionOffset = TotalLength;
         _searchCache.InvalidateRange(insertionOffset, int.MaxValue);
 
-        var node = new PieceTreeNode(piece);
+        var node = new PieceTreeNode(piece, _sentinel);
         node.ResetLinks();
 
         var parent = _sentinel;

@@ -34,7 +34,8 @@ public class PieceTreeNormalizationTests
 
         // Result should be "\nb"
         Assert.Equal("\nb", buffer.GetText());
-        Assert.Equal("\n", buffer.GetLineContent(1));
+        Assert.Equal(string.Empty, buffer.GetLineContent(1));
+        Assert.Equal("\n", buffer.InternalModel.GetLineRawContent(1));
         Assert.Equal("b", buffer.GetLineContent(2));
     }
 
@@ -57,8 +58,9 @@ public class PieceTreeNormalizationTests
 
         // Result should be "a\r"
         Assert.Equal("a\r", buffer.GetText());
-        Assert.Equal("a\r", buffer.GetLineContent(1));
-        Assert.Equal("", buffer.GetLineContent(2));
+        Assert.Equal("a", buffer.GetLineContent(1));
+        Assert.Equal("a\r", buffer.InternalModel.GetLineRawContent(1));
+        Assert.Equal(string.Empty, buffer.GetLineContent(2));
     }
 
     [Fact]
@@ -80,7 +82,8 @@ public class PieceTreeNormalizationTests
         buffer.ApplyEdit(3, 0, "def\nabc");
         
         Assert.Equal("abcdef\nabc", buffer.GetText());
-        Assert.Equal("abcdef\n", buffer.GetLineContent(1));
+        Assert.Equal("abcdef", buffer.GetLineContent(1));
+        Assert.Equal("abcdef\n", buffer.InternalModel.GetLineRawContent(1));
         Assert.Equal("abc", buffer.GetLineContent(2));
     }
 }
