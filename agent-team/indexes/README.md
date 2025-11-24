@@ -276,3 +276,31 @@ Handoff / 参考：
 - **Docs / handoff**: Porter summary [`agent-team/handoffs/AA4-FindModel-Review-PORT.md`](../handoffs/AA4-FindModel-Review-PORT.md) and migration log row “B3-FM-PrimarySelection” capture the fix and evidence so DocMaintainer/QA/Planner can reference a single anchor.
 - **Validation**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~FindModelTests" --nologo` → 49/49 (3.4s). No additional suites required.
 
+### delta-2025-11-23-b3-piecetree-fuzz
+**Sprint 03 R25 – PieceTree fuzz harness与 RB-tree 元数据校验**
+
+- 交付：新增 [`tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs)（env-seeded harness、range diff、`PIECETREE_FUZZ_SEED` 管线）、[`tests/TextBuffer.Tests/Helpers/FuzzLogCollector.cs`](../../tests/TextBuffer.Tests/Helpers/FuzzLogCollector.cs)（结构化 `FuzzOperationLogEntry`）、[`src/TextBuffer/Core/PieceTreeModel.cs`](../../src/TextBuffer/Core/PieceTreeModel.cs)#`AssertPieceIntegrity()`（root/sentinel 颜色、黑高、SizeLeft/LineFeedsLeft 一致性）以及冒烟套件 [`tests/TextBuffer.Tests/PieceTreeFuzzHarnessTests.cs`](../../tests/TextBuffer.Tests/PieceTreeFuzzHarnessTests.cs)。Doc 侧同步 `tests/TextBuffer.Tests/TestMatrix.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md`，handoff 详见 [`agent-team/handoffs/B3-PieceTree-Fuzz-Harness.md`](../handoffs/B3-PieceTree-Fuzz-Harness.md)。
+- 验证：`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeFuzzHarnessTests --nologo` (2/2)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (245/245)。
+- 文档：AGENTS / Sprint 03 / TS 计划 Live Checkpoint 均改为引用 `#delta-2025-11-23-b3-piecetree-fuzz`，迁移日志“B3-Fuzz-Harness (R25)”行也指向本 changefeed。
+
+### delta-2025-11-24-b3-piecetree-fuzz
+**Sprint 03 R27 – Deterministic fuzz suites + 多 chunk seeding**
+
+- 交付：[`tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs) 支持 `PieceTreeBuffer.FromChunks` + chunk 日志，`PieceTreeFuzzHarness.AssertState()` mirrors TS `testLinesContent`/`testLineStarts`，[`tests/TextBuffer.Tests/PieceTreeFuzzHarnessTests.cs`](../../tests/TextBuffer.Tests/PieceTreeFuzzHarnessTests.cs) 复刻 TS `random test 1/2/3`、`random delete 1/2/3`、`random chunks` suites（ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts lines 271‑404, 1668‑1725），TestMatrix 新增 CI-1/CI-2 行，handoff 见 [`agent-team/handoffs/B3-PieceTree-Fuzz-Review-PORT.md`](../handoffs/B3-PieceTree-Fuzz-Review-PORT.md) 与 [`B3-PieceTree-Fuzz-Review-QA.md`](../handoffs/B3-PieceTree-Fuzz-Review-QA.md)。
+- 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeFuzzHarnessTests --nologo` (10/10，≈53s)。
+- 文档：`tests/TextBuffer.Tests/TestMatrix.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md` 均记录 `#delta-2025-11-24-b3-piecetree-fuzz`，迁移日志新增 “B3-PieceTree-Fuzz-Review” 行。
+
+### delta-2025-11-24-b3-sentinel
+**B3-TestFailures – 每个 PieceTreeModel 拥有独立 sentinel**
+
+- 交付：[`src/TextBuffer/Core/PieceTreeNode.cs`](../../src/TextBuffer/Core/PieceTreeNode.cs) 提供 `CreateSentinel()` 与 `_sentinel` 字段、[`src/TextBuffer/Core/PieceTreeModel.cs`](../../src/TextBuffer/Core/PieceTreeModel.cs) 暴露 `Sentinel` 属性并在 Insert/Enumerate 流程使用 per-model sentinel、[`src/TextBuffer/Core/PieceTreeModel.Edit.cs`](../../src/TextBuffer/Core/PieceTreeModel.Edit.cs) 所有节点构造都传入 `_sentinel`。测试/文档更新：[`tests/TextBuffer.Tests/PieceTreeModelTests.cs`](../../tests/TextBuffer.Tests/PieceTreeModelTests.cs)、[`tests/TextBuffer.Tests/UnitTest1.cs`](../../tests/TextBuffer.Tests/UnitTest1.cs) 通过 `model.Sentinel` 访问，`tests/TextBuffer.Tests/TestMatrix.md` 添加 targeted rerun 表，handoff 参见 `agent-team/handoffs/B3-TestFailures-INV.md`、`B3-TestFailures-PORT.md`、`B3-TestFailures-QA.md`。
+- 验证：`export PIECETREE_DEBUG=0 && dotnet test -v m` (253/253)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName=PieceTree.TextBuffer.Tests.PieceTreeFuzzHarnessTests.RandomDeleteThreeMatchesTsScript" --nologo` (1/1) 用于 sentinel regression 复现。
+- 文档：`agent-team/type-mapping.md`、Planner / QA memory、TestMatrix targeted rerun、`docs/reports/migration-log.md` B3-TestFailures 行全部引用本 anchor。
+
+### delta-2025-11-24-b3-getlinecontent
+**B3-TestFailures – GetLineContent 缓存/归一化测试回到 TS 语义**
+
+- 交付：[`tests/TextBuffer.Tests/PieceTreeBaseTests.cs`](../../tests/TextBuffer.Tests/PieceTreeBaseTests.cs) 的 cache invalidation 用例改为断言 trimmed `GetLineContent` + `GetLineRawContent` raw bytes，[`tests/TextBuffer.Tests/PieceTreeNormalizationTests.cs`](../../tests/TextBuffer.Tests/PieceTreeNormalizationTests.cs) 在 CR/LF 场景下做同样验证，`tests/TextBuffer.Tests/TestMatrix.md` 更新总数 (253) 与 targeted rerun 表；相关观察记录在 `agent-team/handoffs/B3-TestFailures-PORT.md` 与 `B3-TestFailures-QA.md`。
+- 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeBaseTests.GetLineContent_Cache_Invalidation" --nologo` (2/2)；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName~PieceTreeNormalizationTests" --nologo` (3/3)；`export PIECETREE_DEBUG=0 && dotnet test -v m` (253/253)。
+- 文档：`docs/plans/ts-test-alignment.md`、Planner / QA memory 与 TestMatrix summary 区已标注 `#delta-2025-11-24-b3-getlinecontent`，迁移日志同步记录。
+

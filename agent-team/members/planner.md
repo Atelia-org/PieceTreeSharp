@@ -22,7 +22,12 @@
 | TS Test Alignment | docs/plans/ts-test-alignment.md | Batch #1 ReplacePattern runtime/tests/harness checklists与 QA/Info-Indexer 依赖的主计划。 |
 
 ## Worklog
-- **Last Update:** 2025-11-22
+- **Last Update:** 2025-11-24
+- **Recent Actions (2025-11-24):**
+  - 将 Investigator `agent-team/handoffs/B3-PieceTree-Fuzz-INV.md` 转化为 `agent-team/handoffs/B3-PieceTree-Fuzz-PLAN.md`，确认 R24→R28（Harness→Deterministic→CRLF/Search→QA→DocMaintainer/Info-Indexer）可在 Sprint 03 (至 11-29) 内完成，并设置失效保护：若 R24 未在 11-25 10:00 UTC 合入，则自动将 R26 以后滑入 Sprint 04。
+  - 更新 `agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md` 并引用 Info-Indexer 已发布的 `#delta-2025-11-23-b3-piecetree-fuzz` / `#delta-2025-11-24-b3-piecetree-fuzz`，新增 B3-Fuzz-Harness/Deterministic/QA/Doc 行并在 Sprint Progress Log 记录 R24 规划结果。
+  - 定义 cross-sprint carryover：多 seed unsupervised fuzz soak、PieceTreeLineSnapshot perf instrumentation 留待 Sprint 04 backlog（将创建 `B3-PieceTree-Fuzz-Soak` ticket），以保证 QA/DocMaintainer 带宽。
+  - 针对 `#delta-2025-11-24-b3-sentinel` / `#delta-2025-11-24-b3-getlinecontent` 已暂存改动，制定 Investigator → Porter → QA 的审阅/回归路径：锁定 `src/TextBuffer/Core/PieceTreeNode.cs`、`PieceTreeModel*.cs`、`PieceTreeFuzzHarness.cs` 与 `tests/TextBuffer.Tests/PieceTreeBaseTests.cs`/`PieceTreeNormalizationTests.cs`，要求输出 handoff（INV）+ 修复/TS parity（Porter）+ `dotnet test -v m` 与 targeted filters（QA），并同步 `TestMatrix.md` / `docs/reports/migration-log.md`。
 - **Recent Actions (2025-11-22):**
   - 完成 Batch #2（FindModel/FindController）任务拆解：根据 B2-INV 调研成果（`agent-team/handoffs/B2-INV-Result.md`），拆解为 5 个 runSubAgent 任务（B2-001~005），已登记 Task Board 并更新 ts-test-alignment.md Live Checkpoints。
   - **核心决策**：聚焦 FindModel 逻辑层，推迟 FindController 至 Batch #3（依赖 EditorAction/ContextKey services）；WordCharacterClassifier cache 为可选优化（P2）。
@@ -38,10 +43,11 @@
   - 复核 Sprint OI-01 与审计要求，确认 Planner 记忆已捕捉新模板依赖与 Info-Indexer handoff。
 
 ## Upcoming Goals (runSubAgent-sized)
-1. **Batch #2 执行监控**：每日跟踪 B2-001~005 进度（Task Board 状态），若 B2-003 DocUI harness 超预算则触发风险应对计划（分两步执行）。
-2. **Batch #3 规划准备**：在 B2-004 完成后（预计 2025-11-27）启动 FindController 命令层规划（依赖 EditorAction/ContextKey/Clipboard services）。
-3. **OI-003 – Adoption Pass:** 验证各 SubAgent 在下一轮调用中使用新模板并标记 changefeed checkpoint；收集反馈准备后续迭代。
-4. **OI-001/OI-004 接口落地：** 与 DocMaintainer、Info-Indexer 共建"索引输入 -> Task Board 精简"流水线，确保审计结果能直接转化为 backlog 调整提案。
+1. **B3-TestFailures review orchestration：** 跟进 per-model sentinel / trimmed `GetLineContent` 审阅链路（INV → Porter → QA），确保 handoff、迁移日志与 TestMatrix 在 `#delta-2025-11-24-b3-sentinel` / `#delta-2025-11-24-b3-getlinecontent` 下对齐。
+2. **Batch #2 执行监控**：每日跟踪 B2-001~005 进度（Task Board 状态），若 B2-003 DocUI harness 超预算则触发风险应对计划（分两步执行）。
+3. **Batch #3 规划准备**：在 B2-004 完成后（预计 2025-11-27）启动 FindController 命令层规划（依赖 EditorAction/ContextKey/Clipboard services）。
+4. **OI-003 – Adoption Pass:** 验证各 SubAgent 在下一轮调用中使用新模板并标记 changefeed checkpoint；收集反馈准备后续迭代。
+5. **OI-001/OI-004 接口落地：** 与 DocMaintainer、Info-Indexer 共建"索引输入 -> Task Board 精简"流水线，确保审计结果能直接转化为 backlog 调整提案。
 
 ## Blocking Issues
 - 无阻塞项（Batch #2 已完成规划，等待主 Agent 启动 B2-001）。
