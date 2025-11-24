@@ -448,9 +448,157 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             });
         }
 
-        // Test07 & Test08: Multi-selection find - TODO(Batch #3)
-        // Skipped: 'multi-selection find model next stays in scope (overlap)'
-        // Skipped: 'multi-selection find model next stays in scope'
+        [Fact]
+        public void Test07_MultiSelectionFindModelNextStaysInScopeOverlap()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                var scopeSelections = new[]
+                {
+                    new Range(new TextPosition(7, 1), new TextPosition(8, 2)),
+                    new Range(new TextPosition(8, 1), new TextPosition(9, 1))
+                };
+
+                ctx.SetSelections(scopeSelections);
+                var searchScope = ctx.GetSelections();
+                ctx.SetPosition(1, 1);
+
+                ctx.State.Change(
+                    searchString: "hello",
+                    wholeWord: true,
+                    searchScope: searchScope,
+                    searchScopeProvided: true,
+                    moveCursor: false
+                );
+
+                ctx.AssertFindState(
+                    cursor: new[] { 1, 1, 1, 1 },
+                    highlighted: null,
+                    findDecorations: new[]
+                    {
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 7, 14, 7, 19 },
+                    highlighted: new[] { 7, 14, 7, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 8, 14, 8, 19 },
+                    highlighted: new[] { 8, 14, 8, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 7, 14, 7, 19 },
+                    highlighted: new[] { 7, 14, 7, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 8, 14, 8, 19 }
+                    }
+                );
+            });
+        }
+
+        [Fact]
+        public void Test08_MultiSelectionFindModelNextStaysInScope()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                var scopeSelections = new[]
+                {
+                    new Range(new TextPosition(6, 1), new TextPosition(7, 38)),
+                    new Range(new TextPosition(9, 3), new TextPosition(9, 38))
+                };
+
+                ctx.SetSelections(scopeSelections);
+                var searchScope = ctx.GetSelections();
+                ctx.SetPosition(1, 1);
+
+                ctx.State.Change(
+                    searchString: "hello",
+                    matchCase: true,
+                    searchScope: searchScope,
+                    searchScopeProvided: true,
+                    moveCursor: false
+                );
+
+                ctx.AssertFindState(
+                    cursor: new[] { 1, 1, 1, 1 },
+                    highlighted: null,
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 6, 14, 6, 19 },
+                    highlighted: new[] { 6, 14, 6, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 7, 14, 7, 19 },
+                    highlighted: new[] { 7, 14, 7, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 9, 14, 9, 19 },
+                    highlighted: new[] { 9, 14, 9, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+
+                ctx.FindModel.FindNext();
+                ctx.AssertFindState(
+                    cursor: new[] { 6, 14, 6, 19 },
+                    highlighted: new[] { 6, 14, 6, 19 },
+                    findDecorations: new[]
+                    {
+                        new[] { 6, 14, 6, 19 },
+                        new[] { 7, 14, 7, 19 },
+                        new[] { 9, 14, 9, 19 }
+                    }
+                );
+            });
+        }
 
         [Fact]
         public void Test09_FindModelPrev()
@@ -2290,6 +2438,34 @@ namespace PieceTree.TextBuffer.Tests.DocUI
                     }
                 );
                 Assert.Equal(5, ctx.State.MatchesPosition);
+            });
+        }
+
+        [Fact]
+        public void Test49_SelectAllMatchesRespectsPrimarySelectionOrder()
+        {
+            TestEditorContext.RunTest(StandardTestText, ctx =>
+            {
+                ctx.State.Change(searchString: "hello", moveCursor: false);
+
+                var primary = CreateRange(7, 14, 7, 19);
+                var secondary = CreateRange(6, 27, 6, 32);
+                ctx.SetSelections(primary, secondary);
+
+                var selections = ctx.FindModel.SelectAllMatches();
+                var ranges = ToRanges(selections);
+
+                Assert.Equal(primary, ranges[0]);
+
+                var expectedTail = new[]
+                {
+                    CreateRange(6, 14, 6, 19),
+                    CreateRange(6, 27, 6, 32),
+                    CreateRange(8, 14, 8, 19),
+                    CreateRange(9, 14, 9, 19)
+                };
+
+                Assert.Equal(expectedTail, ranges.Skip(1).ToArray());
             });
         }
 

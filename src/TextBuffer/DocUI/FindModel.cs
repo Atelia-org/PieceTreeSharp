@@ -65,13 +65,43 @@ namespace PieceTree.TextBuffer.DocUI
 
         public void SetSelection(Range selection)
         {
+            SetSelections(new[] { selection }, primaryIndex: 0);
+        }
+
+        public void SetSelections(IReadOnlyList<Range> selections, int? primaryIndex = null)
+        {
             if (_isDisposed)
             {
                 return;
             }
 
-            _currentSelection = selection;
-            UpdateStartPosition(selection.Start, _state.SearchScope == null);
+            Range[] sanitized;
+            if (selections == null || selections.Count == 0)
+            {
+                sanitized = new[] { CloneRange(_currentSelection) };
+                primaryIndex = 0;
+            }
+            else
+            {
+                sanitized = new Range[selections.Count];
+                for (int i = 0; i < selections.Count; i++)
+                {
+                    sanitized[i] = CloneRange(selections[i]);
+                }
+            }
+
+            var normalizedPrimary = primaryIndex ?? 0;
+            if (normalizedPrimary < 0)
+            {
+                normalizedPrimary = 0;
+            }
+            if (normalizedPrimary >= sanitized.Length)
+            {
+                normalizedPrimary = sanitized.Length - 1;
+            }
+
+            _currentSelection = sanitized[normalizedPrimary];
+            UpdateStartPosition(_currentSelection.Start, _state.SearchScope == null);
             _state.ChangeMatchInfo(_state.MatchesPosition, _state.MatchesCount, clearCurrentMatch: true);
         }
 
@@ -258,10 +288,14 @@ namespace PieceTree.TextBuffer.DocUI
             var clone = new Range[scopes.Length];
             for (int i = 0; i < scopes.Length; i++)
             {
-                var source = scopes[i];
-                clone[i] = new Range(source.Start, source.End);
+                clone[i] = CloneRange(scopes[i]);
             }
             return clone;
+        }
+
+        private static Range CloneRange(Range source)
+        {
+            return new Range(source.Start, source.End);
         }
 
         private Range[]? NormalizeScopes(Range[]? scopes)

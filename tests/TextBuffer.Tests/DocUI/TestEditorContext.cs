@@ -25,7 +25,7 @@ namespace PieceTree.TextBuffer.Tests.DocUI
         public TextModel Model { get; }
         public FindReplaceState State { get; }
         public FindModel FindModel { get; }
-        private Range _selection;
+        private Range[] _selections;
 
         private TestEditorContext(string[] lines, TestEditorContextOptions? options)
         {
@@ -39,7 +39,7 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             
             // Create FindReplaceState
             State = new FindReplaceState();
-            _selection = new Range(new TextPosition(1, 1), new TextPosition(1, 1));
+            _selections = Array.Empty<Range>();
             
             // Create FindModel (binds to Model and State)
             var configuredWordSeparators = options?.WordSeparators;
@@ -51,7 +51,15 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             }
 
             FindModel = new FindModel(Model, State, () => configuredWordSeparators, viewportHeightProvider);
-            FindModel.SetSelection(_selection);
+
+            if (options?.InitialSelections is { Length: > 0 } initialSelections)
+            {
+                SetSelections(initialSelections);
+            }
+            else
+            {
+                SetSelections(new Range(new TextPosition(1, 1), new TextPosition(1, 1)));
+            }
         }
 
         /// <summary>
@@ -70,8 +78,35 @@ namespace PieceTree.TextBuffer.Tests.DocUI
         public void SetPosition(int lineNumber, int column)
         {
             var position = new TextPosition(lineNumber, column);
-            _selection = new Range(position, position);
-            FindModel.SetSelection(_selection);
+            SetSelections(new Range(position, position));
+        }
+
+        /// <summary>
+        /// Sets the editor selections, mimicking VS Code's multi-cursor behavior
+        /// (first selection becomes primary).
+        /// </summary>
+        public void SetSelections(params Range[] selections)
+        {
+            Range[] sanitized;
+            if (selections == null || selections.Length == 0)
+            {
+                sanitized = new[] { new Range(new TextPosition(1, 1), new TextPosition(1, 1)) };
+            }
+            else
+            {
+                sanitized = CloneRanges(selections);
+            }
+
+            _selections = sanitized;
+            FindModel.SetSelections(_selections, primaryIndex: 0);
+        }
+
+        /// <summary>
+        /// Returns a clone of the current selection array for use in tests (e.g., search scopes).
+        /// </summary>
+        public Range[] GetSelections()
+        {
+            return CloneRanges(_selections);
         }
 
         /// <summary>
@@ -235,6 +270,23 @@ namespace PieceTree.TextBuffer.Tests.DocUI
             return $"[{r.Start.LineNumber},{r.Start.Column},{r.End.LineNumber},{r.End.Column}]";
         }
 
+        private static Range[] CloneRanges(Range[] ranges)
+        {
+            if (ranges == null || ranges.Length == 0)
+            {
+                return Array.Empty<Range>();
+            }
+
+            var clone = new Range[ranges.Length];
+            for (int i = 0; i < ranges.Length; i++)
+            {
+                var source = ranges[i];
+                clone[i] = new Range(source.Start, source.End);
+            }
+
+            return clone;
+        }
+
         public void Dispose()
         {
             FindModel?.Dispose();
@@ -255,5 +307,6 @@ namespace PieceTree.TextBuffer.Tests.DocUI
     {
         public string? WordSeparators { get; init; }
         public double? ViewportHeightPx { get; init; }
+        public Range[]? InitialSelections { get; init; }
     }
 }
