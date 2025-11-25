@@ -7,7 +7,7 @@ using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 
-public class TextModelSearchTests
+public class PieceTreeSearchTests
 {
     private static TextModel CreateModel(string text) => new(text);
 

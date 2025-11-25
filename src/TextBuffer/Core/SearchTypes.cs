@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 
@@ -221,27 +222,7 @@ public sealed class SearchParams
         {
             return searchString.IndexOf('\n') >= 0 || searchString.IndexOf('\r') >= 0;
         }
-
-        for (int i = 0; i < searchString.Length; i++)
-        {
-            var ch = searchString[i];
-            if (ch == '\n')
-            {
-                return true;
-            }
-
-            if (ch == '\\' && i + 1 < searchString.Length)
-            {
-                i++;
-                var next = searchString[i];
-                if (next == 'n' || next == 'r' || next == 'W')
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return SearchPatternUtilities.IsMultilineRegexSource(searchString);
     }
 
     private static string ExpandUnicodeEscapes(string pattern)
@@ -274,6 +255,38 @@ public sealed class SearchParams
         }
 
         return sb.ToString();
+    }
+}
+
+internal static class SearchPatternUtilities
+{
+    internal static bool IsMultilineRegexSource(string? source)
+    {
+        if (string.IsNullOrEmpty(source))
+        {
+            return false;
+        }
+
+        for (var i = 0; i < source.Length; i++)
+        {
+            var ch = source[i];
+            if (ch == '\n')
+            {
+                return true;
+            }
+
+            if (ch == '\\' && i + 1 < source.Length)
+            {
+                i++;
+                var next = source[i];
+                if (next == 'n' || next == 'r' || next == 'W')
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
 
