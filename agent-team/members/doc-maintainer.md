@@ -28,8 +28,10 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-25（B3 search-offset + snapshot doc sweep）
+- **Last Update:** 2025-11-25（B3 TextModelSearch doc alignment）
 - **Recent Actions:**
+  - 2025-11-26：同步 Investigator/Porter 文档修复 —— 参照 `agent-team/handoffs/DocReview-20251126-INV.md` 与 `agent-team/handoffs/DocFix-20251126-Porter.md` 更新 `tests/TextBuffer.Tests/TestMatrix.md`（TextModelSearch Latest QA + baseline row），并交付 `agent-team/handoffs/DocFix-20251126-DocMaintainer.md` 记录此次治理；确保 changefeed `#delta-2025-11-25-b3-textmodelsearch` 的统计一致，纯文档同步（无新增测试）。
+  - 2025-11-25：对齐 B3-TextModelSearch drop —— 更新 `docs/plans/ts-test-alignment.md`（Appendix 行改为 gap closed + 45/45 rerun）、`docs/reports/migration-log.md`（B3-TextModelSearch 描述/命令）、`docs/sprints/sprint-03.md`（R35/R36 真实故事）、`tests/TextBuffer.Tests/TestMatrix.md`（Notes + rerun 命令）以及 `agent-team/indexes/README.md#delta-2025-11-25-b3-textmodelsearch`；记录 Investigator (`Review-20251125-Investigator.md`) 与 Porter (`B3-TextModelSearch-PORT.md`) handoff 链接，并确保所有文档引用 45/45 rerun (2.0s, `PIECETREE_DEBUG=0`) 以及 Intl.Segmenter backlog。记忆档同步。
   - 2025-11-25：完成 `#delta-2025-11-25-b3-piecetree-deterministic-crlf` / `#delta-2025-11-25-b3-piecetree-snapshot` / `#delta-2025-11-25-b3-textmodel-snapshot` / `#delta-2025-11-25-b3-search-offset` 文档对齐：`AGENTS.md` 新增四条进展 + 状态提示锚点扩展、Task Board B3-SearchOffset-QA/INFO/DOC 行置为 ✅ 并附 5/5 + 324/324 rerun 统计、`docs/sprints/sprint-03.md` 增加 R33/R34、`docs/plans/ts-test-alignment.md` PieceTree 行改为 Priority #2 Completed、`agent-team/members/doc-maintainer.md` 记下本次 sweep。
   - 2025-11-25：清理 `agent-team/indexes/README.md#delta-2025-11-25-b3-piecetree-deterministic-crlf`，移除待 QA 文案、记录 50/50 + 308/308 rerun 结果，并提醒 snapshot/search offset/chunk/random/buffer API 套件仍需 follow-up。
   - 2025-11-25：同步 `#delta-2025-11-25-b3-piecetree-deterministic-crlf` QA 证据——在 `agent-team/indexes/README.md`、`docs/reports/migration-log.md`、`tests/TextBuffer.Tests/TestMatrix.md` 记录 50/50 deterministic rerun（3.5s）+ 308/308 full suite（67.2s），并指向 [`agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`](../handoffs/B3-PieceTree-Deterministic-CRLF-QA.md)。
