@@ -37,6 +37,7 @@
 - **2025-11-22:** 完成 OI-REFRESH 任务：创建 `agent-team/indexes/oi-backlog.md` 登记 OI-012~015（DocUI 测试框架、Snapshot 工具、WordSeparator 完整对齐、DocUI Harness 标准化），在 `agent-team/indexes/README.md` 添加 OI Backlog 索引行与 `#delta-2025-11-22 (OI Backlog)` 条目，创建 `agent-team/handoffs/OI-REFRESH-Result.md` 汇报交付物与下一步建议；所有技术债来源已追溯到 `B2-INV-Result.md` 调研成果，等待 Planner 决策 OI-013/OI-012 启动时机。
 - **2025-11-24:** 发布 `agent-team/indexes/README.md#delta-2025-11-24-b3-fm-multisel`，整合 `B3-FM-MultiSelection-Audit/PORT/QA` 证据、`docs/reports/migration-log.md` B3-FM-MultiSel 行、`tests/TextBuffer.Tests/TestMatrix.md` (43/43 + rerun commands) 与 Sprint 03 R21/R22 记录，并在 changefeed 中标注 `FullyQualifiedName~DocUIFindModelTests` alias 已永久退役，所有脚本统一改用 `FullyQualifiedName~FindModelTests`。
 - **2025-11-25:** 发布 `#delta-2025-11-25-b3-search-offset` changefeed，串联 porter/QA handoff、TestMatrix rerun 与迁移日志（B3-SearchOffset-PORT 行），并将 QA targeted/full 命令（5/5 @ 4.3s、324/324 @ 58.2s）记为 changefeed 权威证据供 DocMaintainer / Task Board 消费。
+- **2025-11-26:** 完成 Sprint 03 R38 广播（`#delta-2025-11-25-b3-textmodelsearch`）：复查 `agent-team/handoffs/B3-TextModelSearch-QA.md`，把 targeted 45/45 @ 2.5s + full 365/365 @ 61.6s (`PIECETREE_DEBUG=0`) 注入 `agent-team/indexes/README.md` 与 `docs/reports/migration-log.md`，在 `docs/sprints/sprint-03.md` 添加 R38 行并确认 TestMatrix 已指向该 changefeed 作为权威证据。
 
 ## Upcoming Goals (runSubAgent scoped)
 1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
