@@ -1,9 +1,59 @@
-# AA4-004 Audit – CL8 DocUI Find/Replace + Decorations
 
-**Date:** 2025-11-20  
+# AA4-004 Audit – CL8 DocUI Find/Replace & Decorations
+
+**Date:** 2025-11-26  
 **Investigator:** GitHub Copilot  
-**Scope:** TS `ts/src/vs/editor/contrib/find/browser/{findController.ts,findModel.ts,findDecorations.ts,replacePattern.ts}`, `ts/src/vs/editor/common/model/textModelSearch.ts`; C# `src/PieceTree.TextBuffer/{TextModelSearch.cs,TextModel.cs,SearchHighlightOptions.cs}`, `src/PieceTree.TextBuffer/Decorations/ModelDecoration.cs`, `src/PieceTree.TextBuffer/Rendering/MarkdownRenderer.cs`.  
-**Prereqs:** Builds on CL5–CL7 outcomes (builder/change-buffer/cursor parity) and AA3-008 decoration storage so that DocUI overlay work can reuse owner-aware `DecorationsTrees`.
+**Scope:** TS `ts/src/vs/editor/contrib/find/browser/{findController.ts, findModel.ts, findDecorations.ts, replacePattern.ts}`, `ts/src/vs/editor/common/core/wordCharacterClassifier.ts`, `ts/src/vs/editor/common/model/textModelSearch.ts`; C# `src/TextBuffer/DocUI/{DocUIFindController.cs, FindModel.cs, FindDecorations.cs, FindUtilities.cs}`, `src/TextBuffer/Core/SearchTypes.cs`, `src/TextBuffer/Rendering/{MarkdownRenderer.cs, DocUIReplaceController.cs}`.  
+**Baseline:** Porter already landed Batch #3 DocUI fixes (`#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-23-b3-fc-scope`, `#delta-2025-11-23-b3-fc-regexseed`, `#delta-2025-11-23-b3-decor-stickiness`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-find-replace-scope`, `#delta-2025-11-24-b3-docui-staged`). TextModelSearch parity (`#delta-2025-11-25-b3-textmodelsearch`) gives us the 45-case TS battery. This refresh documents the remaining CL8 gaps (Intl.Segmenter + WordSeparator perf included) so Porter/QA can stage AA4 fixes under new changefeed tags.
+
+## Findings
+
+| # | Severity | Focus | TS references | C# evidence | Notes & remediation |
+| --- | --- | --- | --- | --- | --- |
+| **F1** | High | Markdown renderer bypasses search decorations & capture metadata | `findDecorations.ts`, `findModel.ts`, `markdownRenderer.test.ts` | `src/TextBuffer/Rendering/MarkdownRenderer.cs#CollectSearchMarkers` re-runs `model.FindMatches` for every render, ignores `OwnerFilter`, and prints `<`/`>` markers even when search owners are disabled. Capture arrays coming from `FindModel` are never read. | Render search overlays via the existing owner-aware decorations instead of recomputing matches. Extend `FindDecorations`/`ModelDecorationOptions` with metadata (match index, capture previews, scope ids) so `MarkdownRenderer` can print the same `<<replace:…>>` annotations VS Code exposes. Changefeed placeholder: `#delta-2025-11-26-aa4-cl8-markdown`. Tests: `MarkdownRendererTests.OwnerFilterSuppressesSearch`, `MarkdownRendererTests.ReplacePreviewFromDecorations`, `DocUIFindDecorationsTests.RendererUsesExistingDecorations`. |
+| **F2** | High | Capture metadata & replace preview never surface outside FindModel | `findModel.ts#_decorateFindMatches`, `replacePattern.ts`, `findWidget.test.ts#replacePreview` | `FindDecorations.cs` only stores class names/z-index; `ModelDecorationOptions` carry no payload, and `MarkdownRenderer`/DocUI host have no route to display per-match replacement strings or capture arrays. | Pipe `FindMatch.Matches` + computed replacement previews into the decoration metadata (e.g., `ModelDecorationOptions.Description`, custom data bag) so DocUI and Markdown renderer can display them. Expose a public accessor (`GetMatchMetadataByOwner`) for host integrations and expand DocUI tests to cover preview text + preserve-case toggles. Track under `#delta-2025-11-26-aa4-cl8-capture`. |
+| **F3** | High | Intl.Segmenter & locale-aware whole-word parity missing | `wordCharacterClassifier.ts`, `wordOperations.intl.test.ts`, `findModel.ts#getSelectionSearchString`, `textModelSearch.ts` | `SearchTypes.WordCharacterClassifier` and `FindUtilities.GetWordAtPosition` only look at ASCII separators + whitespace. There is no `Intl.Segmenter` fallback, no `wordSegmenterLocales` option, and `FindControllerHostOptions.WordSeparators` never reads from `TextModelResolvedOptions`. Whole-word / seed-from-selection logic therefore breaks for CJK, emoji, RTL, and users cannot configure separators. | Introduce a locale-aware classifier (use ICU/`System.Globalization.Segmenter` or managed tables), plumb `TextModelResolvedOptions.WordSeparators` + `WordSegmenterLocales` into `FindReplaceState`, `DocUIFindController`, and `SearchParams`. Cache classifiers per locale + separator, and add TS parity tests (`wordOperations.intl.test.ts`, `findModel.test.ts#wholeWordCJK`). Changefeed placeholder: `#delta-2025-11-26-aa4-cl8-intl`. |
+| **F4** | Medium-High | WordSeparator perf/configuration gaps (host options never invalidate caches) | `findController.ts#_updateWordSeparators`, `findModel.ts#_wordSeparators`, `textModel.ts#_options` | `FindReplaceState.CreateSearchParams` hardcodes `` `~!@#$...` `` whenever `WholeWord` is true. `DocUIFindController` captures `_host.Options.WordSeparators` once; there is no listener for `TextModel.OnDidChangeOptions`. `WordCharacterClassifierCache` is keyed only by raw separator strings, ignoring locale and editor options, so changes require process restarts and classifiers leak across models. | Expose `WordSeparators` and `WordSegmenterLocales` through `TextModelResolvedOptions`, surface change events to DocUI controller, and extend the cache key to include locale + option version. Provide `FindController.UpdateOptions()` so QA can cover user-configurable separators. Fold this modernisation into `#delta-2025-11-26-aa4-cl8-wordcache`. |
+
+### Context & fallout
+- DocUI tests already cover `FindModel` scope tracking and controller actions, so regressions will show up in `DocUIFindModelTests` / `DocUIFindControllerTests` once metadata + new helpers are in place.
+- TextModelSearch now passes the 45-test suite (`#delta-2025-11-25-b3-textmodelsearch`), but its whole-word behavior still relies on the ASCII classifier. Intl segmentation + cache fixes here unlock the remaining TS tests listed under CL8.
+- `MarkdownRenderer` remains the only DocUI component still bypassing decoration owners. Fixing F1/F2 is required before DocMaintainer can mark the CL8 DocUI row as “Verified”.
+
+## Recommended remediation plan
+1. **`#delta-2025-11-26-aa4-cl8-markdown`** – make Markdown renderer consume search decorations (no duplicate search), honor `OwnerFilter`, and include scope/minimap annotations.
+2. **`#delta-2025-11-26-aa4-cl8-capture`** – enrich `FindDecorations`/`ModelDecorationOptions` with capture + replace preview metadata and expose APIs so DocUI + Markdown snapshots can assert it.
+3. **`#delta-2025-11-26-aa4-cl8-intl`** – introduce Intl-aware classifiers + option plumbing (`wordSeparators`, `wordSegmenterLocales`, `multiCursorLimit`) across `SearchTypes`, `FindUtilities`, `DocUIFindController`, and `FindReplaceState`.
+4. **`#delta-2025-11-26-aa4-cl8-wordcache`** – upgrade caching/perf: locale-aware keys, option change handlers, and host APIs so QA can toggle separators without restarting.
+
+Each delta should update `docs/reports/migration-log.md`, publish a changefeed entry under `agent-team/indexes/README.md`, and add targeted tests (`MarkdownRendererTests`, `DocUIFindDecorationsTests`, `DocUIFindControllerTests`, `TextModelSearchTests`) with rerun commands logged in `tests/TextBuffer.Tests/TestMatrix.md`.
+
+## Validation hooks to port/extend
+- **Renderer parity:** `MarkdownRendererTests.SearchDecorationsHonorOwners`, `MarkdownRendererTests.ReplacePreviewFromDecorations`, `MarkdownRendererTests.ScopeLegendMatchesTS`.
+- **Intl segmentation:** port `ts/src/vs/editor/contrib/wordOperations/test/browser/wordOperations.intl.test.ts` into `CursorWordOperationsTests` + `DocUIFindSelectionTests`. Add CJK/emoji fixtures to `TextModelSearchTests`.
+- **Word separator configuration:** add `DocUIFindControllerTests.WordSeparatorsFollowOptionChanges` mirroring VS Code issue #23307.
+- **Replace previews:** extend `DocUIFindControllerTests` with TS regressions #47400/#109756 to confirm per-match preview text.
+
+## Dependencies / blockers
+- Need a decision on which .NET segmentation API to use (ICU4X, `System.Text.Enumeration`, or custom). Planner to align with AA4 CL7 cursor work because both layers need the same Intl surface.
+- `TextModelResolvedOptions` currently lacks `WordSeparators` & locales; Porter must extend the options struct and update Undo/Redo snapshots so QA can assert event propagation.
+- `MarkdownRenderer` change requires DocUI host options to pass `DecorationOwnerIds.SearchHighlights`; ensure changefeed instructions mention this owner id so future renderers stay in sync.
+
+## References
+- `ts/src/vs/editor/contrib/find/browser/findController.ts`
+- `ts/src/vs/editor/contrib/find/browser/findModel.ts`
+- `ts/src/vs/editor/contrib/find/browser/findDecorations.ts`
+- `ts/src/vs/editor/contrib/find/browser/replacePattern.ts`
+- `ts/src/vs/editor/common/model/textModelSearch.ts`
+- `ts/src/vs/editor/common/core/wordCharacterClassifier.ts`
+- `src/TextBuffer/TextModelSearch.cs`
+- `src/TextBuffer/TextModel.cs`
+- `src/TextBuffer/Core/SearchTypes.cs`
+- `src/TextBuffer/Decorations/ModelDecoration.cs`
+- `src/TextBuffer/Rendering/MarkdownRenderer.cs`
+- `src/TextBuffer/DocUI/FindUtilities.cs`
+- `src/TextBuffer/DocUI/DocUIFindController.cs`
+- `src/TextBuffer/Rendering/DocUIReplaceController.cs`
 
 ## Findings
 

@@ -5,7 +5,6 @@ bin/
 __pycache__/
 TestResults/
 BugRepro/
-agent-team/handoffs/
 /*.cs
 ts-upstream/
 chat-log/
