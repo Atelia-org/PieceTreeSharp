@@ -371,3 +371,10 @@ Handoff / 参考：
 - **Validation:** Documentation-only; verification details live in each file’s new "Verification Notes" section and cite the C#/TS files inspected.
 - **References:** See migration log row `2025-11-26 | ALIGN-AUDIT-R1` for the corresponding audit trail and cross-link requirements.
 
+### delta-2025-11-26-sprint04
+- **Scope:** 建立 Phase 8 冲刺治理资产——`docs/sprints/sprint-04.md`（Sprint 04 对象/交付/Progress Log）与新版 `agent-team/task-board.md`（Workstream 1~5 + Ops 表格、owner、runSubAgent 预算）。
+- **Drivers:** 将 `agent-team/handoffs/PORT-PT-Search-Plan.md`、`agent-team/handoffs/PORT-IntervalTree-Normalize.md` 和 `agent-team/handoffs/ALIGN-20251126-Plan.md` 融合成单一执行路线，突出 PieceTree 搜索 parity、IntervalTree deferred normalize、Range/Cursor/Test backlog 的里程碑日期。
+- **Artifacts:** [`docs/sprints/sprint-04.md`](../../docs/sprints/sprint-04.md)、[`agent-team/task-board.md`](../../agent-team/task-board.md)、存档版 [`agent-team/task-board-v7-archive.md`](../../agent-team/task-board-v7-archive.md)。
+- **Notes:** Sprint Window 设定为 2025-11-27~2025-12-12，所有状态更新需引用本 delta；Task Board 引入新的 Workstream ID（WS1~WS5、OPS-*）与 changefeed 提醒。
+- **Next actions:** Info-Indexer 需在后续交付（WS1/WS3 等）完成时以此 delta 为起点追加子条目；DocMaintainer 已被要求在 runSubAgent 前后同步 Sprint Log/Task Board/TestMatrix。
+
