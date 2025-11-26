@@ -28,8 +28,9 @@
 | Index Catalog & Partner Memory | agent-team/indexes/README.md; agent-team/members/info-indexer.md | 协作 Info-Indexer 输出，减少核心文档冗余 |
 
 ## Worklog
-- **Last Update:** 2025-11-26（B3 TextModelSearch QA doc sweep）
+- **Last Update:** 2025-11-26（ALIGN/INV doc path corrections + DocReview R43）
 - **Recent Actions:**
+  - 2025-11-26：DocMaintainer Run R43 —— 按 `agent-team/handoffs/DocReview-20251126.md` 修正 `ALIGN-20251126-Plan.md` Workstream 1/2/4/5 路径、`INV-TestBacklog-Prioritization.md` diff 测试引用，并在 DocReview 表中追加 Status 列标记关闭；提醒 Porter/QA 依照新路径抓取 PieceTree/Cursor/Diff 资源。
   - 2025-11-26：DocMaintainer Run R42 —— 根据 Investigator R40/R41 结论，将 `agent-team/task-board.md` AA4-003/004 标记为 ✅ Done（High Risk audit）、记录 [`#delta-2025-11-26-aa4-cl7-*`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-*`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown) placeholders，同时把 `tests/TextBuffer.Tests/TestMatrix.md` CL7 行调为 Gap、在 `docs/sprints/sprint-03.md#r42` 登记 sweep，`AGENTS.md` 补充对应 bullet，提醒 Porter/QA/Info-Indexer 按 delta 计划投递补丁、rerun 并发布广播。
   - 2025-11-26：DocMaintainer Run R39 —— 在 `AGENTS.md`、`agent-team/task-board.md`、`docs/plans/ts-test-alignment.md`、`docs/sprints/sprint-03.md` 以及本记忆档播报 TextModelSearch QA 结论，统一引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch) + [`agent-team/handoffs/B3-TextModelSearch-QA.md`](../handoffs/B3-TextModelSearch-QA.md)，重复 canonical stats（targeted 45/45 @ 2.5s、full 365/365 @ 61.6s、`PIECETREE_DEBUG=0`），并在 Sprint Log R39 标注此次 sweep；Intl.Segmenter word segmentation / WordSeparator cache/perf backlog 仍列为 open items，需于 AA4 继续追踪。
   - 2025-11-26：同步 Investigator/Porter 文档修复 —— 参照 `agent-team/handoffs/DocReview-20251126-INV.md` 与 `agent-team/handoffs/DocFix-20251126-Porter.md` 更新 `tests/TextBuffer.Tests/TestMatrix.md`（TextModelSearch Latest QA + baseline row），并交付 `agent-team/handoffs/DocFix-20251126-DocMaintainer.md` 记录此次治理；确保 changefeed `#delta-2025-11-25-b3-textmodelsearch` 的统计一致，纯文档同步（无新增测试）。
