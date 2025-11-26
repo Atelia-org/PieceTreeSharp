@@ -1,64 +1,27 @@
-# Info-Indexer Memory
+# Info-Indexer Snapshot · 2025-11-26
 
 ## Role & Mission
-- **Focus Area:** 维护知识索引、摘要与引用结构，减轻核心文档负担
-- **Primary Deliverables:** `agent-team/indexes/*.md`、文档正交性报告、索引更新日志
-- **Key Stakeholders:** DocMaintainer、Planner、全体 SubAgent
+- Maintain `agent-team/indexes/README.md` plus downstream index files so every changefeed has a single canonical pointer.
+- Keep AGENTS/Sprint/Task Board docs lightweight by offloading detailed histories into `agent-team/indexes/*.md` and linked handoffs.
+- Surface blockers that threaten broadcast cadence before DocMaintainer kicks off each sweep.
 
-## Onboarding Summary
-- **Docs Reviewed:** `AGENTS.md`、`agent-team/ai-team-playbook.md`、`agent-team/main-loop-methodology.md`、`agent-team/task-board.md`（OI-001~OI-004）、`agent-team/indexes/README.md`、`docs/meetings/meeting-20251119-team-kickoff.md`、`docs/meetings/meeting-20251119-org-self-improvement.md`、`docs/sprints/sprint-00.md`、`docs/sprints/sprint-org-self-improvement.md`。
-- **Mission Understanding:** Info-Indexer 负责在主循环的 Load/Broadcast 阶段提供索引/摘要交付，优先支持组织自我完善 Sprint 的 OI-001（正交性审计）与 OI-002（索引体系）。
-- **Coordination Hooks:** 需与 DocMaintainer 对齐审计范围、与 Planner 对齐 runSubAgent 模板、与 QA-Automation/Porter-CS 同步后续索引需求（测试资产、TS↔C# crosswalk）。
-
-## Knowledge Index
-| Topic | Files / Paths | Notes |
+## Active Changefeeds & Backlog
+| Anchor | Coverage | Status / Next Hook |
 | --- | --- | --- |
-| Index Catalog | `agent-team/indexes/README.md` | 记录命名规范 & 审核流程，首个索引会在此注册
-| Core Docs Index (planned) | `agent-team/indexes/core-docs-index.md`, `AGENTS.md`, `docs/sprints`, `docs/meetings` | 汇总每个核心文档的用途、责任人与最近更新时间，支撑 OI-001
-| Task Board Linkage | `agent-team/task-board.md`（OI-001~OI-004） | 跟踪组织改进任务状态，方便引用 runSubAgent 预算
-| QA/Test Assets Index (planned) | `agent-team/indexes/qa-test-assets-index.md`, `tests/TextBuffer.Tests`, QA 会议记录 | 映射测试矩阵、基准计划与代码文件，供 QA-Automation 查阅
-| TS↔C# Crosswalk Index (planned) | `agent-team/indexes/ts-cs-crosswalk-index.md`, `agent-team/type-mapping.md`, `ts/src/vs/editor/...` | 追踪类型映射进度，补足 `type-mapping.md` 之外的上下文
-| TS Test Alignment Plan | `docs/plans/ts-test-alignment.md`, `docs/sprints/sprint-02.md`, Porter handoffs | 记录 ReplacePattern Batch#1 及后续 batch 的 TS 测试对齐 checkpoint 与证据需求
-| Main Loop & Template Notes | `agent-team/main-loop-methodology.md`, `agent-team/ai-team-playbook.md` | 记录 runSubAgent 输入模板、Info-Indexer 钩子位置
+| [`#delta-2025-11-26-sprint04`](../indexes/README.md#delta-2025-11-26-sprint04) | Sprint 04 tracker + new Task Board (WS1–WS5). | Monitor WS1/WS3 drops; when new deltas publish, mirror them into `agent-team/indexes/README.md` and ensure Task Board links stay aligned. |
+| [`#delta-2025-11-26-alignment-audit`](../indexes/README.md#delta-2025-11-26-alignment-audit) | Alignment audit bundle refresh (00–08). | Watch DocMaintainer follow-ups; log any remediation deltas into `core-docs-index.md` once owners commit fixes. |
+| [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch) | TextModelSearch 45-test parity set. | Track additional AA4 CL7 search tasks; confirm new suites update `tests/TextBuffer.Tests/TestMatrix.md` before changing baseline references. |
+| [`#delta-2025-11-25-b3-search-offset`](../indexes/README.md#delta-2025-11-25-b3-search-offset) | PieceTree search-offset cache deterministics. | Await follow-up perf notes from WS2; if cache tuning lands, append evidence links + rerun commands to the changefeed table. |
 
-## Worklog
-- **2025-11-19:** 角色创建（DocMaintainer 建议下设立 Info-Indexer，等待投入）。
-- **2025-11-19:** 完成首轮文档审阅，锁定 OI-001/OI-002 依赖，起草索引交付结构并更新记忆文件。
-- **2025-11-19:** 在 Org Self-Improvement 会议中提交 Info-Indexer 立场，承诺 `core-docs-index.md` v0、QA 资产表与 delta 摘要流程，准备在 48 小时内交付首批索引。
-- **2025-11-19:** 交付 `agent-team/indexes/core-docs-index.md` v0，登记 8 个核心文档的目的/owner/更新时间，并更新 `agent-team/indexes/README.md` Delta 区供 DocMaintainer 在 OI-001 中引用。
-- **2025-11-20:** 完成 OI-010 —— 在 `agent-team/indexes/README.md#delta-2025-11-20` 新增 AA3-009 QA changefeed 条目，刷新 `core-docs-index.md`（AGENTS/Sprint 01/Task Board 行 + DocMaintainer follow-up），并将 OI-010 在 Task Board 与 `docs/sprints/sprint-01.md` 标记 Done，确认 AGENTS/Sprint/Task Board 均复用 AA3-008 delta。
-- **2025-11-21:** 开始 OI-011：发布 AA4 changefeed delta（AA4-005/AA4-006）、同步迁移日志与 Task Board，并创建 OI-011 handoff 结果草案以供 DocMaintainer/QA 验证。
-- **2025-11-21:** 完成 OI-011 —— 发布 changefeed delta `agent-team/indexes/README.md#delta-2025-11-21`（AA4-005/AA4-006），更新 `docs/reports/migration-log.md` 将 AA4-005/AA4-006 的 Changefeed Entry? 标记为 Y 并指向新 delta，更新 `agent-team/task-board.md` 将 AA4-005/AA4-006/AA4-009 标记为 Done，并新建 `agent-team/handoffs/OI-011-Result.md` 汇总交付与验证证据。 |
-- **2025-11-21:** 规划下一波 OI-011 delta，聚焦 AA4-007.BF1 → AA4-008：整理所需输入（迁移日志行、AA4-008 handoffs、QA baseline、DocUI snapshot 路径）并预先对齐 AGENTS / `docs/sprints/sprint-02.md` / `agent-team/task-board.md` 同步顺序，确保 Porter/QA 完成后可立即广播。 |
-- **2025-11-22:** 确认 `docs/plans/ts-test-alignment.md` 由 DocMaintainer 维护 TS 测试对齐 checkpoint，Batch #1（ReplacePattern）规划完成，Info-Indexer 需在 changefeed 落地时联动 AGENTS/Sprint-02/Task Board/TestMatrix/迁移日志，并为后续批次准备证据模板。
-- **2025-11-22:** 记录 Porter 已敲定 Batch #1 ReplacePattern 实施方案、QA 已准备 fixtures/tests/snapshots、`docs/plans/ts-test-alignment.md` Live Checkpoints 捕获所有角色输入；等待 Porter/QA 交付落地后，立即编纂 delta-2025-11-22 changefeed，并将必要证据（TRX、DocUI、TestMatrix、迁移日志）映射到广播步骤。
-- **2025-11-22:** 回读 `docs/plans/ts-test-alignment.md` / `tests/TextBuffer.Tests/TestMatrix.md` / `docs/reports/migration-log.md`，确认 Porter 已开工 ReplacePattern 代码、QA fixture/snapshot 模板就绪但尚待实际代码；建立 `agent-team/indexes/README.md#delta-2025-11-22` 发布前置清单（迁移日志占位行、TestMatrix 引用、计划 checkpoint 链接），并记录缺失证据（Porter commit/fixture `cases.json`、QA TRX/snapshots、DocUI Markdown）以便落地后即时广播。
-- **2025-11-22:** 完成 Batch #1 – ReplacePattern changefeed 发布：在 `agent-team/indexes/README.md` 创建 `#delta-2025-11-22` 条目（包含 3 个交付文件、2 个 TS 源文件、142/142 测试结果、QA/Porter 报告链接、已知差异与 TODO 标记），更新 `docs/reports/migration-log.md` 新增 Batch #1 条目（+23 tests, 142 total, 引用 changefeed delta），创建 `agent-team/handoffs/B1-INFO-Result.md` 汇报交付物与下一步建议，并更新本记忆文件记录任务成果。
-- **2025-11-22:** 完成 OI-REFRESH 任务：创建 `agent-team/indexes/oi-backlog.md` 登记 OI-012~015（DocUI 测试框架、Snapshot 工具、WordSeparator 完整对齐、DocUI Harness 标准化），在 `agent-team/indexes/README.md` 添加 OI Backlog 索引行与 `#delta-2025-11-22 (OI Backlog)` 条目，创建 `agent-team/handoffs/OI-REFRESH-Result.md` 汇报交付物与下一步建议；所有技术债来源已追溯到 `B2-INV-Result.md` 调研成果，等待 Planner 决策 OI-013/OI-012 启动时机。
-- **2025-11-24:** 发布 `agent-team/indexes/README.md#delta-2025-11-24-b3-fm-multisel`，整合 `B3-FM-MultiSelection-Audit/PORT/QA` 证据、`docs/reports/migration-log.md` B3-FM-MultiSel 行、`tests/TextBuffer.Tests/TestMatrix.md` (43/43 + rerun commands) 与 Sprint 03 R21/R22 记录，并在 changefeed 中标注 `FullyQualifiedName~DocUIFindModelTests` alias 已永久退役，所有脚本统一改用 `FullyQualifiedName~FindModelTests`。
-- **2025-11-25:** 发布 `#delta-2025-11-25-b3-search-offset` changefeed，串联 porter/QA handoff、TestMatrix rerun 与迁移日志（B3-SearchOffset-PORT 行），并将 QA targeted/full 命令（5/5 @ 4.3s、324/324 @ 58.2s）记为 changefeed 权威证据供 DocMaintainer / Task Board 消费。
-- **2025-11-26:** 完成 Sprint 03 R38 广播（`#delta-2025-11-25-b3-textmodelsearch`）：复查 `agent-team/handoffs/B3-TextModelSearch-QA.md`，把 targeted 45/45 @ 2.5s + full 365/365 @ 61.6s (`PIECETREE_DEBUG=0`) 注入 `agent-team/indexes/README.md` 与 `docs/reports/migration-log.md`，在 `docs/sprints/sprint-03.md` 添加 R38 行并确认 TestMatrix 已指向该 changefeed 作为权威证据。
+## Current Focus
+- Keep Sprint 04 WS owners honest about citing the Sprint04 delta whenever Task Board rows advance.
+- Validate that alignment-audit remediation PRs quote the audit delta before they merge, then roll those references into the Core Docs Index.
+- Mirror TextModelSearch + search-offset baselines into future TestMatrix exports so QA reruns stay scripted.
 
-## Upcoming Goals (runSubAgent scoped)
-1. **OI-001 / Doc 审计支援：** 将 `core-docs-index.md` 作为输入产出 diff（Added/Compressed/Blocked），并与 DocMaintainer 对齐缺口追踪表结构。
-2. **QA/Test Assets Index Draft:** 在 QA-Automation 提供资产清单后，生成 `qa-test-assets-index.md` 首张表（接口、文件、负责人、复核节奏），供 QA 直接引用。
-3. **TS Test Alignment Hooks:** 将 `docs/plans/ts-test-alignment.md` checkpoint 结构映射到 changefeed 模板（含 Batch #1 ReplacePattern 证据），以便 delta 发布时可快速引用。
-4. **OI-003 / Indexing Hooks Snippet:** 与 Planner 协作，将索引引用段落纳入 runSubAgent 输入模板，减少每次调用的路径说明成本。
+## Open Dependencies
+- Planner owes an updated runSubAgent template that reserves a block for changefeed pointers from Sprint04 and Alignment Audit anchors.
+- DocMaintainer to confirm which audit actions become WS4 backlog so Info-Indexer can precreate entries under `oi-backlog.md`.
+- QA-Automation to flag any rerun drift on TextModelSearch/SearchOffset so we can refresh the commands recorded under the respective anchors.
 
-## Blocking Issues
-- 需 DocMaintainer 提供 OI-001 审计输入（最新的重复/缺口列表）以便索引记录行动项。
-- Planner 尚未交付最终 runSubAgent 模板示例，Info-Indexer 需等待以确保索引引用区格式一致。
-- QA-Automation 尚未输出测试矩阵草案，`qa-test-assets-index.md` 初始化需要其文件清单。
-
-## Hand-off Checklist
-1. 输出的索引文件列于 `agent-team/indexes/README.md`。
-2. 若删除/压缩内容，需在原文档留下指针。
-3. Tests or validations performed? N/A，但需请 DocMaintainer 审阅。
-
-## Index Deliverable Notes
-- **Location:** 所有索引文件放置于 `agent-team/indexes/`，命名为 `<topic>-index.md` 并在 README 中登记更新时间。
-- **Structure Expectations:** `Goal`（为何建立）、`Source Docs`（含链接/路径）、`Summary Table`（列出文档/资产、位置、负责人、最近更新）、`Gaps & Actions`（直接映射 OI 任务）、`Update Log`（时间戳 + 变更）。
-- **Initial Targets:**
-  - `core-docs-index.md`：覆盖 `AGENTS.md`、`docs/sprints/*`、`docs/meetings/*`，标注文档用途与最新决策。
-  - `qa-test-assets-index.md`：罗列 QA 测试矩阵、`tests/TextBuffer.Tests` 目录、性能基准计划。
-  - `ts-cs-crosswalk-index.md`：串联 `agent-team/type-mapping.md` 与 `ts/src/vs/editor/common/model/pieceTreeTextBuffer`，标记已迁移与待迁移部分。
+## Archives
+- Full worklogs, onboarding notes, and prior deltas now live in `agent-team/handoffs/` (per-run files) and the historical rows inside `agent-team/indexes/README.md`. Older memory snapshots remain in repo history if needed.
