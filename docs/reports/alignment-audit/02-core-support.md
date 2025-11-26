@@ -4,290 +4,167 @@
 **审查范围:** 8个支持类型文件
 
 ## 概要
-- 完全对齐: 3/8
-- 存在偏差: 4/8
-- 需要修正: 1/8
+- 完全对齐: 1/8
+- 存在偏差: 5/8
+- 需要修正: 2/8
 
 ## 详细分析
 
 ### 1. PieceTreeSearchCache.cs
-**TS源:** pieceTreeBase.ts (Lines 100-268)
+**TS源:** `ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (L207-263)  
 **对齐状态:** ⚠️存在偏差
 
-**分析:**
+**关键比较**
 
 | 特性 | TS原版 | C#实现 | 状态 |
 |-----|--------|--------|------|
-| 缓存结构 | `_cache: CacheEntry[]` | `_entries: List<CacheEntry>` | ✅ |
-| 限制参数 | `_limit: number` | `_limit: int` (默认值=1) | ✅ |
-| get方法 | `get(offset)` 返回CacheEntry或null | `TryGetByOffset` 返回bool+out参数 | ✅ 惯用法差异 |
-| get2方法 | `get2(lineNumber)` 返回对象或null | `TryGetByLine` 返回bool+out参数 | ✅ 惯用法差异 |
-| set方法 | `set(nodePosition)` | `Remember(node, offset, line?)` | ⚠️ API不同 |
-| validate方法 | 检查`node.parent === null`和`offset >= threshold` | 额外检查`IsSentinel`/`IsDetached`+offset验证 | ⚠️ 扩展逻辑 |
+| 缓存上限 | 构造函数参数，调用方必须传入 | 构造函数提供 `limit = 1` 默认值 | ⚠️ 默认差异 |
+| 查找 API | `get(offset)` / `get2(line)` 返回 `CacheEntry` | `TryGetByOffset` / `TryGetByLine`（`bool + out`） | ✅ 惯用差异 |
+| set 行为 | `set(nodePosition)` 直接推入 `CacheEntry` | `Remember(node, offset, line?)` 拆分参数 | ⚠️ API差异 |
+| validate | `validate(offset)` 仅检查 `node.parent === null` 或 `nodeStartOffset >= offset` | `Validate(Func,node)` 重新计算偏移，过滤 `IsSentinel/IsDetached`，同时比较 `totalLength` | ⚠️ 逻辑不同 |
+| 失效 API | 只有 `set` 时 `shift` | 额外提供 `InvalidateFromOffset/InvalidateRange` | ⚠️ 扩展 |
 
-**偏差说明:**
-1. **TS `set()` vs C# `Remember()`**: TS接受完整的CacheEntry对象，C#分解为独立参数。功能等价但API签名不同。
-2. **TS `validate(offset)` vs C# `Validate(Func, totalLength)`**: C#版本更加复杂：
-   - TS: 简单地检查`node.parent === null`（判断节点是否已分离）和`nodeStartOffset >= offset`
-   - C#: 使用回调函数`computeOffset`重新计算偏移量，检查`IsSentinel`/`IsDetached`状态
-3. **额外方法**: C#添加了`InvalidateFromOffset`和`InvalidateRange`方法，TS中没有这些方法。
-4. **CoversOffset边界**: TS使用`>=`判断end边界，C#使用`<=`，在offset等于end时行为略有不同。
-
-**修正建议:**
-1. `validate`方法的行为与TS不完全一致。TS版本更简单直接：
-```typescript
-// TS原版
-public validate(offset: number) {
-    // 如果 node.parent === null 或 nodeStartOffset >= offset，则移除
-}
-```
-建议保持C#的增强实现，但需在注释中说明与TS的差异。
+**偏差说明**
+1. 默认 `limit` 与 TS 行为一致（当前 VS Code 仍传 1），但如果后续 TS 端调高缓存上限，C# 默认值需要同步调整，否则容易出现缓存与 TS 行为不符。
+2. `Validate` 的语义更严格：TS 仅确认节点仍在树上且未越过 `offset`（L235-257），C# 会再次计算真实偏移并在不匹配或超出 `totalLength` 时剔除。虽然更安全，但会在某些边界情况下过早清缓存。
+3. 新增的 `InvalidateRange` 能力在 TS 中不存在，调用方若依赖它需要额外文档说明，避免误以为 JS 端也有相同方法。
 
 ---
 
 ### 2. PieceTreeSearcher.cs
-**TS源:** textModelSearch.ts (Lines 490-560, Searcher class)
+**TS源:** `ts/src/vs/editor/common/model/textModelSearch.ts` (L494-560)  
 **对齐状态:** ⚠️存在偏差
-
-**分析:**
 
 | 特性 | TS原版 | C#实现 | 状态 |
 |-----|--------|--------|------|
-| 构造函数 | `(wordSeparators, searchRegex)` | `(wordSeparators?, searchRegex)` | ✅ |
-| 状态字段 | `_prevMatchStartIndex`, `_prevMatchLength` | 相同 | ✅ |
-| reset方法 | `_searchRegex.lastIndex = lastIndex` | `_lastIndex = lastIndex` | ⚠️ |
-| next方法 | 返回`RegExpExecArray \| null` | 返回`Match?` | ✅ |
-| 零长度匹配处理 | 使用`getNextCodePoint`判断代理对 | 使用`UnicodeUtility.AdvanceByCodePoint` | ✅ |
-| 终止条件 | `_prevMatchStartIndex + _prevMatchLength === textLength` | 相同逻辑 | ✅ |
+| 正则状态 | 依赖 `regex.lastIndex` | `_lastIndex` 字段 + `Regex.Match(text,start)` | ⚠️ |
+| 正则选项 | `strings.createRegExp(...,{ unicode:true, global:true })` | `RegexOptions.ECMAScript`，无 `unicode` 概念 | ⚠️ |
+| 零长度匹配 | `getNextCodePoint` | `UnicodeUtility.AdvanceByCodePoint` | ✅ |
+| 结果过滤 | `isValidMatch(...)` | `WordCharacterClassifier.IsValidMatch` | ✅ |
 
-**偏差说明:**
-1. **Regex状态管理**: TS直接操作`regex.lastIndex`属性，C#的`Regex`类是无状态的，需要用`Match(text, startIndex)`方法传入起始位置。C#实现通过`_lastIndex`字段模拟此行为。
-2. **ECMAScript模式**: C#添加了`EnsureEcmaRegex`方法强制使用`RegexOptions.ECMAScript`，这是为了匹配JS正则表达式的行为，是合理的运行时适配。
-3. **isValidMatch调用**: TS使用独立的`isValidMatch`函数，C#将其作为`WordCharacterClassifier`的实例方法。
-
-**修正建议:**
-实现基本对齐，差异属于语言运行时的必要适配。无需修正。
+**偏差说明**
+- C# 无法复用 JS 的 `unicode`/`global` 标志，现有实现通过 `EnsureEcmaRegex`（L17-L40）强制 ECMAScript 语义，但在代理对分界处仍可能与 TS 不同。
+- `_lastIndex` 未在失败后重置，与 TS 逻辑相同，但需要调用方记得在下一次搜索前 `Reset()`；建议在注释中强调。
 
 ---
 
 ### 3. PieceTreeSnapshot.cs
-**TS源:** pieceTreeBase.ts (Lines 157-190, PieceTreeSnapshot class)
+**TS源:** `ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts` (L58-149)  
 **对齐状态:** ✅完全对齐
 
-**分析:**
-
-| 特性 | TS原版 | C#实现 | 状态 |
-|-----|--------|--------|------|
-| 构造函数 | 收集所有piece到数组 | 使用`EnumeratePiecesInOrder()` | ✅ |
-| _pieces | `Piece[]` | `IReadOnlyList<PieceSegment>` | ✅ |
-| _index | 读取索引 | 相同 | ✅ |
-| _BOM | BOM字符串 | `_bom` | ✅ |
-| read() | 首次返回BOM，后续返回piece内容 | 相同逻辑 | ✅ |
-| 空文档处理 | 仅返回BOM | 相同 | ✅ |
-
-**分析详情:**
-- TS版本通过`tree.iterate()`遍历树节点收集pieces
-- C#版本通过`model.EnumeratePiecesInOrder()`达到相同效果
-- `read()`方法的逻辑完全一致：首次调用返回BOM+第一个piece内容，后续调用返回piece内容
-- 边界条件处理（空文档、超出索引）与TS一致
-
-**修正建议:** 无需修正。
+- `_pieces` 的生成方式（TS: `tree.iterate`; C#: `EnumeratePiecesInOrder`）等价。
+- `read()` 的 BOM 处理、空文档返回顺序、越界条件与 TS 完全相同。
 
 ---
 
 ### 4. PieceTreeTextBufferFactory.cs
-**TS源:** pieceTreeTextBufferBuilder.ts (Lines 14-66)
+**TS源:** `ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` (L13-108)  
 **对齐状态:** ⚠️存在偏差
-
-**分析:**
 
 | 特性 | TS原版 | C#实现 | 状态 |
 |-----|--------|--------|------|
-| 构造函数参数 | chunks, bom, cr, lf, crlf, rtl, unusual, ascii, normalizeEOL | 相同 + options对象 | ⚠️ |
-| _getEOL | 基于CR计数决定EOL | `DetermineEol`相同逻辑 | ✅ |
-| create方法 | 返回`{ textBuffer, disposable }` | 返回`PieceTreeBuildResult` | ⚠️ |
-| EOL规范化 | 正则替换`/\r\n\|\r\|\n/g` | `ChunkUtilities.NormalizeChunks` | ✅ |
-| getFirstLineText | 简单substring+split | 更复杂的StringBuilder实现 | ⚠️ |
+| `create()` 返回值 | `{ textBuffer, disposable }` | `PieceTreeBuildResult`（封装更多元数据） | ⚠️ |
+| EOL 规范化 | 就地 `replace(/\r\n|\r|\n/g, eol)` | `ChunkUtilities.NormalizeChunks` 生成新 `ChunkBuffer` | ✅ |
+| `getFirstLineText` | 仅读取第一个 chunk 并 `split(/\r\n|\r|\n/)` (TS L59-61) | 将多个 chunk 拼接再寻找换行 | ⚠️ |
+| 额外 API | 无 | `GetLastLineText`, `PieceTreeBuilderOptions` | ⚠️ |
 
-**偏差说明:**
-1. **返回类型差异**: TS返回`{ textBuffer, disposable }`元组，C#返回包装类`PieceTreeBuildResult`。
-2. **getFirstLineText实现差异**: 
-   - TS: `this._chunks[0].buffer.substr(0, lengthLimit).split(/\r\n|\r|\n/)[0]` - 只看第一个chunk
-   - C#: 遍历所有chunks构建字符串，然后查找换行符 - 支持跨chunk边界
-3. **额外方法**: C#添加了`GetLastLineText`方法，TS中没有。
-4. **PieceTreeBuilderOptions**: C#引入了options对象，TS使用独立的normalizeEOL布尔参数。
-
-**修正建议:**
-1. `GetFirstLineText`行为与TS不完全一致。TS只检查第一个chunk，C#检查所有chunks。如果第一行跨越多个chunk，C#的行为更正确，但与TS不同。考虑是否需要严格匹配TS行为。
+**偏差说明**
+1. 预览逻辑：TS 首行预览只依赖 `_chunks[0]`，C# 允许首行跨多个 chunk。这改变了前端展示的一致性，应在 API 文档中说明或加开关。
+2. 结果类型不同，若上层期望 `{ textBuffer, disposable }` 结构，需要再包装，避免破坏既有接口。
+3. `PieceTreeBuilderOptions.NormalizeEol` 默认为 true，与 TS `finish(normalizeEOL = true)` 相同，但调用者若想跳过，需要显式设置，文档中需强调。
 
 ---
 
 ### 5. Range.Extensions.cs
-**TS源:** range.ts (Lines 50-150)
+**TS源:** `ts/src/vs/editor/common/core/range.ts` (L52-195)  
 **对齐状态:** ❌需要修正
 
-**分析:**
+| API | TS行为 | C#现状 |
+|-----|--------|--------|
+| `containsPosition` / `strictContainsPosition` | 包含/严格包含某个 `IPosition` | 未实现 |
+| `containsRange` / `strictContainsRange` | 范围包含与严格包含 | 未实现 |
+| `intersectRanges` | 返回交集或 `null` | 未实现 |
+| `plusRange` | 先比较行号，再比较列号（TS L179-213） | 仅比较 `TextPosition`，忽略同行细节 |
+| 静态 helper | `Range.isEmpty(range)` 等 | C# 只保留实例属性 `IsEmpty` |
 
-| 特性 | TS原版 | C#实现 | 状态 |
-|-----|--------|--------|------|
-| isEmpty() | 比较4个坐标 | `Start == End` | ⚠️ |
-| containsPosition | 完整边界检查 | 未实现 | ❌ |
-| strictContainsPosition | 严格边界检查 | 未实现 | ❌ |
-| containsRange | 范围包含检查 | 未实现 | ❌ |
-| strictContainsRange | 严格范围包含检查 | 未实现 | ❌ |
-| plusRange | 合并两个范围 | `Plus(Range other)` | ⚠️ |
-| intersectRanges | 范围交集 | 未实现 | ❌ |
-| getStartPosition | 返回起始位置 | ✅ | ✅ |
-| getEndPosition | 返回结束位置 | ✅ | ✅ |
+**影响**
+- 大量下游逻辑（Selection、Decorations、Diff）依赖这些 helper；没有它们无法 1:1 复用 VS Code 算法。
+- 现有 `Plus` 在同行范围会产生错误的 `startColumn/endColumn`。
 
-**偏差说明:**
-1. **Plus方法实现不完整**: TS的`plusRange`方法对相同行号时会比较列号取最小/最大值。C#实现只做简单的位置比较。
-   ```typescript
-   // TS plusRange (正确)
-   if (b.startLineNumber === a.startLineNumber) {
-       startColumn = Math.min(b.startColumn, a.startColumn);
-   }
-   ```
-   ```csharp
-   // C# Plus (简化)
-   var start = Start <= other.Start ? Start : other.Start;
-   ```
-2. **大量方法缺失**: `containsPosition`, `containsRange`, `intersectRanges`等核心方法未实现。
-
-**修正建议:**
-需要补充以下方法的实现：
-1. `ContainsPosition(TextPosition position)` - 检查位置是否在范围内
-2. `StrictContainsPosition(TextPosition position)` - 严格检查（边界返回false）
-3. `ContainsRange(Range other)` - 检查范围是否包含另一个范围
-4. `StrictContainsRange(Range other)` - 严格范围包含检查
-5. `IntersectRanges(Range other)` - 计算两个范围的交集
-6. 修正`Plus`方法以正确处理同行比较
+**建议**
+- 补齐所有静态/实例方法，并为 `Plus/IntersectRanges` 编写单元测试，验证同行/跨行边界。
+- 统一 `TextPosition` 比较方式，避免在 Range 外部重复编写 `<=`/`>=` 判断。
 
 ---
 
 ### 6. SearchTypes.cs
-**TS源:** textModelSearch.ts + wordCharacterClassifier.ts
+**TS源:** `ts/src/vs/editor/common/model/textModelSearch.ts` (L1-166) + `ts/src/vs/editor/common/core/wordCharacterClassifier.ts` (L1-120) + `ts/src/vs/editor/common/model.ts` (L1535-1570)  
 **对齐状态:** ⚠️存在偏差
 
-**分析:**
+**关键差异**
+1. **SearchData 结构**：TS 仅持有 `regex`, `wordSeparators`, `simpleSearch`；C# 额外公开 `IsMultiline`, `IsCaseSensitive`（L46-59）。这些扩展对 C# 有用，但 TS 端没有，需要在文档注明。
+2. **正则构建**：TS 使用 `strings.createRegExp`，自动开启 `unicode/global` 并遵守 ECMAScript 语义；C# 依赖 `Regex` + `ApplyUnicodeWildcardCompatibility` 替换 `.`。仍可能在带代理对的 `\b`、`\w` 等场景出现差距。
+3. **WordCharacterClassifier 能力**：TS 继承 `CharacterClassifier` 且支持 `Intl.Segmenter` 缓存（L11-62）；C# 只使用 `Dictionary<int, WordCharacterClass>`，缺少国际化分词辅助，导致“单词边界”判断有限。
+4. **Boundary 判定**：TS 的 `isValidMatch` 可结合 `Intl` 结果与 `wordSeparators`；C# 仅依据字符类别与换行符判断，遇到 emoji/复杂脚本会与 TS 不一致。
 
-| 特性 | TS原版 | C#实现 | 状态 |
-|-----|--------|--------|------|
-| SearchParams | 4参数构造 | 相同 | ✅ |
-| parseSearchRequest | 返回SearchData或null | 相同 | ✅ |
-| isMultilineRegexSource | 检查\n, \\n, \\r, \\W | 相同 | ✅ |
-| SearchData | regex, wordSeparators, simpleSearch | 添加isMultiline, isCaseSensitive | ⚠️ |
-| FindMatch | range, matches | 相同 | ✅ |
-| WordCharacterClassifier | 继承CharacterClassifier | 独立实现用Dictionary | ⚠️ |
-| getMapForWordSeparators | LRUCache(10) | WordCharacterClassifierCache (LRU 10) | ✅ |
-| LineFeedCounter | 二分查找 | 相同算法 | ✅ |
-
-**偏差说明:**
-1. **SearchData额外字段**: C#添加了`IsMultiline`和`IsCaseSensitive`属性，TS版本没有（这些信息从regex.multiline和选项中获取）。
-2. **WordCharacterClassifier实现**: 
-   - TS: 继承`CharacterClassifier`基类，使用高效的查找表
-   - C#: 使用`Dictionary<int, WordCharacterClass>`，没有基类
-   - TS支持`intlSegmenterLocales`用于国际化分词，C#未实现
-3. **isValidMatch位置**: TS是独立函数，C#是`WordCharacterClassifier`的实例方法。
-4. **Unicode通配符处理**: C#的`ApplyUnicodeWildcardCompatibility`将`.`替换为UTF-16代理对感知的模式，这是C#特有的适配。
-
-**修正建议:**
-1. 考虑添加`IntlSegmenterLocales`支持（如果需要国际化分词）。
-2. `SearchData`的额外字段是合理的扩展，无需移除。
+**建议**
+- 将 `SearchData` 扩展字段标注为 C# 专属，并确认调用方不会把它们同步回 TypeScript。
+- 视需求评估 `Intl.Segmenter` 支持；或至少在 `WordCharacterClassifier` 注释中注明“不支持 locale-aware 的单词边界”。
 
 ---
 
 ### 7. Selection.cs
-**TS源:** selection.ts (Lines 1-100)
-**对齐状态:** ✅完全对齐
+**TS源:** `ts/src/vs/editor/common/core/selection.ts` (L1-200)  
+**对齐状态:** ❌需要修正
 
-**分析:**
+- TS `Selection` 继承 `Range` 并额外暴露 `selectionStartLineNumber/Column`, `positionLineNumber/Column`；C# 只保留 `Anchor/Active`，没有 Range 关系。
+- TS 提供 `getSelectionStart`, `getPosition`, `setStartPosition`, `setEndPosition`, `fromPositions`, `fromRange`, `liftSelection`, `selectionsEqual`, `selectionsArrEqual`, `isISelection` 等大量 helper；C# 仅实现 `Contains`, `CollapseToStart/End`, `ToString`。
+- 由于缺少这些工厂和比较方法，无法直接复用 VS Code 的 Selection 逻辑（例如多光标复制、撤销记录等）。
 
-| 特性 | TS原版 | C#实现 | 状态 |
-|-----|--------|--------|------|
-| 继承关系 | `extends Range` | 独立struct | ⚠️ 设计差异 |
-| selectionStartLineNumber/Column | 选择起点 | `Anchor` | ✅ |
-| positionLineNumber/Column | 选择终点（光标位置） | `Active` | ✅ |
-| getDirection() | LTR/RTL | `Direction`属性 | ✅ |
-| isEmpty() | 从Range继承 | `IsEmpty`属性 | ✅ |
-| toString() | `[start -> end]` | 相同格式 | ✅ |
-
-**分析详情:**
-- TS的`Selection`继承自`Range`，共享range的start/end概念
-- C#使用独立的struct，通过`SelectionStart`/`SelectionEnd`属性计算得到start/end
-- `Anchor`和`Active`的语义与TS的`selectionStart`和`position`对应
-- Direction计算逻辑一致：如果anchor在active之前则LTR，否则RTL
-
-**修正建议:** 
-设计差异是合理的C#惯用法（使用值类型而非类继承）。核心语义完全对齐，无需修正。
+**建议**
+- 补齐核心 API，并考虑让 `Selection` 提供 `GetDirection()`、`GetSelectionStart()` 等与 TS 同名的方法，或实现一个共享接口，降低迁移成本。
+- 评估是否需要让 `Selection` 组合 `Range`，以便与 TS 模型交互。
 
 ---
 
 ### 8. TextMetadataScanner.cs
-**TS源:** strings.ts (containsRTL, isBasicASCII, containsUnusualLineTerminators)
-**对齐状态:** ✅完全对齐
+**TS源:** `ts/src/vs/base/common/strings.ts` (L674-696)  
+**对齐状态:** ⚠️存在偏差
 
-**分析:**
+| 功能 | TS实现 | C#实现 | 差异 |
+|------|--------|--------|------|
+| `containsRTL` | 预生成 Unicode 正则 + 缓存 | 通过固定区间数组遍历 | 覆盖范围较粗，可能漏判 |
+| `containsUnusualLineTerminators` | 检查 `\u2028/\u2029` | 额外检测 `\u0085` (NEL) | 语义更宽 |
+| `isBasicASCII` | `/^[\t\n\r\x20-\x7E]*$/` | `ch > 0x7F` 检查 | ✅ |
 
-| 特性 | TS原版 | C#实现 | 状态 |
-|-----|--------|--------|------|
-| containsRTL | 复杂正则表达式匹配 | 范围检查 | ⚠️ 简化实现 |
-| isBasicASCII | 正则`/^[\t\n\r\x20-\x7E]*$/` | 字符遍历 `ch > 0x7F` | ✅ |
-| containsUnusualLineTerminators | 正则`/[\u2028\u2029]/` | 检查LS/PS/NEL | ⚠️ 增加了NEL |
-
-**偏差说明:**
-1. **RTL检测范围**: 
-   - TS使用精确的Unicode正则表达式，涵盖所有RTL代码点包括高代理对组合
-   - C#使用预定义的范围数组，覆盖主要的RTL区块但可能遗漏某些字符
-2. **异常行终止符**: C#额外检查了`\u0085` (NEL - Next Line)，TS只检查LS和PS。
-
-**分析详情:**
-```typescript
-// TS RTL正则（部分）
-/(?:[\u05BE\u05C0...\uFEFC]|\uD802[\uDC00-\uDD1B...]...)/
-```
-```csharp
-// C# RTL范围
-(0x0590, 0x08FF), // Hebrew, Arabic, etc.
-(0x200F, 0x202E), // Directional formatting
-(0xFB1D, 0xFDFF), (0xFE70, 0xFEFC)
-```
-C#的范围大致覆盖了TS正则的主要部分，但TS的正则更精确（排除了某些非RTL字符）。
-
-**修正建议:**
-1. 如果需要精确匹配TS行为，应该使用正则表达式或更精确的代码点列表
-2. NEL检测可能是有意的增强，如需严格对齐则移除`\u0085`检查
+**建议**
+- 若需要完全对齐 VS Code 的“可能包含 RTL”判断，应直接使用 TS 正则或生成等价查表；当前区间缺少部分符号（例如阿迪格语补充块）。
+- `NEL` 检测属增强功能，如保持该行为需在上层记录与 TS 差异，避免错误触发“包含异常行终止符”。
 
 ---
 
 ## 总结
 
-### 完全对齐 (3/8)
-1. **PieceTreeSnapshot.cs** - 核心逻辑完全一致
-2. **Selection.cs** - 语义对齐，设计适当C#化
-3. **TextMetadataScanner.cs** - 功能等价，实现方式不同
+### 完全对齐 (1/8)
+- `PieceTreeSnapshot.cs`
 
-### 存在偏差 (4/8)
-1. **PieceTreeSearchCache.cs** - API差异，validate逻辑增强
-2. **PieceTreeSearcher.cs** - 运行时适配差异（Regex状态管理）
-3. **PieceTreeTextBufferFactory.cs** - getFirstLineText行为差异
-4. **SearchTypes.cs** - 额外字段，缺少国际化支持
+### 存在偏差 (5/8)
+- `PieceTreeSearchCache.cs`
+- `PieceTreeSearcher.cs`
+- `PieceTreeTextBufferFactory.cs`
+- `SearchTypes.cs`
+- `TextMetadataScanner.cs`
 
-### 需要修正 (1/8)
-1. **Range.Extensions.cs** - 大量核心方法缺失，Plus方法实现不完整
-
----
+### 需要修正 (2/8)
+- `Range.Extensions.cs`
+- `Selection.cs`
 
 ## 建议优先级
+- **高:** 补齐 `Range.Extensions` 与 `Selection` 所有 TS 同名方法，修正 `Plus` 的同行比较，补全选择工厂与比较逻辑。
+- **中:** 为 `PieceTreeSearchCache`, `PieceTreeTextBufferFactory`, `SearchTypes`, `TextMetadataScanner` 明确标注行为差异，评估是否需要开关或注释保持可读性。
+- **低:** 如果决定保留 C# 扩展能力（如缓存 invalidation、NEL 检测），需在 README/注释中添加 parity 说明，避免后续重复调查。
 
-### 高优先级
-- [ ] Range.Extensions.cs: 实现缺失的`ContainsPosition`, `ContainsRange`, `IntersectRanges`等方法
-- [ ] Range.Extensions.cs: 修正`Plus`方法的同行列号比较逻辑
-
-### 中优先级
-- [ ] PieceTreeSearchCache.cs: 添加注释说明与TS的设计差异
-- [ ] PieceTreeTextBufferFactory.cs: 评估`GetFirstLineText`是否需要严格匹配TS（只检查第一个chunk）
-
-### 低优先级
-- [ ] TextMetadataScanner.cs: 评估是否需要使用更精确的RTL正则
-- [ ] SearchTypes.cs: 考虑添加国际化分词支持（如有需求）
+## 验证记录
+- 对照阅读 `src/TextBuffer/Core/*.cs` 与对应 TypeScript：如 `pieceTreeBase.ts L207-263`（搜索缓存）、`selection.ts L1-200`、`strings.ts L674-696` 等。
+- 使用 `rg -n "class Searcher" ts/src/vs/editor/common/model/textModelSearch.ts`、`rg -n "getFirstLineText" ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` 等命令定位 TS 行号。
+- 核查 `SearchTypes` 与 `wordCharacterClassifier.ts`，确认 `.NET Regex` 设置、`Intl.Segmenter` 缺失以及 `WordCharacterClassifier` 的功能差异。

@@ -1,388 +1,206 @@
 # Cursor 模块对齐审查报告
 
 **审查日期:** 2025-11-26
-**审查范围:** 9个光标相关文件
+**审查范围:** 9个光标与词法/Snippet相关文件（`src/TextBuffer/Cursor/**`）及其 TypeScript 对应实现（`ts/src/vs/editor/common/cursor/**`, `ts/src/vs/editor/contrib/snippet/browser/**`）
 
 ## 概要
 - 完全对齐: 0/9
-- 存在偏差: 3/9
-- 需要修正: 6/9
+- ⚠️存在偏差: 2/9（`WordCharacterClassifier.cs`, `WordOperations.cs` 仅覆盖基本词边界）
+- ❌需要修正: 7/9（`Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorContext.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`）
+- 🚫尚未移植: `CursorConfiguration`（TS: `cursorCommon.ts`，C# 无同名文件）
+- 关键差异集中在：缺失 model/view 双态与 `SingleCursorState`/`CursorConfiguration`、`CursorCollection` 与 `CursorContext` 没有视图/归一化管线、列选择/词导航/Snippet 仅保留极简骨架。唯一已解决的问题是 `SnippetSession` 的 BF1 多光标循环补丁，其余功能仍与 VS Code 有显著鸿沟。
 
 ## 详细分析
 
 ---
 
 ### 1. Cursor.cs
-**TS源:** `oneCursor.ts` (Lines 15-200)
+**TS源:** `ts/src/vs/editor/common/cursor/oneCursor.ts`
+**C#文件:** `src/TextBuffer/Cursor/Cursor.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS `Cursor` 只负责状态同步并依赖 `_setState` 与 `CursorMoveOperations`，而 C# 把 `MoveLeft/Right/Up/Down`, `MoveWord*`, `DeleteWordLeft` 等逻辑全部塞进 `Cursor`，与 VS Code 的职责划分完全不同。
+- TS 维护 `modelState` 与 `viewState`（`SingleCursorState`），通过 `_selTrackedRange` 和 `CursorContext` 的 `coordinatesConverter` 在编辑后恢复选择；C# 只有 `_selection` 和 `_stickyColumn`，既无 view state 也无 tracked range，编辑后无法校正漂移。
+- 粘列信息在 TS 中写入 `leftoverVisibleColumns` 并跟随 `CursorState` 序列化；C# 的 `_stickyColumn` 为局部字段，`CursorState` record 也没有该属性，多光标或撤销重建后就丢失。
+- `StartColumnSelection` 仅调用 `CursorColumns.GetVisibleColumnFromPosition` 等 helper，未通过 `CursorConfiguration.columnFromVisibleColumn` 校正行最小列和 RTL，可视/模型不一致。
+- `Cursor` 直接引用 `TextModel` 并在 `UpdateDecorations()` 中调用 `DeltaDecorations`，跳过了 `CursorContext` 提供的 viewModel/coordinatesConverter，导致视图与模型不可分层。
 
-TypeScript原版的 `Cursor` 类核心设计:
-- 维护 `modelState` 和 `viewState` 两个 `SingleCursorState` 对象，分别代表模型坐标和视图坐标
-- 使用 `_selTrackedRange` 跟踪选择范围变化
-- 通过 `CursorContext` 访问模型和协调转换器
-- 核心方法 `_setState` 负责验证和同步 model/view 状态
-- 支持选择追踪 (`startTrackingSelection`/`stopTrackingSelection`)
-
-C#实现的主要偏差:
-1. **架构设计不同**: C#版本是一个完整的独立cursor类，直接包含移动逻辑(`MoveLeft`, `MoveRight`, `MoveUp`, `MoveDown`, `MoveWordLeft`等)，而TS版本的`Cursor`类只负责状态管理，移动逻辑在其他地方(如`CursorMoveOperations`)
-2. **缺少双状态模型**: TS版本维护`modelState`和`viewState`两个状态，C#版本只有一个`_selection`
-3. **缺少TrackedRange机制**: TS版本使用`_selTrackedRange`追踪范围变化，C#版本缺少此功能
-4. **缺少SingleCursorState**: TS的`SingleCursorState`包含`selectionStart`, `selectionStartKind`, `leftoverVisibleColumns`等，C#完全缺失
-5. **缺少CursorContext依赖**: TS版本的所有操作都需要CursorContext，C#版本直接持有TextModel
-
-**偏差说明:**
-这是一个**重新设计**而非**直译移植**。C#版本将多个TS类的职责合并到一个类中，虽然功能上可用，但与TS原版架构差异显著。
-
-**修正建议:**
-1. 将移动逻辑拆分到单独的`CursorMoveOperations`类
-2. 引入`SingleCursorState`类来存储完整的光标状态
-3. 实现`modelState`/`viewState`双状态模型
-4. 添加`TrackedRange`支持用于选择追踪
-5. 重构为依赖`CursorContext`而非直接持有`TextModel`
+**建议:**
+1. 恢复 TS 架构，让 `Cursor` 只承载状态，移动逻辑交给 `CursorMoveOperations`/`CursorWordOperations`。
+2. 引入 `SingleCursorState`/`CursorState` 双态机，并通过 `CursorContext` 验证模型/视图坐标。
+3. 移植 `_selTrackedRange` 与 `TrackedRangeStickiness`，确保编辑后选择可追踪。
+4. 将粘列(`leftoverVisibleColumns`) 与选择起点写入状态对象，为 `CursorCollection`/snippet/undo 公用。
+5. 让列选择使用 `CursorConfiguration` 的转换方法，避免注入文本/RTL 情况下偏移。
 
 ---
 
 ### 2. CursorCollection.cs
-**TS源:** `cursorCollection.ts` (Lines 15-250)
+**TS源:** `ts/src/vs/editor/common/cursor/cursorCollection.ts`
+**C#文件:** `src/TextBuffer/Cursor/CursorCollection.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS 维持主/次光标、`lastAddedCursorIndex`、`normalize()`、`getTopMostViewPosition()` 等，而 C# 版本只有 `CreateCursor`, `RemoveCursor`, `GetCursorPositions`，缺少所有状态批量管理 API。
+- 没有 `setStates()`/`_setSecondaryStates()`，无法套用命令计算出的 `PartialCursorState`；`killSecondaryCursors()`、`getAll()`、`readSelectionFromMarkers()` 等全部缺席。
+- 缺乏 `normalize()` 导致 `multiCursorMergeOverlapping` 选项无处落地，重合/接触的选择不会合并。
+- 未实现 `startTrackingSelections`/`stopTrackingSelections`，与 `CursorContext` 完全脱钩，tracked range 和视图坐标管线断裂。
+- 无视图 API（`getViewPositions`, `getBottomMostViewPosition` 等），上层命令无法基于视图顺序排序或滚动。
 
-TypeScript原版的 `CursorCollection` 类核心设计:
-- 维护 `cursors` 数组，`cursors[0]` 是主光标，其余是次要光标
-- 使用 `CursorContext` 管理所有光标
-- 实现 `lastAddedCursorIndex` 追踪最后添加的光标
-- 提供 `normalize()` 方法合并重叠的光标
-- 支持 `setStates()` 批量设置光标状态
-- 提供 `getTopMostViewPosition()` / `getBottomMostViewPosition()` 等视图位置查询
-
-C#实现的主要偏差:
-1. **缺少lastAddedCursorIndex**: 无法追踪最后添加的光标索引
-2. **缺少normalize()方法**: 没有实现合并重叠光标的逻辑
-3. **缺少CursorContext**: 直接使用TextModel而非CursorContext
-4. **缺少状态批量设置**: 没有`setStates()`和`_setSecondaryStates()`方法
-5. **缺少选择追踪**: 没有`startTrackingSelections()`/`stopTrackingSelections()`
-6. **缺少视图位置查询**: 没有`getTopMostViewPosition()`等方法
-7. **缺少getAll()**: 没有返回所有CursorState的方法
-
-**偏差说明:**
-C#版本是一个**极度简化**的实现，只提供基本的创建/删除/获取位置功能，缺少TS版本的大量核心功能。
-
-**修正建议:**
-1. 添加 `lastAddedCursorIndex` 字段和 `GetLastAddedCursorIndex()` 方法
-2. 实现完整的 `Normalize()` 方法处理重叠光标合并
-3. 添加 `SetStates()` 方法支持批量状态设置
-4. 实现 `KillSecondaryCursors()` 方法
-5. 添加 `GetAll()` 返回所有CursorState
-6. 实现视图位置查询方法
+**建议:**
+1. 让集合持有 `CursorContext`，实现 `getAll/setStates/_setSecondaryStates/killSecondaryCursors`。
+2. 抄写 `normalize()` 与 `lastAddedCursorIndex` 策略，保证 Ctrl+点击/拖拽体验一致。
+3. 提供视图位置/选择查询，使滚动和渲染逻辑可共享。
+4. 在添加/删除光标时更新 tracked range，保持与 TS 兼容。
 
 ---
 
 ### 3. CursorColumns.cs
-**TS源:** `cursorColumnSelection.ts` (Lines 10-50)
-**对齐状态:** ⚠️存在偏差
+**TS源:** `ts/src/vs/editor/common/cursor/cursorColumnSelection.ts`
+**C#文件:** `src/TextBuffer/Cursor/CursorColumns.cs`
+**对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS `ColumnSelection` 提供 `columnSelect/columnSelectLeft/Right/Up/Down` 并返回 `IColumnSelectResult`（多 `SingleCursorState` + 方向信息）；C# 仅有 `GetVisibleColumnFromPosition` 与 `GetPositionFromVisibleColumn`，核心列选择算法完全缺失。
+- 不存在 `IColumnSelectResult`/`IColumnSelectData`，上层无法缓存列选择状态，也无法表达反转/可视列范围。
+- TS 依赖 `CursorConfiguration`（tabSize/pageSize/stickyTabStops）以及 `ICursorSimpleModel` 的 `getLineMinColumn`/`getLineMaxColumn`；C# 缺少这些输入，列选择无法尊重可视行边界或 RTL。
+- 注入文本处理只是简单地把 `Before/After` 内容长度加到可视列上，未调用 VS Code 的转换函数，会与视图渲染产生偏差。
 
-TypeScript原版是 `ColumnSelection` 类，核心方法:
-- `columnSelect()`: 执行列选择，返回多个`SingleCursorState`
-- 使用 `config.columnFromVisibleColumn()` 和 `config.visibleColumnFromColumn()` 进行转换
-- 处理RTL/LTR方向
-- 返回 `IColumnSelectResult` 包含viewStates和toLineNumber/toVisualColumn
-
-C#实现的主要偏差:
-1. **方法签名不同**: C#提供静态工具方法，TS是类方法
-2. **缺少columnSelect核心方法**: C#只有辅助转换方法，缺少实际的列选择逻辑
-3. **返回类型不同**: TS返回`IColumnSelectResult`包含多个光标状态，C#只返回单个位置
-4. **缺少方向处理**: 没有RTL/LTR方向支持
-5. **注入文本处理可疑**: C#版本处理注入文本的逻辑与TS不完全一致
-
-**偏差说明:**
-C#版本只实现了辅助转换函数，缺少核心的`columnSelect`列选择算法。
-
-**修正建议:**
-1. 添加 `ColumnSelect()` 方法实现完整的列选择逻辑
-2. 定义 `IColumnSelectResult` 类型
-3. 处理RTL/LTR方向
-4. 验证注入文本处理逻辑的正确性
+**建议:**
+1. 完整移植 `ColumnSelection` 类及 `IColumnSelectResult`，产出 `SingleCursorState`（或等价）数组。
+2. 引入 `CursorConfiguration` 并使用其 `visibleColumnFromColumn/columnFromVisibleColumn` 实现页翻列选。
+3. 使用 `ICoordinatesConverter`/`ICursorSimpleModel`，而非直接对 `TextModel` 逐字符遍历。
 
 ---
 
 ### 4. CursorContext.cs
-**TS源:** `cursorContext.ts` (Lines 10-23)
+**TS源:** `ts/src/vs/editor/common/cursor/cursorContext.ts`
+**C#文件:** `src/TextBuffer/Cursor/CursorContext.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS Context 暴露 `model`, `viewModel`, `coordinatesConverter`, `cursorConfig`，为 `Cursor`/`CursorCollection` 提供全部依赖；C# 只有 `TextModel` 与 `CursorCollection`，完全没有视图或配置。
+- `ComputeAfterCursorState()` 在 TS 中依赖 inverse edits、`ICoordinatesConverter` 和 tracked range 恢复光标；C# 直接调用 `GetCursorPositions()` 返回当前 active 位置信息，对编辑后的位移毫无校正。
+- 因缺少 `CursorConfiguration`，其它组件无法读取 `multiCursorMergeOverlapping`, `pageSize`, `wordSeparators`, `emptySelectionClipboard` 等编辑器选项。
+- 没有 `ICursorSimpleModel` 导致列选择、视图归一化、`CursorMoveOperations` 等都无从实现。
 
-TypeScript原版的 `CursorContext` 类:
-```typescript
-export class CursorContext {
-    public readonly model: ITextModel;
-    public readonly viewModel: ICursorSimpleModel;
-    public readonly coordinatesConverter: ICoordinatesConverter;
-    public readonly cursorConfig: CursorConfiguration;
-}
-```
-
-C#实现的主要偏差:
-1. **缺少viewModel**: TS有独立的viewModel用于视图坐标，C#缺失
-2. **缺少coordinatesConverter**: 用于model/view坐标转换的关键组件缺失
-3. **缺少cursorConfig**: 光标配置(如多光标合并策略等)缺失
-4. **ComputeAfterCursorState设计不同**: C#版本的实现只是返回当前位置，而TS版本更复杂
-
-**偏差说明:**
-C#版本严重简化，缺少TS版本的核心组件。
-
-**修正建议:**
-1. 添加 `ICoordinatesConverter` 接口和实现
-2. 添加 `CursorConfiguration` 类
-3. 添加 `ViewModel` 属性
-4. 实现正确的坐标转换逻辑
+**建议:**
+1. 定义并注入 `ICoordinatesConverter` 与 `ICursorSimpleModel`，承接 view/model 坐标转换。
+2. 移植 `CursorConfiguration` 并挂到 context 上。
+3. 扩展 `ComputeAfterCursorState`，利用 inverse changes 和 tracked range 重新计算所有光标。
 
 ---
 
 ### 5. CursorState.cs
-**TS源:** `cursorCommon.ts` (Lines 271-340)
+**TS源:** `ts/src/vs/editor/common/cursorCommon.ts`
+**C#文件:** `src/TextBuffer/Cursor/CursorState.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS 定义 `CursorState`, `SingleCursorState`, `PartialModelCursorState`, `PartialViewCursorState`, `SelectionStartKind`，而 C# 仅有包含 `OwnerId/Selection/StickyColumn/DecorationIds` 的 record，无法描述 model/view 双态。
+- 缺少 `selectionStart`, `selectionStartKind`, `leftoverVisibleColumns`，因此行/词选择与粘列信息无法序列化或回放。
+- 没有 `Partial*` 类型，也没有 `CursorState.fromModelSelections()` 等工厂，`CursorCollection` 与命令栈无法共享状态。
+- 现有 record 仅为装饰使用，与 TS `CursorState` 在 undo/redo、snippet、命令之间传递的语义完全不同。
 
-TypeScript原版有多个相关类:
-- `CursorState`: 包含 `modelState` 和 `viewState` (两个`SingleCursorState`)
-- `PartialModelCursorState`: 只有modelState
-- `PartialViewCursorState`: 只有viewState
-- `SingleCursorState`: 包含 `selectionStart`, `selectionStartKind`, `selectionStartLeftoverVisibleColumns`, `position`, `leftoverVisibleColumns`
-- `SelectionStartKind` 枚举: Simple, Word, Line
-
-C#实现的主要偏差:
-1. **SingleCursorState完全缺失**: 这是TS中最核心的状态类
-2. **设计完全不同**: C#的`CursorState`包含`OwnerId`, `Selection`, `StickyColumn`, `DecorationIds`，与TS设计完全不同
-3. **缺少PartialModelCursorState/PartialViewCursorState**: 用于部分状态设置的类缺失
-4. **缺少SelectionStartKind枚举**: 用于区分选择开始类型(Simple/Word/Line)
-5. **缺少leftoverVisibleColumns**: 用于保持视觉列位置的重要字段
-6. **缺少静态工厂方法**: `fromModelState()`, `fromViewState()`, `fromModelSelection()`等
-
-**偏差说明:**
-这是**完全不同的设计**，C#版本的CursorState与TS版本几乎没有对应关系。
-
-**修正建议:**
-1. 创建 `SingleCursorState` 类，包含所有必要字段
-2. 重新设计 `CursorState` 为包含 `modelState` 和 `viewState`
-3. 添加 `PartialModelCursorState` 和 `PartialViewCursorState`
-4. 添加 `SelectionStartKind` 枚举
-5. 实现所有静态工厂方法
+**建议:**
+1. 引入 `SingleCursorState` 与 `SelectionStartKind`，并让 `CursorState` 同时持有 model/view state。
+2. 实现 `PartialModelCursorState`/`PartialViewCursorState` 及对应工厂。
+3. 将 `Cursor` 的 `_selection`、`_stickyColumn` 等字段迁移到状态类，确保可在 `CursorCollection`/Snippet/Undo 之间传递。
 
 ---
 
 ### 6. SnippetController.cs
-**TS源:** `snippetController2.ts` (Lines 30-500)
+**TS源:** `ts/src/vs/editor/contrib/snippet/browser/snippetController2.ts`
+**C#文件:** `src/TextBuffer/Cursor/SnippetController.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS 以 `IEditorContribution` 形式集成，控制上下文键（`InSnippetMode`, `HasNextTabstop`, `HasPrevTabstop`），C# 只有 `CreateSession/InsertSnippetAt/Next/Prev`，没有 `Finish/Cancel/IsInSnippetMode`。
+- 插入 API 缺少 `overwriteBefore/After`, `undoStopBefore/After`, `adjustWhitespace`, `clipboardText`, `merge` 等选项，无法与 VS Code 的编辑栈协作。
+- 没有 choice/completion 集成，也未通知 `CompletionProvider`。
+- 不参与 undo stop，也没把 snippet 状态分发给 `Cursor` 或输入法，导致 tabstop 导航难以复用现有命令。
 
-TypeScript原版的 `SnippetController2` 是一个完整的编辑器贡献(IEditorContribution):
-- 使用上下文键(ContextKey)管理snippet模式状态: `InSnippetMode`, `HasNextTabstop`, `HasPrevTabstop`
-- 支持复杂的插入选项: `overwriteBefore`, `overwriteAfter`, `adjustWhitespace`, `undoStopBefore/After`
-- 集成补全提供者(CompletionProvider)处理choice元素
-- 支持模板合并(merge)
-- 提供`finish()`, `cancel()`, `prev()`, `next()`方法
-- 完整的状态更新逻辑(`_updateState`)
-
-C#实现的主要偏差:
-1. **不是编辑器贡献**: C#版本是独立类，不集成到编辑器系统
-2. **缺少上下文键**: 没有InSnippetMode等状态管理
-3. **缺少插入选项**: 没有overwriteBefore/After、adjustWhitespace等
-4. **缺少补全集成**: 没有choice元素的补全支持
-5. **缺少模板合并**: 没有merge功能支持嵌套snippet
-6. **缺少完整的状态管理**: _updateState逻辑缺失
-7. **缺少finish/cancel**: 只有基本的创建和导航
-
-**偏差说明:**
-C#版本是**最小化实现**，缺少TS版本的大部分功能。
-
-**修正建议:**
-1. 添加snippet模式状态管理
-2. 实现完整的插入选项支持
-3. 添加`Finish()`, `Cancel(resetSelection)`, `IsInSnippet()`方法
-4. 实现状态更新逻辑
-5. 考虑choice元素补全支持
+**建议:**
+1. 将控制器注册为编辑器服务，暴露完整生命周期方法及上下文键。
+2. 支持 VS Code 的 `InsertSnippetOptions`，处理 whitespace/overwrite/undo。
+3. 引入 choice/completion hook，并与 `SnippetSession` 状态同步。
 
 ---
 
 ### 7. SnippetSession.cs
-**TS源:** `snippetSession.ts` (Lines 30-600)
+**TS源:** `ts/src/vs/editor/contrib/snippet/browser/snippetSession.ts`
+**C#文件:** `src/TextBuffer/Cursor/SnippetSession.cs`
 **对齐状态:** ❌需要修正
 
-**分析:**
+**差异要点:**
+- TS 拆分 `OneSnippet` 与 `SnippetSession`，包含 placeholder 分组、transform、变量解析、choice、嵌套 merge、`computePossibleSelections`；C# 只有 `SnippetSession` 一个类，靠正则 `\$\{(\d+):([^}]+)\}` 解析 `${n:text}`，其余语法全部缺失。
+- 没有变量解析器（模型、剪贴板、时间、文件、注释、随机等）和 `adjustWhitespace`/`overwriteBefore/After` 逻辑。
+- Placeholder 装饰只有统一的 `snippet-placeholder`，没有 active/inactive/final 样式；也没有 placeholder group 或 transformation。
+- 不支持 merge/stack，连续插入 snippet 会相互覆盖。
+- 多光标循环 bug (BF1) 已修复：`NextPlaceholder()` 现在在越界时把 `_current` 设为 `_placeholders.Count`，`PrevPlaceholder()` 也能从该哨兵回跳，防止多光标无限循环；但除了该哨兵补丁外，功能仍停留在最小实现。
 
-TypeScript原版有两个类:
-- `OneSnippet`: 单个snippet实例，管理placeholder装饰、移动、合并
-- `SnippetSession`: 管理多个OneSnippet，处理编辑和光标选择
-
-`OneSnippet` 核心功能:
-- 使用`_placeholderDecorations` Map管理placeholder到装饰ID的映射
-- `_placeholderGroups`: 按索引分组的placeholder数组
-- `move(fwd)`: 移动到下一个/上一个placeholder，处理transformation
-- 装饰选项: active/inactive/activeFinal/inactiveFinal
-- 支持嵌套snippet合并(merge)
-- 计算可能的选择(`computePossibleSelections`)
-- 处理choice元素
-
-`SnippetSession` 核心功能:
-- 静态方法`adjustWhitespace`: 调整缩进
-- 静态方法`adjustSelection`: 处理overwriteBefore/After
-- 静态方法`createEditsAndSnippetsFromSelections`: 从选择创建编辑
-- 变量解析器集成(ModelBased, Clipboard, Selection, Comment, Time, Workspace, Random)
-- 完整的snippet解析和插入逻辑
-
-C#实现的主要偏差:
-1. **缺少OneSnippet类**: C#只有SnippetSession
-2. **简化的placeholder解析**: 只支持`${n:text}`格式，不支持完整的TextMate snippet语法
-3. **缺少placeholder分组**: 没有按索引分组
-4. **缺少变量解析**: 没有任何变量解析器
-5. **缺少transformation支持**: placeholder transform缺失
-6. **缺少缩进调整**: adjustWhitespace逻辑缺失
-7. **缺少嵌套合并**: merge功能缺失
-8. **装饰选项简化**: 没有active/inactive区分
-9. **缺少choice支持**: 没有处理choice元素
-
-**偏差说明:**
-C#版本是**极度简化**的实现，只支持最基本的numbered placeholder。
-
-**修正建议:**
-1. 实现完整的TextMate snippet解析器
-2. 添加`OneSnippet`类
-3. 实现placeholder分组和导航逻辑
-4. 添加基本变量解析器
-5. 实现缩进调整逻辑
-6. 区分active/inactive装饰状态
+**建议:**
+1. 引入 `OneSnippet`、placeholder group 和 active/inactive 装饰管理。
+2. 实现 TextMate snippet 语法解析（变量、transform、choice）。
+3. 在插入时执行 whitespace/overwrite 调整并暴露 `SnippetInsertOptions`。
+4. 在保留 BF1 哨兵逻辑的基础上，实现完整的 `move(fwd)`/`merge` 路径。
 
 ---
 
 ### 8. WordCharacterClassifier.cs
-**TS源:** `wordCharacterClassifier.ts` (Lines 20-150)
+**TS源:** `ts/src/vs/editor/common/core/wordCharacterClassifier.ts`
+**C#文件:** `src/TextBuffer/Cursor/WordCharacterClassifier.cs`
 **对齐状态:** ⚠️存在偏差
 
-**分析:**
+**差异要点:**
+- TS 继承 `CharacterClassifier<WordCharacterClass>`，缓存行内容并支持 `Intl.Segmenter`；C# 只有 `IsWordChar`/`IsSeparator`，通过 `string.Contains` 判断，无缓存且不区分 Regular/Separator/Whitespace。
+- 缺少 `WordCharacterClass` 枚举与 `getMapForWordSeparators()`，每次操作都重新解析分隔符。
+- 未实现 `findPrevIntlWordBeforeOrAtOffset` 与 `findNextIntlWordAtOrAfterOffset`，Unicode/emoji 词边界无法匹配 VS Code。
+- 行级缓存与 `wordSeparators` map 不存在，频繁调用将产生额外分配。
 
-TypeScript原版的 `WordCharacterClassifier`:
-- 继承自 `CharacterClassifier<WordCharacterClass>`
-- 使用 `WordCharacterClass` 枚举: Regular=0, Whitespace=1, WordSeparator=2
-- 支持 Intl.Segmenter 进行国际化词分割
-- 缓存行内容和分段结果以提高性能
-- 提供 `findPrevIntlWordBeforeOrAtOffset` 和 `findNextIntlWordAtOrAfterOffset`
-- 有全局缓存 `getMapForWordSeparators`
-
-C#实现的主要偏差:
-1. **不继承CharacterClassifier**: TS版本继承自通用字符分类器
-2. **缺少WordCharacterClass枚举**: 只用bool判断
-3. **缺少Intl.Segmenter支持**: 没有国际化词分割
-4. **缺少缓存**: 没有行内容和分段结果缓存
-5. **缺少Intl词查找方法**: `findPrevIntlWordBeforeOrAtOffset`等缺失
-6. **缺少全局缓存**: 没有`GetMapForWordSeparators`工厂方法
-7. **分类逻辑简化**: 使用`char.IsPunctuation`而非精确分类
-
-**偏差说明:**
-C#版本是**简化实现**，对于基本的ASCII文本可以工作，但缺少国际化支持。
-
-**修正建议:**
-1. 添加 `WordCharacterClass` 枚举
-2. 实现继承自基础CharacterClassifier的设计
-3. 添加LRU缓存和全局工厂方法
-4. 考虑.NET的国际化词分割支持(如ICU)
+**建议:**
+1. 复制 `CharacterClassifier` + `WordCharacterClass` 设计，并缓存最近访问的行和分段结果。
+2. 借助 .NET `System.Globalization.StringInfo` 或 ICU 提供 `Intl.Segmenter` 等价能力。
+3. 暴露国际化词查找 API，供 `WordOperations` 使用。
 
 ---
 
 ### 9. WordOperations.cs
-**TS源:** `cursorWordOperations.ts` (Lines 50-800)
+**TS源:** `ts/src/vs/editor/common/cursor/cursorWordOperations.ts`
+**C#文件:** `src/TextBuffer/Cursor/WordOperations.cs`
 **对齐状态:** ⚠️存在偏差
 
-**分析:**
+**差异要点:**
+- TS 版本约 800 行，涵盖移动/删除/选词/word-part/国际化/自动闭合对；C# 仅实现 `MoveWordLeft/Right`, `SelectWordLeft/Right`, `DeleteWordLeft`，`WordNavigationType` 虽含 `WordPart` 却没有对应实现。
+- 缺失 `_findPreviousWordOnLine`, `_findNextWordOnLine`, `_findStartOfWord`, `_createWord`, `DeleteWordContext`、`WordType`、`word()`、`getWordAtPosition`、`deleteWordRight`, `deleteInsideWord`, `WordPartOperations` 等核心模块。
+- 不支持 camelCase/snake_case 或 Unicode word-part 切分，也没有触发 auto-closing pair 的删/移 heuristics。
+- 没有 `Intl` 分词或 `whitespaceHeuristics`，行为仅等价于“跳到下一串非分隔符字符”。
 
-TypeScript原版的 `WordOperations` 是一个庞大的类(866行):
-- 私有方法: `_createWord`, `_createIntlWord`, `_findPreviousWordOnLine`, `_doFindPreviousWordOnLine`, `_findEndOfWord`, `_findNextWordOnLine`, `_doFindNextWordOnLine`, `_findStartOfWord`
-- 移动方法: `moveWordLeft`, `moveWordRight`, `_moveWordPartLeft`, `_moveWordPartRight`
-- 删除方法: `deleteWordLeft`, `deleteWordRight`, `deleteInsideWord`, `_deleteWordPartLeft`, `_deleteWordPartRight`
-- 辅助方法: `getWordAtPosition`, `word`(双击选词)
-- `WordNavigationType` 枚举: WordStart, WordEnd, WordStartFast, WordAccessibility
-- `WordType` 枚举: None, Regular, Separator
-- 复杂的`DeleteWordContext`上下文对象
-- 支持自动闭合对处理
-
-`WordPartOperations` 子类:
-- `deleteWordPartLeft`, `deleteWordPartRight`
-- `moveWordPartLeft`, `moveWordPartRight`
-
-C#实现的主要偏差:
-1. **大量方法缺失**: 只实现了`MoveWordLeft`, `MoveWordRight`, `SelectWordLeft`, `SelectWordRight`, `DeleteWordLeft`
-2. **缺少WordNavigationType完整支持**: C#只有Word/WordPart，TS有WordStart/WordEnd/WordStartFast/WordAccessibility
-3. **缺少WordType枚举**: 用于区分Regular和Separator词
-4. **缺少_findPreviousWordOnLine/_findNextWordOnLine**: 核心词查找逻辑缺失
-5. **缺少DeleteWordContext**: 复杂删除上下文缺失
-6. **缺少自动闭合对处理**: 删除时的自动闭合对检测缺失
-7. **缺少whitespaceHeuristics**: 空白处理启发式逻辑缺失
-8. **缺少deleteInsideWord**: 删除词内部逻辑缺失
-9. **缺少getWordAtPosition**: 获取光标处单词
-10. **缺少word()选词方法**: 双击选词逻辑缺失
-11. **缺少WordPartOperations**: camelCase/snake_case词部分操作缺失
-12. **算法简化**: 当前实现的词边界判断逻辑比TS版本简单很多
-
-**偏差说明:**
-C#版本只实现了TS版本约**15%**的功能，缺少大量核心逻辑。
-
-**修正建议:**
-1. 添加 `WordType` 枚举
-2. 扩展 `WordNavigationType` 枚举
-3. 实现 `_findPreviousWordOnLine` 和 `_findNextWordOnLine` 核心方法
-4. 添加 `DeleteWordContext` 类
-5. 实现完整的 `moveWordLeft`/`moveWordRight` 支持所有导航类型
-6. 添加 `deleteWordRight`, `deleteInsideWord` 方法
-7. 实现 `getWordAtPosition` 方法
-8. 添加 `WordPartOperations` 类
+**建议:**
+1. 移植 `_createWord` 系列与 `DeleteWordContext`，实现 `WordNavigationType.WordStart/WordEnd/Accessibility`。
+2. 添加 `WordType`、`WordPartOperations` 以及 `deleteWordRight/deleteInsideWord` 等命令。
+3. 集成国际化分段与 auto-closing 逻辑，确保与 `WordCharacterClassifier` 一致。
 
 ---
 
 ## 总结
 
 ### 严重程度分类
-
-**🔴 需要重大重构 (6个文件):**
-1. `Cursor.cs` - 架构设计完全不同
-2. `CursorCollection.cs` - 缺少大量核心功能
-3. `CursorContext.cs` - 缺少关键组件
-4. `CursorState.cs` - 设计完全不同
-5. `SnippetController.cs` - 最小化实现
-6. `SnippetSession.cs` - 极度简化
-
-**🟡 需要补充功能 (3个文件):**
-1. `CursorColumns.cs` - 缺少核心列选择方法
-2. `WordCharacterClassifier.cs` - 缺少国际化和缓存
-3. `WordOperations.cs` - 只实现了约15%功能
+- **🔴 需要重大重构 (7个文件):** `Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorContext.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`
+- **🟡 需要补充功能 (2个文件):** `WordCharacterClassifier.cs`, `WordOperations.cs`
+- **🚫 缺失:** `CursorConfiguration`（尚未在 C# 中实现）
 
 ### 优先级建议
-
-**P0 - 阻塞性问题:**
-1. 实现 `SingleCursorState` 类
-2. 实现 `CursorContext` 的完整组件
-3. 重构 `CursorState` 为双状态模型
-
-**P1 - 核心功能:**
-1. 完善 `WordOperations` 的词查找和导航逻辑
-2. 实现 `CursorCollection.Normalize()` 
-3. 补充 `WordCharacterClassifier` 的完整分类逻辑
-
-**P2 - 扩展功能:**
-1. Snippet相关功能增强
-2. 国际化词分割支持
-3. 列选择完整实现
+- **P0:** 移植 `CursorConfiguration` + `SingleCursorState`/`CursorState` 双态，并让 `CursorContext`/`CursorCollection` 使用该状态机；补齐 tracked range 与 normalize。
+- **P1:** 补足列选择 (`CursorColumns.columnSelect*`)、词导航/删除主路径、`SnippetController` 基础生命周期。
+- **P2:** 扩展 snippet（变量/choice/merge）、完善 `WordCharacterClassifier` 的 Intl 支持、实现选择追踪/视图 API。
 
 ### 移植质量评估
+- 当前 Cursor 栈属于**重新实现**而非**逐行移植**：缺乏 model/view 状态机、上下文转换、列选择、变量解析等关键能力。
+- 若不先补齐核心结构，将难以从 VS Code 同步 bugfix/feature（例如 sticky column、multi-cursor merge、snippet choice）。
+- 建议先完成 `CursorConfiguration` + `SingleCursorState` + `CursorCollection.setStates/normalize`，再逐步对齐 column select、word operations 与 snippet 功能。
 
-当前C# Cursor模块的移植质量为 **不合格**。大部分文件是重新设计而非直译移植，虽然提供了基本可用的功能，但与TS原版的架构和API差异显著，这将导致:
-1. 未来同步TS更新困难
-2. 行为不一致的边缘情况
-3. 扩展功能时需要重新设计
-
-建议在继续开发前，先建立与TS版本一致的核心数据结构(`SingleCursorState`, `CursorState`, `CursorContext`)，然后在此基础上逐步对齐其他类的实现。
+## Verification Notes
+- 逐一阅读 `docs/reports/alignment-audit/03-cursor.md` 旧版、`src/TextBuffer/Cursor/*.cs` 以及 `ts/src/vs/editor/common/cursor/*.ts`、`ts/src/vs/editor/contrib/snippet/browser/*.ts`，确认功能覆盖差距。
+- 特别验证了 `SnippetSession.NextPlaceholder/PrevPlaceholder` 的 BF1 哨兵逻辑、`Cursor.cs` 缺乏 `SingleCursorState`、`CursorCollection` 未实现 `normalize`、`CursorColumns` 只有转换 helper。
+- 尚未发现任何 `CursorConfiguration` 或 `ICoordinatesConverter` 的 C# 实现，也没有 `CursorMoveOperations` 等配套文件——需要明确这些组件计划部署的位置，以及 `Cursor` 是否会继续直接操作 `TextModel`。

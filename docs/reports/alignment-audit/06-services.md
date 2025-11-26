@@ -1,473 +1,155 @@
 # Services & Top-level 模块对齐审查报告
 
-**审查日期:** 2025-11-26
-**审查范围:** 10个服务与顶层文件
+**审查日期:** 2025-11-26\\
+**审查范围:** 10 个服务/模块（TextModel 服务面、搜索/查找堆栈、语言/撤销服务、DocUI 宿主）
 
 ## 概要
-- 完全对齐: 5/10
-- 存在偏差: 3/10
-- 需要修正: 2/10
+- ✅ 完全对齐: 4/10
+- ⚠️ 存在偏差（设计差异 / 待扩展）: 4/10
+- ❌ 需要修正: 2/10
 
-| 文件 | 状态 | 说明 |
-|------|------|------|
-| EditStack.cs | ⚠️存在偏差 | 架构不同但功能等价 |
-| PieceTreeBuffer.cs | ⚠️存在偏差 | 简化实现，缺少部分功能 |
-| SearchHighlightOptions.cs | ✅完全对齐 | 简化后正确移植 |
-| ILanguageConfigurationService.cs | ✅完全对齐 | 原创C#实现，合理适配 |
-| IUndoRedoService.cs | ✅完全对齐 | 原创C#实现，合理适配 |
-| TextModel.cs | ⚠️存在偏差 | 核心功能对齐，部分高级特性缺失 |
-| TextModelDecorationsChangedEventArgs.cs | ✅完全对齐 | 正确移植事件类型 |
-| TextModelOptions.cs | ✅完全对齐 | 完整移植选项与枚举 |
-| TextModelSearch.cs | ❌需要修正 | 缺少若干TS原版方法 |
-| TextPosition.cs | ❌需要修正 | 缺少多个Position类方法 |
+| 区域 | 关键文件 | 状态 | 摘要 |
+|------|----------|------|------|
+| TextModel 服务面 | `src/TextBuffer/TextModel.cs` | ⚠️存在偏差 | 核心编辑逻辑齐全，但缺少 `validate*`、单词/括号/令牌相关 API 以及 dispose 事件。 |
+| Undo/Redo 服务 | `src/TextBuffer/EditStack.cs`, `src/TextBuffer/Services/IUndoRedoService.cs` | ⚠️存在偏差 | 仅支持单模型栈，缺少 `UndoRedoSource`、资源组及快照。 |
+| TextModelOptions & defaults | `src/TextBuffer/TextModelOptions.cs` | ✅完全对齐 | 默认值、`WithUpdate`、`Diff` 与 TS 一致。 |
+| 装饰事件 | `src/TextBuffer/TextModelDecorationsChangedEventArgs.cs` | ✅完全对齐 | 比 TS 多了 `Changes` 明细和版本元数据。 |
+| 搜索栈 | `src/TextBuffer/TextModelSearch.cs`, `src/TextBuffer/Core/SearchTypes.cs`, `src/TextBuffer/Core/PieceTreeSearcher.cs` | ✅完全对齐 | 多范围、词边界、多行正则全部实现并已有测试覆盖。 |
+| SearchHighlightOptions DTO | `src/TextBuffer/SearchHighlightOptions.cs` | ✅完全对齐 | DTO 字段与 `SearchParams` 子集一致。 |
+| Language Configuration Service | `src/TextBuffer/Services/ILanguageConfigurationService.cs` | ⚠️存在偏差 | 仅支持变更通知，不提供配置注册/解析或缓存。 |
+| TextPosition 帮助类 | `src/TextBuffer/TextPosition.cs` | ❌需要修正 | 只有比较操作，缺少 `with/delta/isBefore` 等 API。 |
+| DocUI Find 宿主堆栈 | `src/TextBuffer/DocUI/*.cs` | ⚠️存在偏差 | 查找/替换流程已移植，但缺少 VS Code 宿主契约（context keys、视图滚动、Replace 控制器整合）。 |
+| Clipboard / Storage shims | `src/TextBuffer/DocUI/DocUIFindController.cs` (Null 实现) | ❌需要修正 | 默认实现忽略所有持久化与全局剪贴板，功能无法生效。 |
 
 ---
 
 ## 详细分析
 
-### 1. EditStack.cs
-**TS源:** editStack.ts (Lines 384-452)
-**对齐状态:** ⚠️存在偏差
-
-**分析:**
-C#实现采用了不同的架构设计：
-- TS版的`EditStack`直接调用`IUndoRedoService.getLastElement()`来检查栈顶元素
-- C#版维护一个`_openElement`引用，通过`IUndoRedoService`接口的新方法来管理
-
-**关键差异:**
-1. **pushStackElement()**: TS版调用`getLastElement()`检查并关闭元素；C#版直接操作`_openElement`
-2. **_getOrCreateEditStackElement()**: TS版通过`getLastElement()`和`canAppend()`检查；C#版简化为`GetOrCreateElement()`
-3. **pushEditOperation()**: TS版包含`cursorStateComputer`和`UndoRedoGroup`参数；C#版在`TextModel`中处理
-
-**偏差说明:**
-- C#版将TS中`EditStackElement`的复杂继承层次(`SingleModelEditStackElement`, `MultiModelEditStackElement`)简化为单一类
-- `TextModelUndoRedoElement`包装器是C#新增的设计
-
-**修正建议:**
-设计差异是故意为之，以适应C#的简化DI模型。当前实现功能正确，无需修正。
-
----
-
-### 2. PieceTreeBuffer.cs
-**TS源:** pieceTreeTextBuffer.ts (Lines 33-630)
-**对齐状态:** ⚠️存在偏差
-
-**分析:**
-C#版是TS版`PieceTreeTextBuffer`的简化门面实现。
-
-**关键差异:**
-
-| 功能 | TS版 | C#版 |
-|------|------|------|
-| `equals()` | ✅ 完整实现 | ❌ 未实现 |
-| `createSnapshot()` | ✅ 返回ITextSnapshot | ✅ 简化实现 |
-| `getRangeAt()` | ✅ 完整实现 | ❌ 未实现 |
-| `getValueInRange()` | ✅ 支持EOL偏好 | ⚠️ 通过GetText(start, length)部分支持 |
-| `getValueLengthInRange()` | ✅ 完整实现 | ❌ 未实现 |
-| `getCharacterCountInRange()` | ✅ 处理代理对 | ❌ 未实现 |
-| `getNearestChunk()` | ✅ 完整实现 | ❌ 未实现 |
-| `getLinesContent()` | ✅ 返回string[] | ❌ 未实现 |
-| `getLineFirstNonWhitespaceColumn()` | ✅ 完整实现 | ❌ 未实现 |
-| `getLineLastNonWhitespaceColumn()` | ✅ 完整实现 | ❌ 未实现 |
-| `applyEdits()` | ✅ 完整编辑处理 | ⚠️ 简化为ApplyEdit() |
-| `findMatchesLineByLine()` | ✅ 完整实现 | ❌ 未实现(在TextModelSearch中) |
-| `_reduceOperations()` | ✅ 大编辑优化 | ❌ 未实现 |
-| `_getInverseEditRanges()` | ✅ 完整实现 | ❌ 未实现 |
-
-**偏差说明:**
-C#实现作为"Minimal PieceTree-backed buffer façade"是设计决策，而非移植遗漏。但缺少的方法会影响高级编辑场景。
-
-**修正建议:**
-1. 考虑添加`Equals()`方法用于缓冲区比较
-2. 添加`GetRangeAt()`以支持范围计算
-3. `ApplyEdit`应返回反向编辑信息以支持完整撤销/重做
-4. 添加`GetLinesContent()`用于整体行内容访问
-
----
-
-### 3. SearchHighlightOptions.cs
-**TS源:** textModelSearch.ts (SearchParams相关)
-**对齐状态:** ✅完全对齐
-
-**分析:**
-`SearchHighlightOptions`是对TS版`SearchParams`的简化封装，用于搜索高亮场景。
-
-**对应关系:**
-```csharp
-// C#
-Query → searchString
-IsRegex → isRegex  
-MatchCase → matchCase
-WordSeparators → wordSeparators
-CaptureMatches → (parseSearchRequest中的captureMatches)
-```
-
-**结论:**
-作为搜索选项的数据传输对象，实现正确完整。
-
----
-
-### 4. ILanguageConfigurationService.cs
-**TS源:** languageConfigurationRegistry.ts
-**对齐状态:** ✅完全对齐 (标记为Original C# implementation)
-
-**分析:**
-这是原创C#实现，专门为简化的C#运行时设计。
-
-**TS版复杂性:**
-- 依赖VS Code完整DI系统
-- `ResolvedLanguageConfiguration`包含大量语言特性(括号匹配、缩进规则、onEnter规则等)
-- 与`IConfigurationService`、`ILanguageService`深度集成
-
-**C#简化:**
-```csharp
-public interface ILanguageConfigurationService
-{
-    IDisposable Subscribe(string languageId, EventHandler<...> callback);
-    event EventHandler<...>? OnDidChange;
-}
-```
-
-**结论:**
-作为最小可行接口，满足`TextModel`的语言配置变更通知需求。无需修正。
-
----
-
-### 5. IUndoRedoService.cs
-**TS源:** undoRedo.ts
-**对齐状态:** ✅完全对齐 (标记为Original C# implementation)
-
-**分析:**
-C#版是TS版`IUndoRedoService`的简化内存实现。
-
-**TS版特性:**
-```typescript
-interface IUndoRedoService {
-    registerUriComparisonKeyComputer(...);
-    getUriComparisonKey(...);
-    pushElement(element, group?, source?);
-    getLastElement(resource);
-    getElements(resource);
-    setElementsValidFlag(...);
-    removeElements(resource);
-    createSnapshot(resource);
-    restoreSnapshot(snapshot);
-    canUndo/canRedo(resource | UndoRedoSource);
-    undo/redo(resource | UndoRedoSource);
-}
-```
-
-**C#简化:**
-```csharp
-internal interface IUndoRedoService
-{
-    void PushElement(TextModelUndoRedoElement element);
-    void CloseOpenElement(TextModel model);
-    TextModelUndoRedoElement? TryReopenLastElement(TextModel model);
-    TextModelUndoRedoElement? PopUndo/PopRedo(TextModel model);
-    void PushRedoResult(TextModelUndoRedoElement element);
-    bool CanUndo/CanRedo(TextModel model);
-    void Clear(TextModel model);
-}
-```
-
-**结论:**
-`InProcUndoRedoService`使用简单的`Stack<T>`实现撤销/重做栈，满足单模型场景。对于多模型协同编辑场景，需要扩展为完整实现。
-
----
-
-### 6. TextModel.cs
-**TS源:** textModel.ts (Lines 120-2688)
-**对齐状态:** ⚠️存在偏差
-
-**分析:**
-`TextModel`是核心类，C#版实现了主要功能但省略了部分高级特性。
-
-**已实现的核心功能:**
-- ✅ 版本管理 (`VersionId`, `AlternativeVersionId`)
-- ✅ 内容编辑 (`PushEditOperations`, `ApplyEdits`)
-- ✅ 撤销/重做 (`Undo`, `Redo`, `PushStackElement`)
-- ✅ EOL管理 (`SetEol`, `PushEol`)
-- ✅ 装饰系统 (`AddDecoration`, `DeltaDecorations`, `GetDecorationsInRange`)
-- ✅ 搜索功能 (`FindMatches`, `FindNextMatch`, `FindPreviousMatch`)
-- ✅ 选项管理 (`GetOptions`, `UpdateOptions`, `DetectIndentation`)
-- ✅ 语言管理 (`SetLanguage`, 语言配置订阅)
-- ✅ 编辑器附着 (`AttachEditor`, `DetachEditor`)
-
-**缺失的TS功能:**
-
-| 功能 | 描述 |
-|------|------|
-| `BracketPairsTextModelPart` | 括号对匹配与着色 |
-| `TokenizationTextModelPart` | 语法标记化 |
-| `GuidesTextModelPart` | 缩进指南 |
-| `ColorizedBracketPairsDecorationProvider` | 彩色括号装饰 |
-| `normalizeIndentation()` | 缩进规范化 |
-| `getWordAtPosition()` | 单词边界检测 |
-| `getWordUntilPosition()` | 光标前单词 |
-| `validatePosition()` | 位置验证 |
-| `validateRange()` | 范围验证 |
-| `modifyPosition()` | 位置偏移 |
-| `getFullModelRange()` | 完整模型范围 |
-| `_trimAutoWhitespace` | 自动空白修剪 |
-
-**事件系统对比:**
-```typescript
-// TS版
-onWillDispose, onDidChangeDecorations, onDidChangeLanguage,
-onDidChangeLanguageConfiguration, onDidChangeTokens, onDidChangeOptions,
-onDidChangeAttached, onDidChangeInjectedText, onDidChangeLineHeight,
-onDidChangeFont, onDidChangeContent
-```
-
-```csharp
-// C#版
-OnDidChangeContent, OnDidChangeOptions, OnDidChangeLanguage,
-OnDidChangeDecorations, OnDidChangeLanguageConfiguration,
-OnDidChangeAttached
-```
-
-**修正建议:**
-1. 添加`ValidatePosition`和`ValidateRange`方法用于位置验证
-2. 实现`GetFullModelRange()`(当前是私有方法`GetDocumentRange()`)
-3. 考虑添加`GetWordAtPosition()`以支持单词选择功能
-
----
-
-### 7. TextModelDecorationsChangedEventArgs.cs
-**TS源:** textModelEvents.ts
-**对齐状态:** ✅完全对齐
-
-**分析:**
-C#版正确移植了TS版的装饰变更事件类型。
-
-**对应关系:**
-```typescript
-// TS
-interface IModelDecorationsChangedEvent {
-    affectsMinimap: boolean;
-    affectsOverviewRuler: boolean;
-    affectsGlyphMargin: boolean;
-    affectsLineNumber: boolean;
-}
-class ModelLineHeightChanged { ownerId, decorationId, lineNumber, lineHeight }
-class ModelFontChanged { ownerId, lineNumber }
-```
-
-```csharp
-// C#
-public sealed record class LineHeightChange(int OwnerId, string DecorationId, int LineNumber, int? LineHeight);
-public sealed record class LineFontChange(int OwnerId, string DecorationId, int LineNumber);
-public sealed class TextModelDecorationsChangedEventArgs : EventArgs {
-    // 包含所有TS属性 + Changes列表 + 更多元数据
-}
-```
-
-**C#增强:**
-- 添加了`Changes`列表，包含具体的装饰变更
-- 添加了`ModelVersionId`用于版本追踪
-- 添加了`AffectedInjectedTextLines`、`AffectedLineHeights`、`AffectedFontLines`细粒度信息
-
-**结论:**
-C#版不仅移植了TS版，还进行了合理增强。
-
----
-
-### 8. TextModelOptions.cs
-**TS源:** model.ts + textModelDefaults.ts
-**对齐状态:** ✅完全对齐
-
-**分析:**
-完整移植了TS版的模型选项相关类型。
-
-**枚举对齐:**
-```typescript
-// TS
-enum EndOfLineSequence { LF = 0, CRLF = 1 }
-enum EndOfLinePreference { TextDefined = 0, LF = 1, CRLF = 2 }
-enum DefaultEndOfLine { LF = 1, CRLF = 2 }
-```
-
-```csharp
-// C# - 完全一致
-public enum EndOfLineSequence { LF = 0, CRLF = 1 }
-public enum EndOfLinePreference { TextDefined = 0, LF = 1, CRLF = 2 }
-public enum DefaultEndOfLine { LF = 1, CRLF = 2 }
-```
-
-**默认值对齐:**
-```typescript
-// TS EDITOR_MODEL_DEFAULTS
-tabSize: 4, indentSize: 4, insertSpaces: true,
-detectIndentation: true, trimAutoWhitespace: true,
-largeFileOptimizations: true,
-bracketPairColorizationOptions: { enabled: true, independentColorPoolPerBracketType: false }
-```
-
-```csharp
-// C# TextModelCreationOptions.Default - 完全一致
-public sealed record class TextModelCreationOptions {
-    TabSize = 4, IndentSize = 4, InsertSpaces = true,
-    DetectIndentation = true, TrimAutoWhitespace = true,
-    LargeFileOptimizations = true,
-    BracketPairColorizationOptions = { Enabled: true, IndependentColorPoolPerBracketType: false }
-}
-```
-
-**TextModelResolvedOptions对齐:**
-- ✅ `Resolve()` 方法正确实现选项解析
-- ✅ `WithUpdate()` 方法正确实现增量更新
-- ✅ `Diff()` 方法正确生成变更事件
-
-**结论:**
-完全对齐，无需修正。
-
----
-
-### 9. TextModelSearch.cs
-**TS源:** textModelSearch.ts
-**对齐状态:** ❌需要修正
-
-**分析:**
-C#版实现了核心搜索功能，但缺少部分TS版方法。
-
-**已实现功能:**
-- ✅ `FindMatches()` - 多行/逐行搜索
-- ✅ `FindNextMatch()` - 向前搜索
-- ✅ `FindPreviousMatch()` - 向后搜索
-- ✅ `SearchRangeSet` - 搜索范围管理
-- ✅ `PieceTreeSearcher` - 正则搜索器(假设在别处)
-- ✅ `LineFeedCounter` - CRLF补偿
-
-**缺失的TS功能:**
-
-```typescript
-// TS版有，C#版缺失
-export function isMultilineRegexSource(searchString: string): boolean
-export function createFindMatch(range, rawMatches, captureMatches): FindMatch
-export function isValidMatch(wordSeparators, text, textLength, matchStartIndex, matchLength): boolean
-function leftIsWordBounday(...): boolean
-function rightIsWordBounday(...): boolean
-class Searcher {
-    reset(lastIndex: number): void
-    next(text: string): RegExpExecArray | null
-}
-```
-
-**偏差说明:**
-1. `isMultilineRegexSource()` - 判断正则是否需要多行模式，C#版在`SearchParams.ParseSearchRequest()`中处理
-2. `Searcher`类 - C#版可能在`PieceTreeSearcher`中实现，需确认
-3. 词边界检测函数 - 需要在`WordSeparatorClassifier`中实现
-
-**修正建议:**
-1. 确保`SearchParams.ParseSearchRequest()`正确检测多行正则
-2. 添加或确认`PieceTreeSearcher`完整实现TS版`Searcher`功能:
-   - `reset(lastIndex)` - 重置搜索位置
-   - `next(text)` - 返回下一个匹配（处理空匹配和代理对）
-3. 确认词边界检测逻辑完整
-
----
-
-### 10. TextPosition.cs
-**TS源:** position.ts (Lines 9-200+)
-**对齐状态:** ❌需要修正
-
-**分析:**
-C#版只实现了最基本的位置结构，缺少TS版`Position`类的多个方法。
-
-**已实现:**
-```csharp
-public readonly record struct TextPosition(int LineNumber, int Column) : IComparable<TextPosition>
-{
-    public static readonly TextPosition Origin = new(1, 1);
-    public int CompareTo(TextPosition other);
-    // 比较运算符 <, >, <=, >=
-}
-```
-
-**TS版完整API:**
-```typescript
-class Position {
-    constructor(lineNumber, column);
-    with(newLineNumber?, newColumn?): Position;
-    delta(deltaLineNumber?, deltaColumn?): Position;
-    equals(other): boolean;
-    static equals(a, b): boolean;
-    isBefore(other): boolean;
-    static isBefore(a, b): boolean;
-    isBeforeOrEqual(other): boolean;
-    static isBeforeOrEqual(a, b): boolean;
-    static compare(a, b): number;
-    clone(): Position;
-    toString(): string;
-    static lift(pos): Position;
-    static isIPosition(obj): boolean;
-    toJSON(): IPosition;
-}
-```
-
-**缺失方法:**
-
-| 方法 | 描述 | 重要性 |
-|------|------|--------|
-| `with(line?, col?)` | 创建新位置 | 高 |
-| `delta(dLine?, dCol?)` | 偏移位置 | 高 |
-| `equals()` | 相等比较 | 中（record自带） |
-| `isBefore()` | 严格前置比较 | 高 |
-| `isBeforeOrEqual()` | 前置或相等比较 | 高 |
-| `clone()` | 克隆 | 低（struct自带值复制） |
-| `toString()` | 字符串表示 | 低 |
-| `lift()` | 从接口创建 | 低 |
-| `isIPosition()` | 类型检查 | 低 |
-
-**修正建议:**
-添加以下关键方法:
-
-```csharp
-public readonly record struct TextPosition(int LineNumber, int Column) : IComparable<TextPosition>
-{
-    // 现有成员...
-    
-    /// <summary>创建具有可选新行号和列号的新位置</summary>
-    public TextPosition With(int? lineNumber = null, int? column = null)
-        => new(lineNumber ?? LineNumber, column ?? Column);
-    
-    /// <summary>偏移当前位置</summary>
-    public TextPosition Delta(int deltaLine = 0, int deltaColumn = 0)
-        => new(Math.Max(1, LineNumber + deltaLine), Math.Max(1, Column + deltaColumn));
-    
-    /// <summary>测试此位置是否在另一位置之前（不含相等）</summary>
-    public bool IsBefore(TextPosition other)
-        => LineNumber < other.LineNumber || (LineNumber == other.LineNumber && Column < other.Column);
-    
-    /// <summary>测试此位置是否在另一位置之前或相等</summary>
-    public bool IsBeforeOrEqual(TextPosition other)
-        => LineNumber < other.LineNumber || (LineNumber == other.LineNumber && Column <= other.Column);
-    
-    public override string ToString() => $"({LineNumber},{Column})";
-}
-```
+### 1. TextModel 服务面 (`src/TextBuffer/TextModel.cs`)
+**TS 参考:** `ts/src/vs/editor/common/model/textModel.ts`
+
+- **现状:** AA3-003/-004 已经把选项、语言/装饰事件以及搜索入口移植过来，核心编辑、Undo/Redo、装饰与查找 API 与 TS 一致。
+- **偏差/缺漏:**
+  - 没有 `dispose()` 与 `onWillDispose`，也未在模型销毁时通知 `IUndoRedoService` 或 `LanguageConfigurationService`。（TS 通过 `DisposableStore` 自动清理）
+  - 位置与范围 API 只暴露 `GetDocumentRange()`（私有），缺少 `validatePosition/range`、`modifyPosition`、`getFullModelRange`、`getWordAt/UntilPosition` 等，使得许多 VS Code 辅助函数无法复用。
+  - `BracketPairsTextModelPart`、tokenization、自动缩进修剪、注入文本事件等多段 `TextModelPart` 尚未接入；这些特性依赖语言配置和 tokenization 服务，目前都缺失。
+- **建议:**
+  1. 暴露 `ValidatePosition`/`ValidateRange`/`GetFullModelRange` 并在 `tests/TextBuffer.Tests/TextModelTests.cs` 增加覆盖（可参考 TS 的 `textModel.test.ts`）。
+  2. 引入 `Dispose()`，解除 `_languageConfigurationSubscription`、清空 `_editStack`，同时触发新的 `OnWillDispose` 事件，确保 `InProcUndoRedoService` 释放堆栈。
+  3. 规划 `TextModelPart` 框架：先实现 `BracketPairsTextModelPart`/`TokenizationTextModelPart` 的存根，再按 `textModel.ts` 的分层逐步接入。
+  4. 对于单词 API，可重用现有 `WordCharacterClassifier`（`Core/SearchTypes.cs`）并在 `FindUtilities` 之外提供公共入口。
+
+### 2. Undo/Redo 服务 (`src/TextBuffer/EditStack.cs`, `src/TextBuffer/Services/IUndoRedoService.cs`)
+**TS 参考:** `ts/src/vs/platform/undoRedo/common/undoRedo.ts`
+
+- **现状:** `EditStack` + `InProcUndoRedoService` 维护 per-model 栈，Undo/Redo 能在 `TextModel` 层工作。
+- **偏差:**
+  - 没有 URI/资源概念，无法注册跨模型操作；`UndoRedoGroup`、`UndoRedoSource`、`getElements`、`setElementsValidFlag`、`removeElements` 等 API 缺失。
+  - 没有快照 (`createSnapshot/restoreSnapshot`) 以及 `ValidationCallback`，因此无法实现 TS 的 "软失败" 与资源失效逻辑。
+  - `_openElement` 逻辑没有对应 `IUndoRedoService.getLastElement()`，导致批量编辑与 `UndoRedoGroup` 无法共享。
+- **建议:**
+  1. 扩展接口以携带 `Uri`（或 `TextModel.Id`），引入资源集合与 `UndoRedoElementKind`，并在 `EditStack` 中将 `_openElement` 映射到 service 的 `getLastElement/canMerge` 语义。
+  2. 添加 `UndoRedoGroup` 与 `UndoRedoSource` 支持，允许依赖方把多模型编辑压成同一撤销点。
+  3. 复制 `undoRedo.test.ts` 中的关键用例到新的 `tests/TextBuffer.Tests/UndoRedoServiceTests.cs`，覆盖跨资源、失效与快照情形。
+
+### 3. TextModelOptions (`src/TextBuffer/TextModelOptions.cs`)
+- 与 `textModelDefaults.ts` 完全一致，`TextModelResolvedOptions.Resolve/WithUpdate/Diff` 逻辑与 TS 相同。
+- **验证:** `tests/TextBuffer.Tests/TextModelTests.UpdateOptionsRaisesChangeEvent` 已覆盖 `OnDidChangeOptions` 通知。无需调整。
+
+### 4. 装饰事件 (`src/TextBuffer/TextModelDecorationsChangedEventArgs.cs`)
+- 100% 对齐 `textModelEvents.ts`，并额外暴露 `Changes`、`ModelVersionId`、行高/字体变更列表，使得诊断更详细。
+- `TextModel` 在 `RaiseDecorationsChanged` 中填充这些字段，迭代器与 TS 行为一致。无需改动。
+
+### 5. 搜索栈 (`src/TextBuffer/TextModelSearch.cs`, `src/TextBuffer/Core/SearchTypes.cs`, `src/TextBuffer/Core/PieceTreeSearcher.cs`)
+- `SearchRangeSet`、`LineFeedCounter`、`SearchParams.ParseSearchRequest`、`WordCharacterClassifier` 以及 `PieceTreeSearcher` 均对应 TS 原版实现。
+- 多行/多范围/空匹配推进逻辑与 VS Code 行为一致，`tests/TextBuffer.Tests/TextModelSearchTests.cs` 基本复刻 `textModelSearch.test.ts`。
+- **建议:** 保持同步即可，后续若 TS 引入新的 `regex unicode escapes` 行为，直接更新 `SearchPatternUtilities`。
+
+### 6. SearchHighlightOptions (`src/TextBuffer/SearchHighlightOptions.cs`)
+- 简单 DTO，与 `SearchParams` 字段一一对应，`OwnerId` 默认使用 `DecorationOwnerIds.SearchHighlights`，与 TS 的 `SearchDecorator` 用法一致。无需调整。
+
+### 7. Language Configuration Service (`src/TextBuffer/Services/ILanguageConfigurationService.cs`)
+**TS 参考:** `ts/src/vs/editor/common/languages/languageConfigurationRegistry.ts`
+
+- **现状:** 只有 `Subscribe(languageId, callback)` 与 `OnDidChange` 事件，默认实现 `LanguageConfigurationService` 只负责追踪订阅。
+- **偏差:**
+  - 没有 `register(languageId, configuration)`、`getLanguageConfiguration`、`getWordDefinition`、`onDidChange` 的语言级事件聚合，也没有 `ResolvedLanguageConfiguration` 缓存。
+  - 因为没有配置数据，`TextModel` 及未来的括号/自动缩进功能都无法访问语言规则。
+- **建议:**
+  1. 扩展接口以支持 `Register(languageId, LanguageConfiguration)` 并返回 `IDisposable`，内部缓存 `ResolvedLanguageConfiguration`。
+  2. 暴露 `GetConfiguration(languageId)`/`GetWordDefinition(languageId)` 等访问器，与 TS 保持一致。
+  3. 在 `tests/TextBuffer.Tests` 下新增 `LanguageConfigurationServiceTests`，覆盖注册、变更、释放与默认语言 (`plaintext`) fallback。
+
+### 8. TextPosition (`src/TextBuffer/TextPosition.cs`)
+**TS 参考:** `ts/src/vs/editor/common/core/position.ts`
+
+- **现状:** record struct 仅实现 `CompareTo` 及比较运算符，无法表达 `with/delta/isBefore` 等逻辑。
+- **影响:** `DocUI`、Future tokenization、Selection 工具都需要 `Position.isBefore`, `Position.delta` 等 API；目前不得不手写比较，易出错。
+- **建议:**
+  1. 实现 `With(int? line = null, int? column = null)`, `Delta(int deltaLine, int deltaColumn)`, `IsBefore`, `IsBeforeOrEqual`, `Clone`, `ToString`，并提供静态帮助方法（`Compare`, `Lift`, `IsIPosition`）以对齐 TS。
+  2. 在 `tests/TextBuffer.Tests/TextModelTests` 或新增 `TextPositionTests` 中加入覆盖：比较、delta、with、JSON roundtrip。
+
+### 9. DocUI Find 宿主堆栈 (`src/TextBuffer/DocUI/DocUIFindController.cs`, `FindModel.cs`, `FindReplaceState.cs`, `FindDecorations.cs`, `FindUtilities.cs`)
+**TS 参考:** `ts/src/vs/editor/contrib/find/browser/*.ts`
+
+- **现状:** 查找/替换流程（自动选区、MatchesLimit、Large replace、Seed search string、Find decorations、范围查找）已经完整移植，`tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs` 复刻了 VS Code 的关键用例。
+- **偏差:**
+  - 缺少 VS Code 宿主交互：没有 `contextKey`/命令上下文更新，也没有视图滚动 API（TS 通过 `ICodeEditor.revealRange`）。`DocUIFindController` 只能操作 `IEditorHost` 的选区。
+  - `DocUIReplaceController` (`src/TextBuffer/Rendering/DocUIReplaceController.cs`) 仍是 TODO，实际的 `Replace`/`ReplaceAll` 逻辑只在 `FindModel` 中实现，无法复用 CLI/DocUI 之外的宿主。
+  - `LoadPersistedOptions` 依赖 `IFindControllerStorage`，但默认 `Null` 实现导致实际运行时不会持久化选项；`global find clipboard` 也需要外部注入。
+- **建议:**
+  1. 定义真正的宿主适配层（例如 `IEditorHost2`），提供 `RevealRange`, `FocusFindWidget`, `UpdateContextKey`，并在 DocUI harness 中实现 stub。
+  2. 将 `DocUIReplaceController` 接入 `DocUIFindController` 的 `Replace/ReplaceAll` 管道，以便共享 case-preserve 与 snippet integration。
+  3. 在测试中覆盖 `ReplaceAll` 对装饰/匹配位置的更新（TS 的 `findController.test.ts Replace All` 场景尚未移植）。
+  4. 记录设计意图：哪些 VS Code 功能（如 find widget UI, context keys）刻意省略，避免误以为是遗漏。
+
+### 10. Clipboard / Storage shims (`src/TextBuffer/DocUI/DocUIFindController.cs` 内的 `NullFindControllerStorage`、`NullFindControllerClipboard`)
+- **现状:** 若宿主未显式注入实现，则查找选项不会落盘，也不会与系统/全局查找剪贴板同步；DocUI harness 之外的消费者将观察到“选项永不记忆、剪贴板永不写入”的行为。
+- **建议:**
+  1. 在生产路径提供默认实现（例如包装 `SystemClipboard` 与简单文件/内存存储），并将 `FindControllerHostOptions.UseGlobalFindClipboard` 默认为 ON。
+  2. 在 `DocUIFindControllerTests` 中增加覆盖，确保默认实现确实持久化/同步。
+  3. 文档化接口：需要何种生命周期、线程安全保证，方便宿主注入。
 
 ---
 
 ## 总结
 
-### 高优先级修正项
+- **高优先级**
+  1. 扩展 `TextPosition` 与 `TextModel` 位置 API，并补充相应单元测试，解锁后续 Token/括号/Find 逻辑的复用。
+  2. 升级 Undo/Redo 服务至 TS 等效（资源、分组、快照、UndoRedoSource），否则多模型编辑和跨资源撤销无法实现。
+  3. 为 `ILanguageConfigurationService` 提供注册/解析能力与缓存，后续的括号/缩进行为才能落地。
+  4. 将 DocUI find pipeline 接入真实 clipboard/storage，实现默认情况下的选项持久化与全局查找剪贴板。
 
-1. **TextPosition.cs** - 添加`With()`, `Delta()`, `IsBefore()`, `IsBeforeOrEqual()`方法
-2. **TextModelSearch.cs** - 确认`PieceTreeSearcher`完整性，添加词边界检测
+- **中优先级**
+  - 规划 `TextModelPart` 架构（BracketPairs、Tokenization），并定义宿主适配接口（context key、reveal）以便日后支持完整 VS Code 行为。
+  - 将 `DocUIReplaceController` 从 TODO 状态推进为可复用组件。
 
-### 中优先级改进项
+---
 
-1. **PieceTreeBuffer.cs** - 考虑添加`Equals()`, `GetRangeAt()`, `GetLinesContent()`
-2. **TextModel.cs** - 添加`ValidatePosition()`, `ValidateRange()`, 公开`GetFullModelRange()`
+## Verification Notes
 
-### 设计决策说明
+- **检查的 C# 文件**
+  - `src/TextBuffer/TextModel.cs`, `TextModelOptions.cs`, `TextModelDecorationsChangedEventArgs.cs`
+  - `src/TextBuffer/TextModelSearch.cs`, `src/TextBuffer/Core/SearchTypes.cs`, `src/TextBuffer/Core/PieceTreeSearcher.cs`
+  - `src/TextBuffer/EditStack.cs`, `src/TextBuffer/Services/IUndoRedoService.cs`, `src/TextBuffer/Services/ILanguageConfigurationService.cs`
+  - `src/TextBuffer/TextPosition.cs`
+  - `src/TextBuffer/DocUI/DocUIFindController.cs`, `FindModel.cs`, `FindReplaceState.cs`, `FindDecorations.cs`, `FindUtilities.cs`
+  - `src/TextBuffer/Rendering/DocUIReplaceController.cs`（TODO 状态）
 
-以下差异是故意为之的设计决策，不需要修正：
-- `EditStack.cs`的架构简化
-- `ILanguageConfigurationService.cs`的原创实现
-- `IUndoRedoService.cs`的内存实现
-- `PieceTreeBuffer.cs`作为简化门面
+- **参照的 TS 源**
+  - `ts/src/vs/editor/common/model/textModel.ts`
+  - `ts/src/vs/platform/undoRedo/common/undoRedo.ts`
+  - `ts/src/vs/editor/common/model/textModelSearch.ts`、`ts/src/vs/editor/common/core/wordCharacterClassifier.ts`
+  - `ts/src/vs/editor/contrib/find/browser/*.ts`
+  - `ts/src/vs/editor/common/languages/languageConfigurationRegistry.ts`
 
-这些决策适应了C#运行时环境和简化的DI需求，在功能上与TS版等价。
+- **审阅的测试**
+  - `tests/TextBuffer.Tests/TextModelTests.cs`
+  - `tests/TextBuffer.Tests/TextModelSearchTests.cs`
+  - `tests/TextBuffer.Tests/DocUI/DocUIFindControllerTests.cs`
+  - `tests/TextBuffer.Tests/ReplacePatternTests.cs`
+
+- **未解决的 TODO**
+  - `src/TextBuffer/TextModel.cs` 约第 565 行：`TODO(FindController)` 关于增量高亮与 stack boundary。
+  - `src/TextBuffer/Rendering/DocUIReplaceController.cs`: `TODO(B2)` 提示 Replace pipeline 尚未接入 TextModel。
+  - 这些 TODO 需在上述改造中一并解决或重新排期。

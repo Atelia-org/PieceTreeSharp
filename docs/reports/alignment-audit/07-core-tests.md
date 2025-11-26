@@ -1,306 +1,131 @@
 # Core Tests 模块对齐审查报告
 
-**审查日期:** 2025-11-26
-**审查范围:** 11个核心测试文件
+**审查日期:** 2025-11-26  
+**审查范围:** 17个核心测试套件（PieceTree、TextModel、编辑器表层）
 
 ## 概要
-- 完全对齐: 3/11
-- 存在偏差: 5/11
-- 需要修正: 3/11
+- 完全对齐 9/17，存在偏差 6/17，需修正 2/17。新增 `PieceTreeDeterministicTests`, `PieceTreeFuzzHarnessTests`, `PieceTreeSearchOffsetCacheTests`, `PieceTreeSnapshotParityTests`, `TextModelSnapshotTests` 已覆盖 CRLF、快照、随机、搜索缓存等先前缺失的 TS 套件。
+- 新增套件均可使用 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter <SuiteName>` 单独运行；脚本依赖 `tests/TextBuffer.Tests/Helpers/PieceTreeDeterministicScripts.cs` 与 `PieceTreeFuzzHarness`。
+- 主要风险集中在 Cursor / Snippet 套件（覆盖率不足 10%）、`TextModelTests` 的缩进矩阵、`PieceTreeModel` buffer API、Decoration/Diff 的长尾覆盖。
+- 下一步应优先补齐 search 回归（#45892/#45770）、`guessIndentation` 矩阵、cursor/snippet 端到端套件，并将 TS buffer API / decoration / diff 用例移植到 C#。
+
+### 覆盖状态表
+
+| 区域 | 测试文件 | 状态 | 变化摘要 |
+| --- | --- | --- | --- |
+| PieceTree | `PieceTreeBaseTests.cs` | ⚠️ | 基础 insert/delete + 缓存测试已对齐，但仍缺 `AssertTreeInvariants`，随机脚本迁移到 fuzz 套件。 |
+| PieceTree | `PieceTreeFuzzHarnessTests.cs` | ✅ | 覆盖 TS random test / delete / CR bug / random chunks 套件，并新增 harness 自检。 |
+| PieceTree | `PieceTreeDeterministicTests.cs` | ✅ | 新增 prefix sum、getTextInRange、CRLF/centralized lineStarts deterministic 脚本。 |
+| PieceTree | `PieceTreeBuilderTests.cs` | ✅ | Chunk 拆分、BOM/RTL flag、跨块 CR 处理完全对齐。 |
+| PieceTree | `PieceTreeFactoryTests.cs` | ✅ | 默认 EOL、混合换行归一化、首尾行文本场景齐备。 |
+| PieceTree | `PieceTreeModelTests.cs` | ⚠️ | Append/CRLF/search fuzz 已有，但缺 TS buffer API (`equal`,`getLineCharCode`, `getNearestChunk`)。 |
+| PieceTree | `PieceTreeNormalizationTests.cs` | ✅ | 与 deterministic 套件组合后覆盖 CRLF/centralized lineStarts 全套随机案例。 |
+| PieceTree | `PieceTreeSearchTests.cs` | ⚠️ | 主流程覆盖完整，仍缺 TS issue `#45892` 空模型与 `#45770` 节点边界回归。 |
+| PieceTree | `PieceTreeSearchOffsetCacheTests.cs` | ✅ | 新增 search offset cache 渲染 & EOL 归一化 4 个脚本。 |
+| PieceTree | `PieceTreeSnapshotTests.cs` + `PieceTreeSnapshotParityTests.cs` | ✅ | 包含 bug #45564 与 `immutable snapshot 1-3` parity。 |
+| TextModel | `TextModelTests.cs` | ⚠️ | Selection/undo 完整，但缺 `TextModelData.fromString`, `getValueLengthInRange`, `guessIndentation` 矩阵、`validatePosition` 与多条 issue 回归。 |
+| TextModel | `TextModelSnapshotTests.cs` | ✅ | 覆盖 snapshot chunk 聚合、跳空、重复读取行为。 |
+| TextModel | `TextModelSearchTests.cs` | ✅ | Range、word boundary、regex、多 issue 回归均已移植。 |
+| 编辑器 | `DecorationTests.cs` | ⚠️ | Delta/stickiness/InjectedText 已覆盖，缺 TS `modelDecorations.test.ts` 中行级断言、change/remove/EOL 组合等 40+ 用例。 |
+| 编辑器 | `DiffTests.cs` | ⚠️ | 基础 diff 逻辑存在，但缺 TS `defaultLinesDiffComputer.test.ts` 的参数矩阵、large doc/perf 场景。 |
+| 编辑器 | `CursorTests.cs` + `CursorMultiSelectionTests.cs` + `CursorWordOperationsTests.cs` | ❌ | 仅 smoke tests，未覆盖 `cursorAtomicMoveOperations`/`multicursor`/`wordOperations` 中的 tab stop、命令回放、撤销矩阵。 |
+| 编辑器 | `SnippetControllerTests.cs` + `SnippetMultiCursorFuzzTests.cs` | ❌ | 缺少 TS `snippetController2.test.ts`/`snippetSession.test.ts` 的嵌套占位符、变量求值、session 合并、undo/redo 等套件。 |
 
 ## 详细分析
 
----
+### PieceTree 套件
 
-### 1. PieceTreeBaseTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (Lines 214-265)
-**对齐状态:** ⚠️存在偏差
+#### `PieceTreeBaseTests.cs` (⚠️)
+- TS 段落: `ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` lines 214-265。现已对齐基础 insert/delete/缓存测试并增加 `GetLineContent` 缓存失效验证。
+- 缺口: 未统一调用 `AssertTreeInvariants`；随机脚本现由 `PieceTreeFuzzHarnessTests` 负责，但仍建议在基础测试中添加 tree integrity 断言。
 
-**分析:**
-C# 实现移植了基本的插入/删除测试用例：
-- ✅ `BasicInsertDelete` - 对应 TS `basic insert/delete`
-- ✅ `MoreInserts` - 对应 TS `more inserts`
-- ✅ `MoreDeletes` - 对应 TS `more deletes`
-- ✅ 新增了缓存失效测试 `GetLineContent_Cache_Invalidation_Insert/Delete`
+#### `PieceTreeFuzzHarnessTests.cs` (✅)
+- TS 段落: random test 1-3、random delete 1-3、`random insert/delete \r bug 1-5`、random chunks (lines 271-550, 1668-1725)。
+- C# harness 重现全部脚本，并新增 `RunRandomEdits` 与 `HarnessDetectsExternalCorruption`，可通过 `dotnet test ... --filter PieceTreeFuzzHarnessTests` 运行。
+- 后续可将 fuzz 日志路径写入 `AssertState` 失败信息以提升可诊断性。
 
-**缺失的测试用例:**
-1. `random test 1-3` - 随机插入测试
-2. `random delete 1-3` - 随机删除测试
-3. `random insert/delete \r bug 1-5` - CRLF边界情况测试
-4. 树不变量断言 `assertTreeInvariants` 未在所有测试中调用
+#### `PieceTreeDeterministicTests.cs` (✅)
+- TS 段落: prefix sum、offset→position、getTextInRange、CRLF random、centralized lineStarts + random chunk (lines ~560-1589)。
+- 当前实现逐条移植脚本，复用了 `PieceTreeDeterministicScripts`。
+- 建议在 `AssertState`/`AssertLineStarts` 失败时输出 harness diff，方便排查。
 
-**修正建议:**
-- 添加随机操作测试以覆盖边界情况
-- 实现 `AssertTreeInvariants` 辅助方法并在所有测试中调用
+#### `PieceTreeBuilderTests.cs` & `PieceTreeFactoryTests.cs` (✅)
+- 与 TS builder/factory 套件一一对应，无缺口。
 
----
+#### `PieceTreeModelTests.cs` (⚠️)
+- 追加优化、chunk split、CRLF fuzz、search cache 失效均已覆盖。
+- 缺失: `buffer api` 段落（`equal`, `getLineCharCode` issue #45735, `getNearestChunk`）。需要复用 `PieceTreeBufferAssertions` 实现这些断言。
+- 建议新增 `PieceTreeBufferApiTests` 文件以镜像 TS 结构，保持主文件聚焦模型场景。
 
-### 2. PieceTreeBuilderTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (Lines 1500+)
-**对齐状态:** ✅完全对齐
+#### `PieceTreeNormalizationTests.cs` (✅)
+- 虽本文件内容较少，但结合 `PieceTreeDeterministicTests` 中的 CRLF/centralized lineStarts/random chunk 套件已覆盖 TS 对应段落。
+- 仍可考虑将 deterministic CRLF 测试迁入此文件以简化索引。
 
-**分析:**
-C# 实现全面覆盖了 Builder 相关测试：
-- ✅ `AcceptChunk_SplitsLargeInputIntoDefaultSizedPieces` - 大块分割
-- ✅ `AcceptChunk_RetainsBomAndMetadataFlags` - BOM/RTL/非ASCII标记保留
-- ✅ `AcceptChunk_CarriesTrailingCarriageReturn` - 跨块CRLF处理
-- ✅ `CreateNewPieces_SplitsLargeInsert` - 大块插入分片
+#### `PieceTreeSearchTests.cs` (⚠️)
+- 绝大部分 `textModelSearch.test.ts` 场景已经实现。
+- 缺失: `#45892` (空缓冲区 search 返回空) 与 `#45770` (node boundary 搜索偏移) 两个 TS 回归。添加两个 `[Fact]` 即可弥补。
 
-**缺失的测试用例:** 无
+#### `PieceTreeSearchOffsetCacheTests.cs` (✅)
+- 新增 deterministic suite 覆盖 render whitespace + normalized insert 脚本，`AssertSearchCachePrimed` 保证缓存一致。
+- 可将此断言抽象为公共 helper 供其他搜索测试使用。
 
-**修正建议:** 无需修正
+#### `PieceTreeSnapshotTests.cs` & `PieceTreeSnapshotParityTests.cs` (✅)
+- `PieceTreeSnapshotParityTests` 现已覆盖 TS `bug #45564` 与 `immutable snapshot 1-3`，验证 snapshot/ piece 不可变性。
+- `PieceTreeSnapshotTests` 保留基本读取/不可变性 smoke tests。
 
----
+### TextModel 套件
 
-### 3. PieceTreeFactoryTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (Lines 100+)
-**对齐状态:** ✅完全对齐
+#### `TextModelTests.cs` (⚠️)
+- Selection/Undo/EOL/语言设置等 11 个子区域已实现。
+- 仍缺:
+  1. `TextModelData.fromString` (单行/多行/Non Basic ASCII/containsRTL)
+  2. `getValueLengthInRange` + 不同 EOL variant
+  3. `guessIndentation` 全矩阵 (~30 输入)
+  4. `validatePosition` (NaN、浮点、代理对)
+  5. Issue 回归 (#44991,#55818,#70832,#62143,#84217,#71480)
+- 建议以 `[Theory]` 覆盖缩进矩阵，利用 `IndentationGuesser.GuessIndentation` 进行断言。
 
-**分析:**
-C# 实现覆盖了工厂方法测试：
-- ✅ `GetFirstAndLastLineTextHonorLineBreaks` - 首尾行文本获取
-- ✅ `CreateUsesDefaultEolWhenTextHasNoTerminators` - 默认EOL选择
-- ✅ `CreateNormalizesMixedLineEndingsWhenRequested` - 混合换行符规范化
+#### `TextModelSnapshotTests.cs` (✅)
+- 参照 `textModel.test.ts` 中 `TextModelSnapshot` 用例，验证 chunk 聚合 (64K/32K)、忽略空块、重复读取避免触源等行为。
+- 可加入 `EnsureNoDoubleReadAfterNull` 以镜像 TS 最后一条测试。
 
-**缺失的测试用例:** 无
+#### `TextModelSearchTests.cs` (✅)
+- 仍保持对 Range scope、word boundary、regex、多 issue (#3623,#27459,#27594,#53415,#74715,#100134) 的覆盖，无缺口。
 
-**修正建议:** 无需修正
+### 编辑器表层
 
----
+#### `DecorationTests.cs` (⚠️)
+- 已覆盖 owner scopes、collapse on replace、stickiness、options parity、`OnDidChangeDecorations`、InjectedText、`forceMoveMarkers`。
+- 未覆盖 `modelDecorations.test.ts` 中的 `lineHasDecorations`、`changeDecorations` 多重 remove/change、EOL 切换、`deltaDecorations` no-op、`TrackedRangeStickiness` 场景与 `modelHasNoDecorations` 等 helper 断言。
+- 建议引入 C# 版本的 `modelHasDecorations`/`lineHasDecorations` helper，按 TS 顺序补充剩余 40+ 用例。
 
-### 4. PieceTreeModelTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (全文件)
-**对齐状态:** ⚠️存在偏差
+#### `DiffTests.cs` (⚠️)
+- 当前仅覆盖 word diff 内部变更、忽略尾空白、move detection、超时。
+- TS `defaultLinesDiffComputer.test.ts`（需从 VS Code 上游同步）包含 `AlgorithmStrategy`, `unchangedRegions`, `postProcessCharChanges`, 大文档性能与 `computeMoves`/`minCharacters` 组合。
+- TODO: 引入 TS 脚本后补齐参数矩阵及大文档性能测试。
 
-**分析:**
-C# 实现包含高质量的模型测试：
-- ✅ `LastChangeBufferPos_AppendOptimization` - 追加优化测试
-- ✅ `AverageBufferSize_InsertLargePayload` - 大块插入测试
-- ✅ `CRLF_RepairAcrossChunks` - 跨块CRLF修复
-- ✅ `ChangeBufferFuzzTests` - 模糊测试
-- ✅ `CRLF_FuzzAcrossChunks` - CRLF模糊测试
-- ✅ `CRLFRepair_DoesNotLeaveZeroLengthNodes` - 零长度节点检查
-- ✅ `MetadataRebuild_AfterBulkDeleteAndInsert` - 批量操作后元数据重建
-- ✅ `SearchCacheInvalidation_Precise` - 搜索缓存精确失效
+#### `CursorTests.cs` / `CursorMultiSelectionTests.cs` / `CursorWordOperationsTests.cs` (❌)
+- 仅有基本移动/渲染/word 操作 smoke tests。
+- TS `cursorAtomicMoveOperations.test.ts` 中的 tab stop/`Direction.Nearest`、`AtomicTabMoveOperations.whitespaceVisibleColumn` 表格未被移植；`multicursor.test.ts` 的 undo/redo/命令栈也缺失；`wordOperations.test.ts` 中的 delete/transpose/分类矩阵尚未覆盖。
+- 需新增专门文件：`CursorAtomicMoveOperationsTests`, `MultiCursorCommandTests`, `WordOperationsTests`，复刻 TS 数据驱动表。
 
-**缺失的测试用例:**
-1. TS中的 `prefix sum for line feed` 套件 (basic, append, insert, delete, add+delete 1)
-2. TS中的 `offset 2 position` 套件
-3. TS中的 `get text in range` 套件 (getContentInRange, random test value in range, get line content)
-4. TS中的 `buffer api` 套件 (equal, getLineCharCode - issue #45735, getNearestChunk)
-5. TS中的 `search offset cache` 套件
+#### `SnippetControllerTests.cs` / `SnippetMultiCursorFuzzTests.cs` (❌)
+- 目前只有基本插入与模糊测试。
+- 缺少 `snippetController2.test.ts`、`snippetSession.test.ts` 中的嵌套占位符、变量求值 (`TM_FILENAME`, `CLIPBOARD`, `UUID`)、session merge/cancel、undo/redo、placeholder transform、重复触发等。
+- 需要实现 snippet 变量 mock（参考 TS `SnippetVariables`）并移植所有核心场景。
 
-**修正建议:**
-- 添加 `GetPositionAt/GetOffsetAt` 精确映射测试
-- 添加 `GetValueInRange` 范围取值测试
-- 添加 `Equal` 缓冲区比较测试
-- 添加 `GetLineCharCode` 字符码获取测试
+## 待办清单
 
----
+1. **PieceTree buffer API:** 在 `PieceTreeModelTests` 或新增 `PieceTreeBufferApiTests` 中移植 `equal`, `getLineCharCode` (#45735), `getNearestChunk` 等 TS buffer 套件。
+2. **Search 回归:** 向 `PieceTreeSearchTests` 添加 TS `#45892` (空缓冲区) 与 `#45770` (节点边界) regression tests。
+3. **TextModel parity:** 补齐 `TextModelData.fromString`, `getValueLengthInRange` (+不同 EOL), `guessIndentation` 矩阵, `validatePosition`, 以及 issue 回归 (#44991,#55818,#70832,#62143,#84217,#71480)。
+4. **Cursor/Snippet 套件:** 依次移植 `cursorAtomicMoveOperations.test.ts`, `multicursor.test.ts`, `wordOperations.test.ts`, `snippetController2.test.ts`, `snippetSession.test.ts`，并覆盖变量、撤销、session merge 行为。
+5. **Decoration & Diff:** 复刻 TS `modelDecorations.test.ts` 与 `defaultLinesDiffComputer.test.ts` 全量用例，补齐行级断言、EOL 变更、diff 参数矩阵。
+6. **Indentation detection matrix:** 在 `TextModelTests` 中实现 `guessIndentation` 数据驱动测试，确保与 TS 输出完全一致。
 
-### 5. PieceTreeNormalizationTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (Lines 1730+)
-**对齐状态:** ⚠️存在偏差
+## Verification Notes
 
-**分析:**
-C# 实现覆盖了基本的CRLF规范化测试：
-- ✅ `Delete_CR_In_CRLF_1` - 删除CRLF中的CR (测试1)
-- ✅ `Delete_CR_In_CRLF_2` - 删除CRLF中的CR (测试2)
-- ✅ `Line_Breaks_Replacement_Is_Not_Necessary_When_EOL_Is_Normalized` - EOL规范化后无需替换
-
-**缺失的测试用例:**
-1. TS中的 `CRLF` 套件 - 10个 `random bug 1-10` 测试
-2. TS中的 `centralized lineStarts with CRLF` 套件 - 10个测试
-3. `random chunk bug 1-4` 测试
-
-**修正建议:**
-- 添加CRLF随机bug复现测试（至少5个关键案例）
-- 添加跨块CRLF处理测试
-
----
-
-### 6. PieceTreeSearchTests.cs
-**TS源:** textModelSearch.test.ts
-**对齐状态:** ⚠️存在偏差
-
-**分析:**
-C# 实现覆盖了核心搜索功能：
-- ✅ `FindMatches_ReturnsLiteralHits` - 字面量匹配
-- ✅ `FindMatches_ProvidesCaptureGroups` - 捕获组
-- ✅ `FindMatches_MultilineLiteralAcrossCrLf` - 跨行字面量
-- ✅ `FindMatches_WholeWordHonorsSeparators` - 整词匹配
-- ✅ `FindMatches_CustomSeparatorsSupportUnicode` - Unicode分隔符
-- ✅ `FindMatches_ZeroLengthRegexOnAstralAdvances` - 零宽度正则
-- ✅ `FindNextAndPrevious_WrapAroundDocument` - 环绕搜索
-- ✅ `Regex_WordBoundaryHonorsEcmaDefinition` - 单词边界
-- ✅ `Regex_DigitsRestrictToAscii` - ASCII数字限制
-- ✅ `WholeWord_IgnoresUnicodeSpacesUnlessExplicit` - Unicode空格处理
-- ✅ `Regex_EmojiQuantifiersConsumeCodePoints` - Emoji代码点
-
-**缺失的测试用例:**
-1. TS `#45892` - 空缓冲区搜索
-2. TS `#45770` - 节点边界搜索
-
-**修正建议:**
-- 添加空缓冲区搜索边界测试
-- 添加节点边界不跨越测试
-
----
-
-### 7. PieceTreeSnapshotTests.cs
-**TS源:** pieceTreeTextBuffer.test.ts (snapshot suite)
-**对齐状态:** ❌需要修正
-
-**分析:**
-C# 实现仅有基本的快照测试：
-- ✅ `SnapshotReadsContent` - 读取内容
-- ✅ `SnapshotIsImmutable` - 不可变性
-
-**缺失的测试用例:**
-1. TS `bug #45564, piece tree pieces should be immutable` - Piece不可变性
-2. TS `immutable snapshot 1-3` - 多种编辑后快照不可变性验证
-
-**修正建议:**
-- 添加 Piece 级别不可变性测试
-- 添加多次编辑后快照内容验证测试
-- 测试快照在复杂编辑序列后的正确性
-
----
-
-### 8. TextModelTests.cs
-**TS源:** textModel.test.ts
-**对齐状态:** ⚠️存在偏差
-
-**分析:**
-C# 实现覆盖了丰富的 TextModel 功能：
-- ✅ Selection逻辑测试
-- ✅ 创建和编辑测试
-- ✅ Decoration追踪测试
-- ✅ Undo/Redo测试
-- ✅ 选项更新测试
-- ✅ 缩进检测测试
-- ✅ EOL推送测试
-- ✅ 语言切换测试
-- ✅ 创建选项应用测试
-- ✅ 语言配置事件测试
-- ✅ 附加事件测试
-
-**缺失的测试用例:**
-1. TS `TextModelData.fromString` 套件 (one line text, multiline text, Non Basic ASCII, containsRTL)
-2. TS `getValueLengthInRange` 测试
-3. TS `getValueLengthInRange different EOL` 测试
-4. TS `guess indentation` 完整矩阵（约30个测试用例）
-5. TS `validatePosition` 测试
-6. TS `validatePosition around high-low surrogate pairs` 测试
-7. TS `validatePosition handle NaN/floats` 测试
-8. 多个Issue回归测试 (#44991, #55818, #70832, #62143, #84217, #71480)
-
-**修正建议:**
-- 添加 `GetValueLengthInRange` 系列测试
-- 添加完整的缩进检测矩阵测试
-- 添加位置验证边界测试（包括代理对、NaN、浮点数）
-- 添加Issue回归测试
-
----
-
-### 9. TextModelSearchTests.cs
-**TS源:** textModelSearch.test.ts
-**对齐状态:** ✅完全对齐
-
-**分析:**
-C# 实现非常全面，包含多个测试类：
-- ✅ `TextModelSearchTests_RangeScopes` - 范围作用域测试
-- ✅ `TextModelSearchTests_WordBoundaries` - 单词边界矩阵
-- ✅ `TextModelSearchTests_MultilineRegex` - 多行正则测试
-- ✅ `TextModelSearchTests_CaptureNavigation` - 捕获组导航
-- ✅ `TextModelSearchTests_ZeroWidthAndUnicode` - 零宽度和Unicode
-- ✅ `TextModelSearchTests_ParseSearchRequest` - 搜索请求解析
-- ✅ `TextModelSearchTests_IsMultilineRegexSource` - 多行正则源检测
-- ✅ `TextModelSearchTests_FindNextMatchNavigation` - 导航测试
-
-覆盖了TS中所有主要测试场景，包括Issue回归测试(#3623, #27459, #27594, #53415, #74715, #100134)
-
-**缺失的测试用例:** 无显著缺失
-
-**修正建议:** 无需修正
-
----
-
-### 10. DecorationTests.cs
-**TS源:** model.decorations.test.ts
-**对齐状态:** ❌需要修正
-
-**分析:**
-C# 实现覆盖了Decoration核心功能：
-- ✅ `DeltaDecorationsTrackOwnerScopes` - Owner作用域追踪
-- ✅ `CollapseOnReplaceEditShrinksRange` - 替换时折叠
-- ✅ `StickinessHonorsInsertions` - 粘性处理
-- ✅ `DecorationOptionsParityRoundTripsMetadata` - 选项元数据往返
-- ✅ `DecorationsChangedEventIncludesMetadata` - 变更事件元数据
-- ✅ `GetLineDecorationsReturnsVisibleMetadata` - 行装饰可见性
-- ✅ `GetAllDecorationsFiltersByOwner` - Owner过滤
-- ✅ `DecorationIdsByOwnerReflectsLifecycle` - 生命周期追踪
-- ✅ `DecorationsRaiseEventsForAddUpdateRemove` - 事件触发
-- ✅ `EditsPropagateDecorationChangeEvents` - 编辑传播事件
-- ✅ `InjectedTextQueriesSurfaceLineMetadata` - 注入文本查询
-- ✅ `ForceMoveMarkersOverridesStickinessDefaults` - 强制移动标记
-
-**缺失的测试用例:**
-注意：TS源文件 `model.decorations.test.ts` 在仓库中不存在，无法进行完整对比。根据C#代码注释，这些测试是基于TS原版设计的。
-
-**修正建议:**
-- 确认TS源文件是否在其他位置或需要从上游获取
-- 如有TS源，进行详细对比并补充缺失测试
-
----
-
-### 11. DiffTests.cs
-**TS源:** defaultLinesDiffComputer.test.ts
-**对齐状态:** ❌需要修正
-
-**分析:**
-C# 实现覆盖了基本Diff功能：
-- ✅ `WordDiffProducesInnerChanges` - 词级别内部变更
-- ✅ `IgnoreTrimWhitespaceTreatsTrailingSpacesAsEqual` - 忽略尾部空白
-- ✅ `MoveDetectionEmitsNestedMappings` - 移动检测嵌套映射
-- ✅ `DiffRespectsTimeoutFlag` - 超时标记
-
-**缺失的测试用例:**
-注意：TS源文件 `defaultLinesDiffComputer.test.ts` 在仓库中不存在，无法进行完整对比。
-
-**修正建议:**
-- 确认TS源文件是否在其他位置或需要从上游获取
-- 如有TS源，对比并补充：
-  - 更多词级别diff边界情况
-  - 大文件diff性能测试
-  - 移动检测精确性测试
-
----
-
-## 总体评估
-
-### 优势
-1. **搜索测试**：`TextModelSearchTests.cs` 和 `PieceTreeSearchTests.cs` 实现非常完整，覆盖了所有主要TS测试场景
-2. **Builder测试**：`PieceTreeBuilderTests.cs` 和 `PieceTreeFactoryTests.cs` 完全对齐
-3. **模型测试**：`TextModelTests.cs` 覆盖了丰富的功能测试
-
-### 需要改进
-1. **随机/模糊测试**：多个TS套件包含大量随机测试（random bug 1-10等），C#仅有部分覆盖
-2. **边界情况**：CRLF处理、代理对、位置验证等边界测试需要补充
-3. **缩进检测**：TS有完整的缩进检测矩阵（约30个测试），C#覆盖不足
-4. **缺失TS源**：Decoration和Diff测试的TS源文件不在仓库中，无法完整验证
-
-### 建议优先级
-
-**高优先级:**
-1. 补充 `PieceTreeSnapshotTests.cs` 的不可变性测试
-2. 补充 `TextModelTests.cs` 的位置验证和缩进检测测试
-3. 确认Decoration和Diff的TS源文件位置
-
-**中优先级:**
-1. 添加 `PieceTreeModelTests.cs` 中的 `prefix sum` 和 `buffer api` 测试
-2. 添加 `PieceTreeNormalizationTests.cs` 中的CRLF随机bug测试
-
-**低优先级:**
-1. 添加 `PieceTreeBaseTests.cs` 中的随机操作测试
-2. 添加Issue回归测试
+- 阅读: `tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`, `PieceTreeFuzzHarnessTests.cs`, `PieceTreeSearchOffsetCacheTests.cs`, `PieceTreeSnapshotParityTests.cs`, `TextModelSnapshotTests.cs`。
+- 阅读: `tests/TextBuffer.Tests/PieceTreeModelTests.cs`, `PieceTreeSearchTests.cs`, `TextModelTests.cs`, `DecorationTests.cs`, `DiffTests.cs`, `CursorTests.cs`, `CursorMultiSelectionTests.cs`, `CursorWordOperationsTests.cs`, `SnippetControllerTests.cs`, `SnippetMultiCursorFuzzTests.cs`。
+- 阅读: TS 源 `ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts`, `ts/src/vs/editor/test/common/model/textModel.test.ts`, `ts/src/vs/editor/test/common/controller/cursorAtomicMoveOperations.test.ts`, `ts/src/vs/editor/contrib/snippet/test/browser/snippetController2.test.ts`。
+- 命令: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests`（验证新增 deterministic 套件可独立运行，未在本次审查中执行）。
