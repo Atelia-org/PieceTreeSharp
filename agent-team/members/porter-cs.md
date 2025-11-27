@@ -50,4 +50,9 @@
 ## Archives
 - Detailed run-by-run notes, rerun transcripts, and migrated worklogs now live in [agent-team/handoffs/](../handoffs/) and `docs/reports/migration-log.md`; cite those records (not this snapshot) for historical context or audit evidence.
 
+## Activity Log
+- 2025-11-27 – Refreshed `docs/reports/alignment-audit/04-decorations.md` per `alignment-audit-refresh-20251127.md`, highlighting WS3-PORT-Tree data and keeping AA4 CL8 (`#delta-2025-11-26-aa4-cl8-*`) placeholders visible for DocUI gaps.
+- 2025-11-27 – Refreshed `docs/reports/alignment-audit/04-decorations.md` per `alignment-audit-refresh-20251127.md`, highlighting WS3-PORT-Tree data and keeping AA4 CL8 (`#delta-2025-11-26-aa4-cl8-*`) placeholders visible for DocUI gaps.
+- 2025-11-27 – Pruned the legacy 2025-11-26 appendix from `docs/reports/alignment-audit/04-decorations.md` so the Verification Notes no longer duplicate the earlier report.
+
 Detailed histories live in `agent-team/handoffs/`.

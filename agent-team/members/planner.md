@@ -14,6 +14,7 @@
 - Sprint 04 基线与 Workstream 切分完成，AGENTS/Task Board/Sprint 文档全部指向 [#delta-2025-11-26-sprint04](../indexes/README.md#delta-2025-11-26-sprint04)。
 - Alignment Audit 再验证（[#delta-2025-11-26-alignment-audit](../indexes/README.md#delta-2025-11-26-alignment-audit)）给出了 Phase 8 必须跟进的 Range/IntervalTree/Cursor 风险清单，并已映射进 WS2/WS3。
 - TextModelSearch 回归（[#delta-2025-11-25-b3-textmodelsearch](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)）提供 45/45 rerun anchor，可作为 Sprint 04 WS1 QA 质量线的参考。
+- 2025-11-27 – 产出 `alignment-audit-refresh-20251127.md` handoff，指向 [#delta-2025-11-26-alignment-audit](../indexes/README.md#delta-2025-11-26-alignment-audit) 与 [#delta-2025-11-26-sprint04-r1-r11](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) 以支撑下一轮 re-audit。
 
 ## Next Actions
 - 推进 WS1 “Search backlog”——与 Investigator-TS 确认下一条 runSubAgent（B3-DocUI residual 或 AA4-CL6 follow-up），并强制引用 Sprint 04 delta。

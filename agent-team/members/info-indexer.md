@@ -42,3 +42,6 @@
 
 ## Archives
 - Full worklogs, onboarding notes, and prior deltas now live in `agent-team/handoffs/` (per-run files) and the historical rows inside `agent-team/indexes/README.md`. Older memory snapshots remain in repo history if needed.
+
+## Log
+- 2025-11-27 – Refreshed `docs/reports/alignment-audit/06-services.md` to highlight `docs/reports/migration-log.md#ws2-port` helper ripple, `docs/reports/migration-log.md#ws5-qa` targeted runs, the `agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11` 585/585 baseline, and the open `#delta-2025-11-26-aa4-cl8-markdown`/`-capture`/`-intl`/`-wordcache` placeholders for Intl + word cache gaps.

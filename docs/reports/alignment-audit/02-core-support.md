@@ -1,12 +1,14 @@
 # Core Support Types 对齐审查报告
 
-**审查日期:** 2025-11-26
+**审查日期:** 2025-11-27
 **审查范围:** 8个支持类型文件
 
 ## 概要
 - 完全对齐: 1/8
-- 存在偏差: 5/8
-- 需要修正: 2/8
+- 存在偏差: 7/8 （Range/Selection 由 ⚠️ 接手，剩余差异降级为 P1）
+- 需要修正: 0/8 （WS2-PORT 交付已覆盖 Range/Selection/TextPosition P0 helper）
+
+WS2-PORT (`docs/reports/migration-log.md#ws2-port`, [`agent-team/indexes/README.md#delta-2025-11-26-ws2-port`](../../agent-team/indexes/README.md#delta-2025-11-26-ws2-port)) 把 Range/Selection/TextPosition helper 与 75 条 `RangeSelectionHelperTests` 带入主干；FR-01/FR-02 (`docs/reports/migration-log.md#fr-01-02`, [`agent-team/indexes/README.md#delta-2025-11-23`](../../agent-team/indexes/README.md#delta-2025-11-23)) 又补齐了 `WordCharacterClassifierCache` 的 LRU 逻辑。仍需关注 `AA4-CL8` 占位（[`agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown`](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)）以追踪 Intl word cache / Segmenter backlog。
 
 ## 详细分析
 
@@ -77,23 +79,16 @@
 
 ### 5. Range.Extensions.cs
 **TS源:** `ts/src/vs/editor/common/core/range.ts` (L52-195)  
-**对齐状态:** ❌需要修正
+**对齐状态:** ⚠️存在偏差（P0 helper 已齐全，映射型 helper 仍待实现）
 
-| API | TS行为 | C#现状 |
-|-----|--------|--------|
-| `containsPosition` / `strictContainsPosition` | 包含/严格包含某个 `IPosition` | 未实现 |
-| `containsRange` / `strictContainsRange` | 范围包含与严格包含 | 未实现 |
-| `intersectRanges` | 返回交集或 `null` | 未实现 |
-| `plusRange` | 先比较行号，再比较列号（TS L179-213） | 仅比较 `TextPosition`，忽略同行细节 |
-| 静态 helper | `Range.isEmpty(range)` 等 | C# 只保留实例属性 `IsEmpty` |
+**WS2-PORT 交付 (P0 helper) –** 见 `docs/reports/migration-log.md#ws2-port` 与 [`agent-team/indexes/README.md#delta-2025-11-26-ws2-port`](../../agent-team/indexes/README.md#delta-2025-11-26-ws2-port)：
+- 静态/实例 helper 与 TS 同步：`ContainsPosition/StrictContainsPosition/ContainsRange/StrictContainsRange`、`IntersectRanges`、`PlusRange`、`AreIntersecting*`、`CollapseToStart/End`、`Normalize`、`CompareRangesUsingStarts/Ends`、`SpansMultipleLines`、`Delta`、`SetStart/EndPosition`。行列比较逻辑已完全复刻 TS 的“先行号再列号”排序。
+- `TextPosition` 同步获得 `With`, `Delta`, `IsBefore`, `IsBeforeOrEqual`, `Compare`, `Equals` 等扩展（`src/TextBuffer/TextPosition.cs`），因此下游调用不再需要自定义比较器。
+- `tests/TextBuffer.Tests/RangeSelectionHelperTests.cs` 新增 75 条（现在因 `[Theory]` 展开会执行 100+ data rows）断言，覆盖跨行/同行交集、包含、`Plus`、`Collapse`、`Normalize`、`Compare` 等场景；证据见 [`agent-team/handoffs/WS123-QA-Result.md`](../../agent-team/handoffs/WS123-QA-Result.md) 与 TestMatrix `#delta-2025-11-26-ws2-port` 记录。
 
-**影响**
-- 大量下游逻辑（Selection、Decorations、Diff）依赖这些 helper；没有它们无法 1:1 复用 VS Code 算法。
-- 现有 `Plus` 在同行范围会产生错误的 `startColumn/endColumn`。
-
-**建议**
-- 补齐所有静态/实例方法，并为 `Plus/IntersectRanges` 编写单元测试，验证同行/跨行边界。
-- 统一 `TextPosition` 比较方式，避免在 Range 外部重复编写 `<=`/`>=` 判断。
+**剩余差异**
+1. `RangeMapping` / `SelectionRangeMapping` / `TrackedRange` bridge 仍缺（TS `range.ts` L210+）。WS2-PORT 仅交付基础 helper，仍需一个对标 `RangeMapping` 的结构来让 `Selection`、`Decorations`、`TrackedRange` 重用增量更新逻辑。
+2. `Range` 与 `Selection` 之间仍无共享接口/继承关系（TS `Selection` extends `Range`），导致调用方无法在不复制字段的情况下传递 Selection。这个差异已降级为 P1，但在 Cursor/DocUI 合并（WS4/AA4-CL7）前仍需保留说明。
 
 ---
 
@@ -104,8 +99,8 @@
 **关键差异**
 1. **SearchData 结构**：TS 仅持有 `regex`, `wordSeparators`, `simpleSearch`；C# 额外公开 `IsMultiline`, `IsCaseSensitive`（L46-59）。这些扩展对 C# 有用，但 TS 端没有，需要在文档注明。
 2. **正则构建**：TS 使用 `strings.createRegExp`，自动开启 `unicode/global` 并遵守 ECMAScript 语义；C# 依赖 `Regex` + `ApplyUnicodeWildcardCompatibility` 替换 `.`。仍可能在带代理对的 `\b`、`\w` 等场景出现差距。
-3. **WordCharacterClassifier 能力**：TS 继承 `CharacterClassifier` 且支持 `Intl.Segmenter` 缓存（L11-62）；C# 只使用 `Dictionary<int, WordCharacterClass>`，缺少国际化分词辅助，导致“单词边界”判断有限。
-4. **Boundary 判定**：TS 的 `isValidMatch` 可结合 `Intl` 结果与 `wordSeparators`；C# 仅依据字符类别与换行符判断，遇到 emoji/复杂脚本会与 TS 不一致。
+3. **WordCharacterClassifierCache**：FR-01/FR-02 (`docs/reports/migration-log.md#fr-01-02`, [`agent-team/indexes/README.md#delta-2025-11-23`](../../agent-team/indexes/README.md#delta-2025-11-23)) 已移植 10-entry LRU 缓存，并在 `SearchTypes.ParseSearchRequest` / `PieceTreeSearcher` 中复用，与 TS `getMapForWordSeparators` 逻辑对齐。但缓存仍只基于 ASCII word separators，尚未接入 `Intl.Segmenter`。
+4. **Intl/多语边界**：TS 的 `isValidMatch` 可结合 `Intl.Segmenter` 返回值与 `wordSeparators`；C# 目前仍只依据字符类别（`WordCharacterClassifier`）与换行符判断。跨语言/emoji 边界仍会偏差，且 `AA4 CL8` 占位（[`agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown`](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)）明确要求将 Intl 分词、word cache、DocUI capture 同步。
 
 **建议**
 - 将 `SearchData` 扩展字段标注为 C# 专属，并确认调用方不会把它们同步回 TypeScript。
@@ -115,15 +110,17 @@
 
 ### 7. Selection.cs
 **TS源:** `ts/src/vs/editor/common/core/selection.ts` (L1-200)  
-**对齐状态:** ❌需要修正
+**对齐状态:** ⚠️存在偏差（核心 API 已补全，Range 继承/接口仍不一致）
 
-- TS `Selection` 继承 `Range` 并额外暴露 `selectionStartLineNumber/Column`, `positionLineNumber/Column`；C# 只保留 `Anchor/Active`，没有 Range 关系。
-- TS 提供 `getSelectionStart`, `getPosition`, `setStartPosition`, `setEndPosition`, `fromPositions`, `fromRange`, `liftSelection`, `selectionsEqual`, `selectionsArrEqual`, `isISelection` 等大量 helper；C# 仅实现 `Contains`, `CollapseToStart/End`, `ToString`。
-- 由于缺少这些工厂和比较方法，无法直接复用 VS Code 的 Selection 逻辑（例如多光标复制、撤销记录等）。
+**WS2-PORT 成果 –** 引用同上 `docs/reports/migration-log.md#ws2-port` / [`agent-team/indexes/README.md#delta-2025-11-26-ws2-port`](../../agent-team/indexes/README.md#delta-2025-11-26-ws2-port)：
+- `Selection` 结构现包含 TS 同名 helper：`SelectionStart/End`/`Start/End` alias、`SelectionDirection`、`IsEmpty`、`Contains`、`SetStartPosition`、`SetEndPosition`、`GetSelectionStart`、`GetPosition`、`GetDirection`、`CollapseToStart/End`。
+- 静态工厂/比较：`FromPositions`, `FromRange`, `CreateWithDirection`, `LiftSelection`, `SelectionsEqual`, `SelectionsArrEqual`, `EqualsSelection` 等均按 TS 行为移植。
+- 与 Range helper 共用的 75 条 `RangeSelectionHelperTests` 也覆盖 Selection（对锚点/活动端的方向性断言 + `SelectionsArrEqual`），再加上 `tests/TextBuffer.Tests/RangeSelectionHelperTests.cs` 中 LTR/RTL 样例验证，从而复用 VS Code 的 multi-cursor 语义。
 
-**建议**
-- 补齐核心 API，并考虑让 `Selection` 提供 `GetDirection()`、`GetSelectionStart()` 等与 TS 同名的方法，或实现一个共享接口，降低迁移成本。
-- 评估是否需要让 `Selection` 组合 `Range`，以便与 TS 模型交互。
+**残留差异（P1）**
+1. C# `Selection` 仍是独立 `struct`，未继承 `Range`，因此调用方在需要 Range 时必须显式转换；这影响 `CursorCollection`/`SelectionHelper` 等 TS API 的泛型约束。
+2. TS `Selection.isISelection(obj)` 尚未实现（C# 只提供 `LiftSelection`）。DocUI/Cursor 侧如果需要类型守卫，还得复制逻辑。
+3. `Selection` 与未来的 `RangeMapping/TrackedRange`（见上一节）尚无桥接，导致多选/粘滞范围更新仍需单独实现；这将由后续 AA4-CL7 工作流与 RangeMapping 一并收敛。
 
 ---
 
@@ -148,23 +145,25 @@
 ### 完全对齐 (1/8)
 - `PieceTreeSnapshot.cs`
 
-### 存在偏差 (5/8)
+### 存在偏差 (7/8)
 - `PieceTreeSearchCache.cs`
 - `PieceTreeSearcher.cs`
 - `PieceTreeTextBufferFactory.cs`
-- `SearchTypes.cs`
+- `Range.Extensions.cs`（RangeMapping/Selection bridge 未落地）
+- `SearchTypes.cs`（Intl/word cache backlog）
+- `Selection.cs`（未继承 Range，缺 `isISelection`）
 - `TextMetadataScanner.cs`
 
-### 需要修正 (2/8)
-- `Range.Extensions.cs`
-- `Selection.cs`
+### 需要修正 (0/8)
+- 无 – Range/Selection 已由 WS2-PORT 交付核心 helper，剩余差异降级为 P1 并记录在“存在偏差”清单。
 
 ## 建议优先级
-- **高:** 补齐 `Range.Extensions` 与 `Selection` 所有 TS 同名方法，修正 `Plus` 的同行比较，补全选择工厂与比较逻辑。
-- **中:** 为 `PieceTreeSearchCache`, `PieceTreeTextBufferFactory`, `SearchTypes`, `TextMetadataScanner` 明确标注行为差异，评估是否需要开关或注释保持可读性。
-- **低:** 如果决定保留 C# 扩展能力（如缓存 invalidation、NEL 检测），需在 README/注释中添加 parity 说明，避免后续重复调查。
+- **高:** 继续 WS2-PORT 后续项：实现 `RangeMapping`/`SelectionRangeMapping`/`TrackedRange` 桥接，并评估让 `Selection` 暴露 `isISelection` 或共有接口，方便 Cursor/DocUI/Decorations 共用（关联 `AA4-CL7` backlog）。
+- **中:** 扩展 `WordCharacterClassifierCache` 以支撑 locale-aware 边界（`Intl.Segmenter`、词缓存多语言配置），并将 SearchTypes/DocUI/Find stack 统一回 `#delta-2025-11-26-aa4-cl8-markdown` 占位。
+- **低:** 为 C# 端特有的行为（PieceTreeSearchCache limit 默认值、TextMetadataScanner 的 NEL 检测、PieceTreeTextBufferFactory 的 build result 包装）补充注释和变更日志，避免后续审计重复记录。
 
 ## 验证记录
 - 对照阅读 `src/TextBuffer/Core/*.cs` 与对应 TypeScript：如 `pieceTreeBase.ts L207-263`（搜索缓存）、`selection.ts L1-200`、`strings.ts L674-696` 等。
 - 使用 `rg -n "class Searcher" ts/src/vs/editor/common/model/textModelSearch.ts`、`rg -n "getFirstLineText" ts/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts` 等命令定位 TS 行号。
 - 核查 `SearchTypes` 与 `wordCharacterClassifier.ts`，确认 `.NET Regex` 设置、`Intl.Segmenter` 缺失以及 `WordCharacterClassifier` 的功能差异。
+- `2025-11-27` 复核命令：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter RangeSelectionHelperTests --nologo`（109/109 数据行；`WS123-QA-Result.md` 仍记录原始 75/75 断言）——用于确认 Range/Selection/TextPosition helper 在最新主干仍全部通过。

@@ -4,10 +4,11 @@
 **审查范围:** 17个核心测试套件（PieceTree、TextModel、编辑器表层）
 
 ## 概要
-- 完全对齐 9/17，存在偏差 6/17，需修正 2/17。新增 `PieceTreeDeterministicTests`, `PieceTreeFuzzHarnessTests`, `PieceTreeSearchOffsetCacheTests`, `PieceTreeSnapshotParityTests`, `TextModelSnapshotTests` 已覆盖 CRLF、快照、随机、搜索缓存等先前缺失的 TS 套件。
-- 新增套件均可使用 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter <SuiteName>` 单独运行；脚本依赖 `tests/TextBuffer.Tests/Helpers/PieceTreeDeterministicScripts.cs` 与 `PieceTreeFuzzHarness`。
-- 主要风险集中在 Cursor / Snippet 套件（覆盖率不足 10%）、`TextModelTests` 的缩进矩阵、`PieceTreeModel` buffer API、Decoration/Diff 的长尾覆盖。
-- 下一步应优先补齐 search 回归（#45892/#45770）、`guessIndentation` 矩阵、cursor/snippet 端到端套件，并将 TS buffer API / decoration / diff 用例移植到 C#。
+- 完全对齐 9/17，存在偏差 6/17，需修正 2/17。新增 `PieceTreeDeterministicTests`, `PieceTreeFuzzHarnessTests`, `PieceTreeSearchOffsetCacheTests`, `PieceTreeSnapshotParityTests`, `TextModelSnapshotTests` 以及 WS5-QA 投放的 `PieceTreeBufferApiTests`, `PieceTreeSearchRegressionTests`, `TextModelIndentationTests`，已覆盖 CRLF、快照、随机、搜索缓存、buffer API、缩进矩阵等先前缺失的 TS 套件。
+- Sprint 04 Phase 8 基线为 **585/585（1 skip）**，锚定 [`agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11`](../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)；WS5-QA rerun 详情见 [`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)、[`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md) 与 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)。
+- WS5-QA harness（PieceTree buffer/search + TextModel 缩进）采用共享命令 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "PieceTreeBufferApiTests\|PieceTreeSearchRegressionTests\|TextModelIndentationTests" --nologo`（44/44 通过，1 skipped）以保证 deterministic 追溯，已写入上述 handoff/TestMatrix。
+- 主要风险集中在 Cursor / Snippet 套件（覆盖率不足 10%）、`TextModelTests` 的 `guessIndentation` API 缺口、Decoration/Diff 的长尾覆盖；CursorWordOperations、snippet fuzz、Diff deterministic suite 仍绑定 `AA4 CL7` 占位（`#delta-2025-11-26-aa4-cl7-wordops`, `#delta-2025-11-26-aa4-cl7-snippet`, `#delta-2025-11-26-aa4-cl7-commands-tests`）。
+- 下一步应优先扩展 search/diff deterministic matrix、补齐 cursor/snippet 端到端套件，并将 TS buffer API / decoration / diff 余下用例移植到 C#。
 
 ### 覆盖状态表
 
@@ -18,18 +19,21 @@
 | PieceTree | `PieceTreeDeterministicTests.cs` | ✅ | 新增 prefix sum、getTextInRange、CRLF/centralized lineStarts deterministic 脚本。 |
 | PieceTree | `PieceTreeBuilderTests.cs` | ✅ | Chunk 拆分、BOM/RTL flag、跨块 CR 处理完全对齐。 |
 | PieceTree | `PieceTreeFactoryTests.cs` | ✅ | 默认 EOL、混合换行归一化、首尾行文本场景齐备。 |
-| PieceTree | `PieceTreeModelTests.cs` | ⚠️ | Append/CRLF/search fuzz 已有，但缺 TS buffer API (`equal`,`getLineCharCode`, `getNearestChunk`)。 |
+| PieceTree | `PieceTreeModelTests.cs` | ⚠️ | Append/CRLF/search fuzz 已有；buffer API parity 由 `PieceTreeBufferApiTests` 承担，但 `_lastChangeBufferPos`、`NodeAt2` 诊断与 cache instrumentation 仍缺。 |
+| PieceTree | `PieceTreeBufferApiTests.cs` | ✅ | WS5-QA 新增 17 个 deterministic 场景（[`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)）覆盖 `equal`, `GetLineCharCode` (#45735/#47733), `getNearestChunk`; 证据见 [`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md) 与 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)。 |
 | PieceTree | `PieceTreeNormalizationTests.cs` | ✅ | 与 deterministic 套件组合后覆盖 CRLF/centralized lineStarts 全套随机案例。 |
-| PieceTree | `PieceTreeSearchTests.cs` | ⚠️ | 主流程覆盖完整，仍缺 TS issue `#45892` 空模型与 `#45770` 节点边界回归。 |
+| PieceTree | `PieceTreeSearchTests.cs` | ⚠️ | 主流程覆盖完整，仍缺搜索缓存跨多节点矩阵及 fuzz delta；空模型/节点边界回归由 `PieceTreeSearchRegressionTests` 保障。 |
+| PieceTree | `PieceTreeSearchRegressionTests.cs` | ✅ | WS5-QA 投放 9 个 regression（[`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)）锁定 `#45892` 空缓冲区、`#45770` 节点边界、search-after-edit；同样收录在 [`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md) 与 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)。 |
 | PieceTree | `PieceTreeSearchOffsetCacheTests.cs` | ✅ | 新增 search offset cache 渲染 & EOL 归一化 4 个脚本。 |
 | PieceTree | `PieceTreeSnapshotTests.cs` + `PieceTreeSnapshotParityTests.cs` | ✅ | 包含 bug #45564 与 `immutable snapshot 1-3` parity。 |
 | TextModel | `TextModelTests.cs` | ⚠️ | Selection/undo 完整，但缺 `TextModelData.fromString`, `getValueLengthInRange`, `guessIndentation` 矩阵、`validatePosition` 与多条 issue 回归。 |
+| TextModel | `TextModelIndentationTests.cs` | ⚠️ | WS5-QA 新增 19 个 +1 skipped（[`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)）覆盖 tab/space 模式与 `ModelRespectsTabSize`; skip 记录 `guessIndentation` API 差异，待 CL7/CL8 backlog 解决。 |
 | TextModel | `TextModelSnapshotTests.cs` | ✅ | 覆盖 snapshot chunk 聚合、跳空、重复读取行为。 |
 | TextModel | `TextModelSearchTests.cs` | ✅ | Range、word boundary、regex、多 issue 回归均已移植。 |
 | 编辑器 | `DecorationTests.cs` | ⚠️ | Delta/stickiness/InjectedText 已覆盖，缺 TS `modelDecorations.test.ts` 中行级断言、change/remove/EOL 组合等 40+ 用例。 |
-| 编辑器 | `DiffTests.cs` | ⚠️ | 基础 diff 逻辑存在，但缺 TS `defaultLinesDiffComputer.test.ts` 的参数矩阵、large doc/perf 场景。 |
-| 编辑器 | `CursorTests.cs` + `CursorMultiSelectionTests.cs` + `CursorWordOperationsTests.cs` | ❌ | 仅 smoke tests，未覆盖 `cursorAtomicMoveOperations`/`multicursor`/`wordOperations` 中的 tab stop、命令回放、撤销矩阵。 |
-| 编辑器 | `SnippetControllerTests.cs` + `SnippetMultiCursorFuzzTests.cs` | ❌ | 缺少 TS `snippetController2.test.ts`/`snippetSession.test.ts` 的嵌套占位符、变量求值、session 合并、undo/redo 等套件。 |
+| 编辑器 | `DiffTests.cs` | ⚠️ | 基础 diff 逻辑存在，但缺 TS `defaultLinesDiffComputer.test.ts` 的参数矩阵、large doc/perf 场景；待 `#delta-2025-11-26-aa4-cl7-commands-tests` 填写 deterministic harness。 |
+| 编辑器 | `CursorTests.cs` + `CursorMultiSelectionTests.cs` + `CursorWordOperationsTests.cs` | ❌ | 仅 smoke tests，未覆盖 `cursorAtomicMoveOperations`/`multicursor`/`wordOperations` 中的 tab stop、命令回放、撤销矩阵；CL7 backlog (`#delta-2025-11-26-aa4-cl7-wordops`, `#delta-2025-11-26-aa4-cl7-cursor-core`) 仍是 blockers。 |
+| 编辑器 | `SnippetControllerTests.cs` + `SnippetMultiCursorFuzzTests.cs` | ❌ | 缺少 TS `snippetController2.test.ts`/`snippetSession.test.ts` 的嵌套占位符、变量求值、session 合并、undo/redo 等套件；依赖 `#delta-2025-11-26-aa4-cl7-snippet`。 |
 
 ## 详细分析
 
@@ -54,8 +58,13 @@
 
 #### `PieceTreeModelTests.cs` (⚠️)
 - 追加优化、chunk split、CRLF fuzz、search cache 失效均已覆盖。
-- 缺失: `buffer api` 段落（`equal`, `getLineCharCode` issue #45735, `getNearestChunk`）。需要复用 `PieceTreeBufferAssertions` 实现这些断言。
-- 建议新增 `PieceTreeBufferApiTests` 文件以镜像 TS 结构，保持主文件聚焦模型场景。
+- Buffer API parity 现由 `PieceTreeBufferApiTests` 专门承载（见下文），因此本文件仅跟踪模型级 append/search/normalization；仍需在此补回 `_lastChangeBufferPos`/`NodeAt2` 诊断断言。
+- 建议继续抽离 buffer helper 以避免与 `PieceTreeBufferApiTests` 重复，并在模型场景中加入 `PieceTreeSearchRegressionTests` 提供的 repro 以观察缓存互动。
+
+#### `PieceTreeBufferApiTests.cs` (✅)
+- 来自 [`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa) 的 WS5-QA harness，17 个 `[Fact]` 覆盖 `equal`, `GetLineCharCode`（issues #45735/#47733）, `getNearestChunk`, post-edit buffer equality。
+- 结果记录在 [`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md) 与 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)；保持 `PIECETREE_DEBUG=0` 以捕获 diff 输出。
+- 后续应扩展到多片段 `equal` 与 BOM/RTL 组合，并将 helper 暴露给 `PieceTreeModelTests` 以去重复。
 
 #### `PieceTreeNormalizationTests.cs` (✅)
 - 虽本文件内容较少，但结合 `PieceTreeDeterministicTests` 中的 CRLF/centralized lineStarts/random chunk 套件已覆盖 TS 对应段落。
@@ -63,7 +72,12 @@
 
 #### `PieceTreeSearchTests.cs` (⚠️)
 - 绝大部分 `textModelSearch.test.ts` 场景已经实现。
-- 缺失: `#45892` (空缓冲区 search 返回空) 与 `#45770` (node boundary 搜索偏移) 两个 TS 回归。添加两个 `[Fact]` 即可弥补。
+- 仍缺 search cache 跨多节点 fuzz、随机 edits 后的 offset 归一化矩阵；针对性 regressions 由 `PieceTreeSearchRegressionTests` 承担。
+
+#### `PieceTreeSearchRegressionTests.cs` (✅)
+- WS5-QA harness（[`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)）实现 9 个 `[Fact]`，逐条覆盖 `#45892` 空缓冲区、`#45770` 节点边界、search-after-edit、search-from-middle 等 TS repro。
+- Handoff/TestMatrix 记录命令：`export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSearchRegressionTests --nologo`（9/9 通过）。
+- 后续应把此套件纳入 nightly，以便当 `PieceTreeSearchTests` 增加 fuzz 行为时仍能在 deterministic 层定位问题。
 
 #### `PieceTreeSearchOffsetCacheTests.cs` (✅)
 - 新增 deterministic suite 覆盖 render whitespace + normalized insert 脚本，`AssertSearchCachePrimed` 保证缓存一致。
@@ -80,10 +94,15 @@
 - 仍缺:
   1. `TextModelData.fromString` (单行/多行/Non Basic ASCII/containsRTL)
   2. `getValueLengthInRange` + 不同 EOL variant
-  3. `guessIndentation` 全矩阵 (~30 输入)
+  3. `guessIndentation` 全矩阵 (~30 输入)；WS5-QA 的 `TextModelIndentationTests` 覆盖部分典型模式但仍有 skip。
   4. `validatePosition` (NaN、浮点、代理对)
   5. Issue 回归 (#44991,#55818,#70832,#62143,#84217,#71480)
 - 建议以 `[Theory]` 覆盖缩进矩阵，利用 `IndentationGuesser.GuessIndentation` 进行断言。
+
+#### `TextModelIndentationTests.cs` (⚠️)
+- WS5-QA 投放 19 个 `[Fact]` + 1 skipped，验证 tab/space detection、`ModelRespectsTabSizeOption`、`indentationGuessesAfterEdits` 等路径；记录在 [`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa) 与 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)。
+- 被跳过的 `GuessIndentationRespectMixedTabs` 仍因 API 行为差异等待 CL7/CL8 修复；需在 `TextModelTests` 中添加覆盖后再打开此测试。
+- 建议把数据驱动 helper 下沉至 `TextModelIndentationData`，以便 Services 模块可复用同一表格。
 
 #### `TextModelSnapshotTests.cs` (✅)
 - 参照 `textModel.test.ts` 中 `TextModelSnapshot` 用例，验证 chunk 聚合 (64K/32K)、忽略空块、重复读取避免触源等行为。
@@ -116,16 +135,20 @@
 
 ## 待办清单
 
-1. **PieceTree buffer API:** 在 `PieceTreeModelTests` 或新增 `PieceTreeBufferApiTests` 中移植 `equal`, `getLineCharCode` (#45735), `getNearestChunk` 等 TS buffer 套件。
-2. **Search 回归:** 向 `PieceTreeSearchTests` 添加 TS `#45892` (空缓冲区) 与 `#45770` (节点边界) regression tests。
-3. **TextModel parity:** 补齐 `TextModelData.fromString`, `getValueLengthInRange` (+不同 EOL), `guessIndentation` 矩阵, `validatePosition`, 以及 issue 回归 (#44991,#55818,#70832,#62143,#84217,#71480)。
-4. **Cursor/Snippet 套件:** 依次移植 `cursorAtomicMoveOperations.test.ts`, `multicursor.test.ts`, `wordOperations.test.ts`, `snippetController2.test.ts`, `snippetSession.test.ts`，并覆盖变量、撤销、session merge 行为。
-5. **Decoration & Diff:** 复刻 TS `modelDecorations.test.ts` 与 `defaultLinesDiffComputer.test.ts` 全量用例，补齐行级断言、EOL 变更、diff 参数矩阵。
-6. **Indentation detection matrix:** 在 `TextModelTests` 中实现 `guessIndentation` 数据驱动测试，确保与 TS 输出完全一致。
+1. **PieceTree buffer/search diagnostics:** 扩展 `PieceTreeBufferApiTests` 以覆盖多片段 equality + BOM/RTL，并把 `_lastChangeBufferPos`/`NodeAt2` 断言加回 `PieceTreeModelTests`; `PieceTreeSearchRegressionTests` 需追加 cache instrumentation 以验证多节点 fuzz。
+2. **TextModel parity:** 补齐 `TextModelData.fromString`, `getValueLengthInRange` (+不同 EOL), `guessIndentation` 全矩阵（解除 `TextModelIndentationTests` skip), `validatePosition`, 以及 issue 回归 (#44991,#55818,#70832,#62143,#84217,#71480)。
+3. **Cursor/Snippet 套件 (AA4 CL7):** 依次移植 `cursorAtomicMoveOperations.test.ts`, `multicursor.test.ts`, `wordOperations.test.ts`, `snippetController2.test.ts`, `snippetSession.test.ts`，并将结果回填至 `#delta-2025-11-26-aa4-cl7-wordops`/`-snippet`/`-cursor-core` 占位。
+4. **Decoration & Diff deterministic:** 复刻 TS `modelDecorations.test.ts` 与 `defaultLinesDiffComputer.test.ts` 全量用例，建立 DocUI/diff deterministic harness，交付给 `#delta-2025-11-26-aa4-cl7-commands-tests`。
+5. **Indentation detection matrix:** 将 `TextModelIndentationTests` 的数据表抽象为共享 helper，并在 `TextModelTests`/Services suites 中复用以验证 `guessIndentation` API 修复。
 
 ## Verification Notes
 
-- 阅读: `tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`, `PieceTreeFuzzHarnessTests.cs`, `PieceTreeSearchOffsetCacheTests.cs`, `PieceTreeSnapshotParityTests.cs`, `TextModelSnapshotTests.cs`。
+- 证据: [`docs/reports/migration-log.md#ws5-qa`](../migration-log.md#ws5-qa)、[`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md)、[`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)、[`agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11`](../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)。
+- 阅读: `tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`, `PieceTreeFuzzHarnessTests.cs`, `PieceTreeBufferApiTests.cs`, `PieceTreeSearchRegressionTests.cs`, `PieceTreeSearchOffsetCacheTests.cs`, `PieceTreeSnapshotParityTests.cs`, `TextModelIndentationTests.cs`, `TextModelSnapshotTests.cs`。
 - 阅读: `tests/TextBuffer.Tests/PieceTreeModelTests.cs`, `PieceTreeSearchTests.cs`, `TextModelTests.cs`, `DecorationTests.cs`, `DiffTests.cs`, `CursorTests.cs`, `CursorMultiSelectionTests.cs`, `CursorWordOperationsTests.cs`, `SnippetControllerTests.cs`, `SnippetMultiCursorFuzzTests.cs`。
 - 阅读: TS 源 `ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts`, `ts/src/vs/editor/test/common/model/textModel.test.ts`, `ts/src/vs/editor/test/common/controller/cursorAtomicMoveOperations.test.ts`, `ts/src/vs/editor/contrib/snippet/test/browser/snippetController2.test.ts`。
-- 命令: `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeDeterministicTests`（验证新增 deterministic 套件可独立运行，未在本次审查中执行）。
+- 命令:
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeBufferApiTests --nologo` → 17/17（`WS5-QA` 记录）。
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter PieceTreeSearchRegressionTests --nologo` → 9/9。
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter TextModelIndentationTests --nologo` → 19/19 通过 + 1 skipped（`guessIndentation` API 差异）。
+  - `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 585/585（584 pass + 1 skip, ~62s）锚定 Sprint 04 Phase 8 基线。

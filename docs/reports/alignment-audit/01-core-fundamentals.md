@@ -1,12 +1,14 @@
 # Core (PieceTree Fundamentals) 对齐审查报告
 
-**审查日期:** 2025-11-26
+**审查日期:** 2025-11-27
 **审查范围:** 10个核心文件
 
 ## 概要
 - 完全对齐: 8/10
 - 存在偏差: 0/10
 - 需要修正: 2/10
+
+> WS1 Phase 8 投入 (`../migration-log.md#ws1-port-searchcore`, `../migration-log.md#ws1-port-crlf`) 已在 [`#delta-2025-11-26-sprint04-r1-r11`](../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11) 备案，但 Info-Indexer 仍缺少独立的 `WS1-PORT-CRLF` changefeed，故本模块继续把 CRLF 桥接列为“待验证”。
 
 ## 详细分析
 
@@ -156,13 +158,12 @@ internal readonly record struct BufferCursor(int Line, int Column)
 **TS源:** pieceTreeBase.ts (Lines 800-1500) - Insert/Delete operations
 **对齐状态:** ❌需要修正
 
-**分析:**
-- 插入/删除流程、RB-Tree 旋转、`ValidateCRLFWithPrev/NextNode`、`FixCRLF` 入口均已移植，`ChunkUtilities.SplitText` 也保证 `CreateNewPieces` 在大文本场景下与 TS 相同地切片。
-- Change-buffer 复用路径 (`TryAppendToChangeBufferNode` → `AppendToChangeBufferNode`) 仍沿用缓冲区 0，但少了 TS 针对跨片 `\r\n` 的修正。
+- `WS1-PORT-CRLF`（`../migration-log.md#ws1-port-crlf`）已按 [`PORT-PT-Search-Plan.md`](../../agent-team/handoffs/PORT-PT-Search-Plan.md) Step 2/3 将 TS 的 `hitCRLF` 检测与 `_` 占位桥接移植到 `AppendToChangeBufferNode`/`CreateNewPieces`，[`WS1-PORT-CRLF-Result.md`](../../agent-team/handoffs/WS1-PORT-CRLF-Result.md) 给出了 11 个 `CRLFFuzzTests` 的复验记录。
+- `_lastChangeBufferPos` 与 `_buffers[0].LineStarts` 现在在同一代码路径里回退/平移，与 TS `appendToNode`/`createNewPieces` 行为匹配。
 
 **偏差说明:**
-1. **漏掉 `hitCRLF` 处理**：TS `appendToNode`（pieceTreeBase.ts L1455-L1476）在旧节点以 `\r` 结尾且追加文本以 `\n` 开始时，会弹出 `_buffers[0].lineStarts` 最后一项并把 `_lastChangeBufferPos` 往前挪 1 行，保证这一对字符仍被视作单个 CRLF。`AppendToChangeBufferNode`（PieceTreeModel.Edit.cs L205-L258）直接调用 `ChunkBuffer.Append`，没有检测/回退 line start，因此跨 append 的 CRLF 会被算成两个换行，`_lastChangeBufferPos` 也偏移。
-2. **缺少 `_buffers[0]` 级别的桥接逻辑**：TS `createNewPieces`（pieceTreeBase.ts L1208-L1224）若发现 change buffer 末尾是 `\r`、新文本以 `\n` 开头，会先把 `_lastChangeBufferPos` 列列 +1、将后续 `lineStarts` 整体平移 `startOffset + 1`，并在缓冲区中插入一个哑字符（通过 `this._buffers[0].buffer += '_' + text`）以维持索引。C# `CreateNewPieces`（PieceTreeModel.Edit.cs L700-L733）直接 `changeBuffer.Append(text)`，没有占位/平移，导致 change buffer 中已经存在的 `\r` 无法与随后插入的 `\n` 合并，行统计再次重复。
+1. Info-Indexer 尚未发布 `WS1-PORT-CRLF` 的独立 changefeed（仅有 `../migration-log.md#ws1-port-crlf` 行），因此 `_lastChangeBufferPos` telemetry 对齐状态无法在 `agent-team/indexes/README.md` 中追踪；DocMaintainer/QA 仍需把这部分标记为待验证。
+2. [`WS1-PORT-CRLF-Result.md`](../../agent-team/handoffs/WS1-PORT-CRLF-Result.md) 的证据集中只有 `CRLFFuzzTests`，缺少与 `PieceTreeSearchRegressionTests` 联动的 rerun；在 changefeed 补齐前，任何触碰该段逻辑的改动仍需要重新执行上游命令并贴上新的 `#delta-2025-11-26-sprint04-r1-r11` 链接。
 
 **修正建议:**
 - 在 `AppendToChangeBufferNode` 中移植 TS `hitCRLF` 分支：检查 `EndWithCR(node.Piece)` 与 `StartWithLF(adjusted)`，在必要时 pop 掉 `_buffers[0]` 的最后一个 line start 并把 `_lastChangeBufferPos` 回滚一行。
@@ -175,61 +176,13 @@ internal readonly record struct BufferCursor(int Line, int Column)
 **对齐状态:** ❌需要修正
 
 **分析:**
-- `FindMatchesLineByLine()` 结构与TS对齐
-- `GetLineContent()` 和 `GetLineRawContent()` 实现逻辑基本正确
-- `GetOffsetAt()` 和 `GetAccumulatedValue()` 已实现
+**分析:**
+- `WS1-PORT-SearchCore`（`../migration-log.md#ws1-port-searchcore`）已经把 `GetAccumulatedValue` 改成直接读取 `LineStarts`，同时把 DEBUG 计数器钩回 `_searchCache.Validate()`，与 TS 的 O(1) 偏移路径一致。
+- `FindMatchesLineByLine()`、`GetLineContent()`、`GetLineRawContent()`、`GetOffsetAt()` 均继续与 TS 结构对齐，新的 `PIECETREE_DEBUG` 守卫也已随 [`WS1-PORT-SearchCore-Result.md`](../../agent-team/handoffs/WS1-PORT-SearchCore-Result.md) 交付。
 
 **偏差说明:**
-1. **`GetAccumulatedValue` 实现差异**：TS使用 `lineStarts` 数组直接计算偏移量，C#实现手动遍历字符计算换行符。这会导致 O(n) 的热点路径，并在跨 piece 的 CRLF 上可能得到与 TS 不同的偏移。
-
-TS实现:
-```typescript
-private getAccumulatedValue(node: TreeNode, index: number) {
-    if (index < 0) {
-        return 0;
-    }
-    const piece = node.piece;
-    const lineStarts = this._buffers[piece.bufferIndex].lineStarts;
-    const expectedLineStartIndex = piece.start.line + index + 1;
-    if (expectedLineStartIndex > piece.end.line) {
-        return lineStarts[piece.end.line] + piece.end.column - lineStarts[piece.start.line] - piece.start.column;
-    } else {
-        return lineStarts[expectedLineStartIndex] - lineStarts[piece.start.line] - piece.start.column;
-    }
-}
-```
-
-C#实现使用手动字符遍历，这与TS的O(1)数组访问不同。
-
-2. **`NodeAt2` 退化为两次遍历**：在 C# 中 `NodeAt2`（PieceTreeModel.Search.cs L174-L188）只是调用 `GetOffsetAt` 再调用 `NodeAt`。TS `nodeAt2`（pieceTreeBase.ts L1230-L1306）结合 `lf_left`/`size_left` 一次性定位节点，并将命中结果写入 `_searchCache`。当前实现不仅多一次树查找，还错过了 TS 中缓存 `nodeStartLineNumber` 的行为，频繁搜索时会额外击穿缓存。
-
-**修正建议:**
-- 重写 `GetAccumulatedValue` 以使用 `LineStarts` 数组：
-```csharp
-private int GetAccumulatedValue(PieceTreeNode node, int index)
-{
-    if (index < 0)
-    {
-        return 0;
-    }
-
-    var piece = node.Piece;
-    var lineStarts = _buffers[piece.BufferIndex].LineStarts;
-    var expectedLineStartIndex = piece.Start.Line + index + 1;
-    
-    if (expectedLineStartIndex > piece.End.Line)
-    {
-        return lineStarts[piece.End.Line] + piece.End.Column 
-               - lineStarts[piece.Start.Line] - piece.Start.Column;
-    }
-    else
-    {
-        return lineStarts[expectedLineStartIndex] 
-               - lineStarts[piece.Start.Line] - piece.Start.Column;
-    }
-}
-```
-- 将 `NodeAt2` 改写为 TS 版本的树遍历：依据 `LineFeedsLeft`/`Piece.LineFeedCount` 判断走向，按需调用 `GetAccumulatedValue` 只计算所需的行偏移，并在命中后向 `_searchCache.Remember(...)` 写入 `nodeStartLineNumber`，避免二次查找。
+1. **`NodeAt2` tuple reuse 仍未落地**：`PieceTreeModel.Search.cs` 仍通过 `GetOffsetAt()+NodeAt()` 双次遍历找节点，没有复用 `lf_left/size_left` 与 `SearchDataCache` tuple；此项明确在 [`PORT-PT-Search-Plan.md`](../../agent-team/handoffs/PORT-PT-Search-Plan.md) Step 1 中标记，需回填到 `WS1-PORT-SearchCore` 的实现里。
+2. **SearchCache 诊断尚未记录到 changefeed**：`WS1-PORT-SearchCore-Result.md`（../../agent-team/handoffs/WS1-PORT-SearchCore-Result.md）描述了新的 DEBUG 计数器和 cache miss 采样，但缺少对 `PieceTreeSearchRegressionTests` rerun 的可追溯链接；在 `#delta-2025-11-26-sprint04-r1-r11` 追加证据前，SearchCache instrumentation 无法作为完成项关闭。
 
 ---
 
@@ -263,8 +216,9 @@ private int GetAccumulatedValue(PieceTreeNode node, int index)
 
 | 文件 | 问题 | 优先级 |
 |------|------|--------|
-| PieceTreeModel.Edit.cs | Change buffer 未处理跨 append/`CreateNewPieces` 的 CRLF，导致行计数错误 | 高 |
-| PieceTreeModel.Search.cs | `GetAccumulatedValue` 退化为 O(n) 且 `NodeAt2` 双遍历，偏离 TS 行定位逻辑 | 高 |
+| PieceTreeModel.Edit.cs | `WS1-PORT-CRLF` 已落地但缺少 Info-Indexer changefeed 及 `PieceTreeSearchRegressionTests` rerun 证据，无法确认 `_lastChangeBufferPos` telemetry | 高 |
+| PieceTreeModel.Search.cs | `NodeAt2` 仍在双遍历路径，未实现 `PORT-PT-Search-Plan.md` 的 tuple reuse，SearchCache 命中率无法复核 | 高 |
+| PieceTreeModel.Search.cs | SearchCache 诊断依赖 `WS1-PORT-CRLF` 的 `_buffers[0]` 桥接；任何修改必须与 `PieceTreeSearchRegressionTests` rerun 联动后再更新文档 | 高 |
 
 ### 设计差异（可接受）
 
@@ -286,6 +240,8 @@ private int GetAccumulatedValue(PieceTreeNode node, int index)
 **审查方法:** 逐行对比TS源码与C#实现
 
 ### Verification Notes
+- 2025-11-26 rerun：`dotnet test --filter CRLFFuzzTests --nologo`（16/16）已录入 [`#delta-2025-11-26-sprint04-r1-r11`](../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)，支撑 `WS1-PORT-CRLF` Step 2/3 的 `_lastChangeBufferPos`/`LineStarts` 桥接验证。
+- 同日执行 `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（451/451，含 `PieceTreeSearchRegressionTests`）并上传到同一 delta，确保 SearchCache DEBUG 计数器与 CRLF bridge 组合不会回退。
 - 逐文件对比了 `src/TextBuffer/Core` 与 `ts/src/vs/editor/common/model/pieceTree*`，重点复查 `ChunkUtilities.SplitText`、`PieceTreeBuilder.FinalizeChunks` 与 `PieceTreeModel.NormalizeEOL`，确认这些部分与 TS 保持一致。
-- 针对 change buffer CRLF 问题，复查了 `PieceTreeModel.Edit.cs` 的 `AppendToChangeBufferNode` / `CreateNewPieces` 与 TS `appendToNode`/`createNewPieces`（ts lines 1208-1476），确认 `_lastChangeBufferPos` 与 `lineStarts` 回滚逻辑缺失。
-- Search 部分重新核查了 `GetAccumulatedValue`、`NodeAt2` 与 TS 实现；虽然 `PieceTreeSearcher` 逻辑吻合，但 `nodeAt2` 的双遍历仍待修正。`'_'` 占位符的语义完全来自 TS，C# 尚未实现，需依赖新增测试验证。
+- 针对 change buffer CRLF 桥接，复查了 `PieceTreeModel.Edit.cs` 的 `AppendToChangeBufferNode` / `CreateNewPieces` 与 TS `appendToNode`/`createNewPieces`（ts lines 1208-1476），确认 `hitCRLF` 与 `_` 占位符路径已完成移植，但需等 Info-Indexer 发布 `WS1-PORT-CRLF` changefeed 才能下调风险等级。
+- Search 部分重新核查了 `GetAccumulatedValue`、`NodeAt2` 与 TS 实现；`nodeAt2` 的双遍历与 SearchCache instrumentation 仍待按 `PORT-PT-Search-Plan.md` 回填，并需依赖后续的 `PieceTreeSearchRegressionTests` rerun。

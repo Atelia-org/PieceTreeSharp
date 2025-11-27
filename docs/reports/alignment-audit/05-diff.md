@@ -1,6 +1,6 @@
 # Diff Algorithms 模块对齐审查报告
 
-**审查日期:** 2025-11-26
+**审查日期:** 2025-11-27
 **审查范围:** 16个Diff算法相关文件
 
 ## 概要
@@ -8,6 +8,9 @@
 - 存在偏差: 5/16
 - 需要修正: 2/16
 - DocUI diff 渲染: ❌ 未接入（目前仅有 MarkdownRenderer 测试用装饰，详见后文）
+- WS5 backlog: Diff deterministic/perf suites仍在 [`../migration-log.md#ws5-inv`](../migration-log.md#ws5-inv) + [`../../agent-team/handoffs/WS5-INV-TestBacklog.md`](../../agent-team/handoffs/WS5-INV-TestBacklog.md) 的 Top-10 清单中；自 [`../../agent-team/indexes/README.md#delta-2025-11-23`](../../agent-team/indexes/README.md#delta-2025-11-23) 以来 Info-Indexer 没有新的 diff 专项 changefeed，即便 Phase 8 总结 [`../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11`](../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11) 已发布。
+
+> Phase 8 并未触碰 `src/TextBuffer/Diff/**/*`，因此本模块仍依赖 WS5 harness/测试计划：`WS5-INV` backlog 给出 DiffPerfHarness 等待实现（见上方 anchor），而共享 harness 交付 [`../../agent-team/handoffs/WS5-PORT-Harness-Result.md`](../../agent-team/handoffs/WS5-PORT-Harness-Result.md) 仅提供了 `DiffPerfHarness` 框架，尚未落地任何新测试。
 
 ## 详细分析
 
@@ -323,6 +326,7 @@ public static class LineRangeMappingExtensions
 - VS Code 的 diff 视图由 `DiffEditorWidget`、`DiffEditorViewModel`、`MovedBlocksLinesFeature` 等组件驱动，直接消费 `DiffResult`/`DiffMove`/`LineRangeMapping.inverse()` 来绘制 inline diff、moved blocks、revert 按钮
 - C# 侧只有 `MarkdownRenderer`，它可以渲染“已有装饰”，但不会主动运行 `DiffComputer`；`MarkdownRendererTests.TestRender_DiffDecorationsExposeGenericMarkers` 只是手工添加 `diff-add` 等装饰以验证渲染
 - 搜索 `DiffComputer` 的引用可见只有 `DiffTests` 使用该 API（`rg -n "DiffComputer" src tests`），DocUI/MarkdownRenderer 没有任何调用路径
+- WS5 harness backlog 已经在 `DiffPerfHarness`（见 [`../../agent-team/handoffs/WS5-INV-TestBacklog.md`](../../agent-team/handoffs/WS5-INV-TestBacklog.md) 和 [`../../agent-team/handoffs/WS5-PORT-Harness-Result.md`](../../agent-team/handoffs/WS5-PORT-Harness-Result.md)）中定义了可复用的 perf/renderer fixture，但目前尚未添加任何 diff 端到端或 DocUI 渲染测试。
 
 **影响:** DocUI 仍无法展示 diff（包括移动块、隐藏未更改区域、revert 按钮、accessibility diff view），与 VS Code 用户体验存在根本差距
 
@@ -379,3 +383,4 @@ public static class LineRangeMappingExtensions
 - Spot-check `ComputeMovedLines`/`MoveDetection` 与 `computeMovedLines.ts`：确认 cluster/`DetectShiftedBlocks` 为 C# 特有扩展，需要 parity 策略
 - 检查 `LineSequence.GetBoundaryScore`、`RangeMapping.cs`、`DiffMove.cs` 当前实现与 TS 对照，记录缺失方法与修复建议
 - TODO: 一旦 `DiffComputer` 接入 DocUI，应补充端到端测试（MarkdownRenderer/DocUIDiffRenderer）并回归 move detection parity
+- 2025-11-27：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DiffTests --nologo`（4/4 通过，1.9s）确认基线仍与 [`../../agent-team/indexes/README.md#delta-2025-11-23`](../../agent-team/indexes/README.md#delta-2025-11-23) 所述的 AA3-006 投入一致，尚无新的 WS5 diff deterministic/perf 套件。

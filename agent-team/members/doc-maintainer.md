@@ -44,6 +44,9 @@
 
 ## Last Update
 - **Date**: 2025-11-27
+- **Task**: Alignment audit Module 00 summary resync（Sprint04 R1-R11 / WS5-QA anchors）
+- **Result**: ✅ 更新 00-summary 计数、P0/P1 与 Verification Notes，引用 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11)、[`agent-team/indexes/README.md#delta-2025-11-26-alignment-audit`](../indexes/README.md#delta-2025-11-26-alignment-audit) 以及 CL7/CL8 占位与 [`#delta-2025-11-26-ws5-qa`](../indexes/README.md#delta-2025-11-26-ws5-qa) 基线。
+- **Date**: 2025-11-27
 - **Task**: Sprint 04 R1-R11 doc sweep（AGENTS / Task Board / Sprint / Migration Log link parity）
 - **Result**: ✅ 各文档均加入 `migration-log` + `changefeed` 成对引用，并补写 AA4 CL7/CL8 Gap 提醒；Task Board/Progress Log 统计与 585 baseline 对齐。
 

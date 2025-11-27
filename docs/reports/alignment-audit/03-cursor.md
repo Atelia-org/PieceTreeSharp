@@ -4,13 +4,31 @@
 **审查范围:** 9个光标与词法/Snippet相关文件（`src/TextBuffer/Cursor/**`）及其 TypeScript 对应实现（`ts/src/vs/editor/common/cursor/**`, `ts/src/vs/editor/contrib/snippet/browser/**`）
 
 ## 概要
-- 完全对齐: 0/9
-- ⚠️存在偏差: 2/9（`WordCharacterClassifier.cs`, `WordOperations.cs` 仅覆盖基本词边界）
-- ❌需要修正: 7/9（`Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorContext.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`）
-- 🚫尚未移植: `CursorConfiguration`（TS: `cursorCommon.ts`，C# 无同名文件）
-- 关键差异集中在：缺失 model/view 双态与 `SingleCursorState`/`CursorConfiguration`、`CursorCollection` 与 `CursorContext` 没有视图/归一化管线、列选择/词导航/Snippet 仅保留极简骨架。唯一已解决的问题是 `SnippetSession` 的 BF1 多光标循环补丁，其余功能仍与 VS Code 有显著鸿沟。
+- **Stage 0 基础设施已落地:** `WS4-PORT-Core` 引入 `CursorConfiguration`、双态 `CursorState`、`CursorContext`、tracked range plumbing，以及 25/25 Stage 0 `CursorCoreTests`（命令 `dotnet test --filter CursorCoreTests --nologo` 现报 39 通过 / 0 失败 / 2 占位跳过且保持 25/25 case 全绿）；该交付记录于 [`docs/reports/migration-log.md#ws4-port-core`](../migration-log.md#ws4-port-core) 且纳入 Sprint 04 Phase 8 汇总 [`agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11`](../../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)。
+- **Stage 0 仍待接线:** `Cursor.cs`/`CursorCollection.cs` 继续走旧的单态实现，`TextModelOptions.EnableVsCursorParity` 也保持关闭，因此 Stage 0 骨架尚未驱动运行态行为，需要把命令/集合接入新 `CursorContext` 并启用 tracked range 装饰。
+- **Stage 1 backlog 按 CL7 占位追踪:** WordOps、ColumnSelection、Snippet、commands/tests 依旧对应 [`#delta-2025-11-26-aa4-cl7-cursor-core`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)、[`#delta-2025-11-26-aa4-cl7-wordops`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-wordops)、[`#delta-2025-11-26-aa4-cl7-column-nav`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-column-nav)、[`#delta-2025-11-26-aa4-cl7-snippet`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-snippet)、[`#delta-2025-11-26-aa4-cl7-commands-tests`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-commands-tests)。
+- **对齐度（以运行态为准）:** 完全对齐 0/9、⚠️存在偏差 2/9（`WordCharacterClassifier.cs`, `WordOperations.cs` 仍是最小实现）、❌需要修正 7/9（`Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorContext.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`）。尽管 Stage 0 文件已存在，但在接线前仍按“需要修正”对待。
+- 关键差异依旧集中在：`Cursor`/`CursorCollection` 未采用双态 `SingleCursorState`，列选择/词操作/Snippet 缺乏 TS parity，且命令/测试覆盖远低于 VS Code。
+
+## Stage 0 vs Stage 1 状态
+- **Stage 0 已交付内容:** `CursorConfiguration.cs`、`CursorState.cs`、`CursorContext.cs` 以及 `TextModel` tracked range/隐藏装饰支持已更新；`CursorCoreTests` 命令 (`dotnet test --filter CursorCoreTests --nologo`) 目前 39 通过 / 0 失败 / 2 占位跳过，25/25 Stage 0 case 仍与 [`docs/reports/migration-log.md#ws4-port-core`](../migration-log.md#ws4-port-core) 记录一致。
+- **Stage 0 待收尾:** `Cursor.cs`、`CursorCollection.cs` 尚未切换到 `SingleCursorState`/`CursorContext`，`TextModelOptions.EnableVsCursorParity` 默认仍为 false；需在 `#delta-2025-11-26-aa4-cl7-cursor-core` 覆盖中完成接线后再开放。
+- **Stage 1 范围:** Column selection (`#delta-2025-11-26-aa4-cl7-column-nav`)、Word operations (`#delta-2025-11-26-aa4-cl7-wordops`)、Snippet controller/session (`#delta-2025-11-26-aa4-cl7-snippet`)、命令与测试矩阵 (`#delta-2025-11-26-aa4-cl7-commands-tests`) 继续作为 P0 gap 存在。
 
 ## 详细分析
+
+---
+
+### 0. CursorConfiguration.cs
+**TS源:** `ts/src/vs/editor/common/controller/cursorCommon.ts`
+**C#文件:** `src/TextBuffer/Cursor/CursorConfiguration.cs`
+**对齐状态:** ⚠️存在偏差（类型已到位，但尚未接入命令）
+
+**现状:** `WS4-PORT-Core` 按 TS 结构实现了 `CursorConfiguration`, `ICursorSimpleModel`, `CursorColumnsHelper`, 以及 `EditOperationType`/`PositionAffinity` 等枚举，但这些配置对象尚未被 `Cursor`, `CursorCollection`, `CursorColumns` 或 `CursorMoveOperations` 使用。`TextModelOptions.EnableVsCursorParity` 仍默认 false，也没有 host 将 `IdentityCoordinatesConverter` 以外的实现注入。
+
+**风险:** 由于调用栈仍绕过配置层，tabSize/pageSize/stickyTabStop、`multiCursorMergeOverlapping`, `emptySelectionClipboard`, `columnFromVisibleColumn` 等编辑器选项在 C# 里依旧不可配置，列选/多光标行为与 TS 差距不变。
+
+**建议:** 将 `Cursor.cs` 命令入口、`CursorCollection` 正规化逻辑与 `CursorColumns` 可视列计算改为依赖 `CursorConfiguration`，然后移除旧的手动 tabSize/projection 代码。完成后即可在 `#delta-2025-11-26-aa4-cl7-cursor-core` 关闭 Stage 0 接线部分。
 
 ---
 
@@ -21,8 +39,8 @@
 
 **差异要点:**
 - TS `Cursor` 只负责状态同步并依赖 `_setState` 与 `CursorMoveOperations`，而 C# 把 `MoveLeft/Right/Up/Down`, `MoveWord*`, `DeleteWordLeft` 等逻辑全部塞进 `Cursor`，与 VS Code 的职责划分完全不同。
-- TS 维护 `modelState` 与 `viewState`（`SingleCursorState`），通过 `_selTrackedRange` 和 `CursorContext` 的 `coordinatesConverter` 在编辑后恢复选择；C# 只有 `_selection` 和 `_stickyColumn`，既无 view state 也无 tracked range，编辑后无法校正漂移。
-- 粘列信息在 TS 中写入 `leftoverVisibleColumns` 并跟随 `CursorState` 序列化；C# 的 `_stickyColumn` 为局部字段，`CursorState` record 也没有该属性，多光标或撤销重建后就丢失。
+- 即便 Stage 0 已提供 `SingleCursorState`，本类仍直接持有 `_selection`/`_stickyColumn`，没有 `_setState`/`TrackedRangeStickiness` 流程；多光标编辑后无法借助 `CursorContext` 恢复位置。
+- 粘列信息在 TS 中写入 `leftoverVisibleColumns` 并跟随 `CursorState` 序列化；虽然 Stage 0 已提供这些字段，但 `Cursor` 仍把 `_stickyColumn` 当作临时字段，`CursorCollection`/Snippet/Undo 无法共享。
 - `StartColumnSelection` 仅调用 `CursorColumns.GetVisibleColumnFromPosition` 等 helper，未通过 `CursorConfiguration.columnFromVisibleColumn` 校正行最小列和 RTL，可视/模型不一致。
 - `Cursor` 直接引用 `TextModel` 并在 `UpdateDecorations()` 中调用 `DeltaDecorations`，跳过了 `CursorContext` 提供的 viewModel/coordinatesConverter，导致视图与模型不可分层。
 
@@ -41,8 +59,8 @@
 **对齐状态:** ❌需要修正
 
 **差异要点:**
-- TS 维持主/次光标、`lastAddedCursorIndex`、`normalize()`、`getTopMostViewPosition()` 等，而 C# 版本只有 `CreateCursor`, `RemoveCursor`, `GetCursorPositions`，缺少所有状态批量管理 API。
-- 没有 `setStates()`/`_setSecondaryStates()`，无法套用命令计算出的 `PartialCursorState`；`killSecondaryCursors()`、`getAll()`、`readSelectionFromMarkers()` 等全部缺席。
+- TS 维持主/次光标、`lastAddedCursorIndex`、`normalize()`、`getTopMostViewPosition()` 等，而 C# 版本只有 `CreateCursor`, `RemoveCursor`, `GetCursorPositions`，缺少全部集合 API；Stage 0 新 `CursorState` 也未被持有。
+- 没有 `setStates()`/`_setSecondaryStates()`，无法套用命令计算出的 `PartialCursorState`；`killSecondaryCursors()`、`getAll()`、`readSelectionFromMarkers()` 等全部缺席，`CursorState`/tracked range 数据无法落地。
 - 缺乏 `normalize()` 导致 `multiCursorMergeOverlapping` 选项无处落地，重合/接触的选择不会合并。
 - 未实现 `startTrackingSelections`/`stopTrackingSelections`，与 `CursorContext` 完全脱钩，tracked range 和视图坐标管线断裂。
 - 无视图 API（`getViewPositions`, `getBottomMostViewPosition` 等），上层命令无法基于视图顺序排序或滚动。
@@ -76,36 +94,34 @@
 ### 4. CursorContext.cs
 **TS源:** `ts/src/vs/editor/common/cursor/cursorContext.ts`
 **C#文件:** `src/TextBuffer/Cursor/CursorContext.cs`
-**对齐状态:** ❌需要修正
+**对齐状态:** ⚠️存在偏差（结构已到位，调用方未接入）
 
 **差异要点:**
-- TS Context 暴露 `model`, `viewModel`, `coordinatesConverter`, `cursorConfig`，为 `Cursor`/`CursorCollection` 提供全部依赖；C# 只有 `TextModel` 与 `CursorCollection`，完全没有视图或配置。
-- `ComputeAfterCursorState()` 在 TS 中依赖 inverse edits、`ICoordinatesConverter` 和 tracked range 恢复光标；C# 直接调用 `GetCursorPositions()` 返回当前 active 位置信息，对编辑后的位移毫无校正。
-- 因缺少 `CursorConfiguration`，其它组件无法读取 `multiCursorMergeOverlapping`, `pageSize`, `wordSeparators`, `emptySelectionClipboard` 等编辑器选项。
-- 没有 `ICursorSimpleModel` 导致列选择、视图归一化、`CursorMoveOperations` 等都无从实现。
+- Stage 0 已实现 `ICoordinatesConverter`（含 `IdentityCoordinatesConverter`）与 `ICursorSimpleModel` 适配器，但 `TextModel.CreateCursorCollection()` 仍直接 new `CursorCollection(this)`，没有创建 `CursorContext` 或将配置注入命令栈。
+- `CursorContext` 目前只是一组属性，没有 TS `computeCursorState()`/`getTrackedSelection` 等协作点；`Cursor`/`CursorCollection` 依旧绕过上下文管理 tracked range，因此 `CursorState` 中的双态数据无法重新计算。
+- 因未实例化 `CursorContext.FromModel()`，`CursorColumns`、`WordOperations`、Snippet command 仍无法获取 `CursorConfiguration` 的 pageSize/stickyTabStop/wordSeparators 设置（即使配置类型已经存在）。
 
 **建议:**
-1. 定义并注入 `ICoordinatesConverter` 与 `ICursorSimpleModel`，承接 view/model 坐标转换。
-2. 移植 `CursorConfiguration` 并挂到 context 上。
-3. 扩展 `ComputeAfterCursorState`，利用 inverse changes 和 tracked range 重新计算所有光标。
+1. 在 `TextModel.CreateCursorCollection()`/`CursorCollection` 构造函数中创建 `CursorContext` 并传入 `Cursor`，让所有命令都依赖 `CoordinatesConverter`/`CursorConfig`。
+2. 按 TS `cursorContext.ts` 补齐 `GetViewPositions()`, `ComputeCursorStateAfterCommand()` 等 helper，使 tracked range/视图位置恢复逻辑可以共享。
+3. 接线完成后，在 `#delta-2025-11-26-aa4-cl7-cursor-core` 中记录 feature flag 切换，确保 Stage 0 能真正驱动 Stage 1 命令。
 
 ---
 
 ### 5. CursorState.cs
 **TS源:** `ts/src/vs/editor/common/cursorCommon.ts`
 **C#文件:** `src/TextBuffer/Cursor/CursorState.cs`
-**对齐状态:** ❌需要修正
+**对齐状态:** ⚠️存在偏差（类型 parity 已完成，但未被消费者使用）
 
 **差异要点:**
-- TS 定义 `CursorState`, `SingleCursorState`, `PartialModelCursorState`, `PartialViewCursorState`, `SelectionStartKind`，而 C# 仅有包含 `OwnerId/Selection/StickyColumn/DecorationIds` 的 record，无法描述 model/view 双态。
-- 缺少 `selectionStart`, `selectionStartKind`, `leftoverVisibleColumns`，因此行/词选择与粘列信息无法序列化或回放。
-- 没有 `Partial*` 类型，也没有 `CursorState.fromModelSelections()` 等工厂，`CursorCollection` 与命令栈无法共享状态。
-- 现有 record 仅为装饰使用，与 TS `CursorState` 在 undo/redo、snippet、命令之间传递的语义完全不同。
+- Stage 0 已包含 `SingleCursorState`, `CursorState`, `PartialModelCursorState`, `PartialViewCursorState`, `SelectionStartKind` 与 leftovers 字段；不过 `Cursor` 依旧维护 `_selection`/`_stickyColumn` 私有字段，`CursorCollection` 也不持有这些新对象。
+- 没有任何命令调用 `CursorState.Move()`/`CursorState.FromModelSelections()`，因此 tracked range/粘列数据虽然可序列化，却不会在 undo/redo、Snippet、列选流程中共享。
+- `CursorCoreTests` 仅覆盖 Stage 0 构造/转换逻辑，缺乏与 `CursorCollection.setStates()`、`CursorWordOperations` 的互操作测试，使 `#delta-2025-11-26-aa4-cl7-cursor-core` 仍旧保持 Gap。
 
 **建议:**
-1. 引入 `SingleCursorState` 与 `SelectionStartKind`，并让 `CursorState` 同时持有 model/view state。
-2. 实现 `PartialModelCursorState`/`PartialViewCursorState` 及对应工厂。
-3. 将 `Cursor` 的 `_selection`、`_stickyColumn` 等字段迁移到状态类，确保可在 `CursorCollection`/Snippet/Undo 之间传递。
+1. 调整 `Cursor` 与 `CursorCollection`，让状态更新完全通过 `CursorState`/`SingleCursorState` 驱动，而非手写 `Selection` 字段。
+2. 把 tracked range/sticky column 流程放入 `CursorCollection.setStates()`，并为 snippet/command 管线提供 `Partial*` 构造函数入口。
+3. 扩展 `CursorCoreTests` 以涵盖 state ↔ command 循环，再结合 `CursorAtomicMoveOperationsTests` 在 `#delta-2025-11-26-aa4-cl7-commands-tests` 解除测试缺口。
 
 ---
 
@@ -188,19 +204,38 @@
 ### 严重程度分类
 - **🔴 需要重大重构 (7个文件):** `Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorContext.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`
 - **🟡 需要补充功能 (2个文件):** `WordCharacterClassifier.cs`, `WordOperations.cs`
-- **🚫 缺失:** `CursorConfiguration`（尚未在 C# 中实现）
+- **🚫 缺失:** _暂无_（`CursorConfiguration` 已在 `WS4-PORT-Core` 引入，但未接入运行路径）
+
+> 说明：`CursorConfiguration`/`CursorContext`/`CursorState` 虽完成 Stage 0 port，但由于运行态尚未接入，仍在此列表中跟踪。
 
 ### 优先级建议
-- **P0:** 移植 `CursorConfiguration` + `SingleCursorState`/`CursorState` 双态，并让 `CursorContext`/`CursorCollection` 使用该状态机；补齐 tracked range 与 normalize。
-- **P1:** 补足列选择 (`CursorColumns.columnSelect*`)、词导航/删除主路径、`SnippetController` 基础生命周期。
-- **P2:** 扩展 snippet（变量/choice/merge）、完善 `WordCharacterClassifier` 的 Intl 支持、实现选择追踪/视图 API。
+
+#### P0 – Stage 拆分矩阵
+| Placeholder | Delivered (Stage 0) | Outstanding (Stage 1) |
+| --- | --- | --- |
+| [`#delta-2025-11-26-aa4-cl7-cursor-core`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) | `WS4-PORT-Core` 已交付 `CursorConfiguration`/`CursorState`/`CursorContext`、tracked range/隐藏装饰支持，以及 25/25 Stage 0 `CursorCoreTests`（当前命令 39 通过 / 0 失败 / 2 跳过；见 [`docs/reports/migration-log.md#ws4-port-core`](../migration-log.md#ws4-port-core)）。 | 将 `Cursor`/`CursorCollection`/`CursorContext` 接线、启用 `TextModelOptions.EnableVsCursorParity`、实现 `_setState`/tracked range 恢复，并在 `agent-team/indexes` 记录 Stage 1 关闭。 |
+| [`#delta-2025-11-26-aa4-cl7-column-nav`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-column-nav) | 仅保留早期 `CursorColumns.GetVisibleColumn*` 辅助函数，缺少 `ColumnSelection` state plumbing。 | Port `IColumnSelectResult`/`ColumnSelection.columnSelect*`，将 `CursorConfiguration.columnFromVisibleColumn` 接入列选命令与 `CursorCollection.normalize()`。 |
+| [`#delta-2025-11-26-aa4-cl7-wordops`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-wordops) | `WordOperations` 仅覆盖 Move/Select/DeleteWordLeft，`WordCharacterClassifier` 仍是最小实现。 | 引入 `_createWord`/`DeleteWordContext`/word-part、Intl heuristics、auto-closing pair 逻辑及 TS 对应测试。 |
+| [`#delta-2025-11-26-aa4-cl7-snippet`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-snippet) | 现有 SnippetSession 修复了 BF1 循环，但仍是 `${n:text}` 级别解析。 | Port `OneSnippet`、placeholder group、变量/transform/choice、merge/undo 生命周期，并把状态绑定 `CursorState`。 |
+| [`#delta-2025-11-26-aa4-cl7-commands-tests`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-commands-tests) | `CursorCoreTests` (25) + 旧 `CursorTests` (23) 是唯一覆盖；未新增 column select/word ops/snippet 测试。 | 补齐 `CursorWordOperationsTests`, `CursorAtomicMoveOperationsTests`, `ColumnSelectionTests`, `SnippetControllerTests` TS 矩阵，并把 rerun 写入 `tests/TextBuffer.Tests/TestMatrix.md`。 |
+
+#### P1
+- Column selection 页面/注入文本/RTL 兼容性：当 Stage 1 command ready 后，需要实现 `ICoordinatesConverter` aware 的 `columnSelectLeft/Right/Up/Down` 以及 `multiCursorMergeOverlapping` normalize。
+- Word navigation 删除策略：完成 Stage 1 主要命令后，将 auto-closing pair、camelCase/snake_case、Intl Segmenter hooks 纳入 `WordCharacterClassifierCache`。
+- Snippet lifecycle 基础：在 Stage 1 SnippetController 成熟后，加上上下文键、undo/redo/clipboard 选项，并与 completion 管线对齐。
+
+#### P2
+- Snippet 变量/transform/choice merge、嵌套 session、`InsertSnippetOptions` 完整实现。
+- Intl word cache + accessibility word ops，支撑屏幕阅读器/wordPart 命令。
+- 将 column selection + snippet 命令加入 DocUI/renderer 交互测试，确保 Stage 1 行为不会在 UI 层发生偏差。
 
 ### 移植质量评估
-- 当前 Cursor 栈属于**重新实现**而非**逐行移植**：缺乏 model/view 状态机、上下文转换、列选择、变量解析等关键能力。
-- 若不先补齐核心结构，将难以从 VS Code 同步 bugfix/feature（例如 sticky column、multi-cursor merge、snippet choice）。
-- 建议先完成 `CursorConfiguration` + `SingleCursorState` + `CursorCollection.setStates/normalize`，再逐步对齐 column select、word operations 与 snippet 功能。
+- 当前 Cursor 栈仍偏向**重新实现**：虽然 Stage 0 已有 `CursorConfiguration`/`CursorState`/`CursorContext`，但运行态命令尚未接线，列选择、word ops、snippet 依旧是最小骨架。
+- 若不先完成 `CursorCollection.setStates/normalize` 与 `Cursor` → `CursorState` 的接线，TS bugfix/feature（sticky column、多光标 merge、snippet choice）无法复用，`#delta-2025-11-26-aa4-cl7-*` 占位也无法关闭。
+- 完成 Stage 0 落地后，再逐步对齐 column select（`cursorColumnSelection.ts`）、word operations、snippet lifecycle 并补足测试矩阵。
 
 ## Verification Notes
+- **2025-11-27 – Stage 0 spot-check:** `dotnet test --filter CursorCoreTests --nologo`（39 通过 / 0 失败 / 2 占位跳过）复测 `WS4-PORT-Core` 交付并确认 25/25 Stage 0 case 仍绿（参见 [`docs/reports/migration-log.md#ws4-port-core`](../migration-log.md#ws4-port-core)）；此运行跳过 `IntervalTreePerfTests`（既知 WS3 性能问题），以免干扰 Cursor 结果。
 - 逐一阅读 `docs/reports/alignment-audit/03-cursor.md` 旧版、`src/TextBuffer/Cursor/*.cs` 以及 `ts/src/vs/editor/common/cursor/*.ts`、`ts/src/vs/editor/contrib/snippet/browser/*.ts`，确认功能覆盖差距。
 - 特别验证了 `SnippetSession.NextPlaceholder/PrevPlaceholder` 的 BF1 哨兵逻辑、`Cursor.cs` 缺乏 `SingleCursorState`、`CursorCollection` 未实现 `normalize`、`CursorColumns` 只有转换 helper。
-- 尚未发现任何 `CursorConfiguration` 或 `ICoordinatesConverter` 的 C# 实现，也没有 `CursorMoveOperations` 等配套文件——需要明确这些组件计划部署的位置，以及 `Cursor` 是否会继续直接操作 `TextModel`。
+- Stage 0 文件（`CursorConfiguration`, `CursorState`, `CursorContext`, `ICoordinatesConverter`）已查验完毕，但尚未被 `Cursor`/`CursorCollection` 引用；需在 `#delta-2025-11-26-aa4-cl7-cursor-core` 交付前明确它们的接入顺序与命名。
