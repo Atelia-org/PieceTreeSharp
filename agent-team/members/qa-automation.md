@@ -9,6 +9,7 @@
 ## Active Changefeeds & Baselines
 | Anchor | Scope | Latest Stats | Evidence |
 | --- | --- | --- | --- |
+| `#delta-2025-11-28-aa4-cl7-stage1-qa` | CL7 Stage 1 Cursor Wiring QA - CursorContext, state management, tracked ranges, dual-mode parity. | Full 683/683 (681 pass, 2 skip); targeted CursorCollectionTests 33/33, CursorCoreTests.Cursor_* 9/9. | `agent-team/handoffs/CL7-QA-Result.md`, `tests/TextBuffer.Tests/TestMatrix.md` (CL7 entries). |
 | `#delta-2025-11-26-sprint04-r1-r11` | Sprint 04 WS1–WS5 deliverables（R1-R11）+ 585/585 baseline（1 skip）。 | Full `PIECETREE_DEBUG=0` sweep 585/585 (≈62s) recorded in WS123/WS5 QA handoffs; targeted suites listed below stay green. | `agent-team/handoffs/WS123-QA-Result.md`, `agent-team/handoffs/WS5-QA-Result.md`, `tests/TextBuffer.Tests/TestMatrix.md` (R1-R11 rows)。 |
 | `#delta-2025-11-26-ws1-searchcore` | WS1 PieceTree search offset cache + DEBUG counters. | Full 440/440 green (62.1s); targeted `PieceTreeSearchOffsetCacheTests` 5/5 (1.7s). | `agent-team/handoffs/WS123-QA-Result.md`. |
 | `#delta-2025-11-26-ws2-port` | WS2 Range/Selection/Position helper APIs (75 tests). | Full 440/440 green (62.1s); targeted `RangeSelectionHelperTests` 75/75 (1.6s). | `agent-team/handoffs/WS123-QA-Result.md`. |
@@ -29,6 +30,8 @@
 - Same command (324/324, 58.2s) for the search-offset cache drop (`#delta-2025-11-25-b3-search-offset`)。
 
 **Targeted filters**
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter CursorCollectionTests --nologo` → 33/33, anchors `#delta-2025-11-28-aa4-cl7-stage1-qa`。
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter "FullyQualifiedName~CursorCoreTests.Cursor_" --nologo` → 9/9 (CL7 Stage 1 state wiring tests), anchors `#delta-2025-11-28-aa4-cl7-stage1-qa`。
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter CursorCoreTests --nologo` → 25/25, anchors `#delta-2025-11-26-ws4-port-core`。
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter RangeSelectionHelperTests --nologo` → 75/75, anchors `#delta-2025-11-26-ws2-port`.
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSearchOffsetCacheTests --nologo` → 5/5, anchors `#delta-2025-11-26-ws1-searchcore`.
@@ -64,3 +67,17 @@
 
 ## 2025-11-27 PORT-PT-Search Step12 QA
 - Revalidated NodeAt2 tuple reuse + search cache diagnostics with `export PIECETREE_DEBUG=0 && dotnet test ...` across `PieceTreeDeterministicTests`, `PieceTreeFuzzHarnessTests`, `CRLFFuzzTests`, `PieceTreeSearchRegressionTests`, `PieceTreeSearchOffsetCacheTests`, and the full 641-case sweep (CursorCore skips only); captured timestamps/durations in `agent-team/handoffs/PORT-PT-Search-Step12-QA.md` for the upcoming [`#delta-2025-11-27-ws1-port-search-step12`](../indexes/README.md#delta-2025-11-27-ws1-port-search-step12) changefeed while referencing [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11).
+
+## 2025-11-28 CL7 Stage 1 Cursor Wiring QA
+- **Scope**: Verified Porter's CL7 Stage 1 implementation (CursorContext, state management, tracked ranges wired into Cursor.cs/CursorCollection.cs) with dual-mode `EnableVsCursorParity` testing.
+- **Baseline**: 641 tests (639 pass, 2 skip) → **683 tests (681 pass, 2 skip)** after adding 42 new tests.
+- **New Test Files**:
+  - `CursorCollectionTests.cs`: 33 tests covering SetStates, Normalize, tracked selection lifecycle, LastAddedCursorIndex, view position queries.
+  - `CursorCoreTests.cs`: Extended with 9 new tests in `#region CL7 Stage 1 - Cursor State Wiring Tests` for state validation, tracked range survival, dual-mode flag paths.
+- **Targeted Commands**:
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter CursorCollectionTests --nologo` → 33/33 (1.8s)
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter "FullyQualifiedName~CursorCoreTests.Cursor_" --nologo` → 9/9
+  - `export PIECETREE_DEBUG=0 && dotnet test ... --filter CursorCoreTests --nologo` → 34/34 (skips acknowledged)
+- **Artifacts**: `agent-team/handoffs/CL7-QA-Result.md`, `tests/TextBuffer.Tests/TestMatrix.md` (CL7 entries added).
+- **Changefeed**: Anchored at [`#delta-2025-11-28-aa4-cl7-stage1-qa`](../indexes/README.md#delta-2025-11-28-aa4-cl7-stage1-qa), references [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core).
+- **Findings**: No bugs found. All EnableVsCursorParity paths verified. TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges confirmed for selection recovery.
