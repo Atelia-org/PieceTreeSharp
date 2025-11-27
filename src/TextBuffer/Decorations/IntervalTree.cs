@@ -1,71 +1,340 @@
 // Source: vs/editor/common/model/intervalTree.ts
 // - Class: IntervalTree (Lines: 268-1100)
 // - Class: IntervalNode (Lines: 142-266)
-// - Red-black tree implementation for decoration storage
-// Ported: 2025-11-22
+// - Red-black tree implementation for decoration storage with lazy delta normalization
+// Ported: 2025-11-22, Refactored: 2025-11-26 (WS3-PORT-Tree)
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace PieceTree.TextBuffer.Decorations
 {
     /// <summary>
+    /// NodeFlags bitmask encoding RB color, visited state, validation, stickiness, etc.
+    /// Mirrors TS Constants enum in intervalTree.ts
+    /// </summary>
+    [Flags]
+    internal enum NodeFlags : uint
+    {
+        // Color: bit 0
+        ColorMask = 0b00000001,
+        ColorBlack = 0,
+        ColorRed = 1,
+
+        // IsVisited: bit 1
+        IsVisitedMask = 0b00000010,
+        IsVisited = 0b00000010,
+
+        // IsForValidation: bit 2
+        IsForValidationMask = 0b00000100,
+        IsForValidation = 0b00000100,
+
+        // Stickiness: bits 3-4
+        StickinessMask = 0b00011000,
+        StickinessShift = 3,
+
+        // CollapseOnReplaceEdit: bit 5
+        CollapseOnReplaceEditMask = 0b00100000,
+        CollapseOnReplaceEdit = 0b00100000,
+
+        // IsMargin: bit 6
+        IsMarginMask = 0b01000000,
+        IsMargin = 0b01000000,
+
+        // AffectsFont: bit 7
+        AffectsFontMask = 0b10000000,
+        AffectsFont = 0b10000000,
+    }
+
+    /// <summary>
+    /// Interval tree node with TS-style fields for lazy delta normalization.
+    /// </summary>
+    internal sealed class IntervalNode
+    {
+        /// <summary>
+        /// Contains binary encoded information for color, visited, isForValidation, stickiness, etc.
+        /// </summary>
+        public uint Metadata;
+
+        public IntervalNode Parent;
+        public IntervalNode Left;
+        public IntervalNode Right;
+
+        /// <summary>Local start offset (relative, before delta application)</summary>
+        public int Start;
+        /// <summary>Local end offset (relative, before delta application)</summary>
+        public int End;
+        /// <summary>Delta for right subtree</summary>
+        public int Delta;
+        /// <summary>Max end in subtree (for interval search pruning)</summary>
+        public int MaxEnd;
+
+        public string Id;
+        public int OwnerId;
+        public ModelDecorationOptions? Options;
+
+        /// <summary>Cached version when absolute offsets were computed</summary>
+        public int CachedVersionId;
+        /// <summary>Cached absolute start offset</summary>
+        public int CachedAbsoluteStart;
+        /// <summary>Cached absolute end offset</summary>
+        public int CachedAbsoluteEnd;
+
+        /// <summary>Back-reference to the ModelDecoration</summary>
+        public ModelDecoration? Decoration;
+
+        public IntervalNode(string id, int start, int end)
+        {
+            Metadata = 0;
+            Parent = this;
+            Left = this;
+            Right = this;
+            SetColor(true); // Red
+
+            Start = start;
+            End = end;
+            Delta = 0;
+            MaxEnd = end;
+
+            Id = id;
+            OwnerId = 0;
+            Options = null;
+            SetIsForValidation(false);
+            SetIsInGlyphMargin(false);
+            SetStickiness(TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges);
+            SetCollapseOnReplaceEdit(false);
+            SetAffectsFont(false);
+
+            CachedVersionId = 0;
+            CachedAbsoluteStart = start;
+            CachedAbsoluteEnd = end;
+
+            SetIsVisited(false);
+
+            Decoration = null;
+        }
+
+        public void Reset(int versionId, int start, int end)
+        {
+            Start = start;
+            End = end;
+            MaxEnd = end;
+            CachedVersionId = versionId;
+            CachedAbsoluteStart = start;
+            CachedAbsoluteEnd = end;
+        }
+
+        public void SetOptions(ModelDecorationOptions options)
+        {
+            Options = options;
+            var className = options.ClassName;
+            SetIsForValidation(
+                className == "squiggly-error" ||
+                className == "squiggly-warning" ||
+                className == "squiggly-info"
+            );
+            SetIsInGlyphMargin(options.GlyphMarginClassName != null);
+            SetStickiness(options.Stickiness);
+            SetCollapseOnReplaceEdit(options.CollapseOnReplaceEdit);
+            SetAffectsFont(options.AffectsFont);
+        }
+
+        public void SetCachedOffsets(int absoluteStart, int absoluteEnd, int cachedVersionId)
+        {
+            CachedVersionId = cachedVersionId;
+            CachedAbsoluteStart = absoluteStart;
+            CachedAbsoluteEnd = absoluteEnd;
+        }
+
+        public void Detach()
+        {
+            Parent = null!;
+            Left = null!;
+            Right = null!;
+        }
+
+        #region Metadata accessors
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsRed() => (Metadata & (uint)NodeFlags.ColorMask) == (uint)NodeFlags.ColorRed;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsBlack() => (Metadata & (uint)NodeFlags.ColorMask) == (uint)NodeFlags.ColorBlack;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetColor(bool red)
+        {
+            if (red)
+                Metadata = (Metadata & ~(uint)NodeFlags.ColorMask) | (uint)NodeFlags.ColorRed;
+            else
+                Metadata = (Metadata & ~(uint)NodeFlags.ColorMask) | (uint)NodeFlags.ColorBlack;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsVisited() => (Metadata & (uint)NodeFlags.IsVisitedMask) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetIsVisited(bool value)
+        {
+            if (value)
+                Metadata |= (uint)NodeFlags.IsVisited;
+            else
+                Metadata &= ~(uint)NodeFlags.IsVisitedMask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsForValidation() => (Metadata & (uint)NodeFlags.IsForValidationMask) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetIsForValidation(bool value)
+        {
+            if (value)
+                Metadata |= (uint)NodeFlags.IsForValidation;
+            else
+                Metadata &= ~(uint)NodeFlags.IsForValidationMask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsInGlyphMargin() => (Metadata & (uint)NodeFlags.IsMarginMask) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetIsInGlyphMargin(bool value)
+        {
+            if (value)
+                Metadata |= (uint)NodeFlags.IsMargin;
+            else
+                Metadata &= ~(uint)NodeFlags.IsMarginMask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool AffectsFont() => (Metadata & (uint)NodeFlags.AffectsFontMask) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetAffectsFont(bool value)
+        {
+            if (value)
+                Metadata |= (uint)NodeFlags.AffectsFont;
+            else
+                Metadata &= ~(uint)NodeFlags.AffectsFontMask;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TrackedRangeStickiness GetStickiness()
+        {
+            return (TrackedRangeStickiness)((Metadata & (uint)NodeFlags.StickinessMask) >> (int)NodeFlags.StickinessShift);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetStickiness(TrackedRangeStickiness stickiness)
+        {
+            Metadata = (Metadata & ~(uint)NodeFlags.StickinessMask) | ((uint)stickiness << (int)NodeFlags.StickinessShift);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetCollapseOnReplaceEdit() => (Metadata & (uint)NodeFlags.CollapseOnReplaceEditMask) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetCollapseOnReplaceEdit(bool value)
+        {
+            if (value)
+                Metadata |= (uint)NodeFlags.CollapseOnReplaceEdit;
+            else
+                Metadata &= ~(uint)NodeFlags.CollapseOnReplaceEditMask;
+        }
+        #endregion
+    }
+
+    /// <summary>
     /// Augmented red-black tree that stores model decorations ordered by start offset
     /// and exposes overlap queries in O(log n + k).
+    /// Uses lazy delta normalization to achieve O(log n) edits instead of O(n).
     /// </summary>
     internal sealed class IntervalTree
     {
-        private enum NodeColor
+        /// <summary>
+        /// Safety bounds for delta values to prevent integer overflow.
+        /// Based on V8's SMI (Small Integer) limits: -(1 &lt;&lt; 30) to (1 &lt;&lt; 30)
+        /// </summary>
+        private const int MinSafeDelta = -(1 << 30);
+        private const int MaxSafeDelta = 1 << 30;
+
+        /// <summary>
+        /// Sentinel node representing null leaves. All null pointers point to SENTINEL.
+        /// This eliminates null checks in tree operations.
+        /// </summary>
+        internal static readonly IntervalNode Sentinel;
+
+        static IntervalTree()
         {
-            Red,
-            Black,
+            Sentinel = new IntervalNode(null!, 0, 0);
+            Sentinel.Parent = Sentinel;
+            Sentinel.Left = Sentinel;
+            Sentinel.Right = Sentinel;
+            Sentinel.SetColor(false); // Black
         }
 
-        private sealed class Node
+#if DEBUG
+        // DEBUG counters
+        private static int _nodesRemovedCount;
+        private static int _requestNormalizeHits;
+
+        public static int NodesRemovedCount => _nodesRemovedCount;
+        public static int RequestNormalizeHits => _requestNormalizeHits;
+
+        public static void ResetDebugCounters()
         {
-            public Node(ModelDecoration decoration)
-            {
-                Decoration = decoration;
-                MaxEnd = decoration.Range.EndOffset;
-            }
+            _nodesRemovedCount = 0;
+            _requestNormalizeHits = 0;
+        }
+#endif
 
-            public ModelDecoration Decoration { get; }
-            public NodeColor Color { get; set; } = NodeColor.Red;
-            public Node? Left { get; set; }
-            public Node? Right { get; set; }
-            public Node? Parent { get; set; }
-            public int MaxEnd { get; set; }
+        private readonly Dictionary<string, IntervalNode> _nodesById = new(StringComparer.Ordinal);
+        private IntervalNode _root;
+        private bool _normalizePending;
 
-            public void Recompute()
-            {
-                MaxEnd = Decoration.Range.EndOffset;
-                if (Left is not null && Left.MaxEnd > MaxEnd)
-                {
-                    MaxEnd = Left.MaxEnd;
-                }
-
-                if (Right is not null && Right.MaxEnd > MaxEnd)
-                {
-                    MaxEnd = Right.MaxEnd;
-                }
-            }
+        public IntervalTree()
+        {
+            _root = Sentinel;
+            _normalizePending = false;
         }
 
-        private readonly Dictionary<string, Node> _nodesById = new(StringComparer.Ordinal);
-        private Node? _root;
+        internal IntervalNode Root => _root;
+        internal bool NormalizePending => _normalizePending;
 
         public int Count => _nodesById.Count;
+
+        /// <summary>
+        /// Request normalization of delta values. Called when delta exceeds safe bounds.
+        /// </summary>
+        public void RequestNormalize()
+        {
+            _normalizePending = true;
+#if DEBUG
+            _requestNormalizeHits++;
+#endif
+        }
+
+        #region Public API
 
         public void Insert(ModelDecoration decoration)
         {
             ArgumentNullException.ThrowIfNull(decoration);
 
-            var node = new Node(decoration);
-            InsertNode(node);
+            var range = decoration.Range;
+            var node = new IntervalNode(decoration.Id, range.StartOffset, range.EndOffset)
+            {
+                OwnerId = decoration.OwnerId,
+                Decoration = decoration
+            };
+            node.SetOptions(decoration.Options);
+
+            RbTreeInsert(node);
             _nodesById[decoration.Id] = node;
+            NormalizeDeltaIfNeeded();
         }
 
-        public bool TryGet(string id, out ModelDecoration decoration)
+        public bool TryGet(string id, out ModelDecoration? decoration)
         {
             if (_nodesById.TryGetValue(id, out var node))
             {
@@ -73,7 +342,7 @@ namespace PieceTree.TextBuffer.Decorations
                 return true;
             }
 
-            decoration = default!;
+            decoration = null;
             return false;
         }
 
@@ -84,541 +353,1168 @@ namespace PieceTree.TextBuffer.Decorations
                 return false;
             }
 
-            DeleteNode(node);
+            RbTreeDelete(node);
             _nodesById.Remove(id);
+#if DEBUG
+            _nodesRemovedCount++;
+#endif
+            NormalizeDeltaIfNeeded();
             return true;
         }
 
         public void Reinsert(ModelDecoration decoration)
         {
-            if (!_nodesById.TryGetValue(decoration.Id, out var existing))
+            if (_nodesById.TryGetValue(decoration.Id, out var existing))
             {
-                Insert(decoration);
-                return;
+                RbTreeDelete(existing);
+#if DEBUG
+                _nodesRemovedCount++;
+#endif
             }
 
-            DeleteNode(existing);
-            var replacement = new Node(decoration);
-            InsertNode(replacement);
-            _nodesById[decoration.Id] = replacement;
+            var range = decoration.Range;
+            var node = new IntervalNode(decoration.Id, range.StartOffset, range.EndOffset)
+            {
+                OwnerId = decoration.OwnerId,
+                Decoration = decoration
+            };
+            node.SetOptions(decoration.Options);
+
+            RbTreeInsert(node);
+            _nodesById[decoration.Id] = node;
+            NormalizeDeltaIfNeeded();
         }
 
         public IReadOnlyList<ModelDecoration> Search(TextRange range, int ownerFilter = DecorationOwnerIds.Any)
         {
+            if (_root == Sentinel)
+            {
+                return Array.Empty<ModelDecoration>();
+            }
+
             var result = new List<ModelDecoration>();
-            CollectOverlaps(_root, range, ownerFilter, result);
+            var intervalStart = range.StartOffset;
+            var intervalEnd = range.EndOffset;
+            // Handle empty query range: expand to include at least one position
+            if (intervalEnd <= intervalStart)
+            {
+                intervalEnd = intervalStart == int.MaxValue ? int.MaxValue : intervalStart + 1;
+            }
+            IntervalSearch(_root, intervalStart, intervalEnd, ownerFilter, result, 0);
             return result;
         }
 
         public IEnumerable<ModelDecoration> EnumerateFrom(int startOffset, int ownerFilter = DecorationOwnerIds.Any)
         {
+            // Collect to list first to avoid issues with tree modification during enumeration
+            NormalizeDeltaIfNeeded();
+            var result = new List<ModelDecoration>();
             var node = FindFirstNodeStartingAtOrAfter(startOffset);
-            while (node != null)
+            while (node != Sentinel)
             {
-                if (ownerFilter == DecorationOwnerIds.Any || node.Decoration.OwnerId == ownerFilter)
+                if (node.Decoration != null && DecorationOwnerIds.MatchesFilter(ownerFilter, node.OwnerId))
                 {
-                    yield return node.Decoration;
+                    result.Add(node.Decoration);
                 }
 
                 node = Successor(node);
             }
+            return result;
         }
 
         public IEnumerable<ModelDecoration> EnumerateAll()
         {
+            // Collect to list first to avoid issues with tree modification during enumeration
+            NormalizeDeltaIfNeeded();
+            var result = new List<ModelDecoration>();
             var node = Minimum(_root);
-            while (node != null)
+            while (node != Sentinel && node != null)
             {
-                yield return node.Decoration;
+                if (node.Decoration != null)
+                {
+                    result.Add(node.Decoration);
+                }
+
                 node = Successor(node);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Resolve absolute offsets for a node by walking up the tree and summing deltas.
+        /// </summary>
+        public void ResolveNode(IntervalNode node, int cachedVersionId)
+        {
+            var initialNode = node;
+            int delta = 0;
+            while (node != _root)
+            {
+                if (node == node.Parent.Right)
+                {
+                    delta += node.Parent.Delta;
+                }
+                node = node.Parent;
+            }
+
+            var nodeStart = initialNode.Start + delta;
+            var nodeEnd = initialNode.End + delta;
+            initialNode.SetCachedOffsets(nodeStart, nodeEnd, cachedVersionId);
+
+            // Update the ModelDecoration.Range cache
+            if (initialNode.Decoration != null)
+            {
+                initialNode.Decoration.Range = new TextRange(nodeStart, nodeEnd);
             }
         }
 
-        private void CollectOverlaps(Node? node, TextRange range, int ownerFilter, List<ModelDecoration> target)
+        /// <summary>
+        /// Accept a replace edit. Uses the TS four-phase algorithm for lazy updates.
+        /// </summary>
+        public void AcceptReplace(int offset, int length, int textLength, bool forceMoveMarkers)
         {
-            var queryStart = range.StartOffset;
-            var queryEndExclusive = range.EndOffset;
-            if (queryEndExclusive <= queryStart)
-            {
-                queryEndExclusive = queryStart == int.MaxValue ? int.MaxValue : queryStart + 1;
-            }
+            // (1) collect all nodes that are intersecting this edit as nodes of interest
+            var nodesOfInterest = SearchForEditing(offset, offset + length);
 
-            if (node == null || node.MaxEnd < queryStart)
+            // (2) remove all nodes that are intersecting this edit
+            for (int i = 0; i < nodesOfInterest.Count; i++)
+            {
+                var node = nodesOfInterest[i];
+                RbTreeDelete(node);
+#if DEBUG
+                _nodesRemovedCount++;
+#endif
+            }
+            NormalizeDeltaIfNeeded();
+
+            // (3) edit all tree nodes except the nodes of interest (lazy delta update)
+            NoOverlapReplace(offset, offset + length, textLength);
+            NormalizeDeltaIfNeeded();
+
+            // (4) edit the nodes of interest and insert them back in the tree
+            for (int i = 0; i < nodesOfInterest.Count; i++)
+            {
+                var node = nodesOfInterest[i];
+                node.Start = node.CachedAbsoluteStart;
+                node.End = node.CachedAbsoluteEnd;
+                NodeAcceptEdit(node, offset, offset + length, textLength, forceMoveMarkers);
+                node.MaxEnd = node.End;
+                RbTreeInsert(node);
+
+                // Update ModelDecoration.Range
+                if (node.Decoration != null)
+                {
+                    node.Decoration.Range = new TextRange(node.Start, node.End);
+                }
+            }
+            NormalizeDeltaIfNeeded();
+        }
+
+        #endregion
+
+        #region Delta Normalization
+
+        private void NormalizeDeltaIfNeeded()
+        {
+            if (!_normalizePending)
             {
                 return;
             }
+            _normalizePending = false;
+            NormalizeDelta();
+        }
 
-            CollectOverlaps(node.Left, range, ownerFilter, target);
+        /// <summary>
+        /// In-order traversal to apply accumulated deltas to start/end and reset delta to 0.
+        /// Uses iterative approach to avoid stack allocations.
+        /// </summary>
+        private void NormalizeDelta()
+        {
+            var node = _root;
+            int delta = 0;
 
-            var currentRange = node.Decoration.Range;
-            bool overlaps;
-            if (currentRange.IsEmpty)
+            while (node != Sentinel)
             {
-                // TS Parity: Empty range uses [start, end) semantics (startOffset < endOffset, not <=)
-                // Reference: ts/src/vs/editor/common/model/intervalTree.ts:240-242
-                overlaps = currentRange.StartOffset >= queryStart && currentRange.StartOffset < queryEndExclusive;
-            }
-            else
-            {
-                overlaps = currentRange.StartOffset < queryEndExclusive && currentRange.EndOffset > queryStart;
-            }
-
-            if (overlaps)
-            {
-                if (ownerFilter == DecorationOwnerIds.Any || node.Decoration.OwnerId == ownerFilter)
+                if (node.Left != Sentinel && !node.Left.IsVisited())
                 {
-                    target.Add(node.Decoration);
+                    // go left
+                    node = node.Left;
+                    continue;
+                }
+
+                if (node.Right != Sentinel && !node.Right.IsVisited())
+                {
+                    // go right
+                    delta += node.Delta;
+                    node = node.Right;
+                    continue;
+                }
+
+                // handle current node
+                node.Start = delta + node.Start;
+                node.End = delta + node.End;
+                node.Delta = 0;
+                RecomputeMaxEnd(node);
+
+                node.SetIsVisited(true);
+
+                // going up from this node
+                node.Left.SetIsVisited(false);
+                node.Right.SetIsVisited(false);
+                if (node == node.Parent.Right)
+                {
+                    delta -= node.Parent.Delta;
+                }
+                node = node.Parent;
+            }
+
+            _root.SetIsVisited(false);
+        }
+
+        #endregion
+
+        #region Editing
+
+        private enum MarkerMoveSemantics
+        {
+            MarkerDefined = 0,
+            ForceMove = 1,
+            ForceStay = 2
+        }
+
+        private static bool AdjustMarkerBeforeColumn(int markerOffset, bool markerStickToPreviousCharacter, int checkOffset, MarkerMoveSemantics moveSemantics)
+        {
+            if (markerOffset < checkOffset)
+            {
+                return true;
+            }
+            if (markerOffset > checkOffset)
+            {
+                return false;
+            }
+            if (moveSemantics == MarkerMoveSemantics.ForceMove)
+            {
+                return false;
+            }
+            if (moveSemantics == MarkerMoveSemantics.ForceStay)
+            {
+                return true;
+            }
+            return markerStickToPreviousCharacter;
+        }
+
+        /// <summary>
+        /// Apply edit to a single node. Mirrors TS nodeAcceptEdit.
+        /// </summary>
+        private static void NodeAcceptEdit(IntervalNode node, int start, int end, int textLength, bool forceMoveMarkers)
+        {
+            var nodeStickiness = node.GetStickiness();
+            var startStickToPreviousCharacter = (
+                nodeStickiness == TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges ||
+                nodeStickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingBefore
+            );
+            var endStickToPreviousCharacter = (
+                nodeStickiness == TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges ||
+                nodeStickiness == TrackedRangeStickiness.GrowsOnlyWhenTypingBefore
+            );
+
+            var deletingCnt = end - start;
+            var insertingCnt = textLength;
+            var commonLength = Math.Min(deletingCnt, insertingCnt);
+
+            var nodeStart = node.Start;
+            var startDone = false;
+
+            var nodeEnd = node.End;
+            var endDone = false;
+
+            if (start <= nodeStart && nodeEnd <= end && node.GetCollapseOnReplaceEdit())
+            {
+                // This edit encompasses the entire decoration range
+                // and the decoration has asked to become collapsed
+                node.Start = start;
+                startDone = true;
+                node.End = start;
+                endDone = true;
+            }
+
+            {
+                var moveSemantics = forceMoveMarkers ? MarkerMoveSemantics.ForceMove : (deletingCnt > 0 ? MarkerMoveSemantics.ForceStay : MarkerMoveSemantics.MarkerDefined);
+                if (!startDone && AdjustMarkerBeforeColumn(nodeStart, startStickToPreviousCharacter, start, moveSemantics))
+                {
+                    startDone = true;
+                }
+                if (!endDone && AdjustMarkerBeforeColumn(nodeEnd, endStickToPreviousCharacter, start, moveSemantics))
+                {
+                    endDone = true;
                 }
             }
 
-            if (currentRange.StartOffset < queryEndExclusive)
+            if (commonLength > 0 && !forceMoveMarkers)
             {
-                CollectOverlaps(node.Right, range, ownerFilter, target);
-            }
-        }
-
-        private void InsertNode(Node node)
-        {
-            Node? parent = null;
-            var current = _root;
-            while (current != null)
-            {
-                parent = current;
-                current = Compare(node, current) < 0 ? current.Left : current.Right;
-            }
-
-            node.Parent = parent;
-            if (parent == null)
-            {
-                _root = node;
-            }
-            else if (Compare(node, parent) < 0)
-            {
-                parent.Left = node;
-            }
-            else
-            {
-                parent.Right = node;
-            }
-
-            FixInsert(node);
-        }
-
-        private void DeleteNode(Node node)
-        {
-            var y = node;
-            var yOriginalColor = y.Color;
-            Node? x;
-            Node? xParent;
-
-            if (node.Left == null)
-            {
-                x = node.Right;
-                xParent = node.Parent;
-                Transplant(node, node.Right);
-            }
-            else if (node.Right == null)
-            {
-                x = node.Left;
-                xParent = node.Parent;
-                Transplant(node, node.Left);
-            }
-            else
-            {
-                y = Minimum(node.Right)!;
-                yOriginalColor = y.Color;
-                x = y.Right;
-                xParent = y.Parent;
-
-                if (y.Parent == node)
+                var moveSemantics = deletingCnt > insertingCnt ? MarkerMoveSemantics.ForceStay : MarkerMoveSemantics.MarkerDefined;
+                if (!startDone && AdjustMarkerBeforeColumn(nodeStart, startStickToPreviousCharacter, start + commonLength, moveSemantics))
                 {
-                    xParent = y;
+                    startDone = true;
                 }
-                else
+                if (!endDone && AdjustMarkerBeforeColumn(nodeEnd, endStickToPreviousCharacter, start + commonLength, moveSemantics))
                 {
-                    Transplant(y, y.Right);
-                    y.Right = node.Right;
-                    if (y.Right != null)
+                    endDone = true;
+                }
+            }
+
+            {
+                var moveSemantics = forceMoveMarkers ? MarkerMoveSemantics.ForceMove : MarkerMoveSemantics.MarkerDefined;
+                if (!startDone && AdjustMarkerBeforeColumn(nodeStart, startStickToPreviousCharacter, end, moveSemantics))
+                {
+                    node.Start = start + insertingCnt;
+                    startDone = true;
+                }
+                if (!endDone && AdjustMarkerBeforeColumn(nodeEnd, endStickToPreviousCharacter, end, moveSemantics))
+                {
+                    node.End = start + insertingCnt;
+                    endDone = true;
+                }
+            }
+
+            // Finish
+            var deltaColumn = insertingCnt - deletingCnt;
+            if (!startDone)
+            {
+                node.Start = Math.Max(0, nodeStart + deltaColumn);
+            }
+            if (!endDone)
+            {
+                node.End = Math.Max(0, nodeEnd + deltaColumn);
+            }
+
+            if (node.Start > node.End)
+            {
+                node.End = node.Start;
+            }
+        }
+
+        /// <summary>
+        /// Search for nodes that intersect with the edit range.
+        /// </summary>
+        private List<IntervalNode> SearchForEditing(int start, int end)
+        {
+            var node = _root;
+            int delta = 0;
+            int nodeMaxEnd;
+            int nodeStart;
+            int nodeEnd;
+            var result = new List<IntervalNode>();
+
+            while (node != Sentinel)
+            {
+                if (node.IsVisited())
+                {
+                    // going up from this node
+                    node.Left.SetIsVisited(false);
+                    node.Right.SetIsVisited(false);
+                    if (node == node.Parent.Right)
                     {
-                        y.Right.Parent = y;
+                        delta -= node.Parent.Delta;
+                    }
+                    node = node.Parent;
+                    continue;
+                }
+
+                if (!node.Left.IsVisited())
+                {
+                    // first time seeing this node
+                    nodeMaxEnd = delta + node.MaxEnd;
+                    if (nodeMaxEnd < start)
+                    {
+                        // cover case b) from above
+                        // there is no need to search this node or its children
+                        node.SetIsVisited(true);
+                        continue;
+                    }
+
+                    if (node.Left != Sentinel)
+                    {
+                        // go left
+                        node = node.Left;
+                        continue;
                     }
                 }
 
-                Transplant(node, y);
-                y.Left = node.Left;
-                if (y.Left != null)
+                // handle current node
+                nodeStart = delta + node.Start;
+                if (nodeStart > end)
+                {
+                    // cover case a) from above
+                    // there is no need to search this node or its right subtree
+                    node.SetIsVisited(true);
+                    continue;
+                }
+
+                nodeEnd = delta + node.End;
+                if (nodeEnd >= start)
+                {
+                    node.SetCachedOffsets(nodeStart, nodeEnd, 0);
+                    result.Add(node);
+                }
+                node.SetIsVisited(true);
+
+                if (node.Right != Sentinel && !node.Right.IsVisited())
+                {
+                    // go right
+                    delta += node.Delta;
+                    node = node.Right;
+                    continue;
+                }
+            }
+
+            _root.SetIsVisited(false);
+            return result;
+        }
+
+        /// <summary>
+        /// Apply edit delta to nodes not in the edit range (lazy update).
+        /// </summary>
+        private void NoOverlapReplace(int start, int end, int textLength)
+        {
+            var node = _root;
+            int delta = 0;
+            int nodeMaxEnd;
+            int nodeStart;
+            var editDelta = textLength - (end - start);
+
+            while (node != Sentinel)
+            {
+                if (node.IsVisited())
+                {
+                    // going up from this node
+                    node.Left.SetIsVisited(false);
+                    node.Right.SetIsVisited(false);
+                    if (node == node.Parent.Right)
+                    {
+                        delta -= node.Parent.Delta;
+                    }
+                    RecomputeMaxEnd(node);
+                    node = node.Parent;
+                    continue;
+                }
+
+                if (!node.Left.IsVisited())
+                {
+                    // first time seeing this node
+                    nodeMaxEnd = delta + node.MaxEnd;
+                    if (nodeMaxEnd < start)
+                    {
+                        // cover case b) from above
+                        // there is no need to search this node or its children
+                        node.SetIsVisited(true);
+                        continue;
+                    }
+
+                    if (node.Left != Sentinel)
+                    {
+                        // go left
+                        node = node.Left;
+                        continue;
+                    }
+                }
+
+                // handle current node
+                nodeStart = delta + node.Start;
+                if (nodeStart > end)
+                {
+                    // This node is after the edit - apply delta lazily
+                    node.Start += editDelta;
+                    node.End += editDelta;
+                    node.Delta += editDelta;
+                    if (node.Delta < MinSafeDelta || node.Delta > MaxSafeDelta)
+                    {
+                        RequestNormalize();
+                    }
+                    // cover case a) from above
+                    // there is no need to search this node or its right subtree
+                    node.SetIsVisited(true);
+                    continue;
+                }
+
+                node.SetIsVisited(true);
+
+                if (node.Right != Sentinel && !node.Right.IsVisited())
+                {
+                    // go right
+                    delta += node.Delta;
+                    node = node.Right;
+                    continue;
+                }
+            }
+
+            _root.SetIsVisited(false);
+        }
+
+        #endregion
+
+        #region Interval Search
+
+        /// <summary>
+        /// Iterative interval search using IsVisited flags.
+        /// Mirrors TS intervalSearch function for stack-safety with deep trees.
+        /// </summary>
+        private void IntervalSearch(IntervalNode startNode, int intervalStart, int intervalEnd, int ownerFilter, List<ModelDecoration> result, int initialDelta)
+        {
+            // https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree
+            // Now, it is known that two intervals A and B overlap only when both
+            // A.low <= B.high and A.high >= B.low. When searching the trees for
+            // nodes overlapping with a given interval, you can immediately skip:
+            //  a) all nodes to the right of nodes whose low value is past the end of the given interval.
+            //  b) all nodes that have their maximum 'high' value below the start of the given interval.
+
+            var node = startNode;
+            int delta = initialDelta;
+            int nodeMaxEnd;
+            int nodeStart;
+            int nodeEnd;
+
+            while (node != Sentinel)
+            {
+                if (node.IsVisited())
+                {
+                    // going up from this node
+                    node.Left.SetIsVisited(false);
+                    node.Right.SetIsVisited(false);
+                    if (node == node.Parent.Right)
+                    {
+                        delta -= node.Parent.Delta;
+                    }
+                    node = node.Parent;
+                    continue;
+                }
+
+                if (!node.Left.IsVisited())
+                {
+                    // first time seeing this node
+                    nodeMaxEnd = delta + node.MaxEnd;
+                    if (nodeMaxEnd < intervalStart)
+                    {
+                        // cover case b) from above
+                        // there is no need to search this node or its children
+                        node.SetIsVisited(true);
+                        continue;
+                    }
+
+                    if (node.Left != Sentinel)
+                    {
+                        // go left
+                        node = node.Left;
+                        continue;
+                    }
+                }
+
+                // handle current node
+                nodeStart = delta + node.Start;
+                if (nodeStart > intervalEnd)
+                {
+                    // cover case a) from above
+                    // there is no need to search this node or its right subtree
+                    node.SetIsVisited(true);
+                    continue;
+                }
+
+                nodeEnd = delta + node.End;
+
+                if (nodeEnd >= intervalStart)
+                {
+                    // Cache absolute offsets even if filters exclude the node, matching TS semantics.
+                    node.SetCachedOffsets(nodeStart, nodeEnd, 0);
+                    if (node.Decoration != null && DecorationOwnerIds.MatchesFilter(ownerFilter, node.OwnerId))
+                    {
+                        node.Decoration.Range = new TextRange(nodeStart, nodeEnd);
+                        result.Add(node.Decoration);
+                    }
+                }
+
+                node.SetIsVisited(true);
+
+                if (node.Right != Sentinel && !node.Right.IsVisited())
+                {
+                    // go right
+                    delta += node.Delta;
+                    node = node.Right;
+                    continue;
+                }
+            }
+
+            _root.SetIsVisited(false);
+        }
+
+        #endregion
+
+        #region Red-Black Tree Operations
+
+        private void RbTreeInsert(IntervalNode newNode)
+        {
+            if (_root == Sentinel)
+            {
+                newNode.Parent = Sentinel;
+                newNode.Left = Sentinel;
+                newNode.Right = Sentinel;
+                newNode.SetColor(false); // Black
+                _root = newNode;
+                return;
+            }
+
+            TreeInsert(newNode);
+            RecomputeMaxEndWalkToRoot(newNode.Parent);
+
+            // Repair tree
+            var x = newNode;
+            while (x != _root && x.Parent.IsRed())
+            {
+                if (x.Parent == x.Parent.Parent.Left)
+                {
+                    var y = x.Parent.Parent.Right;
+
+                    if (y.IsRed())
+                    {
+                        x.Parent.SetColor(false);
+                        y.SetColor(false);
+                        x.Parent.Parent.SetColor(true);
+                        x = x.Parent.Parent;
+                    }
+                    else
+                    {
+                        if (x == x.Parent.Right)
+                        {
+                            x = x.Parent;
+                            LeftRotate(x);
+                        }
+                        x.Parent.SetColor(false);
+                        x.Parent.Parent.SetColor(true);
+                        RightRotate(x.Parent.Parent);
+                    }
+                }
+                else
+                {
+                    var y = x.Parent.Parent.Left;
+
+                    if (y.IsRed())
+                    {
+                        x.Parent.SetColor(false);
+                        y.SetColor(false);
+                        x.Parent.Parent.SetColor(true);
+                        x = x.Parent.Parent;
+                    }
+                    else
+                    {
+                        if (x == x.Parent.Left)
+                        {
+                            x = x.Parent;
+                            RightRotate(x);
+                        }
+                        x.Parent.SetColor(false);
+                        x.Parent.Parent.SetColor(true);
+                        LeftRotate(x.Parent.Parent);
+                    }
+                }
+            }
+
+            _root.SetColor(false); // Black
+        }
+
+        private void TreeInsert(IntervalNode z)
+        {
+            int delta = 0;
+            var x = _root;
+            var zAbsoluteStart = z.Start;
+            var zAbsoluteEnd = z.End;
+
+            while (true)
+            {
+                var cmp = IntervalCompare(zAbsoluteStart, zAbsoluteEnd, x.Start + delta, x.End + delta);
+                if (cmp < 0)
+                {
+                    // this node should be inserted to the left
+                    // => it is not affected by the node's delta
+                    if (x.Left == Sentinel)
+                    {
+                        z.Start -= delta;
+                        z.End -= delta;
+                        z.MaxEnd -= delta;
+                        x.Left = z;
+                        break;
+                    }
+                    else
+                    {
+                        x = x.Left;
+                    }
+                }
+                else
+                {
+                    // this node should be inserted to the right
+                    // => it is affected by the node's delta
+                    if (x.Right == Sentinel)
+                    {
+                        z.Start -= (delta + x.Delta);
+                        z.End -= (delta + x.Delta);
+                        z.MaxEnd -= (delta + x.Delta);
+                        x.Right = z;
+                        break;
+                    }
+                    else
+                    {
+                        delta += x.Delta;
+                        x = x.Right;
+                    }
+                }
+            }
+
+            z.Parent = x;
+            z.Left = Sentinel;
+            z.Right = Sentinel;
+            z.SetColor(true); // Red
+        }
+
+        private void RbTreeDelete(IntervalNode z)
+        {
+            IntervalNode x;
+            IntervalNode y;
+
+            if (z.Left == Sentinel)
+            {
+                x = z.Right;
+                y = z;
+
+                // x's delta is no longer influenced by z's delta
+                x.Delta += z.Delta;
+                if (x.Delta < MinSafeDelta || x.Delta > MaxSafeDelta)
+                {
+                    RequestNormalize();
+                }
+                x.Start += z.Delta;
+                x.End += z.Delta;
+            }
+            else if (z.Right == Sentinel)
+            {
+                x = z.Left;
+                y = z;
+            }
+            else
+            {
+                y = Leftest(z.Right);
+                x = y.Right;
+
+                // y's delta is no longer influenced by z's delta,
+                // but we don't want to walk the entire right-hand-side subtree of x.
+                // we therefore maintain z's delta in y, and adjust only x
+                x.Start += y.Delta;
+                x.End += y.Delta;
+                x.Delta += y.Delta;
+                if (x.Delta < MinSafeDelta || x.Delta > MaxSafeDelta)
+                {
+                    RequestNormalize();
+                }
+
+                y.Start += z.Delta;
+                y.End += z.Delta;
+                y.Delta = z.Delta;
+                if (y.Delta < MinSafeDelta || y.Delta > MaxSafeDelta)
+                {
+                    RequestNormalize();
+                }
+            }
+
+            if (y == _root)
+            {
+                _root = x;
+                x.SetColor(false); // Black
+
+                z.Detach();
+                ResetSentinel();
+                RecomputeMaxEnd(x);
+                _root.Parent = Sentinel;
+                return;
+            }
+
+            var yWasRed = y.IsRed();
+
+            if (y == y.Parent.Left)
+            {
+                y.Parent.Left = x;
+            }
+            else
+            {
+                y.Parent.Right = x;
+            }
+
+            if (y == z)
+            {
+                x.Parent = y.Parent;
+            }
+            else
+            {
+                if (y.Parent == z)
+                {
+                    x.Parent = y;
+                }
+                else
+                {
+                    x.Parent = y.Parent;
+                }
+
+                y.Left = z.Left;
+                y.Right = z.Right;
+                y.Parent = z.Parent;
+                y.SetColor(z.IsRed());
+
+                if (z == _root)
+                {
+                    _root = y;
+                }
+                else
+                {
+                    if (z == z.Parent.Left)
+                    {
+                        z.Parent.Left = y;
+                    }
+                    else
+                    {
+                        z.Parent.Right = y;
+                    }
+                }
+
+                if (y.Left != Sentinel)
                 {
                     y.Left.Parent = y;
                 }
-                y.Color = node.Color;
-                y.Recompute();
-                UpdateMetadataUpwards(y);
-            }
-
-            UpdateMetadataUpwards(xParent);
-
-            if (yOriginalColor == NodeColor.Black)
-            {
-                FixDelete(x, xParent);
-            }
-        }
-
-        private void FixInsert(Node node)
-        {
-            while (node.Parent?.Color == NodeColor.Red)
-            {
-                var parent = node.Parent;
-                var grandparent = parent.Parent;
-                if (grandparent == null)
+                if (y.Right != Sentinel)
                 {
-                    break;
+                    y.Right.Parent = y;
                 }
+            }
 
-                if (parent == grandparent.Left)
+            z.Detach();
+
+            if (yWasRed)
+            {
+                RecomputeMaxEndWalkToRoot(x.Parent);
+                if (y != z)
                 {
-                    var uncle = grandparent.Right;
-                    if (uncle?.Color == NodeColor.Red)
+                    RecomputeMaxEndWalkToRoot(y);
+                    RecomputeMaxEndWalkToRoot(y.Parent);
+                }
+                ResetSentinel();
+                return;
+            }
+
+            RecomputeMaxEndWalkToRoot(x);
+            RecomputeMaxEndWalkToRoot(x.Parent);
+            if (y != z)
+            {
+                RecomputeMaxEndWalkToRoot(y);
+                RecomputeMaxEndWalkToRoot(y.Parent);
+            }
+
+            // RB-DELETE-FIXUP
+            while (x != _root && x.IsBlack())
+            {
+                if (x == x.Parent.Left)
+                {
+                    var w = x.Parent.Right;
+
+                    if (w.IsRed())
                     {
-                        parent.Color = NodeColor.Black;
-                        uncle.Color = NodeColor.Black;
-                        grandparent.Color = NodeColor.Red;
-                        node = grandparent;
+                        w.SetColor(false);
+                        x.Parent.SetColor(true);
+                        LeftRotate(x.Parent);
+                        w = x.Parent.Right;
+                    }
+
+                    if (w.Left.IsBlack() && w.Right.IsBlack())
+                    {
+                        w.SetColor(true);
+                        x = x.Parent;
                     }
                     else
                     {
-                        if (node == parent.Right)
+                        if (w.Right.IsBlack())
                         {
-                            node = parent;
-                            RotateLeft(node);
+                            w.Left.SetColor(false);
+                            w.SetColor(true);
+                            RightRotate(w);
+                            w = x.Parent.Right;
                         }
 
-                        parent.Color = NodeColor.Black;
-                        grandparent.Color = NodeColor.Red;
-                        RotateRight(grandparent);
+                        w.SetColor(x.Parent.IsRed());
+                        x.Parent.SetColor(false);
+                        w.Right.SetColor(false);
+                        LeftRotate(x.Parent);
+                        x = _root;
                     }
                 }
                 else
                 {
-                    var uncle = grandparent.Left;
-                    if (uncle?.Color == NodeColor.Red)
+                    var w = x.Parent.Left;
+
+                    if (w.IsRed())
                     {
-                        parent.Color = NodeColor.Black;
-                        uncle.Color = NodeColor.Black;
-                        grandparent.Color = NodeColor.Red;
-                        node = grandparent;
+                        w.SetColor(false);
+                        x.Parent.SetColor(true);
+                        RightRotate(x.Parent);
+                        w = x.Parent.Left;
+                    }
+
+                    if (w.Left.IsBlack() && w.Right.IsBlack())
+                    {
+                        w.SetColor(true);
+                        x = x.Parent;
                     }
                     else
                     {
-                        if (node == parent.Left)
+                        if (w.Left.IsBlack())
                         {
-                            node = parent;
-                            RotateRight(node);
+                            w.Right.SetColor(false);
+                            w.SetColor(true);
+                            LeftRotate(w);
+                            w = x.Parent.Left;
                         }
 
-                        parent.Color = NodeColor.Black;
-                        grandparent.Color = NodeColor.Red;
-                        RotateLeft(grandparent);
+                        w.SetColor(x.Parent.IsRed());
+                        x.Parent.SetColor(false);
+                        w.Left.SetColor(false);
+                        RightRotate(x.Parent);
+                        x = _root;
                     }
                 }
             }
 
-            if (_root != null)
-            {
-                _root.Color = NodeColor.Black;
-            }
-            UpdateMetadataUpwards(node);
+            x.SetColor(false); // Black
+            ResetSentinel();
         }
 
-        private void FixDelete(Node? node, Node? parent)
+        private static IntervalNode Leftest(IntervalNode node)
         {
-            while ((node != _root) && (node == null || node.Color == NodeColor.Black))
+            while (node.Left != Sentinel)
             {
-                if (parent == null)
-                {
-                    break;
-                }
-
-                if (node == parent.Left)
-                {
-                    var sibling = parent.Right;
-                    if (sibling?.Color == NodeColor.Red)
-                    {
-                        sibling.Color = NodeColor.Black;
-                        parent.Color = NodeColor.Red;
-                        RotateLeft(parent);
-                        sibling = parent.Right;
-                    }
-
-                    if ((sibling?.Left == null || sibling.Left.Color == NodeColor.Black) &&
-                        (sibling?.Right == null || sibling.Right.Color == NodeColor.Black))
-                    {
-                        if (sibling != null)
-                        {
-                            sibling.Color = NodeColor.Red;
-                        }
-                        node = parent;
-                        parent = parent.Parent;
-                    }
-                    else
-                    {
-                        if (sibling?.Right == null || sibling.Right.Color == NodeColor.Black)
-                        {
-                            if (sibling?.Left != null)
-                            {
-                                sibling.Left.Color = NodeColor.Black;
-                            }
-                            if (sibling != null)
-                            {
-                                sibling.Color = NodeColor.Red;
-                                RotateRight(sibling);
-                            }
-                            sibling = parent.Right;
-                        }
-
-                        if (sibling != null)
-                        {
-                            sibling.Color = parent.Color;
-                            if (sibling.Right != null)
-                            {
-                                sibling.Right.Color = NodeColor.Black;
-                            }
-                        }
-
-                        parent.Color = NodeColor.Black;
-                        RotateLeft(parent);
-                        node = _root;
-                        break;
-                    }
-                }
-                else
-                {
-                    var sibling = parent.Left;
-                    if (sibling?.Color == NodeColor.Red)
-                    {
-                        sibling.Color = NodeColor.Black;
-                        parent.Color = NodeColor.Red;
-                        RotateRight(parent);
-                        sibling = parent.Left;
-                    }
-
-                    if ((sibling?.Right == null || sibling.Right.Color == NodeColor.Black) &&
-                        (sibling?.Left == null || sibling.Left.Color == NodeColor.Black))
-                    {
-                        if (sibling != null)
-                        {
-                            sibling.Color = NodeColor.Red;
-                        }
-                        node = parent;
-                        parent = parent.Parent;
-                    }
-                    else
-                    {
-                        if (sibling?.Left == null || sibling.Left.Color == NodeColor.Black)
-                        {
-                            if (sibling?.Right != null)
-                            {
-                                sibling.Right.Color = NodeColor.Black;
-                            }
-                            if (sibling != null)
-                            {
-                                sibling.Color = NodeColor.Red;
-                                RotateLeft(sibling);
-                            }
-                            sibling = parent.Left;
-                        }
-
-                        if (sibling != null)
-                        {
-                            sibling.Color = parent.Color;
-                            if (sibling.Left != null)
-                            {
-                                sibling.Left.Color = NodeColor.Black;
-                            }
-                        }
-
-                        parent.Color = NodeColor.Black;
-                        RotateRight(parent);
-                        node = _root;
-                        break;
-                    }
-                }
+                node = node.Left;
             }
-
-            if (node != null)
-            {
-                node.Color = NodeColor.Black;
-            }
+            return node;
         }
 
-        private void RotateLeft(Node node)
+        private void ResetSentinel()
         {
-            var pivot = node.Right;
-            if (pivot == null)
-            {
-                return;
-            }
+            Sentinel.Parent = Sentinel;
+            Sentinel.Left = Sentinel;
+            Sentinel.Right = Sentinel;
+            Sentinel.Delta = 0;
+            Sentinel.Start = 0;
+            Sentinel.End = 0;
+            Sentinel.SetIsVisited(false);
+        }
 
-            node.Right = pivot.Left;
-            if (pivot.Left != null)
-            {
-                pivot.Left.Parent = node;
-            }
+        #endregion
 
-            pivot.Parent = node.Parent;
-            if (node.Parent == null)
+        #region Rotations
+
+        private void LeftRotate(IntervalNode x)
+        {
+            var y = x.Right;
+
+            y.Delta += x.Delta;
+            if (y.Delta < MinSafeDelta || y.Delta > MaxSafeDelta)
             {
-                _root = pivot;
+                RequestNormalize();
             }
-            else if (node == node.Parent.Left)
+            y.Start += x.Delta;
+            y.End += x.Delta;
+
+            x.Right = y.Left;
+            if (y.Left != Sentinel)
             {
-                node.Parent.Left = pivot;
+                y.Left.Parent = x;
+            }
+            y.Parent = x.Parent;
+            if (x.Parent == Sentinel)
+            {
+                _root = y;
+            }
+            else if (x == x.Parent.Left)
+            {
+                x.Parent.Left = y;
             }
             else
             {
-                node.Parent.Right = pivot;
+                x.Parent.Right = y;
             }
 
-            pivot.Left = node;
-            node.Parent = pivot;
+            y.Left = x;
+            x.Parent = y;
 
-            node.Recompute();
-            pivot.Recompute();
-            UpdateMetadataUpwards(pivot.Parent);
+            RecomputeMaxEnd(x);
+            RecomputeMaxEnd(y);
         }
 
-        private void RotateRight(Node node)
+        private void RightRotate(IntervalNode y)
         {
-            var pivot = node.Left;
-            if (pivot == null)
-            {
-                return;
-            }
+            var x = y.Left;
 
-            node.Left = pivot.Right;
-            if (pivot.Right != null)
+            y.Delta -= x.Delta;
+            if (y.Delta < MinSafeDelta || y.Delta > MaxSafeDelta)
             {
-                pivot.Right.Parent = node;
+                RequestNormalize();
             }
+            y.Start -= x.Delta;
+            y.End -= x.Delta;
 
-            pivot.Parent = node.Parent;
-            if (node.Parent == null)
+            y.Left = x.Right;
+            if (x.Right != Sentinel)
             {
-                _root = pivot;
+                x.Right.Parent = y;
             }
-            else if (node == node.Parent.Right)
+            x.Parent = y.Parent;
+            if (y.Parent == Sentinel)
             {
-                node.Parent.Right = pivot;
+                _root = x;
+            }
+            else if (y == y.Parent.Right)
+            {
+                y.Parent.Right = x;
             }
             else
             {
-                node.Parent.Left = pivot;
+                y.Parent.Left = x;
             }
 
-            pivot.Right = node;
-            node.Parent = pivot;
+            x.Right = y;
+            y.Parent = x;
 
-            node.Recompute();
-            pivot.Recompute();
-            UpdateMetadataUpwards(pivot.Parent);
+            RecomputeMaxEnd(y);
+            RecomputeMaxEnd(x);
         }
 
-        private void Transplant(Node? u, Node? v)
+        #endregion
+
+        #region MaxEnd Computation
+
+        private static int ComputeMaxEnd(IntervalNode node)
         {
-            if (u?.Parent == null)
+            int maxEnd = node.End;
+            if (node.Left != Sentinel)
             {
-                _root = v;
+                var leftMaxEnd = node.Left.MaxEnd;
+                if (leftMaxEnd > maxEnd)
+                {
+                    maxEnd = leftMaxEnd;
+                }
             }
-            else if (u == u.Parent.Left)
+            if (node.Right != Sentinel)
             {
-                u.Parent.Left = v;
+                var rightMaxEnd = node.Right.MaxEnd + node.Delta;
+                if (rightMaxEnd > maxEnd)
+                {
+                    maxEnd = rightMaxEnd;
+                }
             }
-            else
-            {
-                u.Parent.Right = v;
-            }
-
-            if (v != null)
-            {
-                v.Parent = u?.Parent;
-            }
-
-            UpdateMetadataUpwards(v?.Parent);
+            return maxEnd;
         }
 
-        private int Compare(Node left, Node right)
+        private static void RecomputeMaxEnd(IntervalNode node)
         {
-            var startComparison = left.Decoration.Range.StartOffset.CompareTo(right.Decoration.Range.StartOffset);
-            if (startComparison != 0)
-            {
-                return startComparison;
-            }
-
-            var endComparison = left.Decoration.Range.EndOffset.CompareTo(right.Decoration.Range.EndOffset);
-            if (endComparison != 0)
-            {
-                return endComparison;
-            }
-
-            return string.CompareOrdinal(left.Decoration.Id, right.Decoration.Id);
+            node.MaxEnd = ComputeMaxEnd(node);
         }
 
-        private Node? Minimum(Node? node)
+        private void RecomputeMaxEndWalkToRoot(IntervalNode node)
         {
+            while (node != Sentinel)
+            {
+                var maxEnd = ComputeMaxEnd(node);
+                if (node.MaxEnd == maxEnd)
+                {
+                    // no need to go further
+                    return;
+                }
+                node.MaxEnd = maxEnd;
+                node = node.Parent;
+            }
+        }
+
+        #endregion
+
+        #region Utils
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int IntervalCompare(int aStart, int aEnd, int bStart, int bEnd)
+        {
+            if (aStart == bStart)
+            {
+                return aEnd - bEnd;
+            }
+            return aStart - bStart;
+        }
+
+        private IntervalNode Minimum(IntervalNode node)
+        {
+            if (node == Sentinel)
+            {
+                return Sentinel;
+            }
             var current = node;
-            while (current?.Left != null)
+            while (current.Left != Sentinel)
             {
                 current = current.Left;
             }
-
             return current;
         }
 
-        private Node? Successor(Node node)
+        private IntervalNode Successor(IntervalNode node)
         {
-            if (node.Right != null)
+            if (node == Sentinel)
+            {
+                return Sentinel;
+            }
+            if (node.Right != Sentinel)
             {
                 return Minimum(node.Right);
             }
 
             var current = node;
             var parent = current.Parent;
-            while (parent != null && current == parent.Right)
+            while (parent != Sentinel && current == parent.Right)
             {
                 current = parent;
                 parent = parent.Parent;
             }
-
             return parent;
         }
 
-        private Node? FindFirstNodeStartingAtOrAfter(int startOffset)
+        /// <summary>
+        /// Delta-aware BST search so we can locate the starting node without eagerly normalizing the tree.
+        /// </summary>
+        private IntervalNode FindFirstNodeStartingAtOrAfter(int startOffset)
         {
-            Node? current = _root;
-            Node? candidate = null;
-            while (current != null)
+            var current = _root;
+            var candidate = Sentinel;
+            int delta = 0;
+
+            while (current != Sentinel)
             {
-                if (current.Decoration.Range.StartOffset >= startOffset)
+                var absoluteStart = current.Start + delta;
+                if (absoluteStart >= startOffset)
                 {
                     candidate = current;
                     current = current.Left;
+                    continue;
                 }
-                else
+
+                if (current.Right == Sentinel)
                 {
-                    current = current.Right;
+                    break;
                 }
+
+                delta += current.Delta;
+                current = current.Right;
             }
 
             return candidate;
         }
 
-        private void UpdateMetadataUpwards(Node? node)
-        {
-            var current = node;
-            while (current != null)
-            {
-                current.Recompute();
-                current = current.Parent;
-            }
-        }
+        #endregion
     }
 }

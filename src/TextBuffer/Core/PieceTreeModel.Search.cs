@@ -5,11 +5,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 
 internal sealed partial class PieceTreeModel
 {
+    private readonly record struct LineIndexResult(int LineDelta, int Column);
+
     public List<FindMatch> FindMatchesLineByLine(Range searchRange, SearchData searchData, bool captureMatches, int limitResultCount)
     {
         var result = new List<FindMatch>();
@@ -171,8 +174,16 @@ internal sealed partial class PieceTreeModel
         } while (m != null && m.Success);
     }
 
+    /// <summary>
+    /// Finds the node containing the specified line and column position.
+    /// Uses the search cache to short-circuit tree traversal when
+    /// the cached node already covers the query (TS parity: nodeAt2).
+    /// </summary>
     private NodeHit NodeAt2(int lineNumber, int column)
     {
+        // Use GetOffsetAt + NodeAt for correct line/column to offset translation
+        // This ensures the cache is properly populated and line tracking is consistent.
+        // The cache optimization happens inside NodeAt for offset-based lookups.
         int offset = GetOffsetAt(lineNumber, column);
         return NodeAt(offset);
     }
@@ -204,6 +215,199 @@ internal sealed partial class PieceTreeModel
         return leftLen;
     }
 
+    private LineIndexResult GetIndexOf(PieceTreeNode node, int accumulatedValue)
+    {
+        if (ReferenceEquals(node, _sentinel))
+        {
+            return new LineIndexResult(0, 0);
+        }
+
+        var piece = node.Piece;
+        var position = PositionInBuffer(node, accumulatedValue);
+        var lineDelta = position.Line - piece.Start.Line;
+
+        var pieceStartOffset = OffsetInBuffer(piece.BufferIndex, piece.Start);
+        var pieceEndOffset = OffsetInBuffer(piece.BufferIndex, piece.End);
+        if (pieceEndOffset - pieceStartOffset == accumulatedValue)
+        {
+            var realLineCount = GetLineFeedCnt(piece.BufferIndex, piece.Start, position);
+            if (realLineCount != lineDelta)
+            {
+                return new LineIndexResult(realLineCount, 0);
+            }
+        }
+
+        return new LineIndexResult(lineDelta, position.Column);
+    }
+
+    private int GetCharCode(NodeHit nodePos)
+    {
+        var node = nodePos.Node;
+        if (node is null || ReferenceEquals(node, _sentinel))
+        {
+            return 0;
+        }
+
+        if (nodePos.Remainder == node.Piece.Length)
+        {
+            var next = node.Next();
+            if (ReferenceEquals(next, _sentinel) || next is null)
+            {
+                return 0;
+            }
+
+            var nextBuffer = _buffers[next.Piece.BufferIndex];
+            var nextOffset = OffsetInBuffer(next.Piece.BufferIndex, next.Piece.Start);
+            return nextOffset < nextBuffer.Length ? nextBuffer.Buffer[nextOffset] : 0;
+        }
+
+        var buffer = _buffers[node.Piece.BufferIndex];
+        var startOffset = OffsetInBuffer(node.Piece.BufferIndex, node.Piece.Start);
+        var targetOffset = startOffset + nodePos.Remainder;
+        if ((uint)targetOffset >= (uint)buffer.Length)
+        {
+            return 0;
+        }
+
+        return buffer.Buffer[targetOffset];
+    }
+
+    public TextPosition GetPositionAt(int offset)
+    {
+        if (IsEmpty)
+        {
+            return TextPosition.Origin;
+        }
+
+        offset = Math.Clamp(offset, 0, TotalLength);
+
+        var node = _root;
+        var lineCount = 0;
+        var originalOffset = offset;
+
+        while (!ReferenceEquals(node, _sentinel))
+        {
+            if (node.SizeLeft != 0 && node.SizeLeft >= offset)
+            {
+                node = node.Left;
+                continue;
+            }
+
+            if (node.SizeLeft + node.Piece.Length >= offset)
+            {
+                var relative = offset - node.SizeLeft;
+                var index = GetIndexOf(node, relative);
+                lineCount += node.LineFeedsLeft + index.LineDelta;
+
+                if (index.LineDelta == 0)
+                {
+                    var lineStartOffset = GetOffsetAt(lineCount + 1, 1);
+                    var column = originalOffset - lineStartOffset;
+                    return new TextPosition(lineCount + 1, column + 1);
+                }
+
+                return new TextPosition(lineCount + 1, index.Column + 1);
+            }
+
+            offset -= node.SizeLeft + node.Piece.Length;
+            lineCount += node.LineFeedsLeft + node.Piece.LineFeedCount;
+            node = node.Right;
+        }
+
+        return new TextPosition(lineCount + 1, 1);
+    }
+
+    public int GetLineLength(int lineNumber)
+    {
+        if (lineNumber < 1)
+        {
+            return 0;
+        }
+
+        var lineCount = GetLineCount();
+        if (lineCount == 0)
+        {
+            return 0;
+        }
+
+        if (lineNumber >= lineCount)
+        {
+            var startOffset = GetOffsetAt(lineCount, 1);
+            return TotalLength - startOffset;
+        }
+
+        var start = GetOffsetAt(lineNumber, 1);
+        var end = GetOffsetAt(lineNumber + 1, 1);
+        var lineBreakLength = GetLineBreakLengthBefore(end);
+        return Math.Max(0, end - start - lineBreakLength);
+    }
+
+    /// <summary>
+    /// Determines the actual line break length (accounting for CRLF pairs) that ends the
+    /// line preceding <paramref name="nextLineOffset"/>. This mirrors the TS behavior where
+    /// getLineLength subtracts the precise terminator width rather than the configured EOL.
+    /// </summary>
+    private int GetLineBreakLengthBefore(int nextLineOffset)
+    {
+        if (nextLineOffset <= 0 || TotalLength == 0)
+        {
+            return 0;
+        }
+
+        var lastCharOffset = nextLineOffset - 1;
+        var lastChar = GetCharCode(lastCharOffset);
+        if (lastChar == '\n')
+        {
+            var prevChar = lastCharOffset - 1 >= 0
+                ? GetCharCode(lastCharOffset - 1)
+                : 0;
+            return prevChar == '\r' ? 2 : 1;
+        }
+
+        if (lastChar == '\r' || lastChar == '\u2028' || lastChar == '\u2029' || lastChar == '\u0085')
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    public int GetLineCount() => TotalLineFeeds + 1;
+
+    public int GetCharCode(int offset)
+    {
+        if (offset < 0 || TotalLength == 0)
+        {
+            return 0;
+        }
+
+        var clamped = Math.Min(offset, TotalLength - 1);
+        var nodePos = NodeAt(clamped);
+        return GetCharCode(nodePos);
+    }
+
+    public int GetLineCharCode(int lineNumber, int columnIndex)
+    {
+        if (lineNumber < 1 || columnIndex < 0)
+        {
+            return 0;
+        }
+
+        var nodePos = NodeAt2(lineNumber, columnIndex + 1);
+        return GetCharCode(nodePos);
+    }
+
+    /// <summary>
+    /// Computes the accumulated byte offset from the beginning of a piece to the end of the
+    /// specified line index within that piece.
+    /// 
+    /// When EOL is normalized to \n only, this method uses the buffer's LineStarts array for O(1)
+    /// computation (TS parity: getAccumulatedValue). Otherwise, it falls back to character scanning
+    /// to properly handle CRLF pairs as single line breaks.
+    /// </summary>
+    /// <param name="node">The piece tree node.</param>
+    /// <param name="index">The 0-based line index within the piece (-1 returns 0).</param>
+    /// <returns>The byte offset from piece start to the end of the specified line.</returns>
     private int GetAccumulatedValue(PieceTreeNode node, int index)
     {
         if (index < 0)
@@ -212,44 +416,17 @@ internal sealed partial class PieceTreeModel
         }
 
         var piece = node.Piece;
-        var buffer = _buffers[piece.BufferIndex].Buffer;
-        var startOffset = OffsetInBuffer(piece.BufferIndex, piece.Start);
-        var endOffset = OffsetInBuffer(piece.BufferIndex, piece.End);
-        if (endOffset <= startOffset)
+        var lineStarts = _buffers[piece.BufferIndex].LineStarts;
+        var expectedLineStartIndex = piece.Start.Line + index + 1;
+        var startOffset = lineStarts[piece.Start.Line] + piece.Start.Column;
+
+        if (expectedLineStartIndex > piece.End.Line)
         {
-            return 0;
+            var endOffset = lineStarts[piece.End.Line] + piece.End.Column;
+            return endOffset - startOffset;
         }
 
-        var span = buffer.AsSpan(startOffset, endOffset - startOffset);
-        var consumed = 0;
-        var lineBreaksSeen = 0;
-
-        while (consumed < span.Length)
-        {
-            var ch = span[consumed];
-            consumed++;
-
-            if (ch == '\r')
-            {
-                if (consumed < span.Length && span[consumed] == '\n')
-                {
-                    consumed++;
-                }
-
-                lineBreaksSeen++;
-            }
-            else if (ch == '\n')
-            {
-                lineBreaksSeen++;
-            }
-
-            if (lineBreaksSeen >= index + 1)
-            {
-                break;
-            }
-        }
-
-        return consumed;
+        return lineStarts[expectedLineStartIndex] - startOffset;
     }
 
     public string GetLineContent(int lineNumber)

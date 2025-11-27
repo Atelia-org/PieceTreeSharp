@@ -228,18 +228,44 @@ internal sealed partial class PieceTreeModel
             return;
         }
 
+        // Step 1: Check if next node starts with LF and current value ends with CR
+        // If so, we need to "steal" the LF from the next node and append it to our value
         var adjusted = AdjustCarriageReturnFromNext(value, node);
         if (string.IsNullOrEmpty(adjusted))
         {
             return;
         }
 
+        // Step 2: Detect hitCRLF - if the change buffer currently ends with \r and 
+        // the incoming text starts with \n, we need to adjust the line starts
+        // This mirrors TS appendToNode hitCRLF logic (lines 1460-1471)
+        var hitCRLF = ShouldCheckCRLF() && StartWithLF(adjusted) && EndWithCR(node);
+        
         var changeBuffer = _buffers[ChangeBufferId];
         var oldPiece = node.Piece;
         var startOffset = changeBuffer.GetOffset(oldPiece.Start);
         var oldEndOffset = changeBuffer.GetOffset(oldPiece.End);
+        
+        // Append to buffer first (as in TS)
         var newBuffer = changeBuffer.Append(adjusted);
+        var oldLineStarts = changeBuffer.LineStarts;
         _buffers[ChangeBufferId] = newBuffer;
+
+        if (hitCRLF)
+        {
+            newBuffer = ChunkBuffer.FromText(newBuffer.Buffer);
+            _buffers[ChangeBufferId] = newBuffer;
+
+            if (oldLineStarts.Count >= 2)
+            {
+                var prevStartOffset = oldLineStarts[oldLineStarts.Count - 2];
+                _lastChangeBufferPos = new BufferCursor(Math.Max(0, _lastChangeBufferPos.Line - 1), Math.Max(0, startOffset - prevStartOffset));
+            }
+
+            var bridgeOffset = Math.Max(0, GetOffsetOfNode(node) + oldPiece.Length - 1);
+            _searchCache.InvalidateRange(bridgeOffset, 2);
+        }
+        
         var appendedLength = adjusted.Length;
         var newEndOffset = oldEndOffset + appendedLength;
         var newStartCursor = CursorFromOffset(ChangeBufferId, startOffset);
@@ -617,6 +643,19 @@ internal sealed partial class PieceTreeModel
         return ch == '\r';
     }
 
+    /// <summary>
+    /// Checks if the node's piece ends with a carriage return character.
+    /// Used for hitCRLF detection in appendToNode (TS parity).
+    /// </summary>
+    private bool EndWithCR(PieceTreeNode node)
+    {
+        if (ReferenceEquals(node, _sentinel) || node.Piece.Length == 0)
+        {
+            return false;
+        }
+        return EndWithCR(node.Piece);
+    }
+
     private static bool EndWithCR(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -721,15 +760,57 @@ internal sealed partial class PieceTreeModel
         }
 
         var changeBuffer = _buffers[ChangeBufferId];
-        var startCursor = _lastChangeBufferPos;
-        var newBuffer = changeBuffer.Append(text);
-        _buffers[ChangeBufferId] = newBuffer;
-        var endCursor = newBuffer.CreateEndCursor();
-        var lf = GetLineFeedCnt(ChangeBufferId, startCursor, endCursor);
-        var piece = CreateSegment(ChangeBufferId, startCursor, endCursor, lf);
-        pieces.Add(piece);
-        _lastChangeBufferPos = endCursor;
-        _lastChangeBufferOffset = newBuffer.Length;
+        var startOffset = changeBuffer.Length;
+        
+        // Step 3: CRLF bridge while creating new pieces
+        // Mirror TS createNewPieces (lines 1208-1223): if buffer[0] ends with \r and text starts with \n,
+        // we need to use a sentinel/placeholder character to keep LineStarts monotonic.
+        var start = _lastChangeBufferPos;
+        
+        // Check: buffer[0].lineStarts last entry == startOffset && startOffset != 0 && text starts with LF && buffer ends with CR
+        var lineStarts = changeBuffer.LineStarts;
+        if (lineStarts.Count > 0 && 
+            lineStarts[lineStarts.Count - 1] == startOffset &&
+            startOffset != 0 &&
+            StartWithLF(text) &&
+            EndWithCR(changeBuffer.Buffer))
+        {
+            // Advance _lastChangeBufferPos.column by 1 (for the placeholder)
+            _lastChangeBufferPos = new BufferCursor(_lastChangeBufferPos.Line, _lastChangeBufferPos.Column + 1);
+            start = _lastChangeBufferPos;
+            
+            // Append placeholder '_' + text to buffer
+            var textWithPlaceholder = "_" + text;
+            var newBuffer = changeBuffer.Append(textWithPlaceholder);
+            _buffers[ChangeBufferId] = newBuffer;
+            
+            // Increment startOffset to skip the placeholder
+            startOffset += 1;
+            
+            // Invalidate cache at the bridge position
+            var bridgeOffset = Math.Max(0, startOffset - 2);
+            _searchCache.InvalidateRange(bridgeOffset, 3);
+            
+            var endCursor = newBuffer.CreateEndCursor();
+            var lf = GetLineFeedCnt(ChangeBufferId, start, endCursor);
+            var piece = CreateSegment(ChangeBufferId, start, endCursor, lf);
+            pieces.Add(piece);
+            _lastChangeBufferPos = endCursor;
+            _lastChangeBufferOffset = newBuffer.Length;
+        }
+        else
+        {
+            // Normal path - no CRLF bridging needed
+            var newBuffer = changeBuffer.Append(text);
+            _buffers[ChangeBufferId] = newBuffer;
+            var endCursor = newBuffer.CreateEndCursor();
+            var lf = GetLineFeedCnt(ChangeBufferId, start, endCursor);
+            var piece = CreateSegment(ChangeBufferId, start, endCursor, lf);
+            pieces.Add(piece);
+            _lastChangeBufferPos = endCursor;
+            _lastChangeBufferOffset = newBuffer.Length;
+        }
+        
         return pieces;
     }
 

@@ -52,6 +52,13 @@ internal sealed partial class PieceTreeModel
 
     internal PieceTreeSearchCache SearchCache => _searchCache;
 
+#if DEBUG
+    /// <summary>
+    /// Gets a snapshot of the search cache diagnostics. Only available in DEBUG builds.
+    /// </summary>
+    public SearchCacheSnapshot GetSearchCacheDiagnostics() => _searchCache.Diagnostics.ToSnapshot();
+#endif
+
     public string Eol => _eol;
 
     public void NormalizeEOL(string eol)
@@ -306,6 +313,45 @@ internal sealed partial class PieceTreeModel
         {
             yield return node.Piece;
         }
+    }
+
+    internal string GetNearestChunk(int offset)
+    {
+        if (IsEmpty)
+        {
+            return string.Empty;
+        }
+
+        offset = Math.Clamp(offset, 0, TotalLength);
+        var hit = NodeAt(offset);
+        if (hit == default || ReferenceEquals(hit.Node, _sentinel))
+        {
+            return string.Empty;
+        }
+
+        if (hit.Remainder == hit.Node.Piece.Length)
+        {
+            var next = hit.Node.Next();
+            if (ReferenceEquals(next, _sentinel) || next is null)
+            {
+                return string.Empty;
+            }
+
+            var buffer = _buffers[next.Piece.BufferIndex];
+            return buffer.Slice(next.Piece.Start, next.Piece.End);
+        }
+
+        var sliceStart = hit.Remainder == 0
+            ? hit.Node.Piece.Start
+            : PositionInBuffer(hit.Node, hit.Remainder);
+
+        if (sliceStart.Equals(hit.Node.Piece.End))
+        {
+            return string.Empty;
+        }
+
+        var currentBuffer = _buffers[hit.Node.Piece.BufferIndex];
+        return currentBuffer.Slice(sliceStart, hit.Node.Piece.End);
     }
 
     public ITextSnapshot CreateSnapshot(string bom)

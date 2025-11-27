@@ -16,7 +16,6 @@ public sealed class PieceTreeBuffer
 {
 	private PieceTreeModel _model = null!;
 	private List<ChunkBuffer> _chunkBuffers = null!;
-	private LineStartTable _cachedLineMap = LineStartTable.Empty;
 	private string _cachedSnapshot = string.Empty;
 	private string _bom = string.Empty;
 	private bool _mightContainRtl;
@@ -29,7 +28,7 @@ public sealed class PieceTreeBuffer
 	internal IReadOnlyList<ChunkBuffer> InternalChunkBuffers => _chunkBuffers;
 
 	public PieceTreeBuffer(string? text = null)
-		: this(PieceTreeBuilder.BuildFromChunks(new[] { text ?? string.Empty }))
+		: this(PieceTreeBuilder.BuildFromChunks(new[] { text ?? string.Empty }, normalizeEol: false))
 	{
 	}
 
@@ -58,6 +57,8 @@ public sealed class PieceTreeBuffer
 
 	public int Length => _model.TotalLength;
 
+	public int GetLength() => _model.TotalLength;
+
 	public string GetEol() => _model.Eol;
 
 	public string GetBom() => _bom;
@@ -73,9 +74,18 @@ public sealed class PieceTreeBuffer
 	public void SetEol(string eol)
 	{
 		ArgumentException.ThrowIfNullOrEmpty(eol);
+		if (!string.Equals(eol, "\n", StringComparison.Ordinal) && !string.Equals(eol, "\r\n", StringComparison.Ordinal))
+		{
+			throw new ArgumentException("EOL must be either \n or \r\n (VS Code parity).", nameof(eol));
+		}
+
 		_model.NormalizeEOL(eol);
 		_cachedSnapshot = string.Empty;
-		_cachedLineMap = LineStartTable.Empty;
+	}
+
+	public ITextSnapshot CreateSnapshot(bool preserveBom = false)
+	{
+		return _model.CreateSnapshot(preserveBom ? _bom : string.Empty);
 	}
 
 	public string GetText()
@@ -83,7 +93,6 @@ public sealed class PieceTreeBuffer
 		if (_model.IsEmpty)
 		{
 			_cachedSnapshot = string.Empty;
-			_cachedLineMap = LineStartTable.Empty;
 			return _cachedSnapshot;
 		}
 
@@ -95,7 +104,6 @@ public sealed class PieceTreeBuffer
 		}
 
 		_cachedSnapshot = builder.ToString();
-		_cachedLineMap = LineStartBuilder.Build(_cachedSnapshot);
 		return _cachedSnapshot;
 	}
 
@@ -117,6 +125,25 @@ public sealed class PieceTreeBuffer
 		return snapshot.Substring(start, length);
 	}
 
+	public int GetLineCount() => _model.GetLineCount();
+
+	public string[] GetLinesContent()
+	{
+		var lineCount = _model.GetLineCount();
+		if (lineCount <= 0)
+		{
+			return Array.Empty<string>();
+		}
+
+		var lines = new string[lineCount];
+		for (int lineNumber = 1; lineNumber <= lineCount; lineNumber++)
+		{
+			lines[lineNumber - 1] = GetLineContent(lineNumber);
+		}
+
+		return lines;
+	}
+
 	public void ApplyEdit(int start, int length, string? text)
 	{
 		var bufferLength = Length;
@@ -131,7 +158,6 @@ public sealed class PieceTreeBuffer
 		}
 
 		_cachedSnapshot = string.Empty;
-		_cachedLineMap = LineStartTable.Empty;
 
 		if (length > 0)
 		{
@@ -141,6 +167,25 @@ public sealed class PieceTreeBuffer
 		if (!string.IsNullOrEmpty(text))
 		{
 			_model.Insert(start, text);
+			UpdateContentFlags(text);
+		}
+	}
+
+	private void UpdateContentFlags(string text)
+	{
+		if (!_mightContainNonBasicAscii && !IsBasicAscii(text))
+		{
+			_mightContainNonBasicAscii = true;
+		}
+
+		if (!_mightContainRtl && ContainsRtl(text))
+		{
+			_mightContainRtl = true;
+		}
+
+		if (!_mightContainUnusualLineTerminators && ContainsUnusualLineTerminators(text))
+		{
+			_mightContainUnusualLineTerminators = true;
 		}
 	}
 
@@ -149,7 +194,6 @@ public sealed class PieceTreeBuffer
 		_model = buildResult.Model;
 		_chunkBuffers = buildResult.Buffers;
 		_cachedSnapshot = string.Empty;
-		_cachedLineMap = LineStartTable.Empty;
 		_bom = buildResult.Bom;
 		_mightContainRtl = buildResult.MightContainRtl;
 		_mightContainUnusualLineTerminators = buildResult.MightContainUnusualLineTerminators;
@@ -159,80 +203,133 @@ public sealed class PieceTreeBuffer
 
 	public TextPosition GetPositionAt(int offset)
 	{
-		var snapshot = EnsureSnapshot();
-		if (snapshot.Length == 0)
-		{
-			return TextPosition.Origin;
-		}
-
-		offset = Math.Clamp(offset, 0, snapshot.Length);
-		var lineStarts = _cachedLineMap.LineStarts;
-		var lineIndex = FindLineIndex(lineStarts, offset);
-		var column = offset - lineStarts[lineIndex] + 1;
-		return new TextPosition(lineIndex + 1, column);
+		return _model.GetPositionAt(offset);
 	}
 
 	public int GetOffsetAt(int lineNumber, int column)
 	{
-		var snapshot = EnsureSnapshot();
-		if (snapshot.Length == 0)
-		{
-			return 0;
-		}
-
-		var lineStarts = _cachedLineMap.LineStarts;
-		lineNumber = Math.Clamp(lineNumber, 1, lineStarts.Count);
-		var lineStart = lineStarts[lineNumber - 1];
-		var lineEnd = lineNumber < lineStarts.Count ? lineStarts[lineNumber] : snapshot.Length;
-		var lineBreakLength = MeasureLineBreak(snapshot, lineStart, lineEnd);
-		var lineContentLength = Math.Max(0, lineEnd - lineStart - lineBreakLength);
-		var maxColumn = Math.Max(1, lineContentLength + lineBreakLength + 1);
-		var clampedColumn = Math.Clamp(column, 1, maxColumn);
-		return lineStart + clampedColumn - 1;
+		return _model.GetOffsetAt(lineNumber, column);
 	}
 
 	public int GetLineLength(int lineNumber)
 	{
-		var snapshot = EnsureSnapshot();
-		if (snapshot.Length == 0)
-		{
-			return 0;
-		}
-
-		var lineStarts = _cachedLineMap.LineStarts;
-		lineNumber = Math.Clamp(lineNumber, 1, lineStarts.Count);
-		var lineStart = lineStarts[lineNumber - 1];
-		var lineEnd = lineNumber < lineStarts.Count ? lineStarts[lineNumber] : snapshot.Length;
-		return lineEnd - lineStart - MeasureLineBreak(snapshot, lineStart, lineEnd);
+		return _model.GetLineLength(lineNumber);
 	}
 
 	public int GetCharCode(int offset)
 	{
-		var snapshot = EnsureSnapshot();
-		if (snapshot.Length == 0)
-		{
-			return 0;
-		}
-
-		offset = Math.Clamp(offset, 0, snapshot.Length - 1);
-		return snapshot[offset];
+		return _model.GetCharCode(offset);
 	}
 
 	public int GetLineCharCode(int lineNumber, int columnIndex)
 	{
-		var offset = GetOffsetAt(lineNumber, columnIndex + 1);
-		var snapshot = EnsureSnapshot();
-		if (snapshot.Length == 0 || offset >= snapshot.Length)
+		var lineCount = _model.GetLineCount();
+		if (lineNumber < 1 || lineNumber > lineCount || columnIndex < 0)
 		{
 			return 0;
 		}
 
-		return snapshot[offset];
+		return _model.GetLineCharCode(lineNumber, columnIndex);
 	}
 
 	public string GetLineContent(int lineNumber)
 	{
 		return _model.GetLineContent(lineNumber);
+	}
+
+	public string GetLineRawContent(int lineNumber, int endOffset = 0)
+	{
+		if (lineNumber < 1 || lineNumber > _model.GetLineCount())
+		{
+			return string.Empty;
+		}
+
+		return _model.GetLineRawContent(lineNumber, endOffset);
+	}
+
+	public bool Equal(PieceTreeBuffer? other)
+	{
+		if (other is null)
+		{
+			return false;
+		}
+
+		if (ReferenceEquals(this, other))
+		{
+			return true;
+		}
+
+		if (!string.Equals(_bom, other._bom, StringComparison.Ordinal))
+		{
+			return false;
+		}
+
+		if (!string.Equals(GetEol(), other.GetEol(), StringComparison.Ordinal))
+		{
+			return false;
+		}
+
+		if (Length != other.Length)
+		{
+			return false;
+		}
+
+		if (Length == 0)
+		{
+			return true;
+		}
+
+		return string.Equals(GetText(), other.GetText(), StringComparison.Ordinal);
+	}
+
+	public string GetNearestChunk(int offset) => _model.GetNearestChunk(offset);
+
+	private static bool IsBasicAscii(string value)
+	{
+		foreach (var ch in value)
+		{
+			if (ch > 0x7F)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private static bool ContainsRtl(string value)
+	{
+		foreach (var rune in value.EnumerateRunes())
+		{
+			if (IsRtlRune(rune.Value))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool IsRtlRune(int codePoint)
+	{
+		return (codePoint >= 0x0590 && codePoint <= 0x08FF) // Hebrew, Arabic, Syriac, Thaana, NKo, Samaritan, Mandaic
+			|| (codePoint >= 0xFB1D && codePoint <= 0xFDFF) // Hebrew/Arabic presentation forms
+			|| (codePoint >= 0xFE70 && codePoint <= 0xFEFF) // Arabic presentation forms-B
+			|| (codePoint >= 0x10800 && codePoint <= 0x10FFF) // Phoenician, Imperial Aramaic, etc.
+			|| (codePoint >= 0x1E900 && codePoint <= 0x1E95F); // Adlam
+	}
+
+	private static bool ContainsUnusualLineTerminators(string value)
+	{
+		foreach (var ch in value)
+		{
+			if (ch == '\u2028' || ch == '\u2029' || ch == '\u0085')
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private string EnsureSnapshot()
@@ -242,66 +339,4 @@ public sealed class PieceTreeBuffer
 			: GetText();
 	}
 
-	private static int FindLineIndex(IReadOnlyList<int> lineStarts, int offset)
-	{
-		var low = 0;
-		var high = lineStarts.Count - 1;
-		while (low <= high)
-		{
-			var mid = low + ((high - low) / 2);
-			var start = lineStarts[mid];
-			if (mid == lineStarts.Count - 1)
-			{
-				return mid;
-			}
-
-			var next = lineStarts[mid + 1];
-			if (offset < start)
-			{
-				high = mid - 1;
-			}
-			else if (offset >= next)
-			{
-				low = mid + 1;
-			}
-			else
-			{
-				return mid;
-			}
-		}
-
-		return Math.Max(0, Math.Min(lineStarts.Count - 1, low));
-	}
-
-	private static int MeasureLineBreak(string text, int lineStart, int lineEnd)
-	{
-		if (lineEnd <= lineStart)
-		{
-			return 0;
-		}
-
-		var idx = lineEnd - 1;
-		if (idx < lineStart)
-		{
-			return 0;
-		}
-
-		var ch = text[idx];
-		if (ch == '\n')
-		{
-			if (idx - 1 >= lineStart && text[idx - 1] == '\r')
-			{
-				return 2;
-			}
-
-			return 1;
-		}
-
-		if (ch == '\r')
-		{
-			return 1;
-		}
-
-		return 0;
-	}
 }

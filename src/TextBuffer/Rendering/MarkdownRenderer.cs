@@ -14,6 +14,8 @@ namespace PieceTree.TextBuffer.Rendering
         private const int SelectionPriority = 2;
         private const int SearchPriority = 1;
         private const int GenericPriority = 0;
+        private const string FindMatchOnlyOverviewDescription = "find-match-only-overview";
+        private const string FindScopeDescription = "find-scope";
 
         private readonly record struct InlineMarker(int Column, string Text, int Priority, int ZIndex);
 
@@ -21,19 +23,21 @@ namespace PieceTree.TextBuffer.Rendering
         {
             ArgumentNullException.ThrowIfNull(model);
             var ownerFilter = new OwnerFilter(options);
+            var ownerQuery = ownerFilter.QueryableOwnerId;
+            var includeInjectedText = options?.IncludeInjectedText ?? true;
             var sb = new StringBuilder();
             sb.AppendLine("```text");
 
-            var searchMarkers = CollectSearchMarkers(model, options?.Search);
             var lineCount = model.GetLineCount();
-            for (int lineNumber = 1; lineNumber <= lineCount; lineNumber++)
+            var viewport = LineViewport.Create(lineCount, options);
+            for (int lineNumber = viewport.StartLine; lineNumber <= viewport.EndLine; lineNumber++)
             {
                 var lineContent = model.GetLineContent(lineNumber);
                 var markers = new List<InlineMarker>();
-                var annotations = new LineAnnotationBuilder();
+                var annotations = new LineAnnotationBuilder(options);
                 var lineRange = GetLineRange(model, lineNumber, lineCount);
 
-                var decorations = model.GetDecorationsInRange(lineRange, DecorationOwnerIds.Any);
+                var decorations = model.GetDecorationsInRange(lineRange, ownerQuery);
                 foreach (var decoration in decorations)
                 {
                     if (!ownerFilter.Allows(decoration.OwnerId))
@@ -44,20 +48,18 @@ namespace PieceTree.TextBuffer.Rendering
                     AppendDecorationMarkers(model, decoration, lineNumber, markers, annotations);
                 }
 
-                var injected = model.GetInjectedTextInLine(lineNumber, DecorationOwnerIds.Any);
-                foreach (var decoration in injected)
+                if (includeInjectedText)
                 {
-                    if (!ownerFilter.Allows(decoration.OwnerId))
+                    var injected = model.GetInjectedTextInLine(lineNumber, ownerQuery);
+                    foreach (var decoration in injected)
                     {
-                        continue;
+                        if (!ownerFilter.Allows(decoration.OwnerId))
+                        {
+                            continue;
+                        }
+
+                        AppendInjectedTextMarkers(model, decoration, lineNumber, markers);
                     }
-
-                    AppendInjectedTextMarkers(model, decoration, lineNumber, markers);
-                }
-
-                if (searchMarkers.TryGetValue(lineNumber, out var searchLineMarkers))
-                {
-                    markers.AddRange(searchLineMarkers);
                 }
 
                 var renderedLine = ApplyMarkers(lineContent, markers);
@@ -81,36 +83,6 @@ namespace PieceTree.TextBuffer.Rendering
                 ? model.GetLength()
                 : model.GetOffsetAt(new TextPosition(lineNumber + 1, 1));
             return new TextRange(start, end);
-        }
-
-        private static Dictionary<int, List<InlineMarker>> CollectSearchMarkers(TextModel model, MarkdownSearchOptions? options)
-        {
-            var result = new Dictionary<int, List<InlineMarker>>();
-            if (options == null || string.IsNullOrEmpty(options.Query))
-            {
-                return result;
-            }
-
-            var searchParams = new SearchParams(options.Query, options.IsRegex, options.MatchCase, options.WordSeparators);
-            var matches = model.FindMatches(searchParams, null, options.CaptureMatches, options.Limit);
-            foreach (var match in matches)
-            {
-                AddSearchMarker(result, match.Range.Start.LineNumber, match.Range.Start.Column - 1, "<");
-                AddSearchMarker(result, match.Range.End.LineNumber, match.Range.End.Column - 1, ">");
-            }
-
-            return result;
-        }
-
-        private static void AddSearchMarker(Dictionary<int, List<InlineMarker>> store, int lineNumber, int column, string text)
-        {
-            if (!store.TryGetValue(lineNumber, out var list))
-            {
-                list = new List<InlineMarker>();
-                store[lineNumber] = list;
-            }
-
-            list.Add(new InlineMarker(column, text, SearchPriority, 0));
         }
 
         private static string ApplyMarkers(string content, List<InlineMarker> markers)
@@ -149,53 +121,58 @@ namespace PieceTree.TextBuffer.Rendering
                 return;
             }
 
-            var startPosition = model.GetPositionAt(decoration.Range.StartOffset);
-            var endPosition = model.GetPositionAt(decoration.Range.EndOffset);
-            var startLine = startPosition.LineNumber;
-            var endLine = endPosition.LineNumber;
+            var shouldRenderInline = ShouldRenderInlineMarkers(options);
 
-            switch (renderKind)
+            if (shouldRenderInline)
             {
-                case DecorationRenderKind.Cursor:
-                    if (startLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(startPosition.Column - 1, "|", CursorPriority, options.ZIndex));
-                    }
-                    break;
-                case DecorationRenderKind.Selection:
-                    if (startLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(startPosition.Column - 1, "[", SelectionPriority, options.ZIndex));
-                    }
+                var startPosition = model.GetPositionAt(decoration.Range.StartOffset);
+                var endPosition = model.GetPositionAt(decoration.Range.EndOffset);
+                var startLine = startPosition.LineNumber;
+                var endLine = endPosition.LineNumber;
 
-                    if (endLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), "]", SelectionPriority, options.ZIndex));
-                    }
-                    break;
-                case DecorationRenderKind.SearchMatch:
-                    if (startLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(startPosition.Column - 1, "<", SearchPriority, options.ZIndex));
-                    }
+                switch (renderKind)
+                {
+                    case DecorationRenderKind.Cursor:
+                        if (startLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(startPosition.Column - 1, "|", CursorPriority, options.ZIndex));
+                        }
+                        break;
+                    case DecorationRenderKind.Selection:
+                        if (startLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(startPosition.Column - 1, "[", SelectionPriority, options.ZIndex));
+                        }
 
-                    if (endLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), ">", SearchPriority, options.ZIndex));
-                    }
-                    break;
-                case DecorationRenderKind.Generic:
-                    var label = GetLabel(options);
-                    if (startLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(startPosition.Column - 1, $"[[{label}]]", GenericPriority, options.ZIndex));
-                    }
+                        if (endLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), "]", SelectionPriority, options.ZIndex));
+                        }
+                        break;
+                    case DecorationRenderKind.SearchMatch:
+                        if (startLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(startPosition.Column - 1, "<", SearchPriority, options.ZIndex));
+                        }
 
-                    if (endLine == lineNumber)
-                    {
-                        markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), $"[[/{label}]]", GenericPriority, options.ZIndex));
-                    }
-                    break;
+                        if (endLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), ">", SearchPriority, options.ZIndex));
+                        }
+                        break;
+                    case DecorationRenderKind.Generic:
+                        var label = GetLabel(options);
+                        if (startLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(startPosition.Column - 1, $"[[{label}]]", GenericPriority, options.ZIndex));
+                        }
+
+                        if (endLine == lineNumber)
+                        {
+                            markers.Add(new InlineMarker(Math.Max(0, endPosition.Column - 1), $"[[/{label}]]", GenericPriority, options.ZIndex));
+                        }
+                        break;
+                }
             }
 
             annotations.AddGlyph(options);
@@ -211,6 +188,11 @@ namespace PieceTree.TextBuffer.Rendering
                 annotations.AddLineHeight(options.LineHeight.Value);
             }
             annotations.AddFont(options);
+        }
+
+        private static bool ShouldRenderInlineMarkers(ModelDecorationOptions options)
+        {
+            return !string.Equals(options.Description, FindMatchOnlyOverviewDescription, StringComparison.Ordinal);
         }
 
         private static void AppendInjectedTextMarkers(TextModel model, ModelDecoration decoration, int lineNumber, List<InlineMarker> markers)
@@ -265,28 +247,149 @@ namespace PieceTree.TextBuffer.Rendering
         private sealed class OwnerFilter
         {
             private readonly HashSet<int>? _allowed;
+            private readonly int _queryOwnerId = DecorationOwnerIds.Any;
+            private readonly Func<int, bool>? _predicate;
 
             public OwnerFilter(MarkdownRenderOptions? options)
             {
-                if (options?.OwnerIdFilters is { Count: > 0 })
+                if (options is null)
                 {
-                    _allowed = new HashSet<int>(options.OwnerIdFilters);
+                    return;
                 }
-                else if (options != null && options.OwnerIdFilter != DecorationOwnerIds.Any)
+
+                _predicate = options.OwnerFilterPredicate;
+
+                if (options.OwnerIdFilters is { Count: > 0 } filters)
+                {
+                    if (_predicate is not null)
+                    {
+                        throw new ArgumentException(
+                            "OwnerIdFilters cannot be combined with OwnerFilterPredicate. Specify only one.",
+                            nameof(MarkdownRenderOptions.OwnerIdFilters));
+                    }
+
+                    var sanitized = new HashSet<int>();
+                    foreach (var id in filters)
+                    {
+                        if (DecorationOwnerIds.FiltersAllOwners(id))
+                        {
+                            continue;
+                        }
+
+                        sanitized.Add(id);
+                    }
+
+                    if (sanitized.Count > 0)
+                    {
+                        _allowed = sanitized;
+                        if (sanitized.Count == 1)
+                        {
+                            foreach (var id in sanitized)
+                            {
+                                _queryOwnerId = id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (!DecorationOwnerIds.FiltersAllOwners(options.OwnerIdFilter))
                 {
                     _allowed = new HashSet<int> { options.OwnerIdFilter };
+                    _queryOwnerId = options.OwnerIdFilter;
                 }
             }
 
-            public bool Allows(int ownerId) => _allowed == null || _allowed.Contains(ownerId);
+            public int QueryableOwnerId => _allowed != null && _allowed.Count == 1 ? _queryOwnerId : DecorationOwnerIds.Any;
+
+            public bool Allows(int ownerId)
+            {
+                if (_predicate is not null && !_predicate(ownerId))
+                {
+                    return false;
+                }
+
+                return _allowed == null || _allowed.Contains(ownerId);
+            }
+        }
+
+        private readonly record struct LineViewport(int StartLine, int EndLine)
+        {
+            public static LineViewport Create(int totalLines, MarkdownRenderOptions? options)
+            {
+                if (totalLines <= 0)
+                {
+                    return new LineViewport(1, 0);
+                }
+
+                var start = options?.StartLineNumber ?? 1;
+                if (start < 1)
+                {
+                    start = 1;
+                }
+
+                var end = options?.EndLineNumber ?? totalLines;
+
+                if (options?.LineCount is int lineLimit)
+                {
+                    if (lineLimit <= 0)
+                    {
+                        return new LineViewport(1, 0);
+                    }
+
+                    var maxByCount = start + lineLimit - 1;
+                    if (maxByCount < end)
+                    {
+                        end = maxByCount;
+                    }
+                }
+
+                if (end < start)
+                {
+                    return new LineViewport(1, 0);
+                }
+
+                if (start > totalLines || end < 1)
+                {
+                    return new LineViewport(totalLines + 1, totalLines);
+                }
+
+                var normalizedEnd = Math.Min(totalLines, Math.Max(end, 1));
+                if (normalizedEnd < start)
+                {
+                    return new LineViewport(1, 0);
+                }
+
+                return new LineViewport(start, normalizedEnd);
+            }
         }
 
         private sealed class LineAnnotationBuilder
         {
             private readonly SortedSet<string> _annotations = new(StringComparer.Ordinal);
+            private readonly bool _includeGlyph;
+            private readonly bool _includeMargin;
+            private readonly bool _includeOverview;
+            private readonly bool _includeMinimap;
+            private static readonly HashSet<string> AlwaysRenderDescriptions = new(StringComparer.Ordinal)
+            {
+                FindScopeDescription,
+            };
+
+            public LineAnnotationBuilder(MarkdownRenderOptions? options)
+            {
+                _includeGlyph = options?.IncludeGlyphAnnotations ?? true;
+                _includeMargin = options?.IncludeMarginAnnotations ?? true;
+                _includeOverview = options?.IncludeOverviewAnnotations ?? true;
+                _includeMinimap = options?.IncludeMinimapAnnotations ?? true;
+            }
 
             public void AddGlyph(ModelDecorationOptions options)
             {
+                if (!_includeGlyph)
+                {
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(options.GlyphMarginClassName))
                 {
                     return;
@@ -299,6 +402,11 @@ namespace PieceTree.TextBuffer.Rendering
 
             public void AddMargin(string? className)
             {
+                if (!_includeMargin)
+                {
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(className))
                 {
                     _annotations.Add($"margin:{className}");
@@ -307,6 +415,11 @@ namespace PieceTree.TextBuffer.Rendering
 
             public void AddLinesDecoration(string? className)
             {
+                if (!_includeMargin)
+                {
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(className))
                 {
                     _annotations.Add($"lines:{className}");
@@ -315,6 +428,11 @@ namespace PieceTree.TextBuffer.Rendering
 
             public void AddLineNumber(string? className)
             {
+                if (!_includeMargin)
+                {
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(className))
                 {
                     _annotations.Add($"line-number:{className}");
@@ -323,6 +441,11 @@ namespace PieceTree.TextBuffer.Rendering
 
             public void AddOverview(ModelDecorationOverviewRulerOptions? overview)
             {
+                if (!_includeOverview)
+                {
+                    return;
+                }
+
                 if (overview is null || !overview.HasColor)
                 {
                     return;
@@ -335,6 +458,11 @@ namespace PieceTree.TextBuffer.Rendering
 
             public void AddMinimap(ModelDecorationMinimapOptions? minimap)
             {
+                if (!_includeMinimap)
+                {
+                    return;
+                }
+
                 if (minimap is null)
                 {
                     return;
@@ -370,7 +498,9 @@ namespace PieceTree.TextBuffer.Rendering
                 }
 
                 var fallback = ModelDecorationOptions.Default.Description;
-                var shouldRender = options.RenderKind == DecorationRenderKind.Generic || options.InlineDescription is not null;
+                var shouldRender = options.RenderKind == DecorationRenderKind.Generic
+                    || options.InlineDescription is not null
+                    || AlwaysRenderDescriptions.Contains(description);
                 if (!shouldRender)
                 {
                     return;

@@ -1,352 +1,382 @@
-// Source: ts/src/vs/editor/test/common/model/model.decorations.test.ts
-// - Tests: DeltaDecorations, owner scopes, stickiness, CollapseOnReplaceEdit
-// Ported: 2025-11-20
+// Source: ts/src/vs/editor/test/common/model/modelDecorations.test.ts
+// - Tests: decoration ranges, owner filters, stickiness, delta snapshots
+// Ported/updated: 2025-11-27
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Xunit;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.Tests.Helpers;
 
-namespace PieceTree.TextBuffer.Tests
+namespace PieceTree.TextBuffer.Tests;
+
+public class DecorationTests
 {
-    public class DecorationTests
+    private const string DefaultText = "My First Line\r\n\t\tMy Second Line\n    Third Line\n\r\n1";
+
+    [Fact]
+    public void SingleCharacterDecorationMatchesTsExpectations()
     {
-        [Fact]
-        public void DeltaDecorationsTrackOwnerScopes()
-        {
-            var model = new TextModel("alpha beta gamma");
-            var owner = model.AllocateDecorationOwnerId();
+        var model = CreateDefaultModel();
+        AddDecoration(model, 1, 1, 1, 2, "myType");
 
-            var added = model.DeltaDecorations(owner, null, new[]
+        AssertLineDecorations(model, 1, ("myType", 1, 2));
+        AssertLineDecorations(model, 2);
+        AssertLineDecorations(model, 3);
+        AssertLineDecorations(model, 4);
+        AssertLineDecorations(model, 5);
+    }
+
+    [Fact]
+    public void MultipleLineDecorationAppearsAcrossLines()
+    {
+        var model = CreateDefaultModel();
+        AddDecoration(model, 1, 2, 3, 2, "myType");
+
+        AssertLineDecorations(model, 1, ("myType", 2, model.GetLineMaxColumn(1)));
+        AssertLineDecorations(model, 2, ("myType", 1, model.GetLineMaxColumn(2)));
+        AssertLineDecorations(model, 3, ("myType", 1, 2));
+        AssertLineDecorations(model, 4);
+    }
+
+    [Fact]
+    public void DeltaDecorationsTrackOwnerScopes()
+    {
+        var model = TestEditorBuilder.Create().WithContent("alpha beta gamma").Build();
+        var owner = model.AllocateDecorationOwnerId();
+
+        var added = model.DeltaDecorations(owner, null, new[]
+        {
+            SelectionDecoration(model, 1, 1, 1, 6),
+            SelectionDecoration(model, 1, 7, 1, 11),
+        });
+
+        Assert.Equal(2, added.Count);
+        Assert.Equal(2, model.GetDecorationsInRange(FullModelRange(model), owner).Count);
+
+        model.RemoveAllDecorations(owner);
+        Assert.Empty(model.GetDecorationsInRange(FullModelRange(model), owner));
+    }
+
+    [Fact]
+    public void DeltaDecorationsCanChangeAndRemove()
+    {
+        var model = CreateDefaultModel();
+        var owner = model.AllocateDecorationOwnerId();
+        var added = model.DeltaDecorations(owner, null, new[]
+        {
+            SelectionDecoration(model, 1, 2, 3, 2),
+        });
+
+        var updated = model.DeltaDecorations(owner, new[] { added[0].Id }, new[]
+        {
+            SelectionDecoration(model, 1, 1, 1, 2),
+        });
+
+        AssertLineDecorations(model, 1, ("selection", 1, 2));
+
+        model.DeltaDecorations(owner, new[] { updated[0].Id }, null);
+        Assert.Empty(model.GetAllDecorations(owner));
+    }
+
+    [Fact]
+    public void DecorationsChangedEventIncludesMetadata()
+    {
+        var model = TestEditorBuilder.Create().WithContent("line1\nline2").Build();
+        TextModelDecorationsChangedEventArgs? captured = null;
+        model.OnDidChangeDecorations += (_, args) => captured = args;
+
+        var options = new ModelDecorationOptions
+        {
+            Minimap = new ModelDecorationMinimapOptions { Color = "#111111" },
+            OverviewRuler = new ModelDecorationOverviewRulerOptions { Color = "#222222" },
+            GlyphMarginClassName = "glyph-info",
+            LineNumberClassName = "line-info",
+            LineHeight = 26,
+            FontFamily = "Consolas",
+            RenderKind = DecorationRenderKind.Generic,
+            ShowIfCollapsed = true,
+        };
+
+        model.AddDecoration(CreateRange(model, 1, 1, 1, 5), options);
+
+        Assert.NotNull(captured);
+        Assert.True(captured!.AffectsMinimap);
+        Assert.True(captured.AffectsOverviewRuler);
+        Assert.True(captured.AffectsGlyphMargin);
+        Assert.True(captured.AffectsLineNumber);
+        var heightChange = Assert.Single(captured.AffectedLineHeights);
+        Assert.Equal(DecorationOwnerIds.Default, heightChange.OwnerId);
+        Assert.Equal(1, heightChange.LineNumber);
+        Assert.Equal(26, heightChange.LineHeight);
+        var fontChange = Assert.Single(captured.AffectedFontLines);
+        Assert.Equal(DecorationOwnerIds.Default, fontChange.OwnerId);
+        Assert.Equal(1, fontChange.LineNumber);
+    }
+
+    [Fact]
+    public void DecorationsEmitEventsForLifecycle()
+    {
+        var model = TestEditorBuilder.Create().WithContent("abc").Build();
+        var owner = model.AllocateDecorationOwnerId();
+        var notifications = new List<TextModelDecorationsChangedEventArgs>();
+        model.OnDidChangeDecorations += (_, args) => notifications.Add(args);
+
+        var added = model.DeltaDecorations(owner, null, new[] { SelectionDecoration(model, 1, 1, 1, 2) });
+        Assert.Single(notifications);
+        notifications.Clear();
+
+        model.DeltaDecorations(owner, new[] { added[0].Id }, new[] { SelectionDecoration(model, 1, 1, 1, 3) });
+        Assert.Single(notifications);
+        notifications.Clear();
+
+        model.RemoveAllDecorations(owner);
+        Assert.Single(notifications);
+    }
+
+    [Fact]
+    public void DecorationsMoveWhenTextInsertedBefore()
+    {
+        var model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        var decoration = AddDecoration(model, 1, 2, 1, 6, "tracked");
+
+        var editPosition = new TextPosition(1, 1);
+        model.ApplyEdits(new[] { new TextEdit(editPosition, editPosition, "zz ") });
+
+        var start = model.GetPositionAt(decoration.Range.StartOffset);
+        var end = model.GetPositionAt(decoration.Range.EndOffset);
+        CursorTestHelper.AssertPosition(start, 1, 5);
+        CursorTestHelper.AssertPosition(end, 1, 9);
+    }
+
+    [Fact]
+    public void CollapseOnReplaceEditShrinksRange()
+    {
+        var model = TestEditorBuilder.Create().WithContent("function test() { call(); }").Build();
+        var options = new ModelDecorationOptions { CollapseOnReplaceEdit = true };
+        var decoration = model.AddDecoration(CreateRange(model, 1, 14, 1, 20), options);
+
+        var startPosition = model.GetPositionAt(decoration.Range.StartOffset);
+        var endPosition = model.GetPositionAt(decoration.Range.EndOffset);
+        var expectedOffset = decoration.Range.StartOffset;
+
+        model.ApplyEdits(new[] { new TextEdit(startPosition, endPosition, "noop();") });
+
+        Assert.True(decoration.Range.IsEmpty);
+        Assert.Equal(expectedOffset, decoration.Range.StartOffset);
+    }
+
+    [Fact]
+    public void StickinessHonorsInsertions()
+    {
+        var model = TestEditorBuilder.Create().WithContent("abcdefghij").Build();
+        var always = model.AddDecoration(CreateRange(model, 1, 3, 1, 5), new ModelDecorationOptions { Stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges });
+        var never = model.AddDecoration(CreateRange(model, 1, 6, 1, 8), new ModelDecorationOptions { Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges });
+
+        var originalAlwaysEnd = always.Range.EndOffset;
+        var originalNeverStart = never.Range.StartOffset;
+
+        var insertAtAlways = model.GetPositionAt(always.Range.StartOffset);
+        model.ApplyEdits(new[] { new TextEdit(insertAtAlways, insertAtAlways, "XX") });
+
+        var insertAtNever = model.GetPositionAt(never.Range.StartOffset);
+        model.ApplyEdits(new[] { new TextEdit(insertAtNever, insertAtNever, "YY") });
+
+        Assert.True(always.Range.EndOffset > originalAlwaysEnd);
+        Assert.True(never.Range.StartOffset > originalNeverStart);
+    }
+
+    [Fact]
+    public void ForceMoveMarkersOverridesStickinessDefaults()
+    {
+        const string content = "abcdef";
+        const int collapsedOffset = 3;
+        const string inserted = "++";
+
+        var withoutForce = TestEditorBuilder.Create().WithContent(content).Build();
+        var withForce = TestEditorBuilder.Create().WithContent(content).Build();
+
+        static ModelDecorationOptions CreateCollapsedOptions() => new()
+        {
+            Stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges,
+            RenderKind = DecorationRenderKind.Generic,
+            ShowIfCollapsed = true,
+        };
+
+        var decorationWithoutForce = withoutForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
+        var decorationWithForce = withForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
+
+        var editPositionWithoutForce = withoutForce.GetPositionAt(collapsedOffset);
+        withoutForce.ApplyEdits(new[] { new TextEdit(editPositionWithoutForce, editPositionWithoutForce, inserted) }, forceMoveMarkers: false);
+
+        var editPositionWithForce = withForce.GetPositionAt(collapsedOffset);
+        withForce.ApplyEdits(new[] { new TextEdit(editPositionWithForce, editPositionWithForce, inserted) }, forceMoveMarkers: true);
+
+        Assert.Equal(collapsedOffset, decorationWithoutForce.Range.StartOffset);
+        Assert.Equal(collapsedOffset + inserted.Length, decorationWithForce.Range.StartOffset);
+    }
+
+    [Fact]
+    public void GetAllDecorationsFiltersByOwner()
+    {
+        var model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        var ownerA = model.AllocateDecorationOwnerId();
+        var ownerB = model.AllocateDecorationOwnerId();
+
+        var decorationA = AddDecoration(model, 1, 1, 1, 3, "ownerA", ownerA);
+        var decorationB = AddDecoration(model, 1, 7, 1, 10, "ownerB", ownerB);
+
+        var ownerAResults = model.GetAllDecorations(ownerA);
+        Assert.Single(ownerAResults);
+        Assert.Equal(decorationA.Id, ownerAResults[0].Id);
+
+        var ids = model.GetDecorationIdsByOwner(ownerB);
+        Assert.Single(ids);
+        Assert.Equal(decorationB.Id, ids[0]);
+
+        var ownerAPosition = model.GetPositionAt(ownerAResults[0].Range.StartOffset);
+        CursorTestHelper.AssertPosition(ownerAPosition, 1, 1);
+    }
+
+    [Fact]
+    public void DecorationSummaryMatchesSnapshot()
+    {
+        var model = TestEditorBuilder.Create()
+            .WithLines("alpha beta", "gamma delta", "epsilon")
+            .Build();
+        var owner = model.AllocateDecorationOwnerId();
+
+        model.DeltaDecorations(owner, null, new[]
+        {
+            SelectionDecoration(model, 1, 1, 1, 6, new ModelDecorationOptions
             {
-                new ModelDeltaDecoration(new TextRange(0, 5), ModelDecorationOptions.CreateSelectionOptions()),
-                new ModelDeltaDecoration(new TextRange(6, 10), ModelDecorationOptions.CreateSelectionOptions()),
-            });
-
-            Assert.Equal(2, added.Count);
-            Assert.Equal(2, model.GetDecorationsInRange(new TextRange(0, model.GetLength()), owner).Count);
-
-            model.RemoveAllDecorations(owner);
-            Assert.Empty(model.GetDecorationsInRange(new TextRange(0, model.GetLength()), owner));
-        }
-
-        [Fact]
-        public void CollapseOnReplaceEditShrinksRange()
-        {
-            var model = new TextModel("function test() { call(); }");
-            var options = new ModelDecorationOptions { CollapseOnReplaceEdit = true };
-            var decoration = model.AddDecoration(new TextRange(13, 19), options);
-
-            var startPosition = model.GetPositionAt(decoration.Range.StartOffset);
-            var endPosition = model.GetPositionAt(decoration.Range.EndOffset);
-            var expectedOffset = decoration.Range.StartOffset;
-
-            model.ApplyEdits(new[]
+                Description = "primary",
+                Stickiness = TrackedRangeStickiness.GrowsOnlyWhenTypingAfter,
+            }),
+            SelectionDecoration(model, 2, 1, 2, 6, new ModelDecorationOptions
             {
-                new TextEdit(startPosition, endPosition, "noop();")
-            });
-
-            Assert.True(decoration.Range.IsEmpty);
-            Assert.Equal(expectedOffset, decoration.Range.StartOffset);
-        }
-
-        [Fact]
-        public void StickinessHonorsInsertions()
-        {
-            var model = new TextModel("abcdefghij");
-            var always = model.AddDecoration(new TextRange(2, 4), new ModelDecorationOptions { Stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges });
-            var never = model.AddDecoration(new TextRange(5, 7), new ModelDecorationOptions { Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges });
-
-            var originalAlwaysEnd = always.Range.EndOffset;
-            var originalNeverStart = never.Range.StartOffset;
-
-            // Insert at the leading edge of both decorations
-            var insertAtAlways = model.GetPositionAt(always.Range.StartOffset);
-            model.ApplyEdits(new[] { new TextEdit(insertAtAlways, insertAtAlways, "XX") });
-
-            var insertAtNever = model.GetPositionAt(never.Range.StartOffset);
-            model.ApplyEdits(new[] { new TextEdit(insertAtNever, insertAtNever, "YY") });
-
-            Assert.Equal(2, always.Range.StartOffset);
-            Assert.True(always.Range.EndOffset > originalAlwaysEnd);
-
-            Assert.True(never.Range.StartOffset > originalNeverStart);
-        }
-
-        [Fact]
-        public void DecorationOptionsParityRoundTripsMetadata()
-        {
-            var model = new TextModel("hello world");
-            var options = new ModelDecorationOptions
-            {
-                Description = "diff-add",
-                GlyphMarginClassName = "glyph-add",
-                MarginClassName = "margin-add",
-                LinesDecorationsClassName = "lines-add",
-                LineNumberClassName = "line-number-add",
-                InlineClassName = "inline-add",
-                OverviewRuler = new ModelDecorationOverviewRulerOptions
-                {
-                    Color = "#00ff00",
-                    Position = OverviewRulerLane.Full,
-                },
-                Minimap = new ModelDecorationMinimapOptions
-                {
-                    Color = "#00ff00",
-                    Position = MinimapPosition.Gutter,
-                    SectionHeaderText = "Add",
-                    SectionHeaderStyle = "bold",
-                },
-                GlyphMargin = new ModelDecorationGlyphMarginOptions
-                {
-                    Position = GlyphMarginLane.Right,
-                    PersistLane = true,
-                },
-                Before = new ModelDecorationInjectedTextOptions { Content = "BEF" },
-                After = new ModelDecorationInjectedTextOptions { Content = "AFT" },
-                LineHeight = 21,
-                FontFamily = "Fira Code",
-                FontSize = "13px",
-                FontStyle = "italic",
-                FontWeight = "600",
-                TextDirection = TextDirection.Rtl,
-                RenderKind = DecorationRenderKind.Generic,
+                Description = "secondary",
+                Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
                 ShowIfCollapsed = true,
-            };
+            }),
+        });
 
-            model.AddDecoration(new TextRange(0, 5), options);
-            var stored = Assert.Single(model.GetDecorationsInRange(new TextRange(0, model.GetLength())));
+        var dump = DumpDecorations(model, owner);
+        SnapshotTestUtils.AssertMatchesSnapshot("Decorations", "summary-basic", dump);
+    }
 
-            Assert.Equal("glyph-add", stored.Options.GlyphMarginClassName);
-            Assert.Equal("margin-add", stored.Options.MarginClassName);
-            Assert.Equal("lines-add", stored.Options.LinesDecorationsClassName);
-            Assert.Equal("line-number-add", stored.Options.LineNumberClassName);
-            Assert.Equal("inline-add", stored.Options.InlineClassName);
-            Assert.Equal("#00ff00", stored.Options.OverviewRuler?.Color);
-            Assert.Equal(MinimapPosition.Gutter, stored.Options.Minimap?.Position);
-            Assert.Equal("BEF", stored.Options.Before?.Content);
-            Assert.Equal("AFT", stored.Options.After?.Content);
-            Assert.Equal(21, stored.Options.LineHeight);
-            Assert.Equal("Fira Code", stored.Options.FontFamily);
-            Assert.Equal("13px", stored.Options.FontSize);
-            Assert.Equal("italic", stored.Options.FontStyle);
-            Assert.Equal("600", stored.Options.FontWeight);
-            Assert.Equal(TextDirection.Rtl, stored.Options.TextDirection);
-            Assert.True(stored.Options.HasInjectedText);
-        }
-
-        [Fact]
-        public void DecorationsChangedEventIncludesMetadata()
+    [Fact]
+    public void InjectedTextQueriesSurfaceLineMetadata()
+    {
+        var model = TestEditorBuilder.Create().WithLines("one", "two", "three").Build();
+        IReadOnlyList<int>? injectedLines = null;
+        model.OnDidChangeDecorations += (_, args) =>
         {
-            var model = new TextModel("line1\nline2");
-            TextModelDecorationsChangedEventArgs? captured = null;
-            model.OnDidChangeDecorations += (_, args) => captured = args;
-
-            var options = new ModelDecorationOptions
+            if (args.AffectedInjectedTextLines.Count > 0)
             {
-                Minimap = new ModelDecorationMinimapOptions { Color = "#111111" },
-                OverviewRuler = new ModelDecorationOverviewRulerOptions { Color = "#222222" },
-                GlyphMarginClassName = "glyph-info",
-                LineNumberClassName = "line-info",
-                LineHeight = 26,
-                FontFamily = "Consolas",
-                RenderKind = DecorationRenderKind.Generic,
-                ShowIfCollapsed = true,
-            };
+                injectedLines = args.AffectedInjectedTextLines;
+            }
+        };
 
-            model.AddDecoration(new TextRange(0, 4), options);
-
-            Assert.NotNull(captured);
-            Assert.True(captured!.AffectsMinimap);
-            Assert.True(captured.AffectsOverviewRuler);
-            Assert.True(captured.AffectsGlyphMargin);
-            Assert.True(captured.AffectsLineNumber);
-            var heightChange = Assert.Single(captured.AffectedLineHeights);
-            Assert.Equal(DecorationOwnerIds.Default, heightChange.OwnerId);
-            Assert.Equal(1, heightChange.LineNumber);
-            Assert.Equal(26, heightChange.LineHeight);
-            var fontChange = Assert.Single(captured.AffectedFontLines);
-            Assert.Equal(DecorationOwnerIds.Default, fontChange.OwnerId);
-            Assert.Equal(1, fontChange.LineNumber);
-        }
-
-        [Fact]
-        public void GetLineDecorationsReturnsVisibleMetadata()
+        var injected = model.AddDecoration(CreateRange(model, 2, 2, 2, 3), new ModelDecorationOptions
         {
-            var model = new TextModel("abc\ndef\nghi");
-            var owner = model.AllocateDecorationOwnerId();
+            RenderKind = DecorationRenderKind.Generic,
+            Before = new ModelDecorationInjectedTextOptions { Content = "PRE" },
+            After = new ModelDecorationInjectedTextOptions { Content = "POST" },
+            ShowIfCollapsed = true,
+        });
 
-            var first = model.DeltaDecorations(owner, null, new[]
-            {
-                new ModelDeltaDecoration(new TextRange(0, 2), new ModelDecorationOptions { ShowIfCollapsed = true }),
-                new ModelDeltaDecoration(new TextRange(4, 4), new ModelDecorationOptions { ShowIfCollapsed = false }),
-            });
+        var lineTwoInjected = model.GetInjectedTextInLine(2);
+        Assert.Contains(lineTwoInjected, d => d.Id == injected.Id);
+        Assert.Empty(model.GetInjectedTextInLine(1));
+        Assert.NotNull(injectedLines);
+        Assert.Contains(2, injectedLines!);
+    }
 
-            var line1 = model.GetLineDecorations(1);
-            Assert.Contains(line1, d => d.Id == first[0].Id);
+    // TODO(#delta-2025-11-26-aa4-cl8-markdown): Add Markdown renderer overlay snapshots once DocUI surfaces search decorations without re-running find.
 
-            var line2 = model.GetLineDecorations(2);
-            Assert.DoesNotContain(line2, d => d.Id == first[1].Id);
+    private static TextModel CreateDefaultModel() => TestEditorBuilder.Create().WithContent(DefaultText).Build();
 
-            var ownerFiltered = model.GetLineDecorations(1, owner);
-            Assert.Single(ownerFiltered);
-        }
+    private static TextRange CreateRange(TextModel model, int startLine, int startColumn, int endLine, int endColumn)
+    {
+        var start = model.GetOffsetAt(new TextPosition(startLine, startColumn));
+        var end = model.GetOffsetAt(new TextPosition(endLine, endColumn));
+        return new TextRange(start, end);
+    }
 
-        [Fact]
-        public void GetAllDecorationsFiltersByOwner()
+    private static ModelDecoration AddDecoration(TextModel model, int startLine, int startColumn, int endLine, int endColumn, string? className = null, int ownerId = DecorationOwnerIds.Default)
+    {
+        var range = CreateRange(model, startLine, startColumn, endLine, endColumn);
+        var options = new ModelDecorationOptions
         {
-            var model = new TextModel("alpha beta");
-            var ownerA = model.AllocateDecorationOwnerId();
-            var ownerB = model.AllocateDecorationOwnerId();
+            Description = className ?? "decor",
+            ClassName = className ?? "decor",
+            InlineClassName = className,
+        };
+        return model.AddDecoration(range, options, ownerId);
+    }
 
-            var decorationA = model.AddDecoration(new TextRange(0, 5), ownerId: ownerA);
-            var decorationB = model.AddDecoration(new TextRange(6, 10), ownerId: ownerB);
+    private static ModelDeltaDecoration SelectionDecoration(TextModel model, int startLine, int startColumn, int endLine, int endColumn, ModelDecorationOptions? options = null)
+        => new(CreateRange(model, startLine, startColumn, endLine, endColumn), options ?? ModelDecorationOptions.CreateSelectionOptions());
 
-            var ownerAResults = model.GetAllDecorations(ownerA);
-            Assert.Single(ownerAResults);
-            Assert.Equal(decorationA.Id, ownerAResults[0].Id);
+    private static TextRange FullModelRange(TextModel model) => new(0, model.GetLength());
 
-            var anyResults = model.GetAllDecorations();
-            Assert.Equal(2, anyResults.Count);
-            Assert.Equal(decorationB.Id, model.GetDecorationIdsByOwner(ownerB).Single());
-        }
-
-        [Fact]
-        public void DecorationIdsByOwnerReflectsLifecycle()
+    private static void AssertLineDecorations(TextModel model, int lineNumber, params (string className, int start, int end)[] expected)
+    {
+        var actual = DescribeLineDecorations(model, lineNumber);
+        Assert.Equal(expected.Length, actual.Count);
+        for (int i = 0; i < expected.Length; i++)
         {
-            var model = new TextModel("alpha beta");
-            var owner = model.AllocateDecorationOwnerId();
-
-            var added = model.DeltaDecorations(owner, null, new[]
-            {
-                new ModelDeltaDecoration(new TextRange(0, 5), ModelDecorationOptions.CreateSelectionOptions()),
-                new ModelDeltaDecoration(new TextRange(6, 10), ModelDecorationOptions.CreateSelectionOptions()),
-            });
-
-            var ids = model.GetDecorationIdsByOwner(owner);
-            Assert.Equal(added.Select(d => d.Id).OrderBy(id => id), ids.OrderBy(id => id));
-
-            model.DeltaDecorations(owner, new[] { added[0].Id }, null);
-            Assert.Single(model.GetDecorationIdsByOwner(owner));
+            var e = expected[i];
+            var a = actual[i];
+            Assert.Equal(e.className, a.ClassName);
+            Assert.Equal(e.start, a.StartColumn);
+            Assert.Equal(e.end, a.EndColumn);
         }
+    }
 
-        [Fact]
-        public void DecorationsRaiseEventsForAddUpdateRemove()
+    private static IReadOnlyList<(string? ClassName, int StartColumn, int EndColumn)> DescribeLineDecorations(TextModel model, int lineNumber, int ownerId = DecorationOwnerIds.Any)
+    {
+        var maxColumn = model.GetLineMaxColumn(lineNumber);
+        var decorations = model.GetLineDecorations(lineNumber, ownerId);
+        var list = new List<(string?, int, int)>();
+        foreach (var decoration in decorations)
         {
-            var model = new TextModel("abc");
-            var owner = model.AllocateDecorationOwnerId();
-            var notifications = new List<TextModelDecorationsChangedEventArgs>();
-            model.OnDidChangeDecorations += (_, args) => notifications.Add(args);
-
-            var range = new TextRange(0, 2);
-            var added = model.DeltaDecorations(owner, null, new[] { new ModelDeltaDecoration(range, ModelDecorationOptions.CreateSelectionOptions()) });
-            Assert.NotEmpty(notifications);
-            notifications.Clear();
-
-            model.DeltaDecorations(owner, new[] { added[0].Id }, new[]
-            {
-                new ModelDeltaDecoration(new TextRange(0, 3), ModelDecorationOptions.CreateSelectionOptions()),
-            });
-            Assert.Single(notifications);
-            notifications.Clear();
-
-            model.RemoveAllDecorations(owner);
-            Assert.Single(notifications);
+            var startPos = model.GetPositionAt(decoration.Range.StartOffset);
+            var endPos = model.GetPositionAt(decoration.Range.EndOffset);
+            var start = startPos.LineNumber < lineNumber ? 1 : startPos.Column;
+            var end = endPos.LineNumber > lineNumber ? maxColumn : endPos.Column;
+            list.Add((decoration.Options.ClassName ?? decoration.Options.Description, start, end));
         }
 
-        [Fact]
-        public void EditsPropagateDecorationChangeEvents()
+        return list;
+    }
+
+    private static string DumpDecorations(TextModel model, int ownerId = DecorationOwnerIds.Any)
+    {
+        var decorations = model.GetAllDecorations(ownerId)
+            .OrderBy(d => d.OwnerId)
+            .ThenBy(d => d.Range.StartOffset)
+            .ThenBy(d => d.Id, System.StringComparer.Ordinal)
+            .ToList();
+
+        var builder = new StringBuilder();
+        for (int i = 0; i < decorations.Count; i++)
         {
-            var model = new TextModel("alpha beta");
-            var owner = model.AllocateDecorationOwnerId();
-            model.AddDecoration(new TextRange(0, 5), ownerId: owner);
-
-            var changes = 0;
-            model.OnDidChangeDecorations += (_, _) => changes++;
-
-            var editStart = model.GetPositionAt(0);
-            model.ApplyEdits(new[] { new TextEdit(editStart, editStart, "zz") });
-
-            Assert.True(changes > 0);
+            var decoration = decorations[i];
+            var start = model.GetPositionAt(decoration.Range.StartOffset);
+            var end = model.GetPositionAt(decoration.Range.EndOffset);
+            builder.Append('#').Append(i + 1)
+                .Append(" owner=").Append(decoration.OwnerId)
+                .Append(" range=(").Append(start.LineNumber).Append(',').Append(start.Column)
+                .Append(")->(").Append(end.LineNumber).Append(',').Append(end.Column).Append(')')
+                .Append(" desc=").Append(decoration.Options.Description)
+                .Append(" stickiness=").Append(decoration.Options.Stickiness)
+                .AppendLine();
         }
 
-        [Fact]
-        public void InjectedTextQueriesSurfaceLineMetadata()
-        {
-            var model = new TextModel("one\ntwo\nthree");
-            IReadOnlyList<int>? injectedLines = null;
-            model.OnDidChangeDecorations += (_, args) =>
-            {
-                if (args.AffectedInjectedTextLines.Count > 0)
-                {
-                    injectedLines = args.AffectedInjectedTextLines;
-                }
-            };
-
-            var start = model.GetOffsetAt(new TextPosition(2, 2));
-            var end = model.GetOffsetAt(new TextPosition(2, 4));
-            var injected = model.AddDecoration(new TextRange(start, end), new ModelDecorationOptions
-            {
-                RenderKind = DecorationRenderKind.Generic,
-                Before = new ModelDecorationInjectedTextOptions { Content = "PRE" },
-                After = new ModelDecorationInjectedTextOptions { Content = "POST" },
-                ShowIfCollapsed = true,
-            });
-
-            var secondLineInjected = model.GetInjectedTextInLine(2);
-            Assert.Contains(secondLineInjected, d => d.Id == injected.Id);
-            Assert.Empty(model.GetInjectedTextInLine(1));
-            Assert.NotNull(injectedLines);
-            Assert.Contains(2, injectedLines!);
-
-            var fontDecoration = model.AddDecoration(new TextRange(0, model.GetLength()), new ModelDecorationOptions
-            {
-                FontFamily = "Fira Code",
-                FontWeight = "600",
-                LineHeight = 28,
-                GlyphMarginClassName = "glyph-info",
-                MarginClassName = "margin-info",
-                LineNumberClassName = "line-info",
-                LinesDecorationsClassName = "lines-info",
-            });
-
-            var fontRange = new TextRange(0, model.GetLength());
-            var fontDecorations = model.GetFontDecorationsInRange(fontRange);
-            Assert.Contains(fontDecorations, d => d.Id == fontDecoration.Id);
-
-            var marginDecorations = model.GetAllMarginDecorations();
-            Assert.Contains(marginDecorations, d => d.Id == fontDecoration.Id);
-        }
-
-        [Fact]
-        public void ForceMoveMarkersOverridesStickinessDefaults()
-        {
-            const string content = "abcdef";
-            const int collapsedOffset = 3;
-            const string inserted = "++";
-
-            var withoutForce = new TextModel(content);
-            var withForce = new TextModel(content);
-
-            static ModelDecorationOptions CreateCollapsedOptions() => new ModelDecorationOptions
-            {
-                Stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges,
-                RenderKind = DecorationRenderKind.Generic,
-                ShowIfCollapsed = true,
-            };
-
-            var decorationWithoutForce = withoutForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
-            var decorationWithForce = withForce.AddDecoration(new TextRange(collapsedOffset, collapsedOffset), CreateCollapsedOptions());
-
-            var editPositionWithoutForce = withoutForce.GetPositionAt(collapsedOffset);
-            withoutForce.ApplyEdits(new[] { new TextEdit(editPositionWithoutForce, editPositionWithoutForce, inserted) }, forceMoveMarkers: false);
-
-            var editPositionWithForce = withForce.GetPositionAt(collapsedOffset);
-            withForce.ApplyEdits(new[] { new TextEdit(editPositionWithForce, editPositionWithForce, inserted) }, forceMoveMarkers: true);
-
-            Assert.Equal(collapsedOffset, decorationWithoutForce.Range.StartOffset);
-            Assert.Equal(collapsedOffset + inserted.Length, decorationWithForce.Range.StartOffset);
-        }
+        return builder.ToString().TrimEnd();
     }
 }

@@ -15,8 +15,25 @@ using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 
-public readonly partial record struct Range(TextPosition Start, TextPosition End)
+public readonly partial record struct Range
 {
+    public TextPosition Start { get; init; }
+    public TextPosition End { get; init; }
+
+    public Range(TextPosition start, TextPosition end)
+    {
+        if (start.CompareTo(end) <= 0)
+        {
+            Start = start;
+            End = end;
+        }
+        else
+        {
+            Start = end;
+            End = start;
+        }
+    }
+
     public Range(int startLine, int startColumn, int endLine, int endColumn)
         : this(new TextPosition(startLine, startColumn), new TextPosition(endLine, endColumn))
     {
@@ -76,6 +93,13 @@ public sealed class FindMatch
     public string[]? Matches { get; }
 }
 
+/// <summary>
+/// Mirrors VS Code's <c>SearchParams</c> while forcing .NET's regex engine into
+/// ECMAScript + culture-invariant mode. This approximates the JavaScript
+/// implementation (unicode/global flags plus surrogate-safe '.' rewrites), but
+/// case-insensitive matches still follow .NET's invariant ASCII folding instead
+/// of V8/ICU's full Unicode tables.
+/// </summary>
 public sealed class SearchParams
 {
     public SearchParams(string searchString, bool isRegex, bool matchCase, string? wordSeparators)
@@ -220,7 +244,8 @@ public sealed class SearchParams
 
         if (!isRegex)
         {
-            return searchString.IndexOf('\n') >= 0 || searchString.IndexOf('\r') >= 0;
+            // TS parity: plain-text searches only treat LF as multiline; lone CR keeps line-by-line path.
+            return searchString.IndexOf('\n') >= 0;
         }
         return SearchPatternUtilities.IsMultilineRegexSource(searchString);
     }
@@ -342,6 +367,12 @@ public sealed class LineFeedCounter
     }
 }
 
+/// <summary>
+/// Port of VS Code's <c>WordCharacterClassifier</c>. The TypeScript version can
+/// hydrate an <c>Intl.Segmenter</c> for locale-aware boundaries; this .NET port
+/// only honors the configurable separator list until the Intl/ICU backlog
+/// lands.
+/// </summary>
 public sealed class WordCharacterClassifier
 {
     private readonly Dictionary<int, WordCharacterClass> _classes = new();
@@ -374,20 +405,18 @@ public sealed class WordCharacterClassifier
 
     public bool IsValidMatch(string text, int matchStartIndex, int matchLength)
     {
-        if (matchLength == 0)
+        ArgumentNullException.ThrowIfNull(text);
+        var textLength = text.Length;
+        if (textLength == 0)
         {
             return true;
         }
 
-        if (!IsLeftBoundary(text, matchStartIndex))
-        {
-            return false;
-        }
-
-        return IsRightBoundary(text, matchStartIndex, matchLength);
+        return LeftIsWordBoundary(text, matchStartIndex, matchLength)
+            && RightIsWordBoundary(text, textLength, matchStartIndex, matchLength);
     }
 
-    private bool IsLeftBoundary(string text, int matchStartIndex)
+    private bool LeftIsWordBoundary(string text, int matchStartIndex, int matchLength)
     {
         if (matchStartIndex <= 0)
         {
@@ -399,23 +428,31 @@ public sealed class WordCharacterClassifier
             return true;
         }
 
-        if (IsSeparatorOrLineBreak(before))
+        if (UnicodeUtility.IsLineBreak(before) || IsWordSeparator(before))
         {
             return true;
         }
 
-        if (!UnicodeUtility.TryGetCodePointAt(text, matchStartIndex, out var current, out _))
+        if (matchLength > 0)
         {
-            return true;
+            if (!UnicodeUtility.TryGetCodePointAt(text, matchStartIndex, out var firstInMatch, out _))
+            {
+                return true;
+            }
+
+            if (IsWordSeparator(firstInMatch))
+            {
+                return true;
+            }
         }
 
-        return IsSeparatorOrLineBreak(current);
+        return false;
     }
 
-    private bool IsRightBoundary(string text, int matchStartIndex, int matchLength)
+    private bool RightIsWordBoundary(string text, int textLength, int matchStartIndex, int matchLength)
     {
         var endIndex = matchStartIndex + matchLength;
-        if (endIndex >= text.Length)
+        if (endIndex >= textLength)
         {
             return true;
         }
@@ -425,31 +462,38 @@ public sealed class WordCharacterClassifier
             return true;
         }
 
-        if (IsSeparatorOrLineBreak(after))
+        if (UnicodeUtility.IsLineBreak(after) || IsWordSeparator(after))
         {
             return true;
         }
 
-        if (!UnicodeUtility.TryGetPreviousCodePoint(text, endIndex, out var lastInMatch, out _))
+        if (matchLength > 0)
         {
-            return true;
+            if (!UnicodeUtility.TryGetPreviousCodePoint(text, endIndex, out var lastInMatch, out _))
+            {
+                return true;
+            }
+
+            if (IsWordSeparator(lastInMatch))
+            {
+                return true;
+            }
         }
 
-        return IsSeparatorOrLineBreak(lastInMatch);
+        return false;
     }
 
-    private bool IsSeparatorOrLineBreak(int codePoint)
+    private bool IsWordSeparator(int codePoint)
     {
-        if (codePoint == '\n' || codePoint == '\r')
-        {
-            return true;
-        }
-
         return GetClass(codePoint) != WordCharacterClass.Regular;
     }
 }
 
-// LRU cache for WordCharacterClassifier instances (TS: getMapForWordSeparators)
+/// <summary>
+/// 10-entry LRU mirroring VS Code's <c>getMapForWordSeparators</c>. Locale hints
+/// are not part of the cache key yet; wiring them through is tracked as part of
+/// the Intl.Segmenter/word-separator backlog.
+/// </summary>
 internal static class WordCharacterClassifierCache
 {
     private const int MaxEntries = 10;

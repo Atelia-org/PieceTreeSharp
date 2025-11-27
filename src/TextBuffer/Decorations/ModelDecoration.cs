@@ -65,6 +65,10 @@ namespace PieceTree.TextBuffer.Decorations
 
     public enum DecorationRenderKind
     {
+        /// <summary>
+        /// No visual representation (used for tracked ranges).
+        /// </summary>
+        None = -1,
         Selection = 0,
         Cursor = 1,
         SearchMatch = 2,
@@ -108,7 +112,7 @@ namespace PieceTree.TextBuffer.Decorations
 
     public sealed record class ModelDecorationOptions
     {
-        private const int LineHeightCeiling = 1500;
+        private const int LineHeightCeiling = 300;
         private readonly bool _isNormalized;
 
         public string Description { get; init; } = "model-decoration";
@@ -179,6 +183,19 @@ namespace PieceTree.TextBuffer.Decorations
             Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
             ShowIfCollapsed = false,
         }.Normalize();
+
+        /// <summary>
+        /// Create options for a hidden decoration (used for tracked ranges).
+        /// These decorations have no visual representation.
+        /// </summary>
+        public static ModelDecorationOptions CreateHiddenOptions(TrackedRangeStickiness stickiness = TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges)
+            => new ModelDecorationOptions
+            {
+                Description = "tracked-range",
+                RenderKind = DecorationRenderKind.None,
+                Stickiness = stickiness,
+                ShowIfCollapsed = false,
+            }.Normalize();
 
         internal bool HasInjectedText => Before is not null || After is not null;
         internal bool AffectsFont => !string.IsNullOrEmpty(FontSize) || !string.IsNullOrEmpty(FontFamily) || !string.IsNullOrEmpty(FontWeight) || !string.IsNullOrEmpty(FontStyle);

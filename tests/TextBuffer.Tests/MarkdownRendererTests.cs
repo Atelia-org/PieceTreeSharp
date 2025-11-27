@@ -106,20 +106,35 @@ Line2]
         {
             var model = new TextModel("Hello World");
             var renderer = new MarkdownRenderer();
-            var options = new MarkdownRenderOptions
-            {
-                Search = new MarkdownSearchOptions
-                {
-                    Query = "World",
-                }
-            };
+            model.HighlightSearchMatches(new SearchHighlightOptions { Query = "World" });
 
-            var output = renderer.Render(model, options);
+            var output = renderer.Render(model);
             var expected = 
 @"```text
 Hello <World>
 ```";
             Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_SearchHighlightsRespectOwnerFilter()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+            model.HighlightSearchMatches(new SearchHighlightOptions { Query = "World" });
+
+            var searchOnly = renderer.Render(model, new MarkdownRenderOptions
+            {
+                OwnerIdFilter = DecorationOwnerIds.SearchHighlights,
+            });
+            Assert.Contains("<World>", searchOnly);
+
+            var unrelatedOwner = model.AllocateDecorationOwnerId();
+            var filtered = renderer.Render(model, new MarkdownRenderOptions
+            {
+                OwnerIdFilter = unrelatedOwner,
+            });
+            Assert.DoesNotContain("<World>", filtered);
         }
 
         [Fact]
@@ -168,6 +183,42 @@ Hello <World>
         }
 
         [Fact]
+        public void TestRender_OwnerFilterPredicateRestrictsOwners()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+
+            var selectionOwner = model.AllocateDecorationOwnerId();
+            var cursorOwner = model.AllocateDecorationOwnerId();
+
+            model.AddDecoration(new TextRange(0, model.GetLength()), ModelDecorationOptions.CreateSelectionOptions(), selectionOwner);
+            var cursorOffset = model.GetOffsetAt(new TextPosition(1, 6));
+            model.AddDecoration(new TextRange(cursorOffset, cursorOffset), ModelDecorationOptions.CreateCursorOptions(), cursorOwner);
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                OwnerFilterPredicate = ownerId => ownerId == cursorOwner || ownerId == DecorationOwnerIds.Default,
+            });
+
+            Assert.DoesNotContain("[Hello World]", output);
+            Assert.Contains("|", output);
+        }
+
+        [Fact]
+        public void TestRender_OwnerFilterPredicateConflictsWithListThrows()
+        {
+            var model = new TextModel("Hello World");
+            var renderer = new MarkdownRenderer();
+            var ownerId = model.AllocateDecorationOwnerId();
+
+            Assert.Throws<ArgumentException>(() => renderer.Render(model, new MarkdownRenderOptions
+            {
+                OwnerIdFilters = new[] { ownerId },
+                OwnerFilterPredicate = _ => true,
+            }));
+        }
+
+        [Fact]
         public void TestRender_IncludesInjectedText()
         {
             var model = new TextModel("Hello Earth");
@@ -192,12 +243,123 @@ Hello <World>
         }
 
         [Fact]
+        public void TestRender_SuppressesInjectedTextWhenDisabled()
+        {
+            var model = new TextModel("Hello Earth");
+            var renderer = new MarkdownRenderer();
+
+            var wordStart = model.GetOffsetAt(new TextPosition(1, 7));
+            var wordEnd = model.GetOffsetAt(new TextPosition(1, 12));
+            var options = new ModelDecorationOptions
+            {
+                RenderKind = DecorationRenderKind.Generic,
+                Before = new ModelDecorationInjectedTextOptions { Content = "BEF" },
+                After = new ModelDecorationInjectedTextOptions { Content = "AFT" },
+                ShowIfCollapsed = true,
+            };
+
+            model.AddDecoration(new TextRange(wordStart, wordEnd), options);
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                IncludeInjectedText = false,
+            });
+
+            Assert.DoesNotContain("<<before:BEF>>", output);
+            Assert.DoesNotContain("<<after:AFT>>", output);
+        }
+
+        [Fact]
         public void TestRender_RendersGlyphAndMinimapAnnotations()
         {
             var model = new TextModel("abc");
             var renderer = new MarkdownRenderer();
 
-            var options = new ModelDecorationOptions
+            model.AddDecoration(new TextRange(0, model.GetLength()), CreateAnnotationDecorationOptions());
+
+            var output = renderer.Render(model);
+
+            Assert.Contains("{glyph:git-add@left!}", output);
+            Assert.Contains("{margin:margin-add}", output);
+            Assert.Contains("{lines:line-add}", output);
+            Assert.Contains("{line-number:line-number-add}", output);
+            Assert.Contains("{inline:inline-add}", output);
+            Assert.Contains("{decor:diff-add}", output);
+            Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
+            Assert.Contains("{overview:right:#00ff00}", output);
+            Assert.Contains("{font:family=Fira Code,style=italic}", output);
+            Assert.Contains("{line-height:24}", output);
+        }
+
+        [Fact]
+        public void TestRender_DisableGlyphAnnotations()
+        {
+            var model = new TextModel("abc");
+            var renderer = new MarkdownRenderer();
+            model.AddDecoration(new TextRange(0, model.GetLength()), CreateAnnotationDecorationOptions());
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                IncludeGlyphAnnotations = false,
+            });
+
+            Assert.DoesNotContain("{glyph:git-add@left!}", output);
+            Assert.Contains("{margin:margin-add}", output);
+        }
+
+        [Fact]
+        public void TestRender_DisableMarginAnnotations()
+        {
+            var model = new TextModel("abc");
+            var renderer = new MarkdownRenderer();
+            model.AddDecoration(new TextRange(0, model.GetLength()), CreateAnnotationDecorationOptions());
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                IncludeMarginAnnotations = false,
+            });
+
+            Assert.DoesNotContain("{margin:margin-add}", output);
+            Assert.DoesNotContain("{lines:line-add}", output);
+            Assert.DoesNotContain("{line-number:line-number-add}", output);
+            Assert.Contains("{glyph:git-add@left!}", output);
+        }
+
+        [Fact]
+        public void TestRender_DisableOverviewAnnotations()
+        {
+            var model = new TextModel("abc");
+            var renderer = new MarkdownRenderer();
+            model.AddDecoration(new TextRange(0, model.GetLength()), CreateAnnotationDecorationOptions());
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                IncludeOverviewAnnotations = false,
+            });
+
+            Assert.DoesNotContain("{overview:right:#00ff00}", output);
+            Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
+        }
+
+        [Fact]
+        public void TestRender_DisableMinimapAnnotations()
+        {
+            var model = new TextModel("abc");
+            var renderer = new MarkdownRenderer();
+            model.AddDecoration(new TextRange(0, model.GetLength()), CreateAnnotationDecorationOptions());
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                IncludeMinimapAnnotations = false,
+            });
+
+            Assert.DoesNotContain("{minimap:gutter:#00ff00#Add!solid}", output);
+            Assert.Contains("{overview:right:#00ff00}", output);
+        }
+
+        private static ModelDecorationOptions CreateAnnotationDecorationOptions()
+        {
+            return new ModelDecorationOptions
             {
                 Description = "diff-add",
                 RenderKind = DecorationRenderKind.Generic,
@@ -228,21 +390,6 @@ Hello <World>
                 FontStyle = "italic",
                 ShowIfCollapsed = true,
             };
-
-            model.AddDecoration(new TextRange(0, model.GetLength()), options);
-
-            var output = renderer.Render(model);
-
-            Assert.Contains("{glyph:git-add@left!}", output);
-            Assert.Contains("{margin:margin-add}", output);
-            Assert.Contains("{lines:line-add}", output);
-            Assert.Contains("{line-number:line-number-add}", output);
-            Assert.Contains("{inline:inline-add}", output);
-            Assert.Contains("{decor:diff-add}", output);
-            Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
-            Assert.Contains("{overview:right:#00ff00}", output);
-            Assert.Contains("{font:family=Fira Code,style=italic}", output);
-            Assert.Contains("{line-height:24}", output);
         }
 
         [Fact]
@@ -272,6 +419,44 @@ Hello <World>
             Assert.Contains("[[diff-add]]foo[[/diff-add]]", output);
             Assert.Contains("[[diff-insert]]", output);
             Assert.Contains("[[/diff-insert]]", output);
+        }
+
+        [Fact]
+        public void TestRender_ViewportRestrictsLines()
+        {
+            var model = new TextModel("one\ntwo\nthree\nfour");
+            var renderer = new MarkdownRenderer();
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                StartLineNumber = 2,
+                LineCount = 2,
+            });
+
+            var expected =
+@"```text
+two
+three
+```";
+            Assert.Equal(expected, output.Trim());
+        }
+
+        [Fact]
+        public void TestRender_ViewportOutsideDocumentProducesEmptyBlock()
+        {
+            var model = new TextModel("one\ntwo");
+            var renderer = new MarkdownRenderer();
+
+            var output = renderer.Render(model, new MarkdownRenderOptions
+            {
+                StartLineNumber = 10,
+                EndLineNumber = 12,
+            });
+
+            var expected =
+@"```text
+```";
+            Assert.Equal(expected, output.Trim());
         }
     }
 }

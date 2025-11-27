@@ -180,6 +180,16 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
         return DescribeFirstDifference(actual, expected, context);
     }
 
+    public void SetIteration(int iteration)
+    {
+        _iteration = iteration;
+    }
+
+    public void ResetIteration()
+    {
+        _iteration = -1;
+    }
+
     public void AssertState(string? phase = null)
     {
         var actual = _buffer.GetText();

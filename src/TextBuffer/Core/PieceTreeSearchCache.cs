@@ -2,20 +2,67 @@
 // - Class: PieceTreeSearchCache (cache field and helper methods)
 // - Lines: 100-268
 // Ported: 2025-11-19
+// Updated: 2025-11-26 (WS1-PORT-SearchCore: added DEBUG counters and extended cache entry tuple)
 
 using System;
 using System.Collections.Generic;
 
 namespace PieceTree.TextBuffer.Core;
 
+#if DEBUG
+/// <summary>
+/// Diagnostic counters for the PieceTreeSearchCache. Only available in DEBUG builds.
+/// Tracks CacheHit, CacheMiss, and ClearedAfterEdit events for testing and profiling.
+/// </summary>
+public class SearchCacheDiagnostics
+{
+    private long _cacheHit;
+    private long _cacheMiss;
+    private long _clearedAfterEdit;
+
+    public long CacheHit => _cacheHit;
+    public long CacheMiss => _cacheMiss;
+    public long ClearedAfterEdit => _clearedAfterEdit;
+
+    public void RecordHit() => System.Threading.Interlocked.Increment(ref _cacheHit);
+    public void RecordMiss() => System.Threading.Interlocked.Increment(ref _cacheMiss);
+    public void RecordClear() => System.Threading.Interlocked.Increment(ref _clearedAfterEdit);
+
+    public void Reset()
+    {
+        _cacheHit = 0;
+        _cacheMiss = 0;
+        _clearedAfterEdit = 0;
+    }
+
+    public SearchCacheSnapshot ToSnapshot() => new SearchCacheSnapshot(_cacheHit, _cacheMiss, _clearedAfterEdit);
+}
+
+/// <summary>
+/// Immutable snapshot of search cache diagnostics for testing assertions.
+/// </summary>
+public readonly record struct SearchCacheSnapshot(long CacheHit, long CacheMiss, long ClearedAfterEdit);
+#endif
+
 /// <summary>
 /// Minimal port of VS Code's PieceTreeSearchCache. Stores up to <paramref name="limit"/> node hits so future
 /// nodeAt/getLineContent shims can bypass repeated tree walks. Limit defaults to 1, mirroring TS usage.
+/// The cache entry stores a tuple of (node, nodeStartOffset, nodeStartLineNumber) to enable short-circuit
+/// lookups in NodeAt2 and GetLineRawContent when the cached node already covers the query.
 /// </summary>
 internal sealed class PieceTreeSearchCache
 {
     private readonly int _limit;
     private readonly List<CacheEntry> _entries;
+
+#if DEBUG
+    private readonly SearchCacheDiagnostics _diagnostics = new();
+    
+    /// <summary>
+    /// Gets the diagnostic counters for this cache. Only available in DEBUG builds.
+    /// </summary>
+    public SearchCacheDiagnostics Diagnostics => _diagnostics;
+#endif
 
     public PieceTreeSearchCache(int limit = 1)
     {
@@ -37,12 +84,18 @@ internal sealed class PieceTreeSearchCache
             {
                 node = entry.Node;
                 nodeStartOffset = entry.NodeStartOffset;
+#if DEBUG
+                _diagnostics.RecordHit();
+#endif
                 return true;
             }
         }
 
         node = null!;
         nodeStartOffset = 0;
+#if DEBUG
+        _diagnostics.RecordMiss();
+#endif
         return false;
     }
 
@@ -56,6 +109,9 @@ internal sealed class PieceTreeSearchCache
                 node = entry.Node;
                 nodeStartOffset = entry.NodeStartOffset;
                 nodeStartLineNumber = entry.NodeStartLineNumber!.Value;
+#if DEBUG
+                _diagnostics.RecordHit();
+#endif
                 return true;
             }
         }
@@ -63,6 +119,9 @@ internal sealed class PieceTreeSearchCache
         node = null!;
         nodeStartOffset = 0;
         nodeStartLineNumber = 0;
+#if DEBUG
+        _diagnostics.RecordMiss();
+#endif
         return false;
     }
 
@@ -82,9 +141,21 @@ internal sealed class PieceTreeSearchCache
         _entries.Add(new CacheEntry(node, nodeStartOffset, nodeStartLineNumber));
     }
 
-    public void Clear() => _entries.Clear();
+    public void Clear()
+    {
+#if DEBUG
+        if (_entries.Count > 0)
+        {
+            _diagnostics.RecordClear();
+        }
+#endif
+        _entries.Clear();
+    }
 
-    public void InvalidateFromOffset(int offset) => InvalidateRange(offset, int.MaxValue);
+    public void InvalidateFromOffset(int offset)
+    {
+        InvalidateRange(offset, int.MaxValue);
+    }
 
     public void InvalidateRange(int startOffset, int length)
     {
@@ -99,13 +170,21 @@ internal sealed class PieceTreeSearchCache
             ? int.MaxValue
             : Math.Min(int.MaxValue, normalizedStart + normalizedLength);
 
+        var hadRemovals = false;
         for (var i = _entries.Count - 1; i >= 0; i--)
         {
             if (_entries[i].Intersects(normalizedStart, normalizedEnd))
             {
                 _entries.RemoveAt(i);
+                hadRemovals = true;
             }
         }
+#if DEBUG
+        if (hadRemovals)
+        {
+            _diagnostics.RecordClear();
+        }
+#endif
     }
 
     public void Validate(Func<PieceTreeNode, int> computeOffset, int totalLength)

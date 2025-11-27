@@ -185,11 +185,6 @@ public class TextModel : ITextSearchAccess
         return _snippetController;
     }
 
-    public IReadOnlyList<TextPosition> ComputeCursorStateAfterChanges(Cursor.CursorContext context, IReadOnlyList<TextChange>? inverseChanges)
-    {
-        return context.ComputeAfterCursorState(inverseChanges);
-    }
-
     public string GetValue() => _buffer.GetText();
 
     public ITextSnapshot CreateSnapshot(bool preserveBom = false)
@@ -248,6 +243,153 @@ public class TextModel : ITextSearchAccess
     public int GetOffsetAt(TextPosition position) => _buffer.GetOffsetAt(position.LineNumber, position.Column);
 
     public TextPosition GetPositionAt(int offset) => _buffer.GetPositionAt(offset);
+
+    #region Position/Range Validation (WS4-PORT-Core)
+
+    /// <summary>
+    /// Validate and clamp a position to be within the document bounds.
+    /// </summary>
+    public TextPosition ValidatePosition(TextPosition position)
+    {
+        var lineCount = GetLineCount();
+        var line = position.LineNumber;
+
+        if (line < 1)
+        {
+            return new TextPosition(1, 1);
+        }
+
+        if (line > lineCount)
+        {
+            var lastLineMaxCol = GetLineMaxColumn(lineCount);
+            return new TextPosition(lineCount, lastLineMaxCol);
+        }
+
+        var minColumn = 1;
+        var maxColumn = GetLineMaxColumn(line);
+        var column = position.Column;
+
+        if (column < minColumn)
+        {
+            return new TextPosition(line, minColumn);
+        }
+
+        if (column > maxColumn)
+        {
+            return new TextPosition(line, maxColumn);
+        }
+
+        return position;
+    }
+
+    /// <summary>
+    /// Validate and clamp a range to be within the document bounds.
+    /// </summary>
+    public Range ValidateRange(Range range)
+    {
+        var start = ValidatePosition(range.GetStartPosition());
+        var end = ValidatePosition(range.GetEndPosition());
+
+        // Ensure start <= end
+        if (start.CompareTo(end) > 0)
+        {
+            return new Range(end, start);
+        }
+
+        return new Range(start, end);
+    }
+
+    #endregion
+
+    #region Tracked Ranges (WS4-PORT-Core)
+
+    private int _nextTrackedRangeId = 1;
+    private readonly Dictionary<string, ModelDecoration> _trackedRanges = new(StringComparer.Ordinal);
+    private const int TrackedRangeOwnerId = -1; // Special owner ID for tracked ranges
+
+    /// <summary>
+    /// Allocate a new tracked range ID.
+    /// </summary>
+    public string AllocateTrackedRangeId()
+    {
+        return $"__tracked_range_{Interlocked.Increment(ref _nextTrackedRangeId)}__";
+    }
+
+    /// <summary>
+    /// Set a tracked range. If id is null, allocates a new ID.
+    /// If range is null, removes the tracked range.
+    /// Returns the ID of the tracked range (or null if removed).
+    /// </summary>
+    /// <param name="id">The existing ID, or null to allocate new.</param>
+    /// <param name="range">The new range, or null to remove.</param>
+    /// <param name="stickiness">How the range should behave during edits.</param>
+    /// <returns>The ID of the tracked range, or null if removed.</returns>
+    internal string? _setTrackedRange(string? id, Range? range, Decorations.TrackedRangeStickiness stickiness)
+    {
+        if (range == null)
+        {
+            // Remove the tracked range
+            if (id != null && _trackedRanges.TryGetValue(id, out var existing))
+            {
+                UnregisterDecoration(existing);
+                _trackedRanges.Remove(id);
+            }
+            return null;
+        }
+
+        // Validate the range
+        var validatedRange = ValidateRange(range.Value);
+        var startOffset = GetOffsetAt(validatedRange.GetStartPosition());
+        var endOffset = GetOffsetAt(validatedRange.GetEndPosition());
+        var textRange = new Decorations.TextRange(startOffset, endOffset);
+
+        var options = Decorations.ModelDecorationOptions.CreateHiddenOptions(stickiness);
+
+        if (id != null && _trackedRanges.TryGetValue(id, out var existingDecor))
+        {
+            // Update existing tracked range - just update the range
+            var previousRange = existingDecor.Range;
+            existingDecor.Range = textRange;
+            existingDecor.VersionId = _versionId;
+            _decorationTrees.Reinsert(existingDecor);
+            return id;
+        }
+        else
+        {
+            // Create new tracked range
+            var newId = id ?? AllocateTrackedRangeId();
+            var decoration = new Decorations.ModelDecoration(newId, TrackedRangeOwnerId, textRange, options);
+            decoration.VersionId = _versionId;
+            RegisterDecoration(decoration);
+            _trackedRanges[newId] = decoration;
+            return newId;
+        }
+    }
+
+    /// <summary>
+    /// Get the current range of a tracked range.
+    /// Returns null if the ID is not found.
+    /// </summary>
+    /// <param name="id">The tracked range ID.</param>
+    /// <returns>The current range, or null if not found.</returns>
+    internal Range? _getTrackedRange(string? id)
+    {
+        if (string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+
+        if (!_trackedRanges.TryGetValue(id, out var decoration))
+        {
+            return null;
+        }
+
+        var startPos = GetPositionAt(decoration.Range.StartOffset);
+        var endPos = GetPositionAt(decoration.Range.EndOffset);
+        return new Range(startPos, endPos);
+    }
+
+    #endregion
 
     public IReadOnlyList<FindMatch> FindMatches(string searchString, Range? searchRange, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches, int limitResultCount = TextModelSearch.DefaultLimit)
     {
@@ -422,7 +564,7 @@ public class TextModel : ITextSearchAccess
         var decorations = new List<ModelDecoration>();
         foreach (var decoration in _decorationTrees.EnumerateAll())
         {
-            if (ownerIdFilter != DecorationOwnerIds.Any && decoration.OwnerId != ownerIdFilter)
+            if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
             {
                 continue;
             }
@@ -629,7 +771,7 @@ public class TextModel : ITextSearchAccess
         var result = new List<ModelDecoration>();
         foreach (var decoration in _decorationTrees.EnumerateAll())
         {
-            if (ownerIdFilter != DecorationOwnerIds.Any && decoration.OwnerId != ownerIdFilter)
+            if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
             {
                 continue;
             }
@@ -760,63 +902,200 @@ public class TextModel : ITextSearchAccess
         OnDidChangeOptions?.Invoke(this, diff);
     }
 
-    public void DetectIndentation(bool defaultInsertSpaces, int defaultTabSize)
+    private sealed class SpacesDiffResult
     {
-        var maxLines = Math.Min(GetLineCount(), 200);
-        var spaceSamples = new List<int>();
-        var spaceIndentedLines = 0;
-        var tabIndentedLines = 0;
+        public int SpacesDiff;
+        public bool LooksLikeAlignment;
+    }
 
-        for (int line = 1; line <= maxLines; line++)
+    private static void ComputeSpacesDiff(string a, int aLength, string b, int bLength, SpacesDiffResult result)
+    {
+        result.SpacesDiff = 0;
+        result.LooksLikeAlignment = false;
+
+        int i = 0;
+        var maxCommon = Math.Min(aLength, bLength);
+        while (i < maxCommon && a[i] == b[i])
         {
-            var content = GetLineContent(line);
-            if (content.Length == 0)
-            {
-                continue;
-            }
+            i++;
+        }
 
-            int index = 0;
-            while (index < content.Length && content[index] == ' ')
+        int aSpacesCount = 0;
+        int aTabsCount = 0;
+        for (int j = i; j < aLength; j++)
+        {
+            var ch = a[j];
+            if (ch == ' ')
             {
-                index++;
+                aSpacesCount++;
             }
-
-            if (index > 0)
+            else
             {
-                spaceIndentedLines++;
-                spaceSamples.Add(index);
-                continue;
-            }
-
-            if (index < content.Length && content[index] == '\t')
-            {
-                tabIndentedLines++;
+                aTabsCount++;
             }
         }
 
-        var useTabs = tabIndentedLines > spaceIndentedLines && tabIndentedLines > 0;
-        var insertSpaces = useTabs ? false : (spaceIndentedLines > 0 || defaultInsertSpaces);
-        var indentSize = defaultTabSize;
-
-        if (spaceSamples.Count > 0)
+        int bSpacesCount = 0;
+        int bTabsCount = 0;
+        for (int j = i; j < bLength; j++)
         {
-            indentSize = spaceSamples[0];
-            for (int i = 1; i < spaceSamples.Count; i++)
+            var ch = b[j];
+            if (ch == ' ')
             {
-                indentSize = GreatestCommonDivisor(indentSize, spaceSamples[i]);
+                bSpacesCount++;
+            }
+            else
+            {
+                bTabsCount++;
+            }
+        }
+
+        if (aSpacesCount > 0 && aTabsCount > 0)
+        {
+            return;
+        }
+
+        if (bSpacesCount > 0 && bTabsCount > 0)
+        {
+            return;
+        }
+
+        int tabsDiff = Math.Abs(aTabsCount - bTabsCount);
+        int spacesDiff = Math.Abs(aSpacesCount - bSpacesCount);
+
+        if (tabsDiff == 0)
+        {
+            result.SpacesDiff = spacesDiff;
+
+            if (spacesDiff > 0 && bSpacesCount - 1 >= 0 && bSpacesCount - 1 < a.Length && bSpacesCount < b.Length)
+            {
+                if (b[bSpacesCount] != ' ' && a[bSpacesCount - 1] == ' ')
+                {
+                    if (a.Length > 0 && a[^1] == ',')
+                    {
+                        result.LooksLikeAlignment = true;
+                    }
+                }
             }
 
-            if (indentSize <= 0)
+            return;
+        }
+
+        if (tabsDiff != 0 && spacesDiff % tabsDiff == 0)
+        {
+            result.SpacesDiff = spacesDiff / tabsDiff;
+        }
+    }
+
+    private static readonly int[] AllowedTabSizeGuesses = { 2, 4, 6, 8, 3, 5, 7 };
+    private const int MaxAllowedTabSizeGuess = 8;
+
+    public void DetectIndentation(bool defaultInsertSpaces, int defaultTabSize)
+    {
+        var linesCount = Math.Min(GetLineCount(), 10000);
+        var linesIndentedWithTabsCount = 0;
+        var linesIndentedWithSpacesCount = 0;
+        var previousLineText = string.Empty;
+        var previousLineIndentation = 0;
+        var spacesDiffCount = new int[MaxAllowedTabSizeGuess + 1];
+        var diffResult = new SpacesDiffResult();
+
+        for (int line = 1; line <= linesCount; line++)
+        {
+            var currentLineText = GetLineContent(line);
+            var currentLineLength = currentLineText.Length;
+
+            var currentLineHasContent = false;
+            var currentLineIndentation = 0;
+            var currentLineSpacesCount = 0;
+            var currentLineTabsCount = 0;
+
+            for (int j = 0; j < currentLineLength; j++)
             {
-                indentSize = defaultTabSize;
+                var ch = currentLineText[j];
+                if (ch == '\t')
+                {
+                    currentLineTabsCount++;
+                }
+                else if (ch == ' ')
+                {
+                    currentLineSpacesCount++;
+                }
+                else
+                {
+                    currentLineHasContent = true;
+                    currentLineIndentation = j;
+                    break;
+                }
+            }
+
+            if (!currentLineHasContent)
+            {
+                continue;
+            }
+
+            if (currentLineTabsCount > 0)
+            {
+                linesIndentedWithTabsCount++;
+            }
+            else if (currentLineSpacesCount > 1)
+            {
+                linesIndentedWithSpacesCount++;
+            }
+
+            ComputeSpacesDiff(previousLineText, previousLineIndentation, currentLineText, currentLineIndentation, diffResult);
+
+            if (diffResult.LooksLikeAlignment)
+            {
+                if (!(defaultInsertSpaces && defaultTabSize == diffResult.SpacesDiff))
+                {
+                    continue;
+                }
+            }
+
+            var currentSpacesDiff = diffResult.SpacesDiff;
+            if (currentSpacesDiff <= MaxAllowedTabSizeGuess)
+            {
+                spacesDiffCount[currentSpacesDiff]++;
+            }
+
+            previousLineText = currentLineText;
+            previousLineIndentation = currentLineIndentation;
+        }
+
+        var insertSpaces = defaultInsertSpaces;
+        if (linesIndentedWithTabsCount != linesIndentedWithSpacesCount)
+        {
+            insertSpaces = linesIndentedWithTabsCount < linesIndentedWithSpacesCount;
+        }
+
+        var tabSize = defaultTabSize;
+
+        if (insertSpaces)
+        {
+            double tabSizeScore = insertSpaces ? 0 : 0.1 * linesCount;
+
+            foreach (var possibleTabSize in AllowedTabSizeGuesses)
+            {
+                var possibleScore = spacesDiffCount[possibleTabSize];
+                if (possibleScore > tabSizeScore)
+                {
+                    tabSizeScore = possibleScore;
+                    tabSize = possibleTabSize;
+                }
+            }
+
+            if (tabSize == 4 && spacesDiffCount[4] > 0 && spacesDiffCount[2] > 0 && spacesDiffCount[2] >= spacesDiffCount[4] / 2)
+            {
+                tabSize = 2;
             }
         }
 
         UpdateOptions(new TextModelUpdateOptions
         {
             InsertSpaces = insertSpaces,
-            TabSize = indentSize,
-            IndentSize = indentSize,
+            TabSize = tabSize,
+            IndentSize = tabSize,
         });
     }
 
