@@ -43,6 +43,12 @@ public sealed record class TextModelCreationOptions
     public bool IsForSimpleWidget { get; init; } = false;
     public BracketPairColorizationOptions BracketPairColorizationOptions { get; init; } = BracketPairColorizationOptions.Default;
 
+    /// <summary>
+    /// When true, Cursor/CursorCollection use VS Code-compatible state management.
+    /// Default: false for backward compatibility during transition.
+    /// </summary>
+    public bool EnableVsCursorParity { get; init; } = false;
+
     public static TextModelCreationOptions Default { get; } = new();
 
     public TextModelCreationOptions Normalize(DefaultEndOfLine fallbackEol)
@@ -112,6 +118,12 @@ public sealed class TextModelResolvedOptions
     public bool LargeFileOptimizations => CreationOptions.LargeFileOptimizations;
     public bool IsForSimpleWidget => CreationOptions.IsForSimpleWidget;
     public BracketPairColorizationOptions BracketPairColorizationOptions => CreationOptions.BracketPairColorizationOptions;
+
+    /// <summary>
+    /// When true, Cursor/CursorCollection use VS Code-compatible state management.
+    /// Default: false for backward compatibility during transition.
+    /// </summary>
+    public bool EnableVsCursorParity => CreationOptions.EnableVsCursorParity;
 
     private TextModelResolvedOptions(TextModelCreationOptions creationOptions, int tabSize, int indentSize, bool indentSizeIsTabSize, bool insertSpaces, DefaultEndOfLine defaultEol, bool trimAutoWhitespace)
     {

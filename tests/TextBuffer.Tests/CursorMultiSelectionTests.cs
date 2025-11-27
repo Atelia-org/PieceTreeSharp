@@ -1,6 +1,7 @@
 // Source: ts/src/vs/editor/contrib/multicursor/test/browser/cursorMultiSelection.test.ts
 // - Tests: multi-cursor rendering, paste ordering, cancellation semantics
 // Ported/updated: 2025-11-27
+// Updated: 2025-11-28 (CL7-Stage1 Phase 3: Updated to use CursorContext-based API)
 
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
@@ -88,16 +89,19 @@ public class CursorMultiSelectionTests
 
     private static CursorCollection CreateCollection(TestEditorContext context)
     {
-        CursorCollection collection = new(context.Model);
-        if (context.InitialCursors.Count == 0)
+        // Use CursorContext-based constructor which creates a primary cursor automatically
+        CursorContext cursorContext = CursorContext.FromModel(context.Model);
+        CursorCollection collection = new(cursorContext);
+
+        // Move primary cursor to first position if specified
+        if (context.InitialCursors.Count > 0)
         {
-            collection.CreateCursor();
-        }
-        else
-        {
-            foreach (TextPosition cursor in context.InitialCursors)
+            collection.Cursors[0].MoveTo(context.InitialCursors[0]);
+
+            // Add remaining positions as secondary cursors
+            for (int i = 1; i < context.InitialCursors.Count; i++)
             {
-                collection.CreateCursor(cursor);
+                collection.CreateCursor(context.InitialCursors[i]);
             }
         }
 

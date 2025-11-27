@@ -117,8 +117,8 @@ public class IntervalTreeTests
     public void AcceptReplace_DeleteInsideRange_ReinsertsTouchedNodes()
     {
         IntervalTree tree = new();
-        ModelDecoration a = CreateDecoration("a", DecorationOwnerIds.Default, 10, 20);
-        ModelDecoration b = CreateDecoration("b", DecorationOwnerIds.Default, 30, 40);
+        ModelDecoration a = CreateDecoration("a", DecorationOwnerIds.Any, 10, 20);
+        ModelDecoration b = CreateDecoration("b", DecorationOwnerIds.Any, 30, 40);
         tree.Insert(a);
         tree.Insert(b);
 
@@ -147,7 +147,7 @@ public class IntervalTreeTests
     public void LargeDeltaTriggersDeferredNormalization()
     {
         IntervalTree tree = new();
-        ModelDecoration decoration = CreateDecoration("huge", DecorationOwnerIds.Default, 100, 101);
+        ModelDecoration decoration = CreateDecoration("huge", DecorationOwnerIds.Any, 100, 101);
         tree.Insert(decoration);
 
 #if DEBUG
@@ -198,7 +198,9 @@ public class IntervalTreeTests
     public void OwnerFiltersReturnExpectedIntervals()
     {
         IntervalTree tree = new();
-        ModelDecoration global = CreateDecoration("global", DecorationOwnerIds.Default, 0, 5);
+        // Create a "global" decoration with ownerId=0 (Any)
+        // Global decorations always appear, even when filtering for specific owners.
+        ModelDecoration global = CreateDecoration("global", DecorationOwnerIds.Any, 0, 5);
         ModelDecoration ownerA = CreateDecoration("owner-a", 101, 5, 10);
         ModelDecoration ownerB = CreateDecoration("owner-b", 202, 10, 15);
         ModelDecoration ownerA2 = CreateDecoration("owner-a2", 101, 20, 25);
@@ -208,6 +210,8 @@ public class IntervalTreeTests
         tree.Insert(ownerB);
         tree.Insert(ownerA2);
 
+        // When filtering by owner 101, only decorations with ownerId=101 are returned
+        // (global decorations with ownerId=0 are NOT included when filtering by specific owner)
         string[] ownerAResults = tree.Search(new TextRange(0, 30), ownerFilter: 101)
             .Select(d => d.Id)
             .ToArray();
@@ -217,6 +221,89 @@ public class IntervalTreeTests
             .Select(d => d.Id)
             .ToArray();
         Assert.Equal(new[] { "global", "owner-b" }, ownerBResults);
+
+        // When using ownerFilter=0 (Any), all decorations are returned
+        string[] allResults = tree.Search(new TextRange(0, 30), ownerFilter: DecorationOwnerIds.Any)
+            .Select(d => d.Id)
+            .ToArray();
+        Assert.Equal(new[] { "global", "owner-a", "owner-b", "owner-a2" }, allResults);
+    }
+
+    [Fact]
+    public void OwnerFiltersIncludeTrackedRanges()
+    {
+        IntervalTree tree = new();
+        ModelDecoration tracked = CreateDecoration("tracked", -1, 2, 6);
+        ModelDecoration owned = CreateDecoration("owned", 700, 10, 12);
+
+        tree.Insert(tracked);
+        tree.Insert(owned);
+
+        string[] filtered = tree.Search(new TextRange(0, 20), ownerFilter: 700)
+            .Select(d => d.Id)
+            .ToArray();
+
+        Assert.Equal(new[] { "tracked", "owned" }, filtered);
+    }
+
+    [Fact]
+    public void DecorationSearchOptionsFilterNodes()
+    {
+        IntervalTree tree = new();
+
+        ModelDecoration validation = CreateDecoration(
+            "validation",
+            DecorationOwnerIds.Any,
+            0,
+            5,
+            new ModelDecorationOptions { ClassName = "squiggly-error" });
+        ModelDecoration font = CreateDecoration(
+            "font",
+            DecorationOwnerIds.Any,
+            6,
+            8,
+            new ModelDecorationOptions { FontWeight = "bold" });
+        ModelDecoration minimap = CreateDecoration(
+            "minimap",
+            DecorationOwnerIds.Any,
+            9,
+            11,
+            new ModelDecorationOptions
+            {
+                Minimap = new ModelDecorationMinimapOptions { Color = "#fff" },
+                ShowIfCollapsed = true,
+                RenderKind = DecorationRenderKind.Generic,
+            });
+        ModelDecoration margin = CreateDecoration(
+            "margin",
+            DecorationOwnerIds.Any,
+            12,
+            14,
+            new ModelDecorationOptions
+            {
+                GlyphMarginClassName = "glyph",
+                ShowIfCollapsed = true,
+                RenderKind = DecorationRenderKind.Generic,
+            });
+
+        tree.Insert(validation);
+        tree.Insert(font);
+        tree.Insert(minimap);
+        tree.Insert(margin);
+
+        TextRange range = new(0, 20);
+
+        IReadOnlyList<ModelDecoration> withoutValidation = tree.Search(range, new DecorationSearchOptions { FilterOutValidation = true });
+        Assert.DoesNotContain(withoutValidation, d => d.Id == validation.Id);
+
+        IReadOnlyList<ModelDecoration> withoutFont = tree.Search(range, new DecorationSearchOptions { FilterFontDecorations = true });
+        Assert.DoesNotContain(withoutFont, d => d.Id == font.Id);
+
+        IReadOnlyList<ModelDecoration> onlyMinimap = tree.Search(range, new DecorationSearchOptions { OnlyMinimapDecorations = true });
+        Assert.Equal(new[] { minimap.Id }, onlyMinimap.Select(d => d.Id).ToArray());
+
+        IReadOnlyList<ModelDecoration> onlyMargin = tree.Search(range, new DecorationSearchOptions { OnlyMarginDecorations = true });
+        Assert.Equal(new[] { margin.Id }, onlyMargin.Select(d => d.Id).ToArray());
     }
 
     #endregion
@@ -230,7 +317,7 @@ public class IntervalTreeTests
         for (int i = 0; i < 50; i++)
         {
             int start = i * 20;
-            tree.Insert(CreateDecoration($"range-{i}", DecorationOwnerIds.Default, start, start + 10));
+            tree.Insert(CreateDecoration($"range-{i}", DecorationOwnerIds.Any, start, start + 10));
         }
 
         for (int iteration = 0; iteration < 10; iteration++)
@@ -273,14 +360,14 @@ public class IntervalTreeTests
         for (int i = 0; i < data.Length; i++)
         {
             (int start, int end) = data[i];
-            tree.Insert(CreateDecoration($"cormen-{i}", DecorationOwnerIds.Default, start, end));
+            tree.Insert(CreateDecoration($"cormen-{i}", DecorationOwnerIds.Any, start, end));
         }
 
         return tree;
     }
 
-    private static ModelDecoration CreateDecoration(string id, int ownerId, int start, int end)
-        => new(id, ownerId, new TextRange(start, end), HiddenOptions);
+    private static ModelDecoration CreateDecoration(string id, int ownerId, int start, int end, ModelDecorationOptions? options = null)
+        => new(id, ownerId, new TextRange(start, end), options ?? HiddenOptions);
 
     private sealed class IntervalTreeHarness
     {
@@ -457,14 +544,14 @@ public class IntervalTreeTests
 
     private static class Ops
     {
-        public static IntervalOp Insert(int start, int end, int ownerId = DecorationOwnerIds.Default)
+        public static IntervalOp Insert(int start, int end, int ownerId = DecorationOwnerIds.Any)
             => new(IntervalOpType.Insert, -1, start, end, ownerId);
 
         public static IntervalOp Delete(int nodeId)
-            => new(IntervalOpType.Delete, nodeId, 0, 0, DecorationOwnerIds.Default);
+            => new(IntervalOpType.Delete, nodeId, 0, 0, DecorationOwnerIds.Any);
 
         public static IntervalOp Change(int nodeId, int start, int end)
-            => new(IntervalOpType.Change, nodeId, start, end, DecorationOwnerIds.Default);
+            => new(IntervalOpType.Change, nodeId, start, end, DecorationOwnerIds.Any);
 
         public static IntervalOp Search(int start, int end, int ownerFilter = DecorationOwnerIds.Any)
             => new(IntervalOpType.Search, -1, start, end, ownerFilter);

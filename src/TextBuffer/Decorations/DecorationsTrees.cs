@@ -1,13 +1,14 @@
 // Original C# implementation
 // Purpose: Multi-tree decoration storage with scope-based separation
 // Created: 2025-11-22
+// Updated: 2025-11-28 (CL8-Phase2: Made DecorationTreeScope public, added Search with DecorationSearchOptions)
 // Note: VS Code uses a single IntervalTree; this implementation separates decorations
 //       into regular, overview, and injected text trees for better performance.
 
 namespace PieceTree.TextBuffer.Decorations;
 
 [Flags]
-internal enum DecorationTreeScope
+public enum DecorationTreeScope
 {
     Regular = 1,
     Overview = 2,
@@ -49,6 +50,25 @@ internal sealed class DecorationsTrees
             : Empty;
         IReadOnlyList<ModelDecoration> injected = scope.HasFlag(DecorationTreeScope.InjectedText)
             ? _injected.Search(range, ownerFilter)
+            : Empty;
+
+        return MergeOrdered(regular, overview, injected);
+    }
+
+    /// <summary>
+    /// Search with DecorationSearchOptions filtering support.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> Search(TextRange range, DecorationSearchOptions options)
+    {
+        DecorationTreeScope scope = options.Scope;
+        IReadOnlyList<ModelDecoration> regular = scope.HasFlag(DecorationTreeScope.Regular)
+            ? _regular.Search(range, options)
+            : Empty;
+        IReadOnlyList<ModelDecoration> overview = scope.HasFlag(DecorationTreeScope.Overview)
+            ? _overview.Search(range, options)
+            : Empty;
+        IReadOnlyList<ModelDecoration> injected = scope.HasFlag(DecorationTreeScope.InjectedText)
+            ? _injected.Search(range, options)
             : Empty;
 
         return MergeOrdered(regular, overview, injected);

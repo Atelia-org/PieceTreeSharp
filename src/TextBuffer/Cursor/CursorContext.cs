@@ -153,9 +153,18 @@ public sealed class CursorContext
     /// </summary>
     public static CursorContext FromModel(TextModel model)
     {
+        return FromModel(model, null);
+    }
+
+    /// <summary>
+    /// Create a CursorContext from a TextModel with custom editor options.
+    /// Uses IdentityCoordinatesConverter and TextModelCursorAdapter.
+    /// </summary>
+    public static CursorContext FromModel(TextModel model, EditorCursorOptions? editorOptions)
+    {
         TextModelCursorAdapter viewModel = new(model);
         IdentityCoordinatesConverter converter = new(model);
-        CursorConfiguration config = new(model.GetOptions());
+        CursorConfiguration config = new(model.GetOptions(), editorOptions);
         return new CursorContext(model, viewModel, converter, config);
     }
 

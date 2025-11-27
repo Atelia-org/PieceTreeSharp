@@ -600,6 +600,218 @@ public class CursorCoreTests
 
     #endregion
 
+    #region CL7 Stage 1 - Cursor State Wiring Tests
+
+    [Fact]
+    public void Cursor_SetState_ValidatesModelState_OutOfBounds()
+    {
+        TextModel model = new("Hello\nWorld", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Set state with out-of-bounds position (line 5 doesn't exist)
+        SingleCursorState invalidState = new(
+            new Range(1, 1, 1, 1),
+            SelectionStartKind.Simple,
+            0,
+            new TextPosition(5, 100), // Invalid: only 2 lines
+            0);
+
+        cursor.SetState(context, invalidState, null);
+
+        // Should be clamped to valid position
+        CursorState result = cursor.AsCursorState();
+        Assert.Equal(2, result.ModelState.Position.LineNumber); // Clamped to line 2
+        Assert.True(result.ModelState.Position.Column <= 6);    // Clamped to max column
+    }
+
+    [Fact]
+    public void Cursor_SetState_ValidatesModelState_ColumnTooLarge()
+    {
+        TextModel model = new("Hello", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Set state with out-of-bounds column
+        SingleCursorState invalidState = new(
+            new Range(1, 1, 1, 1),
+            SelectionStartKind.Simple,
+            0,
+            new TextPosition(1, 100), // Invalid: "Hello" is only 5 chars
+            0);
+
+        cursor.SetState(context, invalidState, null);
+
+        CursorState result = cursor.AsCursorState();
+        Assert.Equal(1, result.ModelState.Position.LineNumber);
+        Assert.Equal(6, result.ModelState.Position.Column); // Clamped to column 6 (after "Hello")
+    }
+
+    [Fact]
+    public void Cursor_TrackedRange_SurvivesEdit()
+    {
+        TextModel model = new("Hello World", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Set selection on "World"
+        cursor.SetState(context,
+            new SingleCursorState(
+                new Range(1, 7, 1, 12),
+                SelectionStartKind.Simple,
+                0,
+                new TextPosition(1, 12),
+                0),
+            null);
+
+        cursor.StartTrackingSelection(context);
+
+        // Insert text before selection
+        model.PushEditOperations([new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "XXX")], null);
+
+        // Read back from markers
+        Selection recovered = cursor.ReadSelectionFromMarkers(context);
+
+        // Selection should have shifted by 3
+        Assert.Equal(1, recovered.Anchor.LineNumber);
+        Assert.Equal(10, recovered.Anchor.Column); // Was 7, shifted by 3
+        Assert.Equal(15, recovered.Active.Column); // Was 12, shifted by 3
+    }
+
+    [Fact]
+    public void Cursor_TrackedRange_CollapsedSelection_StaysCollapsed()
+    {
+        TextModel model = new("Hello World", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Set collapsed cursor at position 6
+        cursor.SetState(context,
+            new SingleCursorState(
+                new Range(1, 6, 1, 6),
+                SelectionStartKind.Simple,
+                0,
+                new TextPosition(1, 6),
+                0),
+            null);
+
+        cursor.StartTrackingSelection(context);
+
+        // Insert text before cursor
+        model.PushEditOperations([new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "XX")], null);
+
+        Selection recovered = cursor.ReadSelectionFromMarkers(context);
+
+        // Should still be collapsed, just shifted
+        Assert.True(recovered.IsEmpty);
+        Assert.Equal(8, recovered.Active.Column); // Was 6, shifted by 2
+    }
+
+    [Fact]
+    public void Cursor_AsCursorState_ReturnsValidState()
+    {
+        TextModel model = new("Hello", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+        cursor.MoveTo(new TextPosition(1, 3));
+
+        CursorState state = cursor.AsCursorState();
+
+        Assert.NotNull(state.ModelState);
+        Assert.NotNull(state.ViewState);
+        Assert.Equal(1, state.ModelState.Position.LineNumber);
+        Assert.Equal(3, state.ModelState.Position.Column);
+    }
+
+    [Fact]
+    public void Cursor_EnsureValidState_ClampsAfterEdit()
+    {
+        TextModel model = new("Hello World", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Move cursor to end
+        cursor.MoveTo(new TextPosition(1, 12));
+        Assert.Equal(12, cursor.Selection.Active.Column);
+
+        // Delete part of the content
+        model.PushEditOperations([new TextEdit(new TextPosition(1, 6), new TextPosition(1, 12), "")], null);
+
+        // Now content is "Hello", cursor position may be invalid
+        cursor.EnsureValidState(context);
+
+        CursorState state = cursor.AsCursorState();
+        Assert.True(state.ModelState.Position.Column <= 6); // Clamped to valid range
+    }
+
+    [Fact]
+    public void Cursor_LegacyMode_StillWorks()
+    {
+        // Test that cursor works when EnableVsCursorParity = false (default)
+        TextModel model = new("Hello World");
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+        cursor.MoveTo(new TextPosition(1, 6));
+
+        Assert.Equal(1, cursor.Selection.Active.LineNumber);
+        Assert.Equal(6, cursor.Selection.Active.Column);
+
+        cursor.SelectTo(new TextPosition(1, 12));
+        Assert.False(cursor.Selection.IsEmpty);
+    }
+
+    [Fact]
+    public void Cursor_DualMode_FlagOnPath()
+    {
+        TextModel model = new("Line 1\nLine 2", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+
+        // Use SetState API (Stage 1 path)
+        SingleCursorState newState = new(
+            new Range(1, 3, 1, 6),
+            SelectionStartKind.Word,
+            0,
+            new TextPosition(1, 6),
+            5);
+
+        cursor.SetState(context, newState, null);
+
+        CursorState result = cursor.AsCursorState();
+        Assert.Equal(SelectionStartKind.Word, result.ModelState.SelectionStartKind);
+        Assert.Equal(5, result.ModelState.LeftoverVisibleColumns);
+        CursorTestHelper.AssertSelection(result.ModelState.Selection, 1, 3, 1, 6);
+    }
+
+    [Fact]
+    public void Cursor_ReadSelectionFromMarkers_FallbackWhenNotTracking()
+    {
+        TextModel model = new("Hello", new TextModelCreationOptions { EnableVsCursorParity = true });
+        CursorContext context = CursorContext.FromModel(model);
+
+        using Cursor.Cursor cursor = new(context);
+        cursor.MoveTo(new TextPosition(1, 3));
+
+        // Stop tracking
+        cursor.StopTrackingSelection(context);
+
+        // ReadSelectionFromMarkers should return current selection as fallback
+        Selection result = cursor.ReadSelectionFromMarkers(context);
+
+        Assert.Equal(1, result.Active.LineNumber);
+        Assert.Equal(3, result.Active.Column);
+    }
+
+    #endregion
+
     #region CL7 TODOs
 
     [Fact(Skip = "TODO(#delta-2025-11-26-aa4-cl7-cursor-core): Port SelectHighlightsAction parity from ts/src/vs/editor/contrib/multicursor/test/browser/multicursor.test.ts once MultiCursorSelectionController is wired up.")]

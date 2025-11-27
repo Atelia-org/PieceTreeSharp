@@ -425,6 +425,28 @@ internal sealed class IntervalTree
         return result;
     }
 
+    /// <summary>
+    /// Search with DecorationSearchOptions filtering support.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> Search(TextRange range, DecorationSearchOptions options)
+    {
+        if (_root == Sentinel)
+        {
+            return Array.Empty<ModelDecoration>();
+        }
+
+        List<ModelDecoration> result = [];
+        int intervalStart = range.StartOffset;
+        int intervalEnd = range.EndOffset;
+        // Handle empty query range: expand to include at least one position
+        if (intervalEnd <= intervalStart)
+        {
+            intervalEnd = intervalStart == int.MaxValue ? int.MaxValue : intervalStart + 1;
+        }
+        IntervalSearchWithFilters(_root, intervalStart, intervalEnd, options, result, 0);
+        return result;
+    }
+
     public IEnumerable<ModelDecoration> EnumerateFrom(int startOffset, int ownerFilter = DecorationOwnerIds.Any)
     {
         // Collect to list first to avoid issues with tree modification during enumeration
@@ -949,6 +971,115 @@ internal sealed class IntervalTree
                 {
                     node.Decoration.Range = new TextRange(nodeStart, nodeEnd);
                     result.Add(node.Decoration);
+                }
+            }
+
+            node.SetIsVisited(true);
+
+            if (node.Right != Sentinel && !node.Right.IsVisited())
+            {
+                // go right
+                delta += node.Delta;
+                node = node.Right;
+                continue;
+            }
+        }
+
+        _root.SetIsVisited(false);
+    }
+
+    /// <summary>
+    /// Iterative interval search with DecorationSearchOptions filtering support.
+    /// Mirrors TS intervalSearch function with added filter checks.
+    /// </summary>
+    private void IntervalSearchWithFilters(IntervalNode startNode, int intervalStart, int intervalEnd, DecorationSearchOptions options, List<ModelDecoration> result, int initialDelta)
+    {
+        IntervalNode node = startNode;
+        int delta = initialDelta;
+        int nodeMaxEnd;
+        int nodeStart;
+        int nodeEnd;
+
+        while (node != Sentinel)
+        {
+            if (node.IsVisited())
+            {
+                // going up from this node
+                node.Left.SetIsVisited(false);
+                node.Right.SetIsVisited(false);
+                if (node == node.Parent.Right)
+                {
+                    delta -= node.Parent.Delta;
+                }
+                node = node.Parent;
+                continue;
+            }
+
+            if (!node.Left.IsVisited())
+            {
+                // first time seeing this node
+                nodeMaxEnd = delta + node.MaxEnd;
+                if (nodeMaxEnd < intervalStart)
+                {
+                    // cover case b) from above
+                    // there is no need to search this node or its children
+                    node.SetIsVisited(true);
+                    continue;
+                }
+
+                if (node.Left != Sentinel)
+                {
+                    // go left
+                    node = node.Left;
+                    continue;
+                }
+            }
+
+            // handle current node
+            nodeStart = delta + node.Start;
+            if (nodeStart > intervalEnd)
+            {
+                // cover case a) from above
+                // there is no need to search this node or its right subtree
+                node.SetIsVisited(true);
+                continue;
+            }
+
+            nodeEnd = delta + node.End;
+
+            if (nodeEnd >= intervalStart)
+            {
+                // Cache absolute offsets even if filters exclude the node, matching TS semantics.
+                node.SetCachedOffsets(nodeStart, nodeEnd, 0);
+
+                if (node.Decoration != null)
+                {
+                    // Apply all filters
+                    if (!DecorationOwnerIds.MatchesFilter(options.OwnerFilter, node.OwnerId))
+                    {
+                        // Owner filter didn't match - skip
+                    }
+                    else if (options.FilterOutValidation && node.IsForValidation())
+                    {
+                        // Validation decoration filtered out - skip
+                    }
+                    else if (options.FilterFontDecorations && node.AffectsFont())
+                    {
+                        // Font decoration filtered out - skip
+                    }
+                    else if (options.OnlyMarginDecorations && !node.IsInGlyphMargin())
+                    {
+                        // Not a margin decoration - skip
+                    }
+                    else if (options.OnlyMinimapDecorations && node.Options?.AffectsMinimap != true)
+                    {
+                        // Not a minimap decoration - skip
+                    }
+                    else
+                    {
+                        node.Decoration.Range = new TextRange(nodeStart, nodeEnd);
+                        result.Add(node.Decoration);
+                    }
                 }
             }
 

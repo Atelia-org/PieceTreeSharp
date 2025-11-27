@@ -3,6 +3,7 @@
 // - Validates cursor, selection, and decoration rendering in text format
 // Created: 2025-11-22
 
+using System;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Rendering;
 
@@ -143,16 +144,28 @@ Hello <World>
         int cursorOffset = model.GetOffsetAt(new TextPosition(1, 6));
         model.AddDecoration(new TextRange(cursorOffset, cursorOffset), ModelDecorationOptions.CreateCursorOptions());
 
-        int ownerId = model.AllocateDecorationOwnerId();
-        model.DeltaDecorations(ownerId, null, new[]
+        int selectionOwner = model.AllocateDecorationOwnerId();
+        model.DeltaDecorations(selectionOwner, null, new[]
         {
-            new ModelDeltaDecoration(new TextRange(2, 4), ModelDecorationOptions.CreateSelectionOptions()),
+            new ModelDeltaDecoration(new TextRange(0, 5), ModelDecorationOptions.CreateSelectionOptions()),
         });
 
-        string filtered = renderer.Render(model, new MarkdownRenderOptions { OwnerIdFilter = ownerId });
+        int otherOwner = model.AllocateDecorationOwnerId();
+        model.DeltaDecorations(otherOwner, null, new[]
+        {
+            new ModelDeltaDecoration(new TextRange(6, 11), new ModelDecorationOptions
+            {
+                Description = "other",
+                RenderKind = DecorationRenderKind.Generic,
+                ShowIfCollapsed = true,
+            }),
+        });
 
-        Assert.DoesNotContain("|", filtered);
-        Assert.Contains("[ll", filtered);
+        string filtered = renderer.Render(model, new MarkdownRenderOptions { OwnerIdFilter = selectionOwner });
+
+        Assert.Contains("|", filtered); // Global cursor decorations remain visible
+        Assert.Contains("[Hello", filtered);
+        Assert.DoesNotContain("[[other]]", filtered);
     }
 
     [Fact]
@@ -170,13 +183,26 @@ Hello <World>
             new ModelDeltaDecoration(new TextRange(0, model.GetLength()), ModelDecorationOptions.CreateSelectionOptions()),
         });
 
+        int otherOwner = model.AllocateDecorationOwnerId();
+        model.DeltaDecorations(otherOwner, null, new[]
+        {
+            new ModelDeltaDecoration(new TextRange(0, 1), new ModelDecorationOptions
+            {
+                Description = "other",
+                RenderKind = DecorationRenderKind.Generic,
+                ShowIfCollapsed = true,
+            }),
+        });
+
         string filtered = renderer.Render(model, new MarkdownRenderOptions
         {
             OwnerIdFilters = new[] { selectionOwner },
         });
 
-        Assert.Contains("[Hello World]", filtered);
-        Assert.DoesNotContain("|", filtered);
+        string filteredWithoutCursors = filtered.Replace("|", string.Empty, StringComparison.Ordinal);
+        Assert.Contains("[Hello World]", filteredWithoutCursors);
+        Assert.Contains("|", filtered);
+        Assert.DoesNotContain("[[other]]", filtered);
     }
 
     [Fact]
@@ -194,11 +220,32 @@ Hello <World>
 
         string output = renderer.Render(model, new MarkdownRenderOptions
         {
-            OwnerFilterPredicate = ownerId => ownerId == cursorOwner || ownerId == DecorationOwnerIds.Default,
+            OwnerFilterPredicate = ownerId => ownerId == cursorOwner,
         });
 
         Assert.DoesNotContain("[Hello World]", output);
         Assert.Contains("|", output);
+    }
+
+    [Fact]
+    public void TestRender_OwnerFilterPredicateCanExcludeGlobalDecorations()
+    {
+        TextModel model = new("Hello World");
+        MarkdownRenderer renderer = new();
+
+        int selectionOwner = model.AllocateDecorationOwnerId();
+
+        model.AddDecoration(new TextRange(0, model.GetLength()), ModelDecorationOptions.CreateSelectionOptions(), selectionOwner);
+        int cursorOffset = model.GetOffsetAt(new TextPosition(1, 6));
+        model.AddDecoration(new TextRange(cursorOffset, cursorOffset), ModelDecorationOptions.CreateCursorOptions());
+
+        string output = renderer.Render(model, new MarkdownRenderOptions
+        {
+            OwnerFilterPredicate = ownerId => ownerId == selectionOwner,
+        });
+
+        Assert.Contains("[Hello World]", output);
+        Assert.DoesNotContain("|", output);
     }
 
     [Fact]

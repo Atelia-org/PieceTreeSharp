@@ -30,6 +30,11 @@ public readonly partial record struct Range
     public bool IsEmpty => Start == End;
 
     /// <summary>
+    /// Test if this range equals another range.
+    /// </summary>
+    public bool EqualsRange(Range other) => EqualsRange(this, other);
+
+    /// <summary>
     /// Test if this range spans a single line.
     /// </summary>
     public bool IsSingleLine => StartLineNumber == EndLineNumber;

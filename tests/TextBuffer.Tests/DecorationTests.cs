@@ -2,6 +2,7 @@
 // - Tests: decoration ranges, owner filters, stickiness, delta snapshots
 // Ported/updated: 2025-11-27
 
+using System.Linq;
 using System.Text;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Tests.Helpers;
@@ -104,11 +105,11 @@ public class DecorationTests
         Assert.True(captured.AffectsGlyphMargin);
         Assert.True(captured.AffectsLineNumber);
         LineHeightChange heightChange = Assert.Single(captured.AffectedLineHeights);
-        Assert.Equal(DecorationOwnerIds.Default, heightChange.OwnerId);
+        Assert.Equal(DecorationOwnerIds.Any, heightChange.OwnerId);
         Assert.Equal(1, heightChange.LineNumber);
         Assert.Equal(26, heightChange.LineHeight);
         LineFontChange fontChange = Assert.Single(captured.AffectedFontLines);
-        Assert.Equal(DecorationOwnerIds.Default, fontChange.OwnerId);
+        Assert.Equal(DecorationOwnerIds.Any, fontChange.OwnerId);
         Assert.Equal(1, fontChange.LineNumber);
     }
 
@@ -237,6 +238,123 @@ public class DecorationTests
     }
 
     [Fact]
+    public void DecorationSearchOptionsFilterTypes()
+    {
+        TextModel model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        TextRange firstWord = CreateRange(model, 1, 1, 1, 6);
+        TextRange secondWord = CreateRange(model, 1, 7, 1, 11);
+
+        ModelDecoration validation = model.AddDecoration(firstWord, new ModelDecorationOptions
+        {
+            ClassName = "squiggly-error",
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+        ModelDecoration font = model.AddDecoration(secondWord, new ModelDecorationOptions
+        {
+            FontWeight = "bold",
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+        ModelDecoration minimap = model.AddDecoration(firstWord, new ModelDecorationOptions
+        {
+            Minimap = new ModelDecorationMinimapOptions { Color = "#fff" },
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+        ModelDecoration margin = model.AddDecoration(secondWord, new ModelDecorationOptions
+        {
+            GlyphMarginClassName = "glyph-info",
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+
+        TextRange full = FullModelRange(model);
+
+        IReadOnlyList<ModelDecoration> withoutValidation = model.GetDecorationsInRange(full, new DecorationSearchOptions
+        {
+            FilterOutValidation = true,
+        });
+        Assert.DoesNotContain(withoutValidation, d => d.Id == validation.Id);
+
+        IReadOnlyList<ModelDecoration> withoutFont = model.GetDecorationsInRange(full, new DecorationSearchOptions
+        {
+            FilterFontDecorations = true,
+        });
+        Assert.DoesNotContain(withoutFont, d => d.Id == font.Id);
+
+        IReadOnlyList<ModelDecoration> onlyMinimap = model.GetDecorationsInRange(full, new DecorationSearchOptions
+        {
+            OnlyMinimapDecorations = true,
+        });
+        Assert.Equal(new[] { minimap.Id }, onlyMinimap.Select(d => d.Id).ToArray());
+
+        IReadOnlyList<ModelDecoration> onlyMargin = model.GetDecorationsInRange(full, new DecorationSearchOptions
+        {
+            OnlyMarginDecorations = true,
+        });
+        Assert.Equal(new[] { margin.Id }, onlyMargin.Select(d => d.Id).ToArray());
+    }
+
+    [Fact]
+    public void GetAllDecorationsHonorsFilterFlags()
+    {
+        TextModel model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        int owner = model.AllocateDecorationOwnerId();
+
+        ModelDecoration validation = model.AddDecoration(CreateRange(model, 1, 1, 1, 5), new ModelDecorationOptions
+        {
+            ClassName = "squiggly-warning",
+            ShowIfCollapsed = true,
+        });
+
+        model.DeltaDecorations(owner, null, new[]
+        {
+            SelectionDecoration(model, 1, 7, 1, 11),
+        });
+
+        IReadOnlyList<ModelDecoration> filtered = model.GetAllDecorations(owner, filterOutValidation: true, filterFontDecorations: false);
+        Assert.Single(filtered);
+        Assert.DoesNotContain(filtered, d => d.Id == validation.Id);
+    }
+
+    [Fact]
+    public void GetLineDecorationsRespectsValidationFilter()
+    {
+        TextModel model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        model.AddDecoration(CreateRange(model, 1, 1, 1, 5), new ModelDecorationOptions
+        {
+            ClassName = "squiggly-info",
+            ShowIfCollapsed = true,
+        });
+
+        IReadOnlyList<ModelDecoration> filtered = model.GetLineDecorations(1, DecorationOwnerIds.Any, filterOutValidation: true, filterFontDecorations: false);
+        Assert.Empty(filtered);
+    }
+
+    [Fact]
+    public void GetAllMarginDecorationsReturnsGlyphOnly()
+    {
+        TextModel model = TestEditorBuilder.Create().WithContent("alpha beta").Build();
+        ModelDecoration glyph = model.AddDecoration(CreateRange(model, 1, 1, 1, 5), new ModelDecorationOptions
+        {
+            GlyphMarginClassName = "glyph-info",
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+        model.AddDecoration(CreateRange(model, 1, 7, 1, 11), new ModelDecorationOptions
+        {
+            MarginClassName = "margin-info",
+            ShowIfCollapsed = true,
+            RenderKind = DecorationRenderKind.Generic,
+        });
+
+        IReadOnlyList<ModelDecoration> results = model.GetAllMarginDecorations();
+        Assert.Contains(results, d => d.Id == glyph.Id);
+        Assert.DoesNotContain(results, d => d.Options.MarginClassName == "margin-info");
+    }
+
+    [Fact]
     public void DecorationSummaryMatchesSnapshot()
     {
         TextModel model = TestEditorBuilder.Create()
@@ -302,7 +420,7 @@ public class DecorationTests
         return new TextRange(start, end);
     }
 
-    private static ModelDecoration AddDecoration(TextModel model, int startLine, int startColumn, int endLine, int endColumn, string? className = null, int ownerId = DecorationOwnerIds.Default)
+    private static ModelDecoration AddDecoration(TextModel model, int startLine, int startColumn, int endLine, int endColumn, string? className = null, int ownerId = DecorationOwnerIds.Any)
     {
         TextRange range = CreateRange(model, startLine, startColumn, endLine, endColumn);
         ModelDecorationOptions options = new()

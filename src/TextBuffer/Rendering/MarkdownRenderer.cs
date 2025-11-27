@@ -304,7 +304,18 @@ public class MarkdownRenderer
                 return false;
             }
 
-            return _allowed == null || _allowed.Contains(ownerId);
+            if (_allowed is null)
+            {
+                return true;
+            }
+
+            if (DecorationOwnerIds.IsGlobalOwner(ownerId))
+            {
+                // Global decorations (ownerId &lt;= 0) are always visible unless a predicate rejects them.
+                return true;
+            }
+
+            return _allowed.Contains(ownerId);
         }
     }
 

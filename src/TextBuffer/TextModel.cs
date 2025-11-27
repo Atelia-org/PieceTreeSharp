@@ -99,7 +99,7 @@ public class TextModel : ITextSearchAccess
     private bool _isRedoing;
     private int _attachedEditorCount;
     private IDisposable? _languageConfigurationSubscription;
-    private int _nextDecorationOwnerId = DecorationOwnerIds.SearchHighlights + 1;
+    private int _nextDecorationOwnerId = DecorationOwnerIds.FirstAllocatableOwnerId;
     private Cursor.CursorCollection? _cursorCollection;
     private Cursor.SnippetController? _snippetController;
 
@@ -163,14 +163,15 @@ public class TextModel : ITextSearchAccess
 
     public int AllocateDecorationOwnerId() => Interlocked.Increment(ref _nextDecorationOwnerId);
 
-    public Cursor.CursorCollection CreateCursorCollection()
+    public Cursor.CursorCollection CreateCursorCollection(Cursor.EditorCursorOptions? editorOptions = null)
     {
         if (_cursorCollection is not null)
         {
             return _cursorCollection;
         }
 
-        _cursorCollection = new Cursor.CursorCollection(this);
+        Cursor.CursorContext context = Cursor.CursorContext.FromModel(this, editorOptions);
+        _cursorCollection = new Cursor.CursorCollection(context);
         return _cursorCollection;
     }
 
@@ -539,7 +540,7 @@ public class TextModel : ITextSearchAccess
         return TextModelSearch.FindPreviousMatch(this, searchData, searchStart, captureMatches, rangeSet);
     }
 
-    public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Default)
+    public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Any)
     {
         ModelDecoration decoration = CreateDecoration(range, options ?? ModelDecorationOptions.Default, ownerId);
         RegisterDecoration(decoration);
@@ -548,30 +549,91 @@ public class TextModel : ITextSearchAccess
     }
 
     public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
-        => _decorationTrees.Search(range, ownerIdFilter);
+        => GetDecorationsInRange(range, ownerIdFilter, filterOutValidation: false, filterFontDecorations: false, onlyMinimapDecorations: false, onlyMarginDecorations: false);
+
+    /// <summary>
+    /// Get decorations in a range with explicit TS-style filters.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> GetDecorationsInRange(
+        TextRange range,
+        int ownerIdFilter,
+        bool filterOutValidation,
+        bool filterFontDecorations,
+        bool onlyMinimapDecorations,
+        bool onlyMarginDecorations)
+    {
+        DecorationSearchOptions options = new()
+        {
+            OwnerFilter = ownerIdFilter,
+            FilterOutValidation = filterOutValidation,
+            FilterFontDecorations = filterFontDecorations,
+            OnlyMinimapDecorations = onlyMinimapDecorations,
+            OnlyMarginDecorations = onlyMarginDecorations,
+        };
+        return GetDecorationsInRange(range, options);
+    }
+
+    /// <summary>
+    /// Get decorations in a range with filtering options.
+    /// Mirrors TS getDecorationsInRange with filter parameters.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> GetDecorationsInRange(TextRange range, DecorationSearchOptions options)
+        => _decorationTrees.Search(range, options);
 
     public IReadOnlyList<ModelDecoration> GetAllDecorations(int ownerIdFilter = DecorationOwnerIds.Any)
+        => GetAllDecorations(ownerIdFilter, filterOutValidation: false, filterFontDecorations: false);
+
+    public IReadOnlyList<ModelDecoration> GetAllDecorations(int ownerIdFilter, bool filterOutValidation, bool filterFontDecorations)
     {
         if (_decorationTrees.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
         }
 
-        List<ModelDecoration> decorations = [];
-        foreach (ModelDecoration decoration in _decorationTrees.EnumerateAll())
+        DecorationSearchOptions options = new()
         {
-            if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
-            {
-                continue;
-            }
+            OwnerFilter = ownerIdFilter,
+            FilterOutValidation = filterOutValidation,
+            FilterFontDecorations = filterFontDecorations,
+        };
 
-            decorations.Add(decoration);
+        return GetAllDecorations(options);
+    }
+
+    /// <summary>
+    /// Get all decorations with filtering options.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> GetAllDecorations(DecorationSearchOptions options)
+    {
+        if (_decorationTrees.Count == 0)
+        {
+            return Array.Empty<ModelDecoration>();
         }
 
-        return decorations.Count == 0 ? Array.Empty<ModelDecoration>() : decorations;
+        // Use full document range
+        TextRange range = new(0, _buffer.Length);
+        return _decorationTrees.Search(range, options);
     }
 
     public IReadOnlyList<ModelDecoration> GetLineDecorations(int lineNumber, int ownerIdFilter = DecorationOwnerIds.Any)
+        => GetLineDecorations(lineNumber, ownerIdFilter, filterOutValidation: false, filterFontDecorations: false);
+
+    public IReadOnlyList<ModelDecoration> GetLineDecorations(int lineNumber, int ownerIdFilter, bool filterOutValidation, bool filterFontDecorations)
+    {
+        DecorationSearchOptions options = new()
+        {
+            OwnerFilter = ownerIdFilter,
+            FilterOutValidation = filterOutValidation,
+            FilterFontDecorations = filterFontDecorations,
+        };
+        return GetLineDecorations(lineNumber, options);
+    }
+
+    /// <summary>
+    /// Get decorations for a specific line with filtering options.
+    /// Mirrors TS getLineDecorations with filter parameters.
+    /// </summary>
+    public IReadOnlyList<ModelDecoration> GetLineDecorations(int lineNumber, DecorationSearchOptions options)
     {
         if (lineNumber < 1 || lineNumber > GetLineCount())
         {
@@ -584,12 +646,13 @@ public class TextModel : ITextSearchAccess
             : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
 
         TextRange range = new(start, end);
-        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, ownerIdFilter);
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, options);
         if (decorations.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
         }
 
+        // Apply ShowIfCollapsed filter (not part of DecorationSearchOptions)
         List<ModelDecoration> filtered = new(decorations.Count);
         foreach (ModelDecoration decoration in decorations)
         {
@@ -717,7 +780,12 @@ public class TextModel : ITextSearchAccess
             : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
 
         TextRange range = new(lineStart, lineEnd);
-        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, ownerIdFilter, DecorationTreeScope.InjectedText);
+        DecorationSearchOptions options = new()
+        {
+            OwnerFilter = ownerIdFilter,
+            Scope = DecorationTreeScope.InjectedText,
+        };
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, options);
         if (decorations.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
@@ -764,25 +832,15 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        List<ModelDecoration> result = [];
-        foreach (ModelDecoration decoration in _decorationTrees.EnumerateAll())
+        TextRange range = new(0, _buffer.Length);
+        DecorationSearchOptions options = new()
         {
-            if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
-            {
-                continue;
-            }
+            OwnerFilter = ownerIdFilter,
+            OnlyMarginDecorations = true,
+        };
 
-            ModelDecorationOptions options = decoration.Options;
-            if (options.AffectsGlyphMargin ||
-                !string.IsNullOrWhiteSpace(options.MarginClassName) ||
-                !string.IsNullOrWhiteSpace(options.LinesDecorationsClassName) ||
-                !string.IsNullOrWhiteSpace(options.LineNumberClassName))
-            {
-                result.Add(decoration);
-            }
-        }
-
-        return result;
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, options);
+        return decorations.Count == 0 ? Array.Empty<ModelDecoration>() : decorations;
     }
 
     public void PushStackElement() => _editStack.PushStackElement();

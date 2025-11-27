@@ -51,6 +51,16 @@ public readonly struct Selection
     #region Instance methods
 
     /// <summary>
+    /// Convert this selection to a Range.
+    /// </summary>
+    public Range ToRange() => new(Start, End);
+
+    /// <summary>
+    /// Test if this selection is left-to-right (anchor before or equal to active).
+    /// </summary>
+    public bool IsLTR => Direction == SelectionDirection.LTR;
+
+    /// <summary>
     /// Create a new selection with a different start position (anchor for LTR, updates direction).
     /// </summary>
     public Selection SetStartPosition(int startLineNumber, int startColumn)
@@ -93,6 +103,12 @@ public readonly struct Selection
     /// Get the direction of the selection.
     /// </summary>
     public SelectionDirection GetDirection() => Direction;
+
+    /// <summary>
+    /// A reunion of this selection with another range.
+    /// The smallest position will be used as the start point, and the largest one as the end point.
+    /// </summary>
+    public Range PlusRange(Selection other) => Range.PlusRange(ToRange(), other.ToRange());
 
     #endregion
 
