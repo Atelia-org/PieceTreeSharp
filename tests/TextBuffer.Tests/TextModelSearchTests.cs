@@ -1004,6 +1004,13 @@ public class TextModelSearchTests_ParseSearchRequest
             expected: Expect(LiteralSlashN, ignoreCaseMultiline, simpleSearch: null, expectWordSeparators: false, isMultiline: true, isCaseSensitive: false));
 
         AssertParseSearchResult(
+            LiteralSlashN,
+            isRegex: true,
+            matchCase: true,
+            wordSeparators: null,
+            expected: Expect(LiteralSlashN, caseSensitiveMultiline, simpleSearch: null, expectWordSeparators: false, isMultiline: true, isCaseSensitive: true));
+
+        AssertParseSearchResult(
             LiteralDoubleSlashN,
             isRegex: true,
             matchCase: false,
@@ -1016,6 +1023,13 @@ public class TextModelSearchTests_ParseSearchRequest
             matchCase: false,
             wordSeparators: null,
             expected: Expect(LiteralSlashR, ignoreCaseMultiline, simpleSearch: null, expectWordSeparators: false, isMultiline: true, isCaseSensitive: false));
+
+        AssertParseSearchResult(
+            LiteralSlashR,
+            isRegex: true,
+            matchCase: true,
+            wordSeparators: null,
+            expected: Expect(LiteralSlashR, caseSensitiveMultiline, simpleSearch: null, expectWordSeparators: false, isMultiline: true, isCaseSensitive: true));
 
         AssertParseSearchResult(
             LiteralDoubleSlashR,

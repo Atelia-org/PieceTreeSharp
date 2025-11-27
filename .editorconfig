@@ -3,6 +3,9 @@
 # IDE0130: 命名空间与文件夹结构不匹配
 dotnet_diagnostic.IDE0130.severity = suggestion
 
+# IDE0005: 删除未使用的 using
+dotnet_diagnostic.IDE0005.severity = silent
+
 # IDE0160: 转换为块范围限定的 namespace
 csharp_style_namespace_declarations = file_scoped
 

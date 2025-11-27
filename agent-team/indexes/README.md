@@ -412,6 +412,14 @@ Handoff / 参考：
 文档钩子：Sprint 04 Progress Log (R1–R11)、TestMatrix baseline 更新、各 WS handoff 文件均引用本 delta。
 - 迁移日志：参见 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11)。
 
+### delta-2025-11-27-build-warnings
+**Scope:** Cleared the 10 warning backlog reported by `dotnet build` on 2025‑11‑27. Fixes include removing unreachable code in `SnapshotTestUtils`, logging theory dataset names via `ITestOutputHelper` in `IntervalTreeTests`, extending PieceTree API tests to assert out-of-bounds char codes, unifying DocUI find decoration helpers, threading fuzz harness phase info into assertions, explicitly handling `EndOfLinePreference.TextDefined`, exercising case-sensitive multiline regex parsing, surfacing indentation helper messages, and downgrading IDE0005 to `silent` in `.editorconfig` so unused usings stop blocking builds without enabling XML docs.
+
+- **Files touched:** [`tests/TextBuffer.Tests/Helpers/SnapshotTestUtils.cs`](../../tests/TextBuffer.Tests/Helpers/SnapshotTestUtils.cs), [`tests/TextBuffer.Tests/IntervalTreeTests.cs`](../../tests/TextBuffer.Tests/IntervalTreeTests.cs), [`tests/TextBuffer.Tests/PieceTreeBufferApiTests.cs`](../../tests/TextBuffer.Tests/PieceTreeBufferApiTests.cs), [`tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs`](../../tests/TextBuffer.Tests/DocUI/DocUIFindDecorationsTests.cs), [`tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeBufferAssertions.cs), [`tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs`](../../tests/TextBuffer.Tests/Helpers/PieceTreeFuzzHarness.cs), [`tests/TextBuffer.Tests/TextModelSearchTests.cs`](../../tests/TextBuffer.Tests/TextModelSearchTests.cs), [`tests/TextBuffer.Tests/TextModelIndentationTests.cs`](../../tests/TextBuffer.Tests/TextModelIndentationTests.cs), [`tests/TextBuffer.Tests/TextBuffer.Tests.csproj`](../../tests/TextBuffer.Tests/TextBuffer.Tests.csproj), [`.editorconfig`](../../.editorconfig).
+- **Validation:** `dotnet build` (0 warnings) and `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (641 total: 639 passed, 2 expected skips for CursorCore TODOs).
+- **Documentation hooks:** Migration log entry [`2025-11-27 | BUILD-WARNINGS`](../../docs/reports/migration-log.md#build-warnings) records the same scope/tests; AGENTS, Sprint 04, and Task Board editors must cite this changefeed plus that row when mentioning warning hygiene.
+
+
 ### delta-2025-11-26-ws4-port-core
 - **Scope:** Implemented WS4-PORT-Core Stage 0 — Cursor 基础架构 for TS-parity cursor dual-state system.
 - **Key deliverables:**

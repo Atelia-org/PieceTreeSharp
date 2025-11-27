@@ -169,7 +169,8 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
         {
             EndOfLinePreference.LF => NormalizeToLf(value),
             EndOfLinePreference.CRLF => NormalizeLfToCrLf(NormalizeToLf(value)),
-            _ => value,
+            EndOfLinePreference.TextDefined => value,
+            _ => throw new ArgumentOutOfRangeException(nameof(preference), preference, "Unsupported end-of-line preference."),
         };
     }
 

@@ -1,0 +1,815 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TextBuffer.Tests</name>
+    </assembly>
+    <members>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.Step3_CreateNewPieces_CRLFBridge_PlaceholderTechnique">
+            <summary>
+            Tests CRLF bridge in CreateNewPieces when buffer[0] ends with \r
+            and new text starts with \n. Uses the '_' placeholder technique.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.Step3_CreateNewPieces_GetLineContent_AfterBridge">
+            <summary>
+            Tests that GetLineContent returns correct content after CRLF bridge.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.Step3_CreateNewPieces_TotalLineFeedsConsistent">
+            <summary>
+            Tests that TotalLineFeeds remains consistent after CRLF bridging.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.Step3_InterleavedAppendAndCreateNewPieces_CRLFBridge">
+            <summary>
+            Tests interleaved append and CreateNewPieces with CRLF bridges.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.EdgeCase_InsertOnlyLF_AfterCR">
+            <summary>
+            Tests inserting only \n when buffer ends with \r (empty line creation).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.EdgeCase_InsertCRLF_AfterCR">
+            <summary>
+            Tests inserting \r\n when buffer ends with \r (should create two line breaks).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.EdgeCase_SearchCacheInvalidation_AfterCRLFBridge">
+            <summary>
+            Tests search cache invalidation after CRLF bridge.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.CRLFFuzzTests.EdgeCase_PlaceholderDoesNotLeakIntoContent">
+            <summary>
+            Tests that the placeholder character '_' doesn't leak into content.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.DocUI.FindModelTests">
+            <summary>
+            FindModel tests migrated from TS findModel.test.ts.
+            Covers search, navigation, replace, decorations, and edge cases.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.DocUI.IntervalTreePerfTests">
+            <summary>
+            Performance guardrails for the DocUI IntervalTree using the shared perf harness.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext">
+            <summary>
+            Test harness that adapts TS withTestCodeEditor functionality for C# FindModel tests.
+            Provides a disposable context with TextModel, FindReplaceState, and FindModel.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.RunTest(System.String[],System.Action{PieceTree.TextBuffer.Tests.DocUI.TestEditorContext},PieceTree.TextBuffer.Tests.DocUI.TestEditorContextOptions)">
+            <summary>
+            Runs a test with a disposable TestEditorContext.
+            Mimics TS withTestCodeEditor pattern.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.SetPosition(System.Int32,System.Int32)">
+            <summary>
+            Sets the cursor position (simulates editor selection).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.SetSelections(PieceTree.TextBuffer.Core.Range[])">
+            <summary>
+            Sets the editor selections, mimicking VS Code's multi-cursor behavior
+            (first selection becomes primary).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.GetSelections">
+            <summary>
+            Returns a clone of the current selection array for use in tests (e.g., search scopes).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.GetSelection">
+            <summary>
+            Gets the current selection as a range (based on current match or cursor position).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.GetFindState">
+            <summary>
+            Gets the find state (current match and all matches) from decorations.
+            Mimics TS _getFindState function.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.TextRangeToRange(PieceTree.TextBuffer.Decorations.TextRange)">
+            <summary>
+            Converts TextRange (offset-based) to Range (position-based).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.DocUI.TestEditorContext.AssertFindState(System.Int32[],System.Int32[],System.Int32[][])">
+            <summary>
+            Asserts the find state matches expected values.
+            Mimics TS assertFindState function.
+            </summary>
+            <param name="cursor">Expected cursor position [lineNumber, column, lineNumber, column]</param>
+            <param name="highlighted">Expected highlighted range (null if none) [lineNumber, column, lineNumber, column]</param>
+            <param name="findDecorations">Expected find match decorations (array of ranges)</param>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.DocUI.FindDecorationsState">
+            <summary>
+            Represents the find decorations state (highlighted + all matches).
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper">
+            <summary>
+            Helper utilities for testing cursor positions, selections, and multi-cursor scenarios.
+            Provides assertion methods and cursor state comparison utilities.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.ParsePipePositions(System.String)">
+            <summary>
+            Parse content with pipe markers (|) to extract cursor positions.
+            Returns the content with pipes removed and the list of cursor positions.
+            </summary>
+            <param name="markedContent">Content with | markers for cursor positions</param>
+            <returns>Tuple of (content without markers, list of cursor positions)</returns>
+            <example>
+            "hello| world" -> ("hello world", [(1, 6)])
+            "line1|\nline2|" -> ("line1\nline2", [(1, 6), (2, 6)])
+            </example>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.SerializePipePositions(System.String,System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.TextPosition})">
+            <summary>
+            Serialize positions back to marked content format.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.ParseSelectionMarkers(System.String)">
+            <summary>
+            Parse content with selection markers: [anchor] for selection anchor, |active| for active position.
+            For simple cases, use | for cursor and [...] for selected text.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.GetOffset(System.String,PieceTree.TextBuffer.TextPosition)">
+            <summary>
+            Get offset from position in content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertPosition(PieceTree.TextBuffer.TextPosition,System.Int32,System.Int32,System.String)">
+            <summary>
+            Assert that a cursor position matches expected values.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertPositionEquals(PieceTree.TextBuffer.TextPosition,PieceTree.TextBuffer.TextPosition,System.String)">
+            <summary>
+            Assert that two positions are equal.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertSelection(PieceTree.TextBuffer.Core.Selection,System.Int32,System.Int32,System.Int32,System.Int32,System.String)">
+            <summary>
+            Assert that a selection matches expected values.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertSelectionEquals(PieceTree.TextBuffer.Core.Selection,PieceTree.TextBuffer.Core.Selection,System.String)">
+            <summary>
+            Assert that two selections are equal.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertSelectionIsEmpty(PieceTree.TextBuffer.Core.Selection,System.String)">
+            <summary>
+            Assert that a selection is empty (collapsed cursor).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertSelectionIsNotEmpty(PieceTree.TextBuffer.Core.Selection,System.String)">
+            <summary>
+            Assert that a selection is not empty.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorStatePosition(PieceTree.TextBuffer.Cursor.SingleCursorState,System.Int32,System.Int32,System.String)">
+            <summary>
+            Assert SingleCursorState position.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorStateSelection(PieceTree.TextBuffer.Cursor.SingleCursorState,System.Int32,System.Int32,System.Int32,System.Int32,System.String)">
+            <summary>
+            Assert SingleCursorState selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorStateHasNoSelection(PieceTree.TextBuffer.Cursor.SingleCursorState,System.String)">
+            <summary>
+            Assert that SingleCursorState has no selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorStateHasSelection(PieceTree.TextBuffer.Cursor.SingleCursorState,System.String)">
+            <summary>
+            Assert that SingleCursorState has a selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorStatesEqual(PieceTree.TextBuffer.Cursor.SingleCursorState,PieceTree.TextBuffer.Cursor.SingleCursorState,System.String)">
+            <summary>
+            Assert that two SingleCursorStates are equal.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertMultiCursors(System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.TextPosition},System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Assert that multiple cursors match expected positions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertMultiSelections(System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.Core.Selection},System.ValueTuple{System.Int32,System.Int32,System.Int32,System.Int32}[])">
+            <summary>
+            Assert that multiple selections match expected values.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertMultiCursorStates(System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.Cursor.SingleCursorState},System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Assert that multiple SingleCursorStates match expected cursor positions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.CompareMultiSelections(System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.Core.Selection},System.Collections.Generic.IReadOnlyList{PieceTree.TextBuffer.Core.Selection})">
+            <summary>
+            Compare multi-cursor selections and return differences.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.ExecuteAndCollectPositions(PieceTree.TextBuffer.TextPosition,System.Func{PieceTree.TextBuffer.TextPosition,PieceTree.TextBuffer.TextPosition},System.Int32)">
+            <summary>
+            Execute a cursor action repeatedly and collect positions.
+            Useful for testing word movement operations.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertCursorMoveSequence(PieceTree.TextBuffer.TextPosition,System.Func{PieceTree.TextBuffer.TextPosition,PieceTree.TextBuffer.TextPosition},System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Test that a cursor action produces expected positions sequence.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertVisibleColumn(System.String,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Assert visible column calculation.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertColumnFromVisible(System.String,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Assert column from visible column calculation.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.AssertColumnRoundTrip(System.String,System.Int32,System.Int32)">
+            <summary>
+            Assert round-trip conversion between column and visible column.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.CreateCursorAt(System.Int32,System.Int32)">
+            <summary>
+            Create a SingleCursorState at the given position with no selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.CreateCursorWithSelection(System.Int32,System.Int32,System.Int32,System.Int32,PieceTree.TextBuffer.Cursor.SelectionStartKind)">
+            <summary>
+            Create a SingleCursorState with a selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.CreateFullCursorState(System.Int32,System.Int32)">
+            <summary>
+            Create a CursorState where model and view states are the same.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.CursorTestHelper.CreateFullCursorStateWithSelection(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Create a CursorState with selection where model and view states are the same.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.PieceTreeFuzzHarness.AssertLineParity(System.String,System.String)">
+            <summary>
+            Mirrors TS testLinesContent/testLineStarts to ensure per-line data stays consistent.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils">
+            <summary>
+            Utilities for golden output snapshot testing.
+            Supports reading, writing, and comparing snapshot files.
+            </summary>
+        </member>
+        <member name="F:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.SnapshotsDirectory">
+            <summary>
+            Base directory for snapshot files relative to the test project.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.GetSnapshotPath(System.String,System.String,System.String)">
+            <summary>
+            Get the full path for a snapshot file.
+            </summary>
+            <param name="category">Category subfolder (e.g., "PieceTree", "Cursor", "Diff")</param>
+            <param name="name">Snapshot file name (without extension)</param>
+            <param name="extension">File extension (default: .txt)</param>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.ReadSnapshot(System.String,System.String,System.String)">
+            <summary>
+            Read a snapshot file as string.
+            </summary>
+            <param name="category">Category subfolder</param>
+            <param name="name">Snapshot file name (without extension)</param>
+            <param name="extension">File extension (default: .txt)</param>
+            <returns>Content of the snapshot file, or null if not found</returns>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.ReadSnapshotLines(System.String,System.String,System.String)">
+            <summary>
+            Read a snapshot file as lines.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.ReadJsonSnapshot``1(System.String,System.String)">
+            <summary>
+            Read a JSON snapshot and deserialize it.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.WriteSnapshot(System.String,System.String,System.String,System.String)">
+            <summary>
+            Write a snapshot file.
+            </summary>
+            <param name="category">Category subfolder</param>
+            <param name="name">Snapshot file name (without extension)</param>
+            <param name="content">Content to write</param>
+            <param name="extension">File extension (default: .txt)</param>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.WriteJsonSnapshot``1(System.String,System.String,``0)">
+            <summary>
+            Write a JSON snapshot.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.DeleteSnapshot(System.String,System.String,System.String)">
+            <summary>
+            Delete a snapshot file if it exists.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.AssertMatchesSnapshot(System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Compare actual output to expected snapshot.
+            If UPDATE_SNAPSHOTS environment variable is set, updates the snapshot instead.
+            </summary>
+            <param name="category">Category subfolder</param>
+            <param name="name">Snapshot file name (without extension)</param>
+            <param name="actual">Actual output to compare</param>
+            <param name="extension">File extension (default: .txt)</param>
+            <param name="callerFilePath">Auto-filled by compiler</param>
+            <param name="callerMemberName">Auto-filled by compiler</param>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.AssertMatchesJsonSnapshot``1(System.String,System.String,``0,System.String,System.String)">
+            <summary>
+            Compare actual JSON output to expected JSON snapshot.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.AssertLinesMatchSnapshot(System.String,System.String,System.Collections.Generic.IEnumerable{System.String},System.String,System.String)">
+            <summary>
+            Compare multiline output with line-by-line diff.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.GenerateDiff(System.String,System.String)">
+            <summary>
+            Generate a simple diff between expected and actual strings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.ListSnapshots(System.String,System.String)">
+            <summary>
+            List all snapshots in a category.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.SnapshotExists(System.String,System.String,System.String)">
+            <summary>
+            Check if a snapshot exists.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.CreateSnapshotFromTestOutput(System.String,System.String,System.Func{System.String},System.String)">
+            <summary>
+            Create a snapshot from test output (helper for initial snapshot creation).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.GenerateMemberDataFromSnapshots(System.String,System.String)">
+            <summary>
+            Generate MemberData entries from snapshot files in a category.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.NormalizeLineEndings(System.String)">
+            <summary>
+            Normalize line endings to LF for consistent comparison.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestUtils.NormalizeForComparison(System.String)">
+            <summary>
+            Normalize whitespace for comparison (trim lines, normalize line endings).
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.SnapshotTestAttribute">
+            <summary>
+            Attribute to mark a test method that uses snapshot verification.
+            Can be used to auto-generate snapshot names from test names.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder">
+            <summary>
+            Fluent builder for creating TextModel instances with preset configurations for testing.
+            Supports setting content, options, cursors, and selections.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.Create">
+            <summary>
+            Create a new TestEditorBuilder instance.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithContent(System.String)">
+            <summary>
+            Set the initial text content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithLines(System.String[])">
+            <summary>
+            Set content from multiple lines (joined with current EOL).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithEol(System.String)">
+            <summary>
+            Set the end-of-line sequence.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithCRLF">
+            <summary>
+            Use CRLF line endings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithLF">
+            <summary>
+            Use LF line endings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithTabSize(System.Int32)">
+            <summary>
+            Set the tab size.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithIndentSize(System.Int32)">
+            <summary>
+            Set the indent size.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithInsertSpaces(System.Boolean)">
+            <summary>
+            Set whether to insert spaces instead of tabs.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithLanguage(System.String)">
+            <summary>
+            Set the language ID.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithStickyTabStops(System.Boolean)">
+            <summary>
+            Enable sticky tab stops.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithDetectIndentation(System.Boolean)">
+            <summary>
+            Enable or disable automatic indentation detection.
+            Defaults to disabled for deterministic tests.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithWordSeparators(System.String)">
+            <summary>
+            Set custom word separators.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithCursor(System.Int32,System.Int32)">
+            <summary>
+            Add a cursor at the specified position.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithCursor(PieceTree.TextBuffer.TextPosition)">
+            <summary>
+            Add a cursor at the specified position.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithSelection(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Add a selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithSelection(PieceTree.TextBuffer.Core.Selection)">
+            <summary>
+            Add a selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithSelection(PieceTree.TextBuffer.Core.Range)">
+            <summary>
+            Add a selection from a Range (uses end as active position).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.Build">
+            <summary>
+            Build the TextModel with the configured settings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.BuildContext">
+            <summary>
+            Build and return a TestEditorContext containing the model and cursor configuration.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithMarkedContent(System.String)">
+            <summary>
+            Parse content with pipe markers (|) to extract cursor positions.
+            The pipes are removed from the content and their positions recorded.
+            Example: "hello| world" -> content="hello world", cursor at (1, 6)
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorBuilder.WithMarkedSelection(System.String)">
+            <summary>
+            Parse content with selection markers [anchor] and |active|.
+            Example: "[hello] world|" -> selection from (1,1) to end of line
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext">
+            <summary>
+            Container for a test editor setup with model and cursor configuration.
+            </summary>
+        </member>
+        <member name="P:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.PrimaryCursor">
+            <summary>
+            Get the primary cursor position (first cursor or start of first selection).
+            </summary>
+        </member>
+        <member name="P:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.PrimarySelection">
+            <summary>
+            Get the primary selection (first selection or collapsed at first cursor).
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.CreateSingleCursorState">
+            <summary>
+            Create a SingleCursorState from the primary selection.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.GetLineContent(System.Int32)">
+            <summary>
+            Get the line content at the specified line number.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.GetValue">
+            <summary>
+            Get the full model content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.TestEditorContext.ApplyEdits(PieceTree.TextBuffer.TextEdit[])">
+            <summary>
+            Apply edits to the model.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils">
+            <summary>
+            Utilities for testing word boundary detection and word operations.
+            Provides test data constants and helper methods for word movement testing.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.AsciiTestCases">
+            <summary>
+            ASCII word test cases with expected boundaries.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.CamelCaseTestCases">
+            <summary>
+            CamelCase test cases with expected word boundaries.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.EmojiTestCases">
+            <summary>
+            Emoji test cases for Unicode handling.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.CJKTestCases">
+            <summary>
+            CJK (Chinese, Japanese, Korean) test cases.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.SpecialCases">
+            <summary>
+            Special character and edge case test strings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GetWordBoundaries(System.String,System.String)">
+            <summary>
+            Get all word boundaries in the given content using specified separators.
+            Returns list of column positions (1-based) where word boundaries occur.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GetWordStarts(System.String,System.String)">
+            <summary>
+            Get word start positions in the given content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GetWordEnds(System.String,System.String)">
+            <summary>
+            Get word end positions in the given content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.VerifyWordLeftSequence(PieceTree.TextBuffer.TextModel,PieceTree.TextBuffer.TextPosition,System.String,System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Verify word-left movement produces expected sequence of positions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.VerifyWordRightSequence(PieceTree.TextBuffer.TextModel,PieceTree.TextBuffer.TextPosition,System.String,System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Verify word-right movement produces expected sequence of positions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.CreateTestCase(System.String,System.Int32,System.Int32,System.ValueTuple{System.Int32,System.Int32}[],System.ValueTuple{System.Int32,System.Int32}[],System.String)">
+            <summary>
+            Create a test case for word operations.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GenerateWordBoundaryTestData">
+            <summary>
+            Generate test data for word boundary tests.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GenerateVisibleColumnTestData">
+            <summary>
+            Generate test data for visible column calculations with tabs.
+            This mirrors the TS whitespaceVisibleColumn test data.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.GenerateAtomicPositionTestData">
+            <summary>
+            Generate test data for atomic tab stop positions.
+            This mirrors the TS atomicPosition test data.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.DeserializePipePositions(System.String)">
+            <summary>
+            Deserialize pipe positions from marked string.
+            Equivalent to TS deserializePipePositions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.SerializePipePositions(System.String,System.Collections.Generic.IEnumerable{PieceTree.TextBuffer.TextPosition})">
+            <summary>
+            Serialize positions to pipe-marked string.
+            Equivalent to TS serializePipePositions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.Helpers.WordTestUtils.TestRepeatedActionAndExtractPositions(System.String,System.Int32,System.Func{System.Int32,System.Int32},System.Int32)">
+            <summary>
+            Test repeated action and extract positions.
+            Equivalent to TS testRepeatedActionAndExtractPositions.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.Helpers.WordOperationTestCase">
+            <summary>
+            Represents a test case for word operations.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.IntervalTreeTests">
+            <summary>
+            IntervalTree QA suite aligned with VS Code's intervalTree.test.ts scenarios.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests">
+            <summary>
+            Tests for PieceTree buffer API methods: getLineCharCode, buffer equality.
+            These tests mirror TS pieceTreeTextBuffer.test.ts lines 1750-1888.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_Issue45735_SingleChunk">
+            <summary>
+            Test getLineCharCode - issue #45735
+            TS: test('getLineCharCode - issue #45735', () => {...})
+            Source: pieceTreeTextBuffer.test.ts lines 1786-1800
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_Issue47733_MultiChunkWithEmptyFirst">
+            <summary>
+            Test getLineCharCode - issue #47733
+            TS: test('getLineCharCode - issue #47733', () => {...})
+            Source: pieceTreeTextBuffer.test.ts lines 1804-1818
+            Tests multi-chunk buffer where first chunk is empty.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_OutOfBounds_ReturnsZero">
+            <summary>
+            Test getLineCharCode returns 0 for out-of-bounds access.
+            Note: C# implementation clamps to valid range, so we test boundary behavior.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_CrlfLineEndings">
+            <summary>
+            Test getLineCharCode with CRLF line endings.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_CrlfAcrossChunks">
+            <summary>
+            Ensure CR and LF split across chunk boundaries still return correct char codes.
+            Mirrors TS regression tests for CRLF straddling pieces.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_IdenticalContent">
+            <summary>
+            Test buffer equality for identical content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_DifferentContent">
+            <summary>
+            Test buffer equality for different content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_AfterEditsToSameContent">
+            <summary>
+            Test buffer equality after edits resulting in same content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_EmptyBuffers">
+            <summary>
+            Test buffer equality for empty buffers.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_SameContentAcrossChunkBoundaries">
+            <summary>
+            Equal buffers should compare true even when chunk layouts differ.
+            Mirrors TS buffer api 'equal' test.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_ChunkPermutations">
+            <summary>
+            Equal buffers remain equal with more chunk permutations.
+            Mirrors TS buffer api 'equal with more chunks'.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_EmptyVsNonEmpty">
+            <summary>
+            Equality should handle empty buffers in both operands.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_DifferentBom">
+            <summary>
+            Buffers with different BOM values should not compare equal even if text matches.
+            Mirrors TS PieceTreeTextBuffer.equals implementation.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.Buffer_Equal_DifferentEolSequences">
+            <summary>
+            Buffers with different preferred EOL sequences should not compare equal.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetCharCode_BasicAscii">
+            <summary>
+            Test GetCharCode for basic ASCII content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetCharCode_Unicode">
+            <summary>
+            Test GetCharCode with Unicode content.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetCharCode_LineBreaks">
+            <summary>
+            Test GetCharCode at line break positions.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetLineCharCode_ConsistentWithGetLineContent">
+            <summary>
+            Test that GetLineCharCode is consistent with GetLineContent.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.BufferApis_AfterInsert">
+            <summary>
+            Test buffer APIs after insert operations.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.BufferApis_AfterDelete">
+            <summary>
+            Test buffer APIs after delete operations.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.BufferApis_MixedOperations">
+            <summary>
+            Test buffer APIs with mixed operations.
+            </summary>
+        </member>
+        <member name="M:PieceTree.TextBuffer.Tests.PieceTreeBufferApiTests.GetNearestChunk_BasicLifecycle">
+            <summary>
+            Test GetNearestChunk behavior around insert/delete edits.
+            Mirrors TS buffer api getNearestChunk.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.PieceTreeDeterministicTests">
+            <summary>
+            Ports deterministic suites from ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.PieceTreeSearchOffsetCacheTests">
+            <summary>
+            Deterministic coverage for the TS "search offset cache" suite (lines 1810-1884).
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.PieceTreeSearchRegressionTests">
+            <summary>
+            Mirrors VS Code's pieceTreeTextBufferSearch.test.ts scenarios plus the historical
+            regression issues that originally motivated this suite.
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.ReplacePatternTests">
+            <summary>
+            Tests for ReplacePattern functionality.
+            Ported from TypeScript: replacePattern.test.ts
+            </summary>
+        </member>
+        <member name="T:PieceTree.TextBuffer.Tests.SharedHarnessExampleTests">
+            <summary>
+            Demonstration tests showing usage of the shared test harness.
+            These tests serve as examples for how to use the new helpers.
+            </summary>
+        </member>
+    </members>
+</doc>

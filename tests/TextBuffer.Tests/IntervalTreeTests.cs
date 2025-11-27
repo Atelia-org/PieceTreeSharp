@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using PieceTree.TextBuffer.Decorations;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -14,7 +15,13 @@ namespace PieceTree.TextBuffer.Tests;
 /// </summary>
 public class IntervalTreeTests
 {
+    private readonly ITestOutputHelper _output;
     private static readonly ModelDecorationOptions HiddenOptions = ModelDecorationOptions.CreateHiddenOptions();
+
+    public IntervalTreeTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
     #region Generated sequences (insert/delete/search parity)
 
@@ -22,6 +29,7 @@ public class IntervalTreeTests
     [MemberData(nameof(GetGeneratedSequences), DisableDiscoveryEnumeration = true)]
     public void GeneratedSequencesStayConsistent(string name, IntervalOp[] operations, (int Start, int End)[] expectedFinalRanges)
     {
+        _output.WriteLine($"Sequence '{name}' ({operations.Length} ops)");
         IntervalTreeHarness harness = new();
         foreach (IntervalOp op in operations)
         {

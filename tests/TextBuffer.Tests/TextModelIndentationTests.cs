@@ -30,8 +30,18 @@ public class TextModelIndentationTests
         TextModel model = new(string.Join("\n", lines), options);
         TextModelResolvedOptions resolved = model.GetOptions();
 
-        Assert.Equal(expectedInsertSpaces, resolved.InsertSpaces);
-        Assert.Equal(expectedTabSize, resolved.TabSize);
+        Assert.True(
+            expectedInsertSpaces == resolved.InsertSpaces,
+            BuildGuessMessage("InsertSpaces", expectedInsertSpaces, resolved.InsertSpaces, message));
+        Assert.True(
+            expectedTabSize == resolved.TabSize,
+            BuildGuessMessage("TabSize", expectedTabSize, resolved.TabSize, message));
+    }
+
+    private static string BuildGuessMessage(string field, object expected, object actual, string? message)
+    {
+        string core = $"{field} mismatch (expected {expected}, actual {actual})";
+        return message is null ? core : $"{core} :: {message}";
     }
 
     private static void AssertGuess(

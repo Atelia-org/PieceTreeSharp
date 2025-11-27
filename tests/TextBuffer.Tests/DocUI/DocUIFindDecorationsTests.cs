@@ -195,7 +195,7 @@ public sealed class DocUIFindDecorationsTests
     }
 
     private static FindMatch[] CreateMatches(params Range[] ranges)
-        => ranges.Select(r => new FindMatch(r, matches: null)).ToArray();
+        => CreateMatches((IEnumerable<Range>)ranges);
 
     private static FindMatch[] CreateMatches(IEnumerable<Range> ranges)
         => ranges.Select(r => new FindMatch(r, matches: null)).ToArray();

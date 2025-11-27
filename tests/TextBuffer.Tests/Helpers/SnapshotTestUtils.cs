@@ -186,7 +186,6 @@ public static class SnapshotTestUtils
             WriteSnapshot(category, name, actual, extension);
             throw new XunitException($"Snapshot '{name}' did not exist. Created new snapshot at: {path}\n" +
                                     $"Run the test again to verify, or set UPDATE_SNAPSHOTS=1 to update.");
-            return;
         }
 
         if (!string.Equals(expected, actual, StringComparison.Ordinal))

@@ -110,9 +110,12 @@ public class PieceTreeBufferApiTests
         PieceTreeBuffer buffer = CreateBuffer("ab\ncd");
 
         // At the exact end of content, should return 0
+        Assert.Equal(0, buffer.GetLineCharCode(3, 0));
+        Assert.Equal(0, buffer.GetLineCharCode(2, 10));
+
         // Line 1 has "ab\n" (length 3 with terminator)
         // Line 2 has "cd" (length 2)
-        // Testing beyond the buffer length
+        // Testing beyond an empty buffer's length
         PieceTreeBuffer emptyBuffer = CreateBuffer("");
         Assert.Equal(0, emptyBuffer.GetLineCharCode(1, 0));
         Assert.Equal(0, emptyBuffer.GetLineCharCode(1, 10));

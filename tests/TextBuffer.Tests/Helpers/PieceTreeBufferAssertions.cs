@@ -6,6 +6,7 @@
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 
 using System;
+using System.Collections.Generic;
 using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Xunit;
@@ -60,8 +61,8 @@ internal static class PieceTreeBufferAssertions
         {
             int offset = expectedStarts[i];
             TextPosition position = harness.GetPositionAt(offset);
-            Assert.Equal(i + 1, position.LineNumber);
-            Assert.Equal(1, position.Column);
+            Assert.True(position.LineNumber == i + 1, $"Line start mismatch at offset {offset} (phase: {phase})");
+            Assert.True(position.Column == 1, $"Line start column mismatch at offset {offset} (phase: {phase})");
         }
     }
 
