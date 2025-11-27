@@ -19,43 +19,57 @@ internal sealed partial class PieceTreeModel
         PieceTreeSearcher searcher = new(searchData.WordSeparators, searchData.Regex);
 
         NodeHit startPosition = NodeAt2(searchRange.Start.LineNumber, searchRange.Start.Column);
-        if (startPosition.Node == null)
+        PieceTreeNode? startNode = startPosition.Node;
+        if (startNode is null)
         {
             return result;
         }
 
         NodeHit endPosition = NodeAt2(searchRange.End.LineNumber, searchRange.End.Column);
-        if (endPosition.Node == null)
+        PieceTreeNode? endNodeCandidate = endPosition.Node;
+        if (endNodeCandidate is null)
         {
             return result;
         }
 
-        BufferCursor start = PositionInBuffer(startPosition.Node, startPosition.Remainder);
-        BufferCursor end = PositionInBuffer(endPosition.Node, endPosition.Remainder);
+        BufferCursor start = PositionInBuffer(startNode, startPosition.Remainder);
+        BufferCursor end = PositionInBuffer(endNodeCandidate, endPosition.Remainder);
 
-        if (ReferenceEquals(startPosition.Node, endPosition.Node))
+        if (ReferenceEquals(startNode, endNodeCandidate))
         {
-            FindMatchesInNode(startPosition.Node, searcher, searchRange.Start.LineNumber, searchRange.Start.Column, start, end, searchData, captureMatches, limitResultCount, result);
+            FindMatchesInNode(startNode, searcher, searchRange.Start.LineNumber, searchRange.Start.Column, start, end, searchData, captureMatches, limitResultCount, result);
             return result;
         }
 
         int startLineNumber = searchRange.Start.LineNumber;
-        PieceTreeNode currentNode = startPosition.Node;
+        PieceTreeNode? currentNode = startNode;
+        PieceTreeNode endNode = endNodeCandidate!;
 
-        while (!ReferenceEquals(currentNode, endPosition.Node))
+        while (!ReferenceEquals(currentNode, endNode))
         {
-            int lineBreakCnt = GetLineFeedCnt(currentNode.Piece.BufferIndex, start, currentNode.Piece.End);
+            if (currentNode is null)
+            {
+                return result;
+            }
+
+            PieceTreeNode node = currentNode;
+            int lineBreakCnt = GetLineFeedCnt(node.Piece.BufferIndex, start, node.Piece.End);
+            if (PieceTreeDebug.IsEnabled)
+            {
+                int bufferIndex = node.Piece.BufferIndex;
+                PieceTreeDebug.Log($"FindMatches loop: nodeBufIdx={bufferIndex}, startLine={startLineNumber}, lineBreakCnt={lineBreakCnt}");
+            }
 
             if (lineBreakCnt >= 1)
             {
-                IReadOnlyList<int> lineStarts = _buffers[currentNode.Piece.BufferIndex].LineStarts;
-                int startOffsetInBuffer = OffsetInBuffer(currentNode.Piece.BufferIndex, currentNode.Piece.Start);
+                IReadOnlyList<int> lineStarts = _buffers[node.Piece.BufferIndex].LineStarts;
+                int startOffsetInBuffer = OffsetInBuffer(node.Piece.BufferIndex, node.Piece.Start);
                 int nextLineStartOffset = lineStarts[start.Line + lineBreakCnt];
                 int startColumn = startLineNumber == searchRange.Start.LineNumber ? searchRange.Start.Column : 1;
 
-                BufferCursor endCursor = PositionInBuffer(currentNode, nextLineStartOffset - startOffsetInBuffer);
+                BufferCursor endCursor = PositionInBuffer(node, nextLineStartOffset - startOffsetInBuffer);
 
-                FindMatchesInNode(currentNode, searcher, startLineNumber, startColumn, start, endCursor, searchData, captureMatches, limitResultCount, result);
+                FindMatchesInNode(node, searcher, startLineNumber, startColumn, start, endCursor, searchData, captureMatches, limitResultCount, result);
 
                 if (result.Count >= limitResultCount)
                 {
@@ -79,6 +93,10 @@ internal sealed partial class PieceTreeModel
             if (startColumnForLine < lineContent.Length)
             {
                 FindMatchesInLine(searchData, searcher, lineContent.Substring(startColumnForLine), startLineNumber, startColumnForLine, result, captureMatches, limitResultCount);
+                if (PieceTreeDebug.IsEnabled)
+                {
+                    PieceTreeDebug.Log($"FindMatches processed line={startLineNumber} via per-line search");
+                }
             }
 
             if (result.Count >= limitResultCount)
@@ -88,13 +106,21 @@ internal sealed partial class PieceTreeModel
 
             startLineNumber++;
             startPosition = NodeAt2(startLineNumber, 1);
-            currentNode = startPosition.Node;
-            start = PositionInBuffer(startPosition.Node, startPosition.Remainder);
+            PieceTreeNode? nextNode = startPosition.Node;
+            if (nextNode is null)
+            {
+                return result;
+            }
+
+            currentNode = nextNode;
+            start = PositionInBuffer(nextNode, startPosition.Remainder);
         }
 
         if (PieceTreeDebug.IsEnabled)
         {
-            PieceTreeDebug.Log($"FindMatchesLineByLine finalSegment: startLine={startLineNumber}, endLine={searchRange.End.LineNumber}, endColumn={searchRange.End.Column}");
+            PieceTreeDebug.Log(
+                $"FindMatchesLineByLine finalSegment: startLine={startLineNumber}, endLine={searchRange.End.LineNumber}, endColumn={searchRange.End.Column}, " +
+                $"startNodeLine={startPosition.NodeStartLineNumber}, remainder={startPosition.Remainder}, nodeBufIdx={startPosition.Node?.Piece.BufferIndex}");
         }
 
         if (startLineNumber == searchRange.End.LineNumber)
@@ -106,7 +132,7 @@ internal sealed partial class PieceTreeModel
         }
 
         int startCol = startLineNumber == searchRange.Start.LineNumber ? searchRange.Start.Column : 1;
-        FindMatchesInNode(endPosition.Node, searcher, startLineNumber, startCol, start, end, searchData, captureMatches, limitResultCount, result);
+        FindMatchesInNode(endNode, searcher, startLineNumber, startCol, start, end, searchData, captureMatches, limitResultCount, result);
         return result;
     }
 
@@ -149,7 +175,12 @@ internal sealed partial class PieceTreeModel
                         matches[i] = m.Groups[i].Value;
                     }
                 }
-                result.Add(new FindMatch(range, matches));
+                    var findMatch = new FindMatch(range, matches);
+                    result.Add(findMatch);
+                    if (PieceTreeDebug.IsEnabled)
+                    {
+                        PieceTreeDebug.Log($"FindMatchesInNode hit: range={findMatch.Range}");
+                    }
 
                 if (m.Index + m.Length >= end)
                 {
@@ -168,9 +199,9 @@ internal sealed partial class PieceTreeModel
     {
         if (!captureMatches && searchData.SimpleSearch != null)
         {
-            string searchString = searchData.SimpleSearch;
-            int searchStringLen = searchString.Length;
-            int lastMatchIndex = -searchStringLen;
+            var searchString = searchData.SimpleSearch;
+            var searchStringLen = searchString.Length;
+            var lastMatchIndex = -searchStringLen;
 
             while ((lastMatchIndex = text.IndexOf(searchString, lastMatchIndex + searchStringLen, StringComparison.Ordinal)) != -1)
             {
@@ -179,12 +210,19 @@ internal sealed partial class PieceTreeModel
                     continue;
                 }
 
-                result.Add(new FindMatch(new Range(lineNumber, lastMatchIndex + 1 + deltaOffset, lineNumber, lastMatchIndex + 1 + searchStringLen + deltaOffset), null));
+                var literalMatch = new FindMatch(new Range(lineNumber, lastMatchIndex + 1 + deltaOffset, lineNumber, lastMatchIndex + 1 + searchStringLen + deltaOffset), null);
+                result.Add(literalMatch);
+                if (PieceTreeDebug.IsEnabled)
+                {
+                    PieceTreeDebug.Log($"FindMatchesInLine literal hit: line={lineNumber}, start={literalMatch.Range.Start.Column}");
+                }
+
                 if (result.Count >= limitResultCount)
                 {
                     return;
                 }
             }
+
             return;
         }
 
@@ -199,18 +237,26 @@ internal sealed partial class PieceTreeModel
                 if (captureMatches)
                 {
                     matches = new string[m.Groups.Count];
-                    for (int i = 0; i < m.Groups.Count; i++)
+                    for (var i = 0; i < m.Groups.Count; i++)
                     {
                         matches[i] = m.Groups[i].Value;
                     }
                 }
-                result.Add(new FindMatch(new Range(lineNumber, m.Index + 1 + deltaOffset, lineNumber, m.Index + 1 + m.Length + deltaOffset), matches));
+
+                var regexMatch = new FindMatch(new Range(lineNumber, m.Index + 1 + deltaOffset, lineNumber, m.Index + 1 + m.Length + deltaOffset), matches);
+                result.Add(regexMatch);
+                if (PieceTreeDebug.IsEnabled)
+                {
+                    PieceTreeDebug.Log($"FindMatchesInLine regex hit: line={lineNumber}, start={regexMatch.Range.Start.Column}");
+                }
+
                 if (result.Count >= limitResultCount)
                 {
                     return;
                 }
             }
-        } while (m != null && m.Success);
+        }
+        while (m != null && m.Success);
     }
 
     /// <summary>
@@ -220,6 +266,9 @@ internal sealed partial class PieceTreeModel
     /// falling back to a forward walk when the requested column overflows the node.
     /// </summary>
     private NodeHit NodeAt2(int lineNumber, int column)
+        => NodeAt2Internal(lineNumber, column, allowCache: true);
+
+    private NodeHit NodeAt2Internal(int lineNumber, int column, bool allowCache)
     {
         if (IsEmpty)
         {
@@ -229,9 +278,15 @@ internal sealed partial class PieceTreeModel
         int targetLine = Math.Clamp(lineNumber, 1, GetLineCount());
         int targetColumn = Math.Max(1, column);
 
-        if (_searchCache.TryGetByLine(targetLine, out PieceTreeNode? cachedNode, out int cachedStartOffset, out int cachedStartLine))
+        if (allowCache && _searchCache.TryGetByLine(targetLine, out PieceTreeNode? cachedNode, out int cachedStartOffset, out int cachedStartLine))
         {
-            return ResolveLineHit(cachedNode, cachedStartOffset, cachedStartLine, targetLine, targetColumn);
+            var cachedHit = ResolveLineHit(cachedNode, cachedStartOffset, cachedStartLine, targetLine, targetColumn);
+            if (!EnsureCachedLineHitMatchesRequest(cachedHit, targetLine, targetColumn))
+            {
+                return NodeAt2Internal(targetLine, targetColumn, allowCache: false);
+            }
+
+            return cachedHit;
         }
 
         PieceTreeNode x = _root;
@@ -292,10 +347,22 @@ internal sealed partial class PieceTreeModel
         {
             return default;
         }
+        
+        if (PieceTreeDebug.IsEnabled)
+        {
+            PieceTreeDebug.Log($"ResolveLineHit: requestedLine={lineNumber}, column={column}, nodeBufIdx={node.Piece.BufferIndex}, nodeStartLine={nodeStartLineNumber}");
+        }
 
         int relativeLineNumber = ComputeRelativeLineNumber(nodeStartLineNumber, lineNumber);
         int prev = GetAccumulatedValue(node, relativeLineNumber - 2);
         int accumulated = GetAccumulatedValue(node, relativeLineNumber - 1);
+        if (PieceTreeDebug.IsEnabled)
+        {
+            PieceTreeDebug.Log($"ResolveLineHit: relativeLine={relativeLineNumber}, prev={prev}, accumulated={accumulated}");
+            int absoluteOffset = nodeStartOffset + Math.Min(node.Piece.Length, Math.Max(0, prev + column - 1));
+            var position = GetPositionAt(Math.Clamp(absoluteOffset, 0, TotalLength));
+            PieceTreeDebug.Log($"ResolveLineHit absolute position => {position.LineNumber}:{position.Column}");
+        }
 
         if (relativeLineNumber - 1 < node.Piece.LineFeedCount)
         {
@@ -351,6 +418,18 @@ internal sealed partial class PieceTreeModel
         }
 
         return default;
+    }
+
+    private bool EnsureCachedLineHitMatchesRequest(NodeHit hit, int lineNumber, int column)
+    {
+        if (hit.Node is null || ReferenceEquals(hit.Node, _sentinel))
+        {
+            return false;
+        }
+
+        int absoluteOffset = hit.NodeStartOffset + Math.Clamp(hit.Remainder, 0, Math.Max(0, hit.Node.Piece.Length));
+        TextPosition position = GetPositionAt(Math.Clamp(absoluteOffset, 0, Math.Max(0, TotalLength)));
+        return position.LineNumber == lineNumber && position.Column == column;
     }
 
     private static int ComputeRelativeLineNumber(int nodeStartLineNumber, int absoluteLineNumber)
