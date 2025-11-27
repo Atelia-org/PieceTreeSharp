@@ -7,8 +7,6 @@
  *  - ts/src/vs/base/common/search.ts (Lines: 8-50, buildReplaceStringWithCasePreserved)
  *--------------------------------------------------------------------------------------------*/
 
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace PieceTree.TextBuffer.Core;

@@ -1,7 +1,3 @@
-using System;
-using Xunit;
-using PieceTree.TextBuffer;
-
 namespace PieceTree.TextBuffer.Tests.DocUI;
 
 public class LineCountTest

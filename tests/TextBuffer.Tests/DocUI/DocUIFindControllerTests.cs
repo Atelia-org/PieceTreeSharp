@@ -5,10 +5,6 @@
 
 // Migrated core scenarios from ts/src/vs/editor/contrib/find/test/browser/findController.test.ts
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.DocUI;
 using Range = PieceTree.TextBuffer.Core.Range;

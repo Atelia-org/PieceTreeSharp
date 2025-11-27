@@ -1,8 +1,5 @@
 // Source parity: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 // Scenario: PieceTreeBuffer should expose BOM metadata via getBOM().
-using PieceTree.TextBuffer;
-using Xunit;
-
 namespace PieceTree.TextBuffer.Tests;
 
 public sealed class PieceTreeBufferBomTests

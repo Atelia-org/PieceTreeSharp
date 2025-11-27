@@ -6,9 +6,6 @@
 // Purpose: Simplified in-process undo/redo service implementation
 // Created: 2025-11-20
 
-using System;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Services;
 
 internal interface IUndoRedoService

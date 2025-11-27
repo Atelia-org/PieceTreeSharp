@@ -7,9 +7,6 @@
 // File: ts/src/vs/editor/contrib/find/browser/findDecorations.ts
 // Lines: 1-380 (FindDecorations class)
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 using Range = PieceTree.TextBuffer.Core.Range;

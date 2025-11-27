@@ -4,10 +4,6 @@
 // Note: VS Code uses a single IntervalTree; this implementation separates decorations
 //       into regular, overview, and injected text trees for better performance.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace PieceTree.TextBuffer.Decorations;
 
 [Flags]

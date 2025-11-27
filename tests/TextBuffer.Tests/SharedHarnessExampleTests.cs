@@ -2,12 +2,9 @@
 // Purpose: Show how to use TestEditorBuilder, CursorTestHelper, WordTestUtils, and SnapshotTestUtils
 // Created: 2025-11-26
 
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Tests.Helpers;
-using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 

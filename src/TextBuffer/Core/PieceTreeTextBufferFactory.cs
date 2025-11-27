@@ -3,10 +3,7 @@
 // - Lines: 190-350
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using System.Text;
-using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 

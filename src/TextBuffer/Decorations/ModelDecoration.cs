@@ -13,7 +13,6 @@
 // - Enum: InjectedTextCursorStops (Lines: 357-362)
 // Ported: 2025-11-22
 
-using System;
 using System.Text;
 
 namespace PieceTree.TextBuffer.Decorations;

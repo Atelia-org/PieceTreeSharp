@@ -1,11 +1,7 @@
 // Source Alignment: mirrors VS Code's intervalTree.test.ts coverage (insert/delete/change/search/normalize)
 // Added: DEBUG counter assertions for lazy normalization stack fix parity (2025-11-27)
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using PieceTree.TextBuffer.Decorations;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace PieceTree.TextBuffer.Tests;

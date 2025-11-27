@@ -2,9 +2,6 @@
 // - Class: WordOperations (Lines: 50-800)
 // Ported: 2025-11-22
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Cursor;

@@ -6,12 +6,7 @@
 // Migrated from: ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts
 // B2-003: Port 43 TS tests to C# (39 tests, skipping 4 multi-cursor tests for Batch #3)
 
-using System;
-using System.Linq;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using PieceTree.TextBuffer.DocUI;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests.DocUI;

@@ -3,12 +3,8 @@
 // Tests: getLineCharCode, buffer equal semantics
 // Created: 2025-11-26
 
-using System;
 using System.Text;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using PieceTree.TextBuffer.Tests.Helpers;
 
 namespace PieceTree.TextBuffer.Tests;
 

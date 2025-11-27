@@ -6,12 +6,9 @@
 // - Lines: 1-100
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 

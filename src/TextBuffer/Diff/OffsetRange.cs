@@ -4,9 +4,6 @@
 //
 // Note: In TS, OffsetRange is defined within rangeMapping.ts alongside LineRange and RangeMapping.
 
-using System;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Diff;
 
 public readonly struct OffsetRange : IEquatable<OffsetRange>

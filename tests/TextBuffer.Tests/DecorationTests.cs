@@ -2,11 +2,7 @@
 // - Tests: decoration ranges, owner filters, stickiness, delta snapshots
 // Ported/updated: 2025-11-27
 
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Tests.Helpers;
 

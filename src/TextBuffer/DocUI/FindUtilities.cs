@@ -5,8 +5,6 @@
 
 // Ported from vs/editor/contrib/find/browser/findController.ts#getSelectionSearchString
 
-using System;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 

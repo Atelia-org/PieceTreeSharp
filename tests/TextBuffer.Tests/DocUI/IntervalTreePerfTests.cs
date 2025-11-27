@@ -1,13 +1,9 @@
 // Source: IntervalTree performance tests aligned with VS Code's DocUI perf harness
 // Focus: Mixed edit + decoration workloads, requestNormalize visibility, shared perf helpers
 
-using System;
-using System.Collections.Generic;
 using System.Text;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Tests.Helpers;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests.DocUI;
 

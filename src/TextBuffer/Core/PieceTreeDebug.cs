@@ -2,8 +2,6 @@
 // Purpose: Debug logging utilities for PieceTree (environment variable controlled)
 // Created: 2025-11-19
 
-using System;
-
 namespace PieceTree.TextBuffer.Core;
 
 internal static class PieceTreeDebug

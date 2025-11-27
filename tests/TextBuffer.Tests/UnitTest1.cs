@@ -2,9 +2,7 @@
 // - Tests: Core PieceTree buffer operations, chunk handling, position mapping
 // Ported: 2025-11-22
 
-using System.Linq;
 using System.Text;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;

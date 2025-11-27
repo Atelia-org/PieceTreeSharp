@@ -2,8 +2,6 @@
 // - Class: WordCharacterClassifier (Lines: 20-150)
 // Ported: 2025-11-22
 
-using System;
-
 namespace PieceTree.TextBuffer.Cursor;
 
 /// <summary>

@@ -3,10 +3,6 @@
 // - Lines: 15-200
 // Ported: 2025-11-21
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer.Diff;
-
 namespace PieceTree.TextBuffer.Diff.Algorithms;
 
 internal sealed class MyersDiffAlgorithm : IDiffAlgorithm

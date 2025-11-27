@@ -2,10 +2,7 @@
 // Purpose: Validate TextModelSnapshot chunk aggregation semantics
 // Created: 2025-11-25 (ports ts/src/vs/editor/common/model/textModel.ts TextModelSnapshot cases)
 
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

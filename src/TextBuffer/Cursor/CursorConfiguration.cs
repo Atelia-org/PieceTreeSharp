@@ -2,11 +2,7 @@
 // - Class: CursorConfiguration (Lines: 30-180)
 // Ported: 2025-11-26 (WS4-PORT-Core Stage 0)
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Cursor;
 

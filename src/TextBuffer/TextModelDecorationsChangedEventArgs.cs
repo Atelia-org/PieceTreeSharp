@@ -2,8 +2,6 @@
 // - Interface: IModelDecorationsChangedEvent and related types
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer;

@@ -6,9 +6,6 @@
 // Note: LineRange is a lightweight struct in TS; C# version adds LineRangeSet
 // for efficient range set operations not present in the original TS implementation.
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Diff;

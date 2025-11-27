@@ -2,8 +2,6 @@
 // - Class: TextModelSnapshot (Lines: 72-115)
 // Ported: 2025-11-25
 
-using System;
-using System.Collections.Generic;
 using System.Text;
 using PieceTree.TextBuffer.Core;
 

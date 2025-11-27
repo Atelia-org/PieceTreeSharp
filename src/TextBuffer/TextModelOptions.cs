@@ -4,8 +4,6 @@
 // - Interface: ITextModelCreationOptions (EDITOR_MODEL_DEFAULTS)
 // Ported: 2025-11-19
 
-using System;
-
 namespace PieceTree.TextBuffer;
 
 public enum EndOfLineSequence

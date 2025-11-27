@@ -3,8 +3,6 @@
 // - Lines: 50-150
 // Ported: 2025-11-19
 
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Core;
 
 internal sealed class PieceTreeSnapshot : ITextSnapshot

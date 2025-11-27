@@ -3,15 +3,11 @@
 //           zero-width + unicode anchors, CRLF handling, issue coverage
 // Ported: 2025-11-19
 
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using Xunit;
-using Range = PieceTree.TextBuffer.Core.Range;
-using TextPosition = PieceTree.TextBuffer.TextPosition;
-using static PieceTree.TextBuffer.Tests.TextModelSearchTestHelper;
 using Xunit.Sdk;
+using static PieceTree.TextBuffer.Tests.TextModelSearchTestHelper;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 

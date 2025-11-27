@@ -4,12 +4,8 @@
 // - Lines: 20-800
 // Ported: 2025-11-21
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
-using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Diff.Algorithms;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Diff;
 

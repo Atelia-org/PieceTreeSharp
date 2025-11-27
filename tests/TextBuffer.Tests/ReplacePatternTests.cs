@@ -6,9 +6,7 @@
  *  - ts/src/vs/editor/contrib/find/test/browser/replacePattern.test.ts (Lines: 1-350, Replace Pattern test suite)
  *--------------------------------------------------------------------------------------------*/
 
-using System;
 using System.Text.RegularExpressions;
-using Xunit;
 using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;

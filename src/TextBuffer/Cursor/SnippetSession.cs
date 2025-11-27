@@ -2,12 +2,8 @@
 // - Class: SnippetSession (Lines: 30-600)
 // Ported: 2025-11-22
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Cursor;

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Rendering;

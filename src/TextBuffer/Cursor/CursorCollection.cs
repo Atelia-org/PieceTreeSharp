@@ -2,11 +2,6 @@
 // - Class: CursorCollection (Lines: 15-250)
 // Ported: 2025-11-22
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
-
 namespace PieceTree.TextBuffer.Cursor;
 
 public sealed class CursorCollection : IDisposable

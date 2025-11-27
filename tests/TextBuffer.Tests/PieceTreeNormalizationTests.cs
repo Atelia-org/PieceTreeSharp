@@ -2,10 +2,6 @@
 // - Tests: delete CR in CRLF normalization tests (Lines: 1730+)
 // Ported: 2025-11-19
 
-using Xunit;
-using PieceTree.TextBuffer;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Tests;
 
 public class PieceTreeNormalizationTests

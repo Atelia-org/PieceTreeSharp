@@ -2,8 +2,6 @@
 // - Functions: Text chunking and normalization utilities
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace PieceTree.TextBuffer.Core;

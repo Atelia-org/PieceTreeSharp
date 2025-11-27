@@ -5,13 +5,10 @@
 
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Core;
-using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Tests.Helpers;
-using Xunit;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeDeterministicScripts;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 

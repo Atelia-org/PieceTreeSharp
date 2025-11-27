@@ -5,10 +5,6 @@
 // - Function: lineRangeMappingFromRangeMappings (Lines: 322-395)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Diff;

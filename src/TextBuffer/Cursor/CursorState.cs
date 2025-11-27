@@ -4,8 +4,6 @@
 // Ported: 2025-11-22
 // Updated: 2025-11-26 (WS4-PORT-Core Stage 0: TS parity architecture)
 
-using System;
-using System.Collections.Generic;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 

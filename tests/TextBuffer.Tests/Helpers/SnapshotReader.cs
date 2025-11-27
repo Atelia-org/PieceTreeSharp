@@ -5,7 +5,6 @@
 
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts (getValueInSnapshot helper)
 
-using System;
 using System.Text;
 using PieceTree.TextBuffer.Core;
 

@@ -2,9 +2,7 @@
 // - Tests: Factory line text retrieval, EOL handling, normalization (Lines: 100+)
 // Ported: 2025-11-19
 
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

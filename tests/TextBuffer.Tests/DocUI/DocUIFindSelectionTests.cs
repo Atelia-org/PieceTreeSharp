@@ -5,10 +5,8 @@
 
 // Ported from ts/src/vs/editor/contrib/find/test/browser/find.test.ts
 
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.DocUI;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests.DocUI;
 

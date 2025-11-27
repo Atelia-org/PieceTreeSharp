@@ -1,9 +1,6 @@
 // WS2-PORT: Range/Selection Helper APIs Unit Tests
 // Covers P0 APIs from INV-RangeSelection-GapReport.md
 
-using System;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 
 // Resolve ambiguity with System.Range

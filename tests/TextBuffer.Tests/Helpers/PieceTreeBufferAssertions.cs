@@ -5,11 +5,7 @@
 
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;
 

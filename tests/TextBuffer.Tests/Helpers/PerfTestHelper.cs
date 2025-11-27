@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;

@@ -5,10 +5,6 @@
 // - Classes: InfiniteTimeout, DateTimeout
 // Ported: 2025-11-21
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer.Diff;
-
 namespace PieceTree.TextBuffer.Diff.Algorithms;
 
 internal interface IDiffAlgorithm

@@ -1,11 +1,7 @@
 // Original C# implementation
 // Purpose: Deterministic fuzz harness for PieceTreeBuffer parity runs (B3-Fuzz Harness / #delta-2025-11-23-b3-piecetree-fuzz)
 
-using System;
-using System.Collections.Generic;
 using System.Text;
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;

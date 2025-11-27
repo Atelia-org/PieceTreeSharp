@@ -2,10 +2,8 @@
 // - Tests: Word diff inner changes, ignore trim whitespace, move detection
 // Ported: 2025-11-20
 
-using System;
 using System.Text;
 using PieceTree.TextBuffer.Diff;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

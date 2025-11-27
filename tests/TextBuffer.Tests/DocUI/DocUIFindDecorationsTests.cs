@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.DocUI;

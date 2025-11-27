@@ -7,12 +7,8 @@
 // File: ts/src/vs/editor/contrib/find/browser/findModel.ts
 // Lines: 1-600 (FindModelBoundToEditorModel class)
 
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text.RegularExpressions;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 using Selection = PieceTree.TextBuffer.Core.Selection;

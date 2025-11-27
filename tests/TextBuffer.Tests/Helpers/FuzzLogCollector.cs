@@ -2,10 +2,7 @@
 // Purpose: Fuzz test operation logger - captures edit sequences for failure reproduction
 // Created: 2025-11-22
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;
 

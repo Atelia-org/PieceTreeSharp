@@ -2,9 +2,6 @@
 // - Class: PieceTreeBase - Insert/Delete operations (Lines: 800-1500)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Core;
 
 internal sealed partial class PieceTreeModel

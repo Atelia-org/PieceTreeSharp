@@ -7,7 +7,6 @@
 // File: ts/src/vs/editor/contrib/find/browser/findState.ts
 // Lines: 1-340 (FindReplaceState class and related types)
 
-using System;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 

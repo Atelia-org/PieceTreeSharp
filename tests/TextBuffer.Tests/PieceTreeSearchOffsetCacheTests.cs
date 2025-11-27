@@ -6,7 +6,6 @@
 // Migrated from: ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts (search offset cache suite)
 
 using PieceTree.TextBuffer.Tests.Helpers;
-using Xunit;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeDeterministicScripts;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
 

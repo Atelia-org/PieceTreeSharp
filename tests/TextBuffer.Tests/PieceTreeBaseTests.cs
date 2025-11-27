@@ -2,10 +2,6 @@
 // - Tests: basic insert/delete, more inserts, more deletes (Lines: 214-265)
 // Ported: 2025-11-19
 
-using Xunit;
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Core;
-
 namespace PieceTree.TextBuffer.Tests;
 
 public class PieceTreeBaseTests

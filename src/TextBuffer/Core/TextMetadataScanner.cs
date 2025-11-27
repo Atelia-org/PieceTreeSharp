@@ -3,8 +3,6 @@
 // - Lines: 100-150
 // Ported: 2025-11-19
 
-using System;
-
 namespace PieceTree.TextBuffer.Core;
 
 internal static class TextMetadataScanner

@@ -4,9 +4,6 @@
 // Ported: 2025-11-19
 // Updated: 2025-11-27 (PORT-PT-Search-Step12: release diagnostics, tuple reuse wiring)
 
-using System;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Core;
 
 /// <summary>

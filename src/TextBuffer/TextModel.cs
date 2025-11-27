@@ -3,11 +3,7 @@
 // - Interfaces: ITextEdit, ITextChange and related types
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Services;

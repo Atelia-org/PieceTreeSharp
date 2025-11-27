@@ -6,10 +6,7 @@
 // Purpose: Simplified service implementation for C# without full DI infrastructure
 // Created: 2025-11-20
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace PieceTree.TextBuffer.Services;
 

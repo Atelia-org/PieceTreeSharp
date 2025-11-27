@@ -2,13 +2,9 @@
 // Purpose: Golden output snapshot comparison and management
 // Created: 2025-11-26
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using Xunit;
 using Xunit.Sdk;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;

@@ -2,11 +2,7 @@
 // - Tests: Builder chunk splitting, BOM/metadata retention, CRLF handling (Lines: 1500+)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

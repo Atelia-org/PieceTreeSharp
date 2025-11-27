@@ -3,12 +3,7 @@
 // Source Reference: ts/src/vs/editor/contrib/wordOperations/test/browser/wordTestUtils.ts
 // Created: 2025-11-26
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;

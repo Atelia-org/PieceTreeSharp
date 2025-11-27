@@ -2,10 +2,6 @@
 // - Class: PieceTreeTextBufferBuilder (Lines: 67-188)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
-
 namespace PieceTree.TextBuffer.Core;
 
 internal sealed class PieceTreeBuilder

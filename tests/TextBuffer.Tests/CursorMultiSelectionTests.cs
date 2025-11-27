@@ -2,13 +2,10 @@
 // - Tests: multi-cursor rendering, paste ordering, cancellation semantics
 // Ported/updated: 2025-11-27
 
-using System.Linq;
-using Xunit;
-using PieceTree.TextBuffer;
+using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Rendering;
 using PieceTree.TextBuffer.Tests.Helpers;
-using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;
 

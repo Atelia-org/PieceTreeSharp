@@ -2,14 +2,9 @@
 // - Tests: TextModel creation, selection logic, line content, editing operations
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.Services;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

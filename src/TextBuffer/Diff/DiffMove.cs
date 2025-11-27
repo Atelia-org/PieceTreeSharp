@@ -3,8 +3,6 @@
 // - Lines: 50-80
 // Ported: 2025-11-21
 
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Diff;
 
 public sealed class DiffMove

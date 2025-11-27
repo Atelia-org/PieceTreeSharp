@@ -2,9 +2,6 @@
 // - Class: LineRangeFragment (Lines: 30-74)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-
 namespace PieceTree.TextBuffer.Diff;
 
 internal sealed class LineRangeFragment

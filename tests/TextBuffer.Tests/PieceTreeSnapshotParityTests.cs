@@ -2,10 +2,8 @@
 // - Tests: bug #45564 (piece immutability) + immutable snapshot 1/2/3
 // Ported: 2025-11-25
 
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Tests.Helpers;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

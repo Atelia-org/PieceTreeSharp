@@ -1,5 +1,3 @@
-using System;
-
 namespace PieceTree.TextBuffer.Decorations;
 
 public readonly struct ModelDeltaDecoration

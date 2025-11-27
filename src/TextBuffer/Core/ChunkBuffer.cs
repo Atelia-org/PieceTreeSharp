@@ -2,8 +2,6 @@
 // - Functions: createLineStarts, createLineStartsFast (Lines: 27-98)
 // Ported: 2025-11-19
 
-using System;
-
 namespace PieceTree.TextBuffer.Core;
 
 /// <summary>

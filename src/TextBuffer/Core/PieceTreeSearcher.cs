@@ -3,7 +3,6 @@
 // - Lines: 1500-1700
 // Ported: 2025-11-19
 
-using System;
 using System.Text.RegularExpressions;
 
 namespace PieceTree.TextBuffer.Core;

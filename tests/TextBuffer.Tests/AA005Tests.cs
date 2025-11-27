@@ -2,10 +2,8 @@
 // Purpose: AA-005 CRLF splitting validation tests
 // Created: 2025-11-21
 
-using System;
 using System.Text;
 using PieceTree.TextBuffer.Core;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests;
 

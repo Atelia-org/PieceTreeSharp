@@ -2,12 +2,8 @@
 // - Class: Cursor (Lines: 15-200)
 // Ported: 2025-11-22
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
-using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Cursor;
 

@@ -3,9 +3,6 @@
 // - Tests: Snippet insertion, placeholder navigation
 // Ported: 2025-11-22
 
-using System;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Cursor;
 
 namespace PieceTree.TextBuffer.Tests;

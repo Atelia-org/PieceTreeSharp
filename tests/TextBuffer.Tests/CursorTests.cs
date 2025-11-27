@@ -2,8 +2,6 @@
 // - Tests: Basic cursor movement operations (left, right, up, down, select, sticky column)
 // Ported: 2025-11-22
 
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
 using CursorClass = PieceTree.TextBuffer.Cursor.Cursor;
 

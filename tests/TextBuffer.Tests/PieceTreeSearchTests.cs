@@ -2,7 +2,6 @@
 // - Tests: FindMatches literal/regex, capture groups, multiline search, word boundaries
 // Ported: 2025-11-19
 
-using Xunit;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;

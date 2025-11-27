@@ -2,8 +2,6 @@
 // - Focus: tracked range stickiness matrix for insertions at edges
 // Ported: 2025-11-23
 
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Tests;

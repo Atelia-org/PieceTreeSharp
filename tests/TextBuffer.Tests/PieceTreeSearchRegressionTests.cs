@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Tests.Helpers;
-using Xunit;
 using Range = PieceTree.TextBuffer.Core.Range;
-using TextPosition = PieceTree.TextBuffer.TextPosition;
 
 namespace PieceTree.TextBuffer.Tests;
 

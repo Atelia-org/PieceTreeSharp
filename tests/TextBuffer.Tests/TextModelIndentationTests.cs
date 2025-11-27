@@ -1,9 +1,6 @@
 // WS5-QA: TextModel indentation detection parity with VS Code
 // Source: ts/src/vs/editor/test/common/model/textModel.test.ts (guessIndentation suite)
 
-using Xunit;
-using PieceTree.TextBuffer;
-
 namespace PieceTree.TextBuffer.Tests;
 
 public class TextModelIndentationTests

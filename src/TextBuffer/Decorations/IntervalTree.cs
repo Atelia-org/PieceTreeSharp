@@ -4,9 +4,6 @@
 // - Red-black tree implementation for decoration storage with lazy delta normalization
 // Ported: 2025-11-22, Refactored: 2025-11-26 (WS3-PORT-Tree)
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace PieceTree.TextBuffer.Decorations;

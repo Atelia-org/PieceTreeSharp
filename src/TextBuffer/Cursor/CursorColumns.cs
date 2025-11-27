@@ -2,10 +2,6 @@
 // - Methods: visibleColumnFromColumn, columnFromVisibleColumn (Lines: 10-50)
 // Ported: 2025-11-22
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Cursor;

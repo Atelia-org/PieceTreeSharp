@@ -4,9 +4,6 @@
 //   joinSequenceDiffsByShifting, shiftSequenceDiffs (Lines: 12-473)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using PieceTree.TextBuffer.Diff.Algorithms;
 
 namespace PieceTree.TextBuffer.Diff;

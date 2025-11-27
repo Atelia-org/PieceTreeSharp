@@ -6,10 +6,6 @@
 // Test harness adapting TS withTestCodeEditor for C# FindModel tests
 // Reference: ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts (L34-57)
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
 using PieceTree.TextBuffer.DocUI;
 using Range = PieceTree.TextBuffer.Core.Range;

@@ -7,8 +7,6 @@
  *  - No direct 1:1 TypeScript source (C# architectural adapter)
  *--------------------------------------------------------------------------------------------*/
 
-using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using PieceTree.TextBuffer.Core;
 

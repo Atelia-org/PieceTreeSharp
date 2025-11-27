@@ -3,11 +3,8 @@
 // - Validates cursor, selection, and decoration rendering in text format
 // Created: 2025-11-22
 
-using System;
-using Xunit;
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Rendering;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.Rendering;
 
 namespace PieceTree.TextBuffer.Tests;
 

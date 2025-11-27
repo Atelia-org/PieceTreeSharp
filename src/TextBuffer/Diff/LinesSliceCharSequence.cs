@@ -2,12 +2,9 @@
 // - Class: LinesSliceCharSequence (Lines: 14-246)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using System.Text;
-using PieceTree.TextBuffer.Core;
-using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Diff.Algorithms;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Diff;
 

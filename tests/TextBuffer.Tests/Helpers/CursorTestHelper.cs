@@ -2,13 +2,10 @@
 // Purpose: Cursor position/selection assertion methods and multi-cursor comparison utilities
 // Created: 2025-11-26
 
-using System;
-using System.Collections.Generic;
 using System.Text;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
 using Range = PieceTree.TextBuffer.Core.Range;
-using Xunit;
 
 namespace PieceTree.TextBuffer.Tests.Helpers;
 

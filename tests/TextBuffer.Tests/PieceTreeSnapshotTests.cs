@@ -2,8 +2,6 @@
 // - Tests: Snapshot immutability and content reading
 // Ported: 2025-11-19 (updated 2025-11-25 to use TextModel snapshots)
 
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Tests.Helpers;
 

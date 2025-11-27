@@ -6,8 +6,6 @@
 // Created: 2025-11-22
 // Updated: 2025-11-26 (WS1-PORT-CRLF)
 
-using System;
-using Xunit;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Tests.Helpers;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;

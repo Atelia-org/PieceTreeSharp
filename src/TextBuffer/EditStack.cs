@@ -3,8 +3,6 @@
 // - Class: EditStackElement (integrated into C# implementation)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using PieceTree.TextBuffer.Services;
 
 namespace PieceTree.TextBuffer;

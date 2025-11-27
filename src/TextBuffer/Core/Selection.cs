@@ -4,8 +4,6 @@
 // Ported: 2025-11-19
 // Updated: 2025-11-26 (WS2-PORT: Range/Selection Helper APIs)
 
-using System;
-
 namespace PieceTree.TextBuffer.Core;
 
 public enum SelectionDirection

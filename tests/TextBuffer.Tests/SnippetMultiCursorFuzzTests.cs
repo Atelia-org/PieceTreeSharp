@@ -3,13 +3,8 @@
 // - Validates snippet session state consistency across random edits
 // Created: 2025-11-22
 
-using System;
-using System.Linq;
-using Xunit;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Decorations;
-using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;
 

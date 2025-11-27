@@ -1,10 +1,8 @@
 // WS4-PORT-Core Stage 0 Tests
 // Tests for CursorConfiguration, SingleCursorState, CursorState, and related types
 // Created: 2025-11-26
-using System.Collections.Generic;
-using Xunit;
-using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Core;
+using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Tests.Helpers;
 using Range = PieceTree.TextBuffer.Core.Range;
 

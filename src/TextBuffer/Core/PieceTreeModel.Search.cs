@@ -2,10 +2,7 @@
 // - Class: PieceTreeBase - Search/FindMatches operations (Lines: 1500-1800)
 // Ported: 2025-11-19
 
-using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using PieceTree.TextBuffer;
 
 namespace PieceTree.TextBuffer.Core;
 

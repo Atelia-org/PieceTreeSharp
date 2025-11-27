@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
-using PieceTree.TextBuffer;
-using PieceTree.TextBuffer.Core;
-using Range = PieceTree.TextBuffer.Core.Range;
 using PieceTree.TextBuffer.Tests.Helpers;
 using static PieceTree.TextBuffer.Tests.Helpers.PieceTreeScript;
-using Xunit;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Tests;
 

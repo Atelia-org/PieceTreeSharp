@@ -2,9 +2,6 @@
 // Purpose: Quick TextModel construction with preset content and options
 // Created: 2025-11-26
 
-using System;
-using System.Collections.Generic;
-using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Cursor;
 using Range = PieceTree.TextBuffer.Core.Range;
