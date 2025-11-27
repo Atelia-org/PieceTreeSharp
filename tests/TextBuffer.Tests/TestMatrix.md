@@ -186,6 +186,17 @@ Helper updates: Added `PieceTreeBufferAssertions` (line-count/offset helpers) an
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DecorationTests --nologo` | 12/12 green (1.7s) | WS3 IntervalTree/Decoration coverage – metadata round-trips, injected text queries, owner filters, per-line queries (`#delta-2025-11-26-ws3-tree`). |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DecorationStickinessTests --nologo` | 4/4 green (1.7s) | WS3 TrackedRangeStickiness matrix – insert at edges behavior across four stickiness modes (`#delta-2025-11-26-ws3-tree`). |
 
+### Targeted reruns (PORT-PT-Search Step12, 2025-11-27)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~PieceTreeDeterministicTests --nologo` | 50/50 green (1.9s) | Confirms deterministic prefix-sum/offset/CRLF suites stay green after NodeAt2 tuple reuse + diagnostics; logged in [`agent-team/handoffs/PORT-PT-Search-Step12-QA.md`](../../agent-team/handoffs/PORT-PT-Search-Step12-QA.md) for upcoming changefeed [`#delta-2025-11-27-ws1-port-search-step12`](../../agent-team/indexes/README.md#delta-2025-11-27-ws1-port-search-step12). |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~PieceTreeFuzzHarnessTests --nologo` | 15/15 green (63.6s) | Replays the env-seeded fuzz harness (random/CRLF/chunk scripts) to stress tuple reuse + cache invalidation; QA log mirrors the runtime + confirms no harness corruption. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~CRLFFuzzTests --nologo` | 13/13 green (13.0s) | Validates the CRLF bridge + `_lastChangeBufferPos` rewinds remained intact while wiring the new tuple path. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~PieceTreeSearchRegressionTests --nologo` | 13/13 green (2.1s) | Exercises search-from-middle, boundary, and edit-after-search regressions with the updated cache hits. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~PieceTreeSearchOffsetCacheTests --nologo` | 5/5 green (1.8s) | Ensures the release-visible cache diagnostics still report warm entries and invalidation remains targeted. |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` | 639/639 green, 2 skips (107.4s) | Full sweep capturing the Step12 runtime (CursorCore skips remain tied to `#delta-2025-11-26-aa4-cl7-*`). Evidence linked in the QA handoff for Info-Indexer to publish the new changefeed. |
+
 ### Targeted reruns (B3-Decor Review, 2025-11-23)
 
 | Command | Result | Notes |

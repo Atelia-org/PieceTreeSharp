@@ -400,6 +400,15 @@ Handoff / 参考：
 
 验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (585/585, 1 skip)
 
+### delta-2025-11-27-ws1-port-search-step12
+**PORT-PT-Search Step12 – NodeAt2 tuple reuse与搜索缓存诊断落地**
+
+- **实现**：`src/TextBuffer/Core/PieceTreeModel.Search.cs` 现将 `NodeAt2Internal` 与 `ResolveLineHit` 的 (node, startOffset, startLine) 元组重用到溢出场景，避免重复走树；`SearchForwardFromNode`/`ResolveLineHit` 在 CR/LF 分段时复刻 TS prefix-sum 纠偏；`src/TextBuffer/Core/PieceTreeSearchCache.cs` 增加 `SearchCacheSnapshot`、`CacheInvalidated` 事件与命中/失效计数，`src/TextBuffer/Core/PieceTreeModel.cs` 暴露 `Diagnostics.SearchCache` 以便测试查询 release 版本的缓存状态。
+- **handoff**：调研与 QA 证据分别记录在 [`agent-team/handoffs/PORT-PT-Search-Step12-INV.md`](../handoffs/PORT-PT-Search-Step12-INV.md) 与 [`agent-team/handoffs/PORT-PT-Search-Step12-QA.md`](../handoffs/PORT-PT-Search-Step12-QA.md)；迁移日志已在 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11) 下收录 Step12。
+- **测试**：QA 以 `export PIECETREE_DEBUG=0` 环境复跑 PieceTree deterministic(50/50)、fuzz harness(15/15)、CRLFFuzz(13/13)、SearchRegression(13/13)、SearchOffsetCache(5/5) 及全量 `dotnet test` 639/639（2 个 CursorCore 预期 skip），具体命令/时间戳详见 Step12 QA handoff，并已抄录到 [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) 的 “Targeted reruns (PORT-PT-Search Step12, 2025-11-27)” 区块。
+- **诊断钩子**：`PieceTreeModel.Diagnostics.SearchCache` 暴露命中/失效/清空计数，便于未来在 release 构建中插桩；当前 `PieceTreeBufferAssertions.AssertSearchCachePrimed` 仍使用 `TryGetCachedNodeByOffset` 验证 tuple 命中，并在 `PieceTreeSearchRegressionTests` / `PieceTreeSearchOffsetCacheTests` 重跑时确认覆盖 `offset {0, mid, end}` 且无额外失效事件。
+
+> 变更将 Sprint 04 WS1 Step1/2 计划标记为 “Implemented + QA 完成”，后续 DocMaintainer 在更新 AGENTS / Sprint / Task Board 时需引用本 changefeed (`#delta-2025-11-27-ws1-port-search-step12`) 与迁移日志锚点。
 文档钩子：Sprint 04 Progress Log (R1–R11)、TestMatrix baseline 更新、各 WS handoff 文件均引用本 delta。
 - 迁移日志：参见 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11)。
 

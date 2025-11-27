@@ -3,7 +3,7 @@
 **Sprint Window:** 2025-11-27 ~ 2025-12-12  
 **Goal:** 把 PieceTree 搜索、装饰树、Range/Cursor/测试 backlog 汇聚为一个冲刺，落实 ALIGN-20251126 工作流的 M0/M1 目标，并为 12 月中旬的 M2 验收准备 QA/DocUI 证据。
 
-**Changefeed Reminder:** 所有状态更新请同步 `agent-team/indexes/README.md#delta-2025-11-26-sprint04`，并在触发 runSubAgent 或完成交付后立刻刷新 `docs/reports/migration-log.md` 与 `tests/TextBuffer.Tests/TestMatrix.md` 的引用。
+**Changefeed Reminder:** 所有状态更新请同步 `agent-team/indexes/README.md#delta-2025-11-26-sprint04`；涉及 WS1 Step12（NodeAt2 tuple reuse + SearchCache 诊断）的内容需额外引用 `agent-team/indexes/README.md#delta-2025-11-27-ws1-port-search-step12`，并在触发 runSubAgent 或完成交付后立刻刷新 `docs/reports/migration-log.md` 与 `tests/TextBuffer.Tests/TestMatrix.md` 的引用。
 
 **CL7/CL8 Gap Reminder:** `WS4`/DocUI 相关编辑前，先复核 [`docs/reports/migration-log.md#aa4-cl7-gap`](../docs/reports/migration-log.md#aa4-cl7-gap) / [`docs/reports/migration-log.md#aa4-cl8-gap`](../docs/reports/migration-log.md#aa4-cl8-gap) 与 [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
@@ -14,7 +14,8 @@
 | WS1-PORT-SearchCore | 重写 `GetAccumulatedValue`、`NodeAt2` 缓存与 `PieceTreeSearchCache` tuple reuse | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Search.cs`<br>`src/TextBuffer/Core/PieceTreeSearchCache.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws1-port-searchcore)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws1-searchcore) | 2 | ✅ Done | 2025-11-26 完成：混合实现 + DEBUG 计数器（CacheHit/CacheMiss/ClearedAfterEdit）。 |
 | WS1-PORT-CRLF | `_lastChangeBufferPos` / `AppendToChangeBufferNode` / `CreateNewPieces` CRLF bridge 实现 | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Edit.cs`<br>`tests/TextBuffer.Tests/CRLFFuzzTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws1-port-crlf)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：hitCRLF 检测 + `_` 占位符技术 + 11 新测试。 |
 | WS1-QA | 扩展 deterministic/fuzz/SearchOffset 测试并记录 `PIECETREE_DEBUG=0` 命令 | QA-Automation (Sasha Patel) | `tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`<br>`PieceTreeFuzzHarnessTests.cs`<br>`PieceTreeSearchOffsetCacheTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws123-qa)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：440/440 全量 + targeted reruns 验证，TestMatrix 更新。 |
-| WS1-OPS | Changefeed + 文档同步（Search parity） | Info-Indexer + DocMaintainer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-04.md`<br>`docs/reports/migration-log.md` | 1 | Planned | 需在 QA 提供证据后发布 delta 并更新 AGENTS/Sprint/Task Board。 |
+| WS1-PORT-Step12 | NodeAt2 tuple reuse + SearchCache diagnostics（PORT-PT-Search Step12） | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Search.cs`<br>`src/TextBuffer/Core/PieceTreeSearchCache.cs`<br>`agent-team/handoffs/PORT-PT-Search-Step12-INV.md`<br>`agent-team/handoffs/PORT-PT-Search-Step12-QA.md`<br>[`changefeed`](indexes/README.md#delta-2025-11-27-ws1-port-search-step12) | 2 | ✅ Done | 2025-11-27 完成：NodeAt2 tuple 重用、SearchCache DiagnosticsView 暴露、QA rerun deterministic/fuzz/CRLF/search suites + 全量 639/639（2 skip）。 |
+| WS1-OPS | Changefeed + 文档同步（Search parity） | Info-Indexer + DocMaintainer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-04.md`<br>`docs/reports/migration-log.md` | 1 | ✅ Done | 2025-11-27 发布 `#delta-2025-11-27-ws1-port-search-step12` 并同步 AGENTS/Sprint/TestMatrix/Task Board。 |
 
 ## Workstream 2 – Range & Selection Helpers (ALIGN WS2)
 | ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
