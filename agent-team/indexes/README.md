@@ -55,7 +55,7 @@
 - **迁移日志**: [`docs/reports/migration-log.md`](../../docs/reports/migration-log.md) (新增 Batch #1 条目)
 - **TestMatrix**: [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) (新增 ReplacePattern 行)
 - **已知差异**: C#/JavaScript Regex 空捕获组行为（已文档化，非阻塞）
-- **TODO 标记**: FindModel 集成、WordSeparator 上下文（Batch #2）
+- **后续跟进**: FindModel scope/replace work项与 WordSeparator context 仍按 [`docs/reports/migration-log.md#b3-fm-scope`](../../docs/reports/migration-log.md#b3-fm-scope) / [`docs/reports/migration-log.md#b3-fm-replacescope`](../../docs/reports/migration-log.md#b3-fm-replacescope) / [`docs/reports/migration-log.md#fr-01-02`](../../docs/reports/migration-log.md#fr-01-02) 协同，并需引用 [`#delta-2025-11-24-find-scope`](#delta-2025-11-24-find-scope) / [`#delta-2025-11-24-find-replace-scope`](#delta-2025-11-24-find-replace-scope) / [`#delta-2025-11-23`](#delta-2025-11-23)。
 
 ### Batch #1 文档修正 (QA Follow-up)
 - **问题级别**: Medium × 2
@@ -377,4 +377,58 @@ Handoff / 参考：
 - **Artifacts:** [`docs/sprints/sprint-04.md`](../../docs/sprints/sprint-04.md)、[`agent-team/task-board.md`](../../agent-team/task-board.md)、存档版 [`agent-team/task-board-v7-archive.md`](../../agent-team/task-board-v7-archive.md)。
 - **Notes:** Sprint Window 设定为 2025-11-27~2025-12-12，所有状态更新需引用本 delta；Task Board 引入新的 Workstream ID（WS1~WS5、OPS-*）与 changefeed 提醒。
 - **Next actions:** Info-Indexer 需在后续交付（WS1/WS3 等）完成时以此 delta 为起点追加子条目；DocMaintainer 已被要求在 runSubAgent 前后同步 Sprint Log/Task Board/TestMatrix。
+- **迁移日志：** [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11) 的汇总行与本 changefeed 成对维护。
 
+
+### delta-2025-11-26-sprint04-r1-r11
+**Sprint 04 Phase 8 – Workstream 交付汇总 (R1–R11)**
+
+测试基线：365 → 585 (+220)
+
+| Deliverable | Description | Key Files |
+| --- | --- | --- |
+| WS1-PORT-SearchCore | `GetAccumulatedValue` 混合实现 + DEBUG 计数器，NodeAt2 tuple 缓存推迟 | `src/TextBuffer/Core/PieceTreeModel.Search.cs` |
+| WS2-PORT | Range/Selection/TextPosition P0 helpers（75 新测试） | `src/TextBuffer/Core/Range.cs`, `Selection.cs`, `TextPosition.cs` |
+| WS3-PORT-Tree | IntervalTree lazy normalize（NodeFlags/delta/ResolveState/AcceptReplace） | `src/TextBuffer/Decorations/IntervalTree.cs`, `DecorationsTrees.cs` |
+| WS5-INV | 测试 backlog 优先级清单：47 gaps / 106h，Top-10 P0 | `agent-team/handoffs/WS5-INV-TestBacklog.md` |
+| WS1-PORT-CRLF | `AppendToChangeBufferNode` hitCRLF + `CreateNewPieces` CRLF bridge（+11 测试） | `src/TextBuffer/Core/PieceTreeModel.Edit.cs` |
+| WS3-QA | IntervalTree 测试验证（13+7），DEBUG 计数器可访问 | `tests/TextBuffer.Tests/IntervalTreeTests.cs`, `DocUI/IntervalTreePerfTests.cs` |
+| WS4-PORT-Core | Cursor Stage 0 骨架：CursorConfiguration/CursorState/CursorContext + TrackedRange（25 新测试） | `src/TextBuffer/Cursor/*.cs` |
+| IntervalTree-StackFix | `IntervalSearch` 迭代化修复栈溢出 + xunit 禁用并行 | `src/TextBuffer/Decorations/IntervalTree.cs`, `xunit.runner.json` |
+| WS5-PORT | 共享测试 Harness：TestEditorBuilder/CursorTestHelper/WordTestUtils/SnapshotTestUtils（+44 测试） | `tests/TextBuffer.Tests/Helpers/*.cs` |
+| WS5-QA | 首批高风险测试：PieceTreeBufferApiTests(17) + SearchRegressionTests(9) + IndentationTests(19) | `tests/TextBuffer.Tests/PieceTreeBufferApiTests.cs`, `SearchRegressionTests.cs`, `IndentationTests.cs` |
+
+验证：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` (585/585, 1 skip)
+
+文档钩子：Sprint 04 Progress Log (R1–R11)、TestMatrix baseline 更新、各 WS handoff 文件均引用本 delta。
+- 迁移日志：参见 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11)。
+
+### delta-2025-11-26-ws4-port-core
+- **Scope:** Implemented WS4-PORT-Core Stage 0 — Cursor 基础架构 for TS-parity cursor dual-state system.
+- **Key deliverables:**
+  - [`src/TextBuffer/Cursor/CursorConfiguration.cs`](../../src/TextBuffer/Cursor/CursorConfiguration.cs) (NEW ~407行): `CursorConfiguration` with editor/model options, `VisibleColumnFromColumn`/`ColumnFromVisibleColumn` helpers, `ICursorSimpleModel` interface, `CursorColumnsHelper`, `EditorCursorOptions`, `PositionAffinity`, `EditOperationType`, `ColumnSelectData`.
+  - [`src/TextBuffer/Cursor/CursorState.cs`](../../src/TextBuffer/Cursor/CursorState.cs) (REWRITE ~371行): `SelectionStartKind` enum, `SingleCursorState` (selectionStart + position + leftoverVisibleColumns), `CursorState` (modelState + viewState dual-state), `PartialModelCursorState`, `PartialViewCursorState`, `CursorState.FromModelSelection()` factory.
+  - [`src/TextBuffer/Cursor/CursorContext.cs`](../../src/TextBuffer/Cursor/CursorContext.cs) (REWRITE ~260行): `ICoordinatesConverter` interface, `IdentityCoordinatesConverter` stub (1:1 mapping), `TextModelCursorAdapter` implementing `ICursorSimpleModel`.
+  - [`src/TextBuffer/TextModel.cs`](../../src/TextBuffer/TextModel.cs) (ENHANCED): `ValidatePosition()`, `ValidateRange()`, Tracked range support (`_setTrackedRange`/`_getTrackedRange`).
+  - [`src/TextBuffer/Decorations/ModelDecoration.cs`](../../src/TextBuffer/Decorations/ModelDecoration.cs) (ENHANCED): `DecorationRenderKind.None = -1`, `CreateHiddenOptions()` factory for hidden decorations.
+  - [`tests/TextBuffer.Tests/CursorCoreTests.cs`](../../tests/TextBuffer.Tests/CursorCoreTests.cs) (NEW 25 tests): Complete coverage of Stage 0 cursor infrastructure.
+- **Feature flag:** `TextModelOptions.EnableVsCursorParity` gates new cursor behaviors.
+- **QA evidence:**
+  - Targeted: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter CursorCoreTests --nologo` → 25/25 @ ~1.8s
+  - Full (excluding pre-existing WS3 bug): `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter "FullyQualifiedName!~IntervalTreePerfTests" --nologo` → 496/496 @ ~53s
+- **Known issues:** 4 `IntervalTreePerfTests` failures are pre-existing WS3-PORT-Tree bug (NullReferenceException in RbTreeDelete/Leftest) — outside WS4 scope.
+- **Documentation hooks:** Migration log row `2025-11-26 | WS4-PORT-Core`, handoff [`agent-team/handoffs/WS4-PORT-Core-Result.md`](../handoffs/WS4-PORT-Core-Result.md).
+- **Next steps:** WS4-PORT-Full (Stage 1~4) will add Cursor/CursorCollection/CommandExecutor/full cursor operations.
+- **迁移日志：** [`docs/reports/migration-log.md#ws4-port-core`](../../docs/reports/migration-log.md#ws4-port-core)。
+
+### delta-2025-11-26-aa4-cl7-cursor-core
+- **Scope:** Placeholder delta tracking the AA4 CL7 backlog (cursor core, word ops, column selection, snippet/session commands). DocMaintainer Run R42 downgraded every CL7 row on the Task Board and `tests/TextBuffer.Tests/TestMatrix.md` to "Gap" until new Porter/QA drops land.
+- **Docs touched:** [`docs/reports/audit-checklist-aa4.md#cl7`](../../docs/reports/audit-checklist-aa4.md#cl7), [`agent-team/task-board.md`](../../agent-team/task-board.md), [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md), [`docs/sprints/sprint-03.md#r42`](../../docs/sprints/sprint-03.md#r42), [`AGENTS.md`](../../AGENTS.md).
+- **Migration log:** [`docs/reports/migration-log.md#aa4-cl7-gap`](../../docs/reports/migration-log.md#aa4-cl7-gap) documents the R42 downgrade plus referencing instructions.
+- **Next steps:** Use this changefeed anchor (`#delta-2025-11-26-aa4-cl7-cursor-core`) when shipping the queued cursor-core/wordOps/column-nav/snippet/test deltas so all frontline docs know when to restore "Done" status.
+
+### delta-2025-11-26-aa4-cl8-markdown
+- **Scope:** Placeholder delta for AA4 CL8 (DocUI Find/Replace, Markdown renderer, Intl.Segmenter + word separator cache). R42 notes keep Markdown/search overlays flagged as High Risk until the four follow-up deltas (`...-markdown`, `...-capture`, `...-intl`, `...-wordcache`) ship.
+- **Docs touched:** [`docs/reports/audit-checklist-aa4.md#cl8`](../../docs/reports/audit-checklist-aa4.md#cl8), [`agent-team/task-board.md`](../../agent-team/task-board.md), [`docs/sprints/sprint-03.md#r42`](../../docs/sprints/sprint-03.md#r42), [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) (DocUI + Markdown rows).
+- **Migration log:** [`docs/reports/migration-log.md#aa4-cl8-gap`](../../docs/reports/migration-log.md#aa4-cl8-gap) captures the placeholder status and references.
+- **Next steps:** When DocUI/Markdown fixes land, cite this changefeed plus the migration-log row before upgrading Task Board/Sprint/TestMatrix statuses back to Done.

@@ -8,3 +8,4 @@ BugRepro/
 /*.cs
 ts-upstream/
 chat-log/
+tests/TextBuffer.Tests/Snapshots/

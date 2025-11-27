@@ -4,10 +4,16 @@
 - Own TextBuffer parity verification per `AGENTS.md`, keeping `tests/TextBuffer.Tests` aligned with TS sources and documenting every rerun inside `tests/TextBuffer.Tests/TestMatrix.md`.
 - Publish reproducible changefeed evidence (baseline + targeted filters) so Porter-CS and Investigator-TS can diff regressions without re-reading past worklogs.
 - Coordinate Sprint 04 QA intake (`#delta-2025-11-26-sprint04`) by flagging blockers back to Planner and DocMaintainer whenever rerun recipes or artifacts drift.
+- 保证所有 Sprint 04 报告引用 [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11)，且 Cursor/Snippet、DocUI backlog 相关验证都对齐 [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) 与 [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Active Changefeeds & Baselines
 | Anchor | Scope | Latest Stats | Evidence |
 | --- | --- | --- | --- |
+| `#delta-2025-11-26-sprint04-r1-r11` | Sprint 04 WS1–WS5 deliverables（R1-R11）+ 585/585 baseline（1 skip）。 | Full `PIECETREE_DEBUG=0` sweep 585/585 (≈62s) recorded in WS123/WS5 QA handoffs; targeted suites listed below stay green. | `agent-team/handoffs/WS123-QA-Result.md`, `agent-team/handoffs/WS5-QA-Result.md`, `tests/TextBuffer.Tests/TestMatrix.md` (R1-R11 rows)。 |
+| `#delta-2025-11-26-ws1-searchcore` | WS1 PieceTree search offset cache + DEBUG counters. | Full 440/440 green (62.1s); targeted `PieceTreeSearchOffsetCacheTests` 5/5 (1.7s). | `agent-team/handoffs/WS123-QA-Result.md`. |
+| `#delta-2025-11-26-ws2-port` | WS2 Range/Selection/Position helper APIs (75 tests). | Full 440/440 green (62.1s); targeted `RangeSelectionHelperTests` 75/75 (1.6s). | `agent-team/handoffs/WS123-QA-Result.md`. |
+| `#delta-2025-11-26-ws3-tree` | WS3 IntervalTree rewrite with lazy delta normalization + DEBUG counters. | Full 440/440 green (62.1s); targeted `DecorationTests` 12/12 + `DecorationStickinessTests` 4/4 (1.7s each). | `agent-team/handoffs/WS123-QA-Result.md`. |
+| `#delta-2025-11-26-ws4-port-core` | WS4 Cursor Stage 0 infrastructure。 | Targeted `CursorCoreTests` 25/25 (1.8s) + gating full sweeps tracked under R1-R11。 | `agent-team/handoffs/WS4-PORT-Core-Result.md`、`tests/TextBuffer.Tests/TestMatrix.md` Cursor rows。 |
 | `#delta-2025-11-25-b3-textmodelsearch` | TextModelSearch 45-case TS parity battery + Sprint 03 Run R37 full sweep. | Targeted `TextModelSearchTests` 45/45 green (2.5s) alongside full `export PIECETREE_DEBUG=0 && dotnet test ... --nologo` 365/365 green (61.6s). | `tests/TextBuffer.Tests/TestMatrix.md` (TextModelSearch row + R37 log) and `agent-team/handoffs/B3-TextModelSearch-QA.md`. |
 | `#delta-2025-11-25-b3-piecetree-deterministic-crlf` | PieceTree deterministic + CRLF normalization harness. | `PIECETREE_DEBUG=0` targeted `--filter PieceTreeDeterministicTests` 50/50 green (3.5s) plus paired full sweep 308/308 green (67.2s). | `tests/TextBuffer.Tests/TestMatrix.md` deterministic rows + `agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`. |
 | `#delta-2025-11-25-b3-search-offset` | PieceTree search-offset cache wrapper validation. | Targeted `--filter PieceTreeSearchOffsetCacheTests` 5/5 green (4.3s) with the R31 baseline `--nologo` run 324/324 green (58.2s). | `tests/TextBuffer.Tests/TestMatrix.md` R31 + targeted block, `agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`. |
@@ -16,23 +22,37 @@
 
 ## Canonical Commands
 **Full sweeps**
-- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 365/365 (61.6s, R37) for `#delta-2025-11-25-b3-textmodelsearch`.
-- Same command (308/308, 67.2s) after PieceTree deterministic CRLF expansion (`#delta-2025-11-25-b3-piecetree-deterministic-crlf`).
-- Same command (324/324, 58.2s) for the search-offset cache drop (`#delta-2025-11-25-b3-search-offset`).
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **585/585（584 pass + 1 skip，≈62s）** for Sprint 04 R1-R11 (`#delta-2025-11-26-sprint04-r1-r11`)，captured in `WS123-QA-Result.md` + `WS5-QA-Result.md`。
+- Same command (440/440, 62.1s) for WS1/WS2/WS3 QA drops (`#delta-2025-11-26-ws*-*`).
+- Same command (365/365, 61.6s, R37) for `#delta-2025-11-25-b3-textmodelsearch`。
+- Same command (308/308, 67.2s) after PieceTree deterministic CRLF expansion (`#delta-2025-11-25-b3-piecetree-deterministic-crlf`)。
+- Same command (324/324, 58.2s) for the search-offset cache drop (`#delta-2025-11-25-b3-search-offset`)。
 
 **Targeted filters**
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter CursorCoreTests --nologo` → 25/25, anchors `#delta-2025-11-26-ws4-port-core`。
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter RangeSelectionHelperTests --nologo` → 75/75, anchors `#delta-2025-11-26-ws2-port`.
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSearchOffsetCacheTests --nologo` → 5/5, anchors `#delta-2025-11-26-ws1-searchcore`.
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter DecorationTests --nologo` → 12/12, anchors `#delta-2025-11-26-ws3-tree`.
+- `export PIECETREE_DEBUG=0 && dotnet test ... --filter DecorationStickinessTests --nologo` → 4/4, anchors `#delta-2025-11-26-ws3-tree`.
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter TextModelSearchTests --nologo` → 45/45, anchors `#delta-2025-11-25-b3-textmodelsearch`.
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeDeterministicTests --nologo` → 50/50, anchors `#delta-2025-11-25-b3-piecetree-deterministic-crlf`.
-- `export PIECETREE_DEBUG=0 && dotnet test ... --filter PieceTreeSearchOffsetCacheTests --nologo` → 5/5, anchors `#delta-2025-11-25-b3-search-offset`.
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter FullyQualifiedName~FindModelTests --nologo` → 46/46, anchors `#delta-2025-11-24-b3-docui-staged`.
 - `export PIECETREE_DEBUG=0 && dotnet test ... --filter FullyQualifiedName~DocUIFindDecorationsTests --nologo` → 9/9, anchors `#delta-2025-11-24-b3-docui-staged`.
 
-## Open Risks / Dependencies
-- Intl.Segmenter + WordSeparator parity (TextModelSearch whole-word gaps) still blocked on Investigator-TS specs; track inside `tests/TextBuffer.Tests/TestMatrix.md` TextModelSearch notes.
-- PT-005.S8/S9 need Porter-CS `EnumeratePieces` + Investigator BufferRange/SearchContext plumbing before property/fuzz suites can land.
-- Info-Indexer automation must publish the above changefeeds so downstream consumers stop querying stale DocUI aliases; request logged under `agent-team/indexes/README.md#delta-2025-11-26-sprint04`.
+## Checklist
+1. `agent-team/handoffs/WS1-PORT-SearchCore-Result.md`、`WS2-PORT-Result.md`、`WS3-PORT-Tree-Result.md`、`WS4-PORT-Core-Result.md`、`WS5-PORT-Harness-Result.md`、`WS123-QA-Result.md`、`WS5-QA-Result.md` —— 复制 WS1–WS5 targeted filters + 585/585（1 skip）全量 run 到 `tests/TextBuffer.Tests/TestMatrix.md`，并把 rerun 记录映射到 [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11)。
+2. `tests/TextBuffer.Tests/TestMatrix.md` —— 标记 Cursor/Snippet、DocUI、Intl.Segmenter/WordSeparator 案例的 rerun 命令，引用 [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) 与 [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
+3. `agent-team/handoffs/B3-TextModelSearch-QA.md`、`B3-TextModelSearch-INV.md`、`B3-PieceTree-Deterministic-CRLF-QA.md`、`B3-DocUI-StagedFixes-QA-20251124.md` —— 用作 Intl.Segmenter & WordSeparator cache、SearchOffset、DocUI scope rerun 模板，并将每条证据链接回 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)、[`#delta-2025-11-25-b3-piecetree-deterministic-crlf`](../indexes/README.md#delta-2025-11-25-b3-piecetree-deterministic-crlf)、[`#delta-2025-11-24-b3-docui-staged`](../indexes/README.md#delta-2025-11-24-b3-docui-staged)。
+
+## Open Investigations / Dependencies
+- NodeAt2 O(1) tuple reuse deferred in WS1 due to CRLF bridging complexity; track in AA4 backlog alongside `WS1-PORT-CRLF-Result.md`。
+- Intl.Segmenter + WordSeparator parity（TextModelSearch whole-word gaps）仍阻塞；依据 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch) 与 `B3-TextModelSearch-QA.md` 协调 Porter/Investigator。
+- Cursor/Snippet backlog（AA4 CL7）需要新的 Porter drops 才能解除 `#delta-2025-11-26-aa4-cl7-cursor-core`; 关注 `WS4-PORT-Core-Result.md`、`WS5-INV-TestBacklog.md`。
+- DocUI find/replace scope + Markdown renderer（AA4 CL8）依赖 `#delta-2025-11-24-b3-docui-staged`、`#delta-2025-11-26-aa4-cl8-markdown`；保持 DocUI targeted filters在 TestMatrix 中显眼。
+- PT-005.S8/S9 need Porter-CS `EnumeratePieces` + Investigator BufferRange/SearchContext plumbing before property/fuzz suites can land。
+- Info-Indexer automation must publish the above changefeeds so downstream consumers stop querying stale DocUI aliases; request logged under `agent-team/indexes/README.md#delta-2025-11-26-sprint04`。
 
 ## Archives
 - Full matrices, run logs, and artifact paths stay in `tests/TextBuffer.Tests/TestMatrix.md`.
-- Detailed QA narratives live in `agent-team/handoffs/` (`B3-TextModelSearch-QA.md`, `B3-PieceTree-Deterministic-CRLF-QA.md`, `B3-PieceTree-SearchOffset-QA.md`, `B3-DocUI-StagedFixes-QA-20251124.md`).
+- Detailed QA narratives live in `agent-team/handoffs/` (`WS123-QA-Result.md`, `B3-TextModelSearch-QA.md`, `B3-PieceTree-Deterministic-CRLF-QA.md`, `B3-PieceTree-SearchOffset-QA.md`, `B3-DocUI-StagedFixes-QA-20251124.md`).
 - Legacy worklogs and meeting recaps have been moved out per Doc sweep; reference specific changefeeds above if deeper history is required.
