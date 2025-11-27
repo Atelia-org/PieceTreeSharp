@@ -1,8 +1,10 @@
 # TypeScript → C# 对齐审查汇总报告
 
 **生成日期:** 2025-11-27  
-**审查范围:** 88个文件 (排除N/A原创C#实现后实际审查约70个文件对)  
-**审查方法:** SubAgent并行对比分析
+**审查范围:** 90 个文件/套件（原创 C# 逻辑除外）  
+**审查方法:** SubAgent 并行逐行对比 + 目标测试复跑
+
+> 对齐结论需与最新变更日志保持一致，请在执行任何计划前先查阅 [`docs/reports/migration-log.md#sprint04-r1-r11`](../migration-log.md#sprint04-r1-r11) 与 Info-Indexer 基准 [`agent-team/indexes/README.md#delta-2025-11-26-alignment-audit`](../../../agent-team/indexes/README.md#delta-2025-11-26-alignment-audit)。当前全量基线：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（585/585 通过，1 skipped，详见 [`#delta-2025-11-26-ws5-qa`](../../../agent-team/indexes/README.md#delta-2025-11-26-ws5-qa)）。
 
 ---
 
@@ -11,135 +13,127 @@
 | 模块 | 完全对齐 | 存在偏差 | 需要修正 | 审查文件数 |
 |------|----------|----------|----------|------------|
 | 01-Core Fundamentals | 8 | 0 | 2 | 10 |
-| 02-Core Support | 1 | 5 | 2 | 8 |
+| 02-Core Support | 1 | 7 | 0 | 8 |
 | 03-Cursor | 0 | 2 | 7 | 9 |
-| 04-Decorations | 3 | 3 | 1 | 7 |
+| 04-Decorations | 4 | 2 | 1 | 7 |
 | 05-Diff | 9 | 5 | 2 | 16 |
 | 06-Services | 4 | 4 | 2 | 10 |
 | 07-Core Tests | 9 | 6 | 2 | 17 |
 | 08-Feature Tests | 0 | 9 | 4 | 13 |
-| **合计** | **34** | **34** | **22** | **90** |
+| **合计** | **35** | **35** | **20** | **90** |
 
-*基线数据引用 [`docs/reports/migration-log.md#sprint04-r1-r11`](../migration-log.md#sprint04-r1-r11) 与 [`agent-team/indexes/README.md#delta-2025-11-26-alignment-audit`](../../../agent-team/indexes/README.md#delta-2025-11-26-alignment-audit)。Phase 8 rerun：`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`（585/585 通过，1 skipped，参见 [`#delta-2025-11-26-ws5-qa`](../../../agent-team/indexes/README.md#delta-2025-11-26-ws5-qa) 行）。*
+### 质量画像
 
-### 对齐质量评分
+- **完全对齐:** 39% (35/90) – PieceTree 架构、Diff 核心算法、TextModel options/快照及绝大部分 deterministic harness
+- **存在偏差:** 39% (35/90) – Range/Selection 桥接、Decoration owner 策略、DocUI Find host、Diff renderer、国际化搜索
+- **需要修正:** 22% (20/90) – Cursor/Word/Snippet Stage 1、PieceTree nodeAt2/SearchCache、RangeMapping、DocUI diff + Markdown renderer、Language/Undo 服务、Feature test gaps
 
-- **优秀 (完全对齐):** 38% (34/90)
-- **可接受 (存在偏差):** 38% (34/90)  
-- **需要修正:** 24% (22/90)
+---
+
+## 模块快照
+
+- **01 Core Fundamentals** (`PieceTreeModel`/Builder/Chunk)：结构与 TS 一致，CRLF/搜索基础通过 `PieceTreeDeterministicTests`/`PieceTreeFuzzHarnessTests` 复核，但 `_lastChangeBufferPos` Telemetry 与 Info-Indexer changefeed（WS1-PORT-CRLF）尚未补齐，`NodeAt2` tuple reuse 仍待按 [`agent-team/handoffs/PORT-PT-Search-Plan.md`](../../agent-team/handoffs/PORT-PT-Search-Plan.md) 实装。
+- **02 Core Support** (`Range`/`Selection`/`SearchTypes` 等)：已借由 `WS2-PORT` 引入 75 条 Range/Selection helper 测试（`#delta-2025-11-26-ws2-port`），但 `RangeMapping`、`SelectionRangeMapping`、Intl `WordCharacterClassifier`、`PieceTreeSearchCache.Validate` 默认值仍滞后；`TextMetadataScanner` 额外检测 NEL/RTL，也需记录差异。
+- **03 Cursor**：Stage 0 架构 (`CursorConfiguration`, `CursorContext`, `CursorState`) 已通过 `CursorCoreTests` 25/25 验证，Stage 1（`Cursor`, `CursorCollection`, `CursorColumns`, `WordOperations`, `Snippet*`）仍采用旧实现，CL7 占位（`#delta-2025-11-26-aa4-cl7-*`）保持 Gap。
+- **04 Decorations**：IntervalTree (`WS3-PORT-Tree`) 及 `DecorationRangeUpdater` parity 已确认，DocUI find 装饰回归 (`B3-Decor-Stickiness-Review`) 通过；但 `DecorationOwnerIds` 的 Any 语义、`ModelDecoration` 常量和 `DecorationsTrees` 过滤开关仍与 TS 不符，DocUI renderer/Markdown/Intl backlog 由 CL8 占位追踪。
+- **05 Diff**：Myers/DP 算法、Heuristic 优化、LineRange/Fragment/OffsetRange 对齐；`LineSequence.GetBoundaryScore` 的结尾索引与 TS 不同，`RangeMapping.Inverse/Clip/FromEdit`、`DetailedLineRangeMapping.ToTextEdit`、DocUI diff renderer 等缺失使 revert/move 功能无法复刻。
+- **06 Services**：`TextModelOptions`/search stack parity完成；`TextModel` 仍缺 `ValidatePosition/Range`、`GetFullModelRange` 等公开入口，`IUndoRedoService` 无资源/分组/快照，`ILanguageConfigurationService` 仅保存订阅，DocUI Find 控制器默认持久化/剪贴板实现仍是 `Null` stub。
+- **07 Core Tests**：PieceTree deterministic/fuzz/search-offset/snapshot 全系测试（WS5 harness + `#delta-2025-11-26-sprint04-r1-r11`）已落地，TextModel snapshot/indentation 亦在 QA 记录中；Cursor/Snippet/Diff suites多数仍缺，`TextModelIndentationTests` 保留 1 个 `GuessIndentation` skip。
+- **08 Feature Tests**：DocUI Find Controller/Model/Decorations（27+49+9+4）已对齐 TS，Snippet、Cursor、多选、Diff/Decorations 特性测试仍欠缺 deterministic 覆盖（`#delta-2025-11-26-aa4-cl7-*`, `#delta-2025-11-26-aa4-cl8-*`, `#delta-2025-11-26-ws5-test-backlog`）。
 
 ---
 
 ## 高优先级修正项 (P0)
 
-### 1. PieceTreeModel.Search / Edit（WS1-PORT-SearchCore / WS1-PORT-CRLF 后续）
-**文件:** `src/TextBuffer/TextBuffer/PieceTreeModel.Edit.cs`, `src/TextBuffer/TextBuffer/PieceTreeModel.Search.cs`
-- [`WS1-PORT-SearchCore` 与 `WS1-PORT-CRLF`](../migration-log.md#sprint04-r1-r11)（亦记于 [`agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11`](../../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)）已经恢复 `GetAccumulatedValue` O(1) 快路径与 CRLF bridge；`export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter CRLFFuzzTests --nologo` (16/16) 现作为回归证据。
-- 未完成：`NodeAt2` tuple reuse 仍被禁用（bridge telemetry 尚未写入 SearchCache），`GetSearchCacheDiagnostics()` 也没有消费侧，导致长文档搜索/粘贴仍会触发二次树遍历。
-**措施:** 按 `agent-team/handoffs/PORT-PT-Search-Plan.md` 恢复 `NodeAt2` tuple reuse 与 SearchCache instrumentation，并结合 WS5 harness (`PieceTreeSearchRegressionTests`) 在 `PIECETREE_DEBUG=0` 下重新验证命中率。
-
-### 2. Cursor 栈 Stage 1（AA4 CL7 占位未交付）
-**文件:** `src/TextBuffer/Cursor/*.cs`, `src/TextBuffer/TextModel.cs`
-- `WS4-PORT-Core` 已交付 `CursorConfiguration`、`SingleCursorState`、TrackedRange 等 Stage 0 能力，并通过 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter CursorCoreTests --nologo` (25/25) 证明骨架可用。
-- `CursorColumns`、`WordOperations`、`SnippetController/SnippetSession` 仍缺 Stage 1 行为；CL7 子占位（[`#delta-2025-11-26-aa4-cl7-cursor-core`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)、[`#delta-2025-11-26-aa4-cl7-wordops`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-wordops)、[`#delta-2025-11-26-aa4-cl7-column-nav`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-column-nav)、[`#delta-2025-11-26-aa4-cl7-snippet`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-snippet)、[`#delta-2025-11-26-aa4-cl7-commands-tests`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-commands-tests)) 仍在 changefeed 中标记为 Gap。
-**措施:** 逐一实现 CL7 占位并将结果挂入 WS5 harness（`CursorWordOperationsTests`, `CursorAtomicMoveOperationsTests`, `SnippetControllerTests`），以便在 `tests/TextBuffer.Tests/TestMatrix.md` 中解除 Gap 标签。
-
-### 3. DocUI / Markdown renderer（AA4 CL8 占位）
-**文件:** `src/TextBuffer/Rendering/MarkdownRenderer.cs`, `src/TextBuffer/DocUI/*`
-- `WS3-PORT-Tree` 提供了 IntervalTree NodeFlags/惰性 delta，但 DocUI renderer 仍未接入 markdown/capture/intl/wordcache 扩展；CL8 子占位（[`#delta-2025-11-26-aa4-cl8-markdown`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)、[`#delta-2025-11-26-aa4-cl8-capture`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-capture)、[`#delta-2025-11-26-aa4-cl8-intl`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-intl)、[`#delta-2025-11-26-aa4-cl8-wordcache`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-wordcache)) 依旧是占位。
-- DocUI diff/renderer 路径因此无法消费新 metadata，也无法验证 CL8 行为在 markdown/intl 组合下的正确性。
-**措施:** 待 Info-Indexer 发布 CL8 drops 后，补全 renderer wiring + DocUI harness（FindDecorations/DocUIFindController/Markdown snapshots）测试，再回收本项 P0。
-
-### 4. WS5 高风险测试矩阵（Top-10 仍未闭环）
-**文件 / 套件:** `tests/TextBuffer.Tests/CursorWordOperationsTests.cs`, `CursorMultiSelectionTests.cs`, `SnippetControllerTests.cs`, `DiffTests.cs`
-- [`WS5-INV`](../../../agent-team/indexes/README.md#delta-2025-11-26-ws5-test-backlog) 已列出 47 项高风险测试缺口；[`WS5-QA`](../../../agent-team/indexes/README.md#delta-2025-11-26-ws5-qa) 仅交付第一批 harness（PieceTreeBufferApiTests 17/17、PieceTreeSearchRegressionTests 9/9、TextModelIndentationTests 19/19+1 skipped）。
-- Cursor/Snippet/Diff 专项 deterministic suites 仍缺，Task Board Gap 无法关闭。
-**措施:** 依序执行 WS5 Top-10（cursorAtomicMoveOperations、word operations、snippetSession、diff renderer 等），并把 rerun 结果写回 `tests/TextBuffer.Tests/TestMatrix.md` 与 `agent-team/handoffs/WS5-QA-Result.md`，确保 585/585 基线包含这些新套件。
+1. **PieceTree 搜索/编辑回路** – 文件：`src/TextBuffer/Core/PieceTreeModel.Edit.cs`, `PieceTreeModel.Search.cs`. 需落地 `NodeAt2` tuple reuse、SearchCache diagnostics、Info-Indexer 发布独立 `WS1-PORT-CRLF` changefeed，并以 `CRLFFuzzTests` + `PieceTreeSearchRegressionTests` rerun 佐证（见 [`agent-team/handoffs/WS1-PORT-CRLF-Result.md`](../../agent-team/handoffs/WS1-PORT-CRLF-Result.md)）。
+2. **Cursor/Word/Snippet Stage 1（AA4 CL7）** – 文件：`src/TextBuffer/Cursor/*.cs`, `Snippet*.cs`. 必须根据 CL7 占位（`#delta-2025-11-26-aa4-cl7-cursor-core`, `-wordops`, `-column-nav`, `-snippet`, `-commands-tests`）把 Stage 0 plumbing接回命令栈，并扩展 `CursorWordOperationsTests`, `CursorAtomicMoveOperationsTests`, `SnippetControllerTests`。
+3. **DocUI Renderer & CL8 Backlog** – 文件：`src/TextBuffer/Rendering/MarkdownRenderer.cs`, `DocUI/*.cs`. `WS3-PORT-Tree` metadata 尚未被 renderer 消费，`FindDecorations` owner 语义/overview 节流的结果也未在 markdown/DocUI diff 中展示；需完成 `#delta-2025-11-26-aa4-cl8-markdown` / `-capture` / `-intl` / `-wordcache` 承诺。
+4. **WS5 Top-10 测试缺口** – 套件：`CursorWordOperationsTests`, `CursorMultiSelectionTests`, `SnippetControllerTests`, `DiffTests`. `WS5-INV` backlog（`#delta-2025-11-26-ws5-test-backlog`）尚未被清空，需按计划移植 cursorAtomicMoveOperations、snippetSession、diff renderer deterministic/perf 套件，并将 rerun 写回 `tests/TextBuffer.Tests/TestMatrix.md` 与 [`agent-team/handoffs/WS5-QA-Result.md`](../../agent-team/handoffs/WS5-QA-Result.md)。
 
 ---
 
 ## 中优先级修正项 (P1)
 
-1. **RangeMapping / Selection API 集成** – `WS2-PORT` 已补齐 `Range.Extensions`/`Selection`/`TextPosition` helper（75 tests），但 `RangeMapping.FromEdit/ToTextEdit` 与 `TextModelSearch` 仍在用旧实现。需将新 helper 全量接入 `TextModel`/`Diff`/`DocUI` 层并补写 regression（参考 [`../migration-log.md#sprint04-r1-r11`](../migration-log.md#sprint04-r1-r11)）。
-2. **DecorationOwnerIds & ModelDecoration 常量** – `DecorationOwnerIds.Default`/`Any` 语义倒置，`ModelDecoration.LineHeightCeiling` 仍为 1500（TS=300），minimap/glyph/injectedText 枚举值也未对齐；需结合 `WS3-PORT-Tree` 结果校正这些常量，为后续 CL8 drops 做准备。
-3. **Diff 支撑函数 / DocUI renderer** – `RangeMapping.Inverse/Clip/FromEdit` 仍缺，DocUI renderer 未消费 `DiffResult` 的 moves/unchangedRegions；需按 `WS5-INV` backlog 对齐 diff plumbing，并为 DocUI diff renderer 预留 API。
-4. **Undo/Redo 与 LanguageConfiguration 服务** – 现有服务层还缺 `UndoRedoGroup`/资源组与 `LanguageConfiguration` 缓存；`TextModelIndentationTests` 在 `WS5-QA` 中仍有 1 skipped（GuessIndentation API），需补完服务面向 host 的实现和测试。
-5. **DocUI Find 持久化设施** – `DocUIFindController` 仍依赖 `Null` clipboard/storage/context key stub；需实现真实 host 接口，确保查找设置可跨 session 持久，并将命令/焦点测试扩展至多 host 场景。
-6. **Diff / Decorations 测试矩阵** – `DiffTests`、`DecorationTests` 还未移植 TS 参数矩阵（moves、unchanged regions、overview lane 组合）。结合 `WS5-INV` Top-10 的测试规范，在 `tests/TextBuffer.Tests/TestMatrix.md` 中补完 deterministic + perf 套件。
+1. **Range/Selection/Mapping 一致性** – 将 `WS2-PORT` helper 引入 `RangeMapping`, `TextModelSearch`, `DiffComputer`, `DocUIFindModel`，补齐 `RangeMapping.Inverse/Clip/FromEdit`、`DetailedLineRangeMapping.ToTextEdit`，避免 DocUI diff/revert 逻辑二次实现。
+2. **Decoration owner 语义** – 修正 `DecorationOwnerIds.Default/Any`、`ModelDecoration.LineHeightCeiling`、minimap/glyph/injectedText 枚举值，与 `WS3-PORT-Tree` 的 NodeFlags 对齐，并暴露 `DecorationsTrees` 过滤参数供 renderer 使用。
+3. **Services 层增强** – `TextModel` 公布 `ValidatePosition/Range`、`GetFullModelRange`，`IUndoRedoService` 添加资源组/快照/`UndoRedoGroup`，`ILanguageConfigurationService` 支持注册与缓存；`DocUIFindController` 默认注入 clipboard/storage/context key 实现，解除查找设置丢失问题。
+4. **国际化/词边界** – `SearchTypes`, `PieceTreeSearcher`, `DocUIFindSelectionTests` 仍缺 `Intl.Segmenter` 等价实现；参考 `AA4-002-Audit` 与 CL8 占位补齐 word cache/LRU。
+5. **Diff & Decorations 测试矩阵** – 按 `WS5-INV-TestBacklog` 建立 diff deterministic/perf suite（`defaultLinesDiffComputer.test.ts` 全量）与 `modelDecorations.test.ts` 行级矩阵，配合 DocUI renderer 验证。
+6. **TextModel Indentation / Guess API** – 解除 `TextModelIndentationTests` skip，保证 `GuessIndentation` 与 TS 一致；扩展 `TextModelTests` 以覆盖 `TextModelData.fromString`, `getValueLengthInRange`, `validatePosition` 等 TS 场景。
 
 ---
 
-## 测试覆盖与质量风险
+## 测试覆盖与风险
 
-DocUI find scope/overview throttling 用例（27+49+9+4 个测试）已经到位，`WS5-QA` 亦新增 PieceTreeBufferApiTests (17/17)、PieceTreeSearchRegressionTests (9/9) 与 TextModelIndentationTests (19/19 + 1 skipped)，将基线推至 585/585（`../migration-log.md#sprint04-r1-r11`；`../../../agent-team/indexes/README.md#delta-2025-11-26-ws5-qa`）。但 cursor/snippet/diff 阶段性测试仍严重落后，且 TextModel 缩进仍有 skip。
+- 新增 harness：`PieceTreeDeterministicTests`、`PieceTreeFuzzHarnessTests`、`PieceTreeSearchOffsetCacheTests`、`PieceTreeSnapshotParityTests`、`TextModelSnapshotTests`、`PieceTreeBufferApiTests`、`PieceTreeSearchRegressionTests`、`TextModelIndentationTests`（`WS5-QA`）均记录在 `tests/TextBuffer.Tests/TestMatrix.md` 并引用 `#delta-2025-11-26-sprint04-r1-r11`。
+- 仍为空白的 deterministic 套件：`CursorWordOperationsTests`（仅 3/60 场景）、`CursorMultiSelection`（5/70）、`SnippetControllerTests`（1 deterministic + 1 fuzz）、`DiffTests`（4/40+），以及 DocUI diff renderer/Find context key 行为。
+- TextModel 缩进 suite 仍保留 1 个 skip；Intl word cache、DocUI clipboard/storage、Undo/Language 服务等基础设施尚未提供回归测试。
 
-| 套件 | TS 用例 | C# 用例 | 覆盖率 | 备注 |
-|------|---------|---------|--------|------|
-| CursorWordOperationsTests | ~60 | 3 | ~5% | 仅覆盖 Move/Select/`DeleteWordLeft`; 未涉及 wordPart、accessibility、locale、auto-close。
-| Cursor/Column MultiSelection 套件 | ~70 | 5 | ~7% | 缺少 `InsertCursorAbove/Below`, `AddSelectionToNextFindMatch`, normalize/merge、列选 RTL 案例。
-| SnippetController + Session | ~60 | 1 deterministic + 1 fuzz | ~3% | BF1 循环 fuzz 已验证，但嵌套、变量、transform、undo/redo 仍无测试。
-| DiffTests | 40+ | 4 | ~10% | 还原/unchanged region/`computeMoves` 组合、超大文档性能均未覆盖，DocUI 也尚未消费 diff 输出。
-| TextModelIndentationTests | ~20 | 19 通过 + 1 skipped | ~95% (锁定 skip) | `GuessIndentation` API 仍缺（`WS5-QA` 记录的 skip），需要实现 host 行为后才能解除。
-
-后续需要按模块 07/08 的建议新增 PieceTree buffer API 用例（`equal`, `getLineCharCode`, `getNearestChunk`）、TextModel `guessIndentation` 矩阵、Find context-key 行为等，确保新增实现都有可验证的 parity harness。
+| 套件 | TS 用例 | 当前 C# | 状态 |
+|------|---------|---------|------|
+| CursorWordOperationsTests | ≈60 | 3 | Stage 1 缺口；待 CL7 word ops inside `#delta-2025-11-26-aa4-cl7-wordops` |
+| Cursor/Column MultiSelection | ≈70 | 5 | 未覆盖 `InsertCursorAbove/Below`、`AddSelectionToNextFindMatch`; 与 `#delta-2025-11-26-aa4-cl7-column-nav` 链接 |
+| SnippetController/SnippetSession | ≈60 | 1 deterministic + 1 fuzz | 仅验证 BF1 修复；CL7 snippet backlog |
+| DiffTests | 40+ | 4 | 未覆盖 `defaultLinesDiffComputer.test.ts` 参数矩阵、DocUI diff renderer |
+| TextModelIndentationTests | 20 | 19 pass + 1 skip | `GuessIndentation` 未完成；受 `WS5-QA` skip 约束 |
 
 ---
 
-## 已确认的设计决策 (可接受的偏差)
+## 可接受的设计差异
 
-以下偏差是有意为之的架构简化，适应C#运行时环境：
-
-1. **PieceTreeBuffer** 简化了TS版的复杂继承层次
-2. **SearchTypes.cs** 添加了额外属性以适应C# API需求
-3. **ILanguageConfigurationService/IUndoRedoService** 是原创C#接口设计
-4. **DiffComputer** 添加了 `computeMoves` 选项
-5. **WordCharacterClassifier** 添加了缓存机制
+| 模块 | 差异 | 说明 |
+|------|------|------|
+| PieceTreeBuffer | 结构比 TS 更紧凑 | 保留不可变 `ChunkBuffer` 与 `LineStartTable` 以获得线程安全；语义等价 |
+| SearchTypes | 额外公开 `IsMultiline/IsCaseSensitive` | 方便 C# 调用者直接消费；TS 端无该字段，已在 doc 中标注 |
+| Undo/Language Service 接口 | 自定义 C# API | 由于 C# 平台缺少 VS Code service infrastructure，接口签名不同，计划后续逐步补齐语义 |
+| DiffComputer | 增加 `ExtendToWordBoundaries` 调试开关 | 默认与 TS 一致，仅在诊断场景关闭 |
+| WordCharacterClassifierCache | 新增 LRU 缓存 | FR-01/02 交付 (`#delta-2025-11-23`)；需在 Intl backlog 完成前记录该差异 |
 
 ---
 
 ## 详细报告索引
 
-1. [01-core-fundamentals.md](./01-core-fundamentals.md) - Core模块审查
-2. [02-core-support.md](./02-core-support.md) - Core Support类型审查
-3. [03-cursor.md](./03-cursor.md) - Cursor模块审查
-4. [04-decorations.md](./04-decorations.md) - Decorations模块审查
-5. [05-diff.md](./05-diff.md) - Diff算法审查
-6. [06-services.md](./06-services.md) - Services模块审查
-7. [07-core-tests.md](./07-core-tests.md) - 核心测试审查
-8. [08-feature-tests.md](./08-feature-tests.md) - 功能测试审查
+1. [01-core-fundamentals.md](./01-core-fundamentals.md)
+2. [02-core-support.md](./02-core-support.md)
+3. [03-cursor.md](./03-cursor.md)
+4. [04-decorations.md](./04-decorations.md)
+5. [05-diff.md](./05-diff.md)
+6. [06-services.md](./06-services.md)
+7. [07-core-tests.md](./07-core-tests.md)
+8. [08-feature-tests.md](./08-feature-tests.md)
 
 ---
 
 ## 下一步行动建议
 
-### 立即行动 (本 Sprint)
-1. [ ] 按 `PORT-PT-Search-Plan.md` 恢复 `NodeAt2` tuple reuse + SearchCache instrumentation，并以 `CRLFFuzzTests` + `PieceTreeSearchRegressionTests` rerun 佐证 `WS1-PORT` 修复。
-2. [ ] 完成 CL7 Stage 1（column select、word ops、snippet lifecycle、commands tests），解除 [`#delta-2025-11-26-aa4-cl7-*`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) 占位并更新 `CursorWordOperationsTests`/`CursorCoreTests`。
-3. [ ] 将 CL8 markdown/capture/intl/wordcache drops 接入 renderer + DocUI harness，关闭 [`#delta-2025-11-26-aa4-cl8-*`](../../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown) Gap。
-4. [ ] 执行 `WS5-INV` Top-10 测试项（cursorAtomicMoveOperations、snippetSession、diff renderer 等），把 rerun 结果并入 `tests/TextBuffer.Tests/TestMatrix.md` 与 `WS5-QA` 基线。
+### 立即行动（Sprint 04 余量）
+1. [ ] `PORT-PT-Search-Plan` Step1/2：恢复 `NodeAt2` tuple reuse + SearchCache 诊断，并 rerun `CRLFFuzzTests` + `PieceTreeSearchRegressionTests` 后在 Info-Indexer 发布补丁 changefeed。
+2. [ ] CL7 Stage 1：将 `Cursor`/`CursorCollection` 切换到 `CursorState`，移植 column select/word ops/snippet 行为及对应测试，关闭 `#delta-2025-11-26-aa4-cl7-*` Gap。
+3. [ ] CL8 Renderer：把 `DecorationsTrees` NodeFlags/owner 语义接入 Markdown/DocUI renderer，并补齐 DocUI diff/intl capture 测试，关闭 `#delta-2025-11-26-aa4-cl8-*`。 
+4. [ ] WS5 Top-10：实现 cursorAtomicMoveOperations、snippetSession、diff deterministic/perf harness，并把 rerun 贴入 `tests/TextBuffer.Tests/TestMatrix.md` + `WS5-QA` 日志。
 
-### 短期 (1-2 Sprints)
-1. [ ] 把 `WS2-PORT` 补齐的 Range/Selection/TextPosition helper 接入 `RangeMapping`, `TextModelSearch`, `DiffComputer` 与 `DocUIFind`，统一位置比较语义。
-2. [ ] 完成 `RangeMapping.Inverse/Clip/FromEdit`、`DiffResult`→DocUI renderer wiring，并在 `DiffTests` 中覆盖 moves/unchanged region/大文档组合。
-3. [ ] 扩展 `IUndoRedoService` / `ILanguageConfigurationService` 以支持 `UndoRedoGroup`、多资源栈与 `guessIndentation` host 配置，清除 TextModelIndentationTests skip。
-4. [ ] 实装 DocUI clipboard/storage/context key host，补充 `DocUIFindControllerTests` 焦点/持久化覆盖。
+### 短期（1–2 Sprint）
+1. [ ] 发布 `RangeMapping.Inverse/Clip/FromEdit` + DocUI diff renderer，并在 `DiffTests` 中覆盖 moves/unchanged 区域。
+2. [ ] 为 `TextModel`/`IUndoRedoService`/`ILanguageConfigurationService` 提供 TS 等价 API，解除 `TextModelIndentationTests` skip 并加入 `validatePosition`/`getValueLengthInRange` 覆盖。
+3. [ ] 打通 DocUI clipboard/storage/context key host，使 `DocUIFindControllerTests` 验证多宿主持久化、scope highlight、widget focus。
+4. [ ] 将 Intl word cache / Segmenter 能力注入 `WordCharacterClassifier`、`DocUIFindSelectionTests`，确保 CL8 backlog 可收敛。
 
 ### 长期
-1. [ ] 完成 Cursor/Snippet/WordOperation 端到端 parity（含 deterministic + fuzz 测试），巩固多光标体验。
-2. [ ] 将 diff/move 渲染、revert 按钮、unchanged region 折叠集成到 DocUI/markdown 渲染。
-3. [ ] 将核心/feature 测试覆盖率提升至 ≥60%，包括 PieceTree buffer API、TextModel `guessIndentation`、bracket matching 等目前缺失的 TS 套件。
+1. [ ] 完整移植 `cursorAtomicMoveOperations.test.ts`、`multicursor.test.ts`、`wordOperations.test.ts`、`snippetController2.test.ts`、`snippetSession.test.ts`，实现 deterministic + fuzz 双轨覆盖。
+2. [ ] 在 DocUI renderer 中集成 diff/move/undo 提示、unchanged region 折叠、moved block glyph，与 `DiffResult` 数据模型保持一致。
+3. [ ] 将核心/特性测试覆盖率提升至 ≥60%，并继续扩充 PieceTree buffer API、TextModel guessIndentation、bracket matching、DocUI focus/context key 等套件。
 
 ---
 
 ## Verification Notes
-- **2025-11-27 – Sprint 04 Phase 8 spot-check:** 依照 [`docs/reports/migration-log.md#sprint04-r1-r11`](../migration-log.md#sprint04-r1-r11) rerun `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter CRLFFuzzTests --nologo` (16/16) 与 `--filter CursorCoreTests --nologo` (25/25)，确认 WS1-PORT-CRLF + WS4-PORT-Core 落地；随后执行全量 585/585（1 skipped）验证 `WS5-QA` 基线无回归。
-- **2025-11-26 – 01 Core Fundamentals:** 重新对照 `PieceTreeModel.Edit.cs`, `PieceTreeModel.Search.cs`, `PieceTreeBuilder.cs`，并回放 `PieceTreeFuzzHarnessTests`、`PieceTreeDeterministicTests`，确认 change-buffer/`nodeAt2` 偏差仍存在。
-- **2025-11-26 – 02 Core Support:** 复核 `Range.Extensions.cs`, `Selection.cs`, `PieceTreeSearchCache.cs`, `SearchTypes.cs`，结合 `TextModelSearchTests` 记录 Range/Selection helper 缺口与搜索缓存差异。
-- **2025-11-26 – 03 Cursor:** 逐行比对 `Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`，并查看 `CursorTests`, `CursorWordOperationsTests`, `SnippetControllerTests`, `SnippetMultiCursorFuzzTests` 现有覆盖。
-- **2025-11-26 – 04 Decorations:** 检查 `IntervalTree.cs`, `DecorationOwnerIds.cs`, `ModelDecoration.cs`, `DecorationsTrees.cs`，以及 `DecorationTests`, `DecorationStickinessTests`, `DocUIFindDecorationsTests` 的结果，确认 delta 与 owner 语义问题。
-- **2025-11-26 – 05 Diff:** 审阅 `DiffComputer.cs`, `ComputeMovedLines.cs`, `LineSequence.cs`, `RangeMapping.cs` 与 `DiffTests`, 确认 boundary/RangeMapping 缺口和 DocUI 未接 diffs 的状态。
-- **2025-11-26 – 06 Services:** 复核 `TextModel.cs`, `TextPosition.cs`, `ILanguageConfigurationService.cs`, `IUndoRedoService.cs`, `DocUIFindController.cs`，并参考 `DocUIFindControllerTests`, `TextModelTests` 验证服务层差异。
-- **2025-11-26 – 07 Core Tests:** 重新运行/审阅 `PieceTreeDeterministicTests`, `PieceTreeFuzzHarnessTests`, `PieceTreeSearchOffsetCacheTests`, `TextModelSnapshotTests`，确认新增 parity harness 已落地但 buffer/API/indentation 用例仍缺。
-- **2025-11-26 – 08 Feature Tests:** 审查 `DocUIFind*` test 套件、`CursorMultiSelectionTests`, `ColumnSelectionTests`, `CursorWordOperationsTests`, `DiffTests`, `SnippetMultiCursorFuzzTests`，记录 DocUI scope fix 已生效但 cursor/snippet/diff 仍无完整端到端覆盖。
+
+- **2025-11-27**：按照 [`docs/reports/migration-log.md#sprint04-r1-r11`](../migration-log.md#sprint04-r1-r11) rerun `CRLFFuzzTests` (16/16)、`CursorCoreTests` (25/25) 及全量 585/585（1 skipped），并引用 [`#delta-2025-11-26-sprint04-r1-r11`](../../../agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11)。
+- **01-Core Fundamentals**：参照 `PieceTreeModel.Edit.cs`, `PieceTreeModel.Search.cs`, `PieceTreeBuilder.cs` 与 TS `pieceTreeBase.ts`; 结合 `PieceTreeFuzzHarnessTests`, `PieceTreeDeterministicTests`（`#delta-2025-11-24-b3-piecetree-fuzz` 等 changefeed）。
+- **02-Core Support**：审阅 `Range.Extensions.cs`, `Selection.cs`, `PieceTreeSearchCache.cs`, `SearchTypes.cs`, `TextMetadataScanner.cs` 与 TS 对应文件；验证范围 helper 通过 `RangeSelectionHelperTests` (75 data rows, `#delta-2025-11-26-ws2-port`)。
+- **03-Cursor**：对照 `Cursor.cs`, `CursorCollection.cs`, `CursorColumns.cs`, `CursorState.cs`, `SnippetController.cs`, `SnippetSession.cs`；执行 `CursorCoreTests`, `CursorWordOperationsTests`, `SnippetMultiCursorFuzzTests` 并引用 `#delta-2025-11-26-aa4-cl7-*`。
+- **04-Decorations**：检查 `IntervalTree.cs`, `DecorationsTrees.cs`, `DecorationOwnerIds.cs`, `ModelDecoration.cs`；复跑 `IntervalTreeTests`, `DecorationStickinessTests`, `DocUIFindDecorationsTests`（`B3-Decor-Stickiness-Review`）。
+- **05-Diff**：核对 `DiffComputer.cs`, `ComputeMovedLines.cs`, `LineSequence.cs`, `RangeMapping.cs`, `DiffMove.cs`; 执行 `DiffTests`（`#delta-2025-11-23`）。
+- **06-Services**：复核 `TextModel.cs`, `TextPosition.cs`, `ILanguageConfigurationService.cs`, `IUndoRedoService.cs`, `DocUIFindController.cs`; 参考 `DocUIFindControllerTests`, `TextModelTests`, `TextModelIndentationTests`（WS5-QA）。
+- **07-Core Tests / 08-Feature Tests**：浏览 `PieceTree*Tests`, `TextModelSnapshotTests`, `DocUIFind*Tests`, `Cursor*Tests`, `Snippet*Tests`, `DecorationTests`, `DiffTests`，并对照 TS suite (`findController.test.ts`, `snippetSession.test.ts`, `cursorAtomicMoveOperations.test.ts` 等)。
 
 *报告由 AI Team 自动生成*
