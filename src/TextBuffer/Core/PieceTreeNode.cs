@@ -77,11 +77,11 @@ internal sealed class PieceTreeNode
 
     internal PieceTreeNode Next()
     {
-        var sentinel = _sentinel;
+        PieceTreeNode sentinel = _sentinel;
 
         if (!ReferenceEquals(Right, sentinel))
         {
-            var node = Right;
+            PieceTreeNode node = Right;
             while (!ReferenceEquals(node.Left, sentinel))
             {
                 node = node.Left;
@@ -89,7 +89,7 @@ internal sealed class PieceTreeNode
             return node;
         }
 
-        var current = this;
+        PieceTreeNode current = this;
         while (!ReferenceEquals(current.Parent, sentinel))
         {
             if (ReferenceEquals(current.Parent.Left, current))
@@ -108,11 +108,11 @@ internal sealed class PieceTreeNode
 
     internal PieceTreeNode Prev()
     {
-        var sentinel = _sentinel;
+        PieceTreeNode sentinel = _sentinel;
 
         if (!ReferenceEquals(Left, sentinel))
         {
-            var node = Left;
+            PieceTreeNode node = Left;
             while (!ReferenceEquals(node.Right, sentinel))
             {
                 node = node.Right;
@@ -120,7 +120,7 @@ internal sealed class PieceTreeNode
             return node;
         }
 
-        var current = this;
+        PieceTreeNode current = this;
         while (!ReferenceEquals(current.Parent, sentinel))
         {
             if (ReferenceEquals(current.Parent.Right, current))
@@ -166,10 +166,10 @@ internal sealed class PieceTreeNode
             return;
         }
 
-        var leftLength = ReferenceEquals(Left, sentinel) ? 0 : Left.AggregatedLength;
-        var leftLf = ReferenceEquals(Left, sentinel) ? 0 : Left.AggregatedLineFeeds;
-        var rightLength = ReferenceEquals(Right, sentinel) ? 0 : Right.AggregatedLength;
-        var rightLf = ReferenceEquals(Right, sentinel) ? 0 : Right.AggregatedLineFeeds;
+        int leftLength = ReferenceEquals(Left, sentinel) ? 0 : Left.AggregatedLength;
+        int leftLf = ReferenceEquals(Left, sentinel) ? 0 : Left.AggregatedLineFeeds;
+        int rightLength = ReferenceEquals(Right, sentinel) ? 0 : Right.AggregatedLength;
+        int rightLf = ReferenceEquals(Right, sentinel) ? 0 : Right.AggregatedLineFeeds;
 
         SizeLeft = leftLength;
         LineFeedsLeft = leftLf;

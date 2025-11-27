@@ -48,19 +48,19 @@ internal sealed class PieceTreeTextBufferFactory
 
     public PieceTreeBuildResult Create(DefaultEndOfLine defaultEol)
     {
-        var eol = DetermineEol(defaultEol);
-        var (buffers, normalized) = MaterializeBuffers(eol);
+        string eol = DetermineEol(defaultEol);
+        (List<ChunkBuffer>? buffers, bool normalized) = MaterializeBuffers(eol);
 
-        var model = new PieceTreeModel(buffers, normalized, eol);
+        PieceTreeModel model = new(buffers, normalized, eol);
         for (int i = 1; i < buffers.Count; i++)
         {
-            var chunk = buffers[i];
+            ChunkBuffer chunk = buffers[i];
             if (chunk.Length == 0)
             {
                 continue;
             }
 
-            var piece = new PieceSegment(
+            PieceSegment piece = new(
                 i,
                 BufferCursor.Zero,
                 chunk.CreateEndCursor(),
@@ -86,16 +86,16 @@ internal sealed class PieceTreeTextBufferFactory
             return string.Empty;
         }
 
-        var builder = new StringBuilder(Math.Min(lengthLimit, PreviewLengthLimit));
-        var remaining = lengthLimit;
-        foreach (var chunk in _chunks)
+        StringBuilder builder = new(Math.Min(lengthLimit, PreviewLengthLimit));
+        int remaining = lengthLimit;
+        foreach (ChunkBuffer chunk in _chunks)
         {
             if (chunk.Buffer.Length == 0)
             {
                 continue;
             }
 
-            var take = Math.Min(remaining, chunk.Buffer.Length);
+            int take = Math.Min(remaining, chunk.Buffer.Length);
             builder.Append(chunk.Buffer.AsSpan(0, take));
             if (builder.Length >= lengthLimit)
             {
@@ -109,11 +109,11 @@ internal sealed class PieceTreeTextBufferFactory
             }
         }
 
-        var candidate = builder.Length > lengthLimit
+        string candidate = builder.Length > lengthLimit
             ? builder.ToString(0, lengthLimit)
             : builder.ToString();
 
-        var newlineIndex = IndexOfLineBreak(candidate);
+        int newlineIndex = IndexOfLineBreak(candidate);
         if (newlineIndex >= 0)
         {
             return candidate.Substring(0, Math.Min(newlineIndex, lengthLimit));
@@ -129,23 +129,23 @@ internal sealed class PieceTreeTextBufferFactory
             return string.Empty;
         }
 
-        var builder = new StringBuilder(Math.Min(lengthLimit, PreviewLengthLimit));
-        var remaining = lengthLimit;
+        StringBuilder builder = new(Math.Min(lengthLimit, PreviewLengthLimit));
+        int remaining = lengthLimit;
         for (int i = _chunks.Count - 1; i >= 0 && remaining > 0; i--)
         {
-            var chunk = _chunks[i];
+            ChunkBuffer chunk = _chunks[i];
             if (chunk.Buffer.Length == 0)
             {
                 continue;
             }
 
-            var take = Math.Min(remaining, chunk.Buffer.Length);
-            var sliceStart = chunk.Buffer.Length - take;
+            int take = Math.Min(remaining, chunk.Buffer.Length);
+            int sliceStart = chunk.Buffer.Length - take;
             builder.Insert(0, chunk.Buffer.AsSpan(sliceStart, take));
             remaining = lengthLimit - builder.Length;
         }
 
-        var candidate = builder.Length > lengthLimit
+        string candidate = builder.Length > lengthLimit
             ? builder.ToString(builder.Length - lengthLimit, lengthLimit)
             : builder.ToString();
 
@@ -155,7 +155,7 @@ internal sealed class PieceTreeTextBufferFactory
     private (List<ChunkBuffer> Buffers, bool Normalized) MaterializeBuffers(string eol)
     {
         List<ChunkBuffer> workingChunks;
-        var normalized = false;
+        bool normalized = false;
 
         if (_options.NormalizeEol && RequiresNormalization(eol))
         {
@@ -164,24 +164,19 @@ internal sealed class PieceTreeTextBufferFactory
         }
         else
         {
-            workingChunks = new List<ChunkBuffer>(_chunks.Count);
-            foreach (var chunk in _chunks)
-            {
-                workingChunks.Add(chunk);
-            }
+            workingChunks = [.. _chunks];
         }
 
-        var buffers = new List<ChunkBuffer>(workingChunks.Count + 1)
-        {
-            ChunkBuffer.Empty
-        };
-        buffers.AddRange(workingChunks);
+        List<ChunkBuffer> buffers =
+        [
+            ChunkBuffer.Empty, .. workingChunks
+        ];
         return (buffers, normalized);
     }
 
     private IEnumerable<string> GetChunkStrings()
     {
-        foreach (var chunk in _chunks)
+        foreach (ChunkBuffer chunk in _chunks)
         {
             yield return chunk.Buffer;
         }
@@ -189,8 +184,8 @@ internal sealed class PieceTreeTextBufferFactory
 
     private string DetermineEol(DefaultEndOfLine defaultEol)
     {
-        var totalEols = _cr + _lf + _crlf;
-        var totalCr = _cr + _crlf;
+        int totalEols = _cr + _lf + _crlf;
+        int totalCr = _cr + _crlf;
         if (totalEols == 0)
         {
             return defaultEol == DefaultEndOfLine.CRLF ? "\r\n" : "\n";
@@ -218,7 +213,7 @@ internal sealed class PieceTreeTextBufferFactory
     {
         for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r' || ch == '\n')
             {
                 return i;
@@ -232,10 +227,10 @@ internal sealed class PieceTreeTextBufferFactory
     {
         for (int i = text.Length - 1; i >= 0; i--)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\n')
             {
-                var start = (i - 1 >= 0 && text[i - 1] == '\r') ? i - 1 : i;
+                int start = (i - 1 >= 0 && text[i - 1] == '\r') ? i - 1 : i;
                 return text.Substring(start + 1);
             }
 

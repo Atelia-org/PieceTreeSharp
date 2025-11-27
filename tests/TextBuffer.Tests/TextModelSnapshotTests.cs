@@ -14,8 +14,8 @@ public class TextModelSnapshotTests
     [Fact]
     public void TextModelCreateSnapshotReturnsWrapper()
     {
-        var model = new TextModel("abc");
-        var snapshot = model.CreateSnapshot();
+        TextModel model = new("abc");
+        ITextSnapshot snapshot = model.CreateSnapshot();
 
         Assert.IsType<TextModelSnapshot>(snapshot);
         Assert.Equal("abc", snapshot.Read());
@@ -26,23 +26,23 @@ public class TextModelSnapshotTests
     public void AggregatesChunksUntilThreshold()
     {
         const int chunk = 16 * 1024;
-        var fake = new FakeSnapshot(new string?[]
+        FakeSnapshot fake = new(new string?[]
         {
-            new string('A', chunk),
-            new string('B', chunk),
-            new string('C', chunk),
-            new string('D', chunk),
-            new string('E', chunk),
-            new string('F', chunk),
+            new('A', chunk),
+            new('B', chunk),
+            new('C', chunk),
+            new('D', chunk),
+            new('E', chunk),
+            new('F', chunk),
             null,
         });
 
-        var snapshot = new TextModelSnapshot(fake);
-        var first = snapshot.Read();
+        TextModelSnapshot snapshot = new(fake);
+        string? first = snapshot.Read();
         Assert.Equal(64 * 1024, first!.Length);
         Assert.Equal(new string('A', chunk) + new string('B', chunk) + new string('C', chunk) + new string('D', chunk), first);
 
-        var second = snapshot.Read();
+        string? second = snapshot.Read();
         Assert.Equal(32 * 1024, second!.Length);
         Assert.Equal(new string('E', chunk) + new string('F', chunk), second);
 
@@ -53,8 +53,8 @@ public class TextModelSnapshotTests
     [Fact]
     public void SkipsEmptyChunksAndDrainsSource()
     {
-        var fake = new FakeSnapshot(new string?[] { string.Empty, "foo", string.Empty, "bar", null });
-        var snapshot = new TextModelSnapshot(fake);
+        FakeSnapshot fake = new(new string?[] { string.Empty, "foo", string.Empty, "bar", null });
+        TextModelSnapshot snapshot = new(fake);
 
         Assert.Equal("foobar", snapshot.Read());
         Assert.Null(snapshot.Read());
@@ -64,8 +64,8 @@ public class TextModelSnapshotTests
     [Fact]
     public void RepeatedReadsAfterEosDoNotTouchSource()
     {
-        var fake = new FakeSnapshot(new string?[] { null });
-        var snapshot = new TextModelSnapshot(fake);
+        FakeSnapshot fake = new(new string?[] { null });
+        TextModelSnapshot snapshot = new(fake);
 
         Assert.Null(snapshot.Read());
         Assert.Equal(1, fake.ReadCount);

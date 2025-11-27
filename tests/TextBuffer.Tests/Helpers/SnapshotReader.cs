@@ -18,9 +18,9 @@ internal static class SnapshotReader
     public static string ReadAll(ITextSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
-        var builder = new StringBuilder();
+        StringBuilder builder = new();
         string? chunk;
-        var chunkCount = 0;
+        int chunkCount = 0;
 
         while ((chunk = snapshot.Read()) != null)
         {

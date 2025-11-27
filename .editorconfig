@@ -1,0 +1,64 @@
+[*.{cs,vb}]
+
+# IDE0130: 命名空间与文件夹结构不匹配
+dotnet_diagnostic.IDE0130.severity = suggestion
+
+# IDE0160: 转换为块范围限定的 namespace
+csharp_style_namespace_declarations = file_scoped
+
+# IDE0130: 命名空间与文件夹结构不匹配
+dotnet_style_namespace_match_folder = false
+
+# IDE0160: 转换为块范围限定的 namespace
+dotnet_diagnostic.IDE0160.severity = none
+
+# IDE0058: 永远不会使用表达式值
+dotnet_diagnostic.IDE0058.severity = none
+
+# IDE0300: 简化集合初始化
+dotnet_diagnostic.IDE0300.severity = none
+
+# IDE0032: 使用自动属性
+dotnet_diagnostic.IDE0032.severity = none
+
+# IDE0057: 使用范围运算符
+csharp_style_prefer_range_operator = false
+
+# IDE0062: 使本地函数成为静态函数
+csharp_prefer_static_local_function = false
+
+# IDE0305: 简化集合初始化
+dotnet_diagnostic.IDE0305.severity = none
+
+# IDE0022: 使用方法的程序块主体
+dotnet_diagnostic.IDE0022.severity = none
+
+# IDE0301: 简化集合初始化
+dotnet_diagnostic.IDE0301.severity = none
+
+# IDE0078: 使用模式匹配
+dotnet_diagnostic.IDE0078.severity = none
+
+# IDE0046: 转换为条件表达式
+dotnet_diagnostic.IDE0046.severity = none
+
+# IDE0290: 使用主构造函数
+dotnet_diagnostic.IDE0290.severity = none
+
+# IDE0045: 转换为条件表达式
+dotnet_diagnostic.IDE0045.severity = none
+
+# IDE0039: 使用本地函数
+dotnet_diagnostic.IDE0039.severity = none
+
+# IDE0037: 使用推断的成员名称
+dotnet_diagnostic.IDE0037.severity = none
+
+# IDE0061: 使用本地函数的块主体
+dotnet_diagnostic.IDE0061.severity = none
+
+# IDE0090: 使用 "new(...)"
+dotnet_diagnostic.IDE0090.severity = none
+
+# IDE0047: 删除不必要的括号
+dotnet_diagnostic.IDE0047.severity = none

@@ -35,8 +35,8 @@ public sealed class RangeMapping
 
     private static Range PlusRange(Range left, Range right)
     {
-        var start = left.Start <= right.Start ? left.Start : right.Start;
-        var end = left.End >= right.End ? left.End : right.End;
+        TextPosition start = left.Start <= right.Start ? left.Start : right.Start;
+        TextPosition end = left.End >= right.End ? left.End : right.End;
         return new Range(start, end);
     }
 }
@@ -61,8 +61,8 @@ public class LineRangeMapping
 
     public virtual RangeMapping? ToRangeMapping()
     {
-        var orig = Original.ToInclusiveRange();
-        var mod = Modified.ToInclusiveRange();
+        Range? orig = Original.ToInclusiveRange();
+        Range? mod = Modified.ToInclusiveRange();
         if (orig.HasValue && mod.HasValue)
         {
             return new RangeMapping(orig.Value, mod.Value);
@@ -125,16 +125,16 @@ public class LineRangeMapping
 
     private static Range NormalizeRange(LineRange range, string[] lines)
     {
-        var start = NormalizePosition(new TextPosition(range.StartLineNumber, 1), lines);
-        var end = NormalizePosition(new TextPosition(range.EndLineNumberExclusive - 1, int.MaxValue), lines);
+        TextPosition start = NormalizePosition(new TextPosition(range.StartLineNumber, 1), lines);
+        TextPosition end = NormalizePosition(new TextPosition(range.EndLineNumberExclusive - 1, int.MaxValue), lines);
         return Range.FromPositions(start, end);
     }
 
     protected static TextPosition NormalizePosition(TextPosition position, IReadOnlyList<string> lines)
     {
-        var lineNumber = Math.Clamp(position.LineNumber, 1, Math.Max(1, lines.Count));
-        var line = lines[Math.Max(1, Math.Min(lineNumber, lines.Count)) - 1];
-        var column = Math.Clamp(position.Column, 1, line.Length + 1);
+        int lineNumber = Math.Clamp(position.LineNumber, 1, Math.Max(1, lines.Count));
+        string line = lines[Math.Max(1, Math.Min(lineNumber, lines.Count)) - 1];
+        int column = Math.Clamp(position.Column, 1, line.Length + 1);
         return new TextPosition(lineNumber, column);
     }
 }
@@ -156,8 +156,8 @@ public sealed class DetailedLineRangeMapping : LineRangeMapping
 
     public DetailedLineRangeMapping WithInnerChangesFromLineRanges()
     {
-        var mapping = ToRangeMapping();
-        return new DetailedLineRangeMapping(Original, Modified, mapping == null ? Array.Empty<RangeMapping>() : new[] { mapping });
+        RangeMapping? mapping = ToRangeMapping();
+        return new DetailedLineRangeMapping(Original, Modified, mapping == null ? Array.Empty<RangeMapping>() : [mapping]);
     }
 }
 
@@ -169,15 +169,15 @@ internal static class LineRangeMappingBuilder
         string[] modifiedLines,
         bool dontAssertStartLine = false)
     {
-        var mappings = alignments.Select(a => GetLineRangeMapping(a, originalLines, modifiedLines)).ToList();
-        var groups = GroupAdjacentBy(mappings, (a1, a2) => a1.Original.IntersectsOrTouches(a2.Original) || a1.Modified.IntersectsOrTouches(a2.Modified));
+        List<DetailedLineRangeMapping> mappings = alignments.Select(a => GetLineRangeMapping(a, originalLines, modifiedLines)).ToList();
+        IEnumerable<List<DetailedLineRangeMapping>> groups = GroupAdjacentBy(mappings, (a1, a2) => a1.Original.IntersectsOrTouches(a2.Original) || a1.Modified.IntersectsOrTouches(a2.Modified));
 
-        var changes = new List<DetailedLineRangeMapping>();
-        foreach (var group in groups)
+        List<DetailedLineRangeMapping> changes = [];
+        foreach (List<DetailedLineRangeMapping> group in groups)
         {
-            var first = group[0];
-            var last = group[^1];
-            var inner = group.SelectMany(g => g.InnerChanges).ToArray();
+            DetailedLineRangeMapping first = group[0];
+            DetailedLineRangeMapping last = group[^1];
+            RangeMapping[] inner = group.SelectMany(g => g.InnerChanges).ToArray();
             changes.Add(new DetailedLineRangeMapping(first.Original.Join(last.Original), first.Modified.Join(last.Modified), inner));
         }
 
@@ -186,10 +186,10 @@ internal static class LineRangeMappingBuilder
 
     public static DetailedLineRangeMapping GetLineRangeMapping(RangeMapping mapping, string[] originalLines, string[] modifiedLines)
     {
-        var lineStartDelta = 0;
-        var lineEndDelta = 0;
-        var originalRange = mapping.OriginalRange;
-        var modifiedRange = mapping.ModifiedRange;
+        int lineStartDelta = 0;
+        int lineEndDelta = 0;
+        Range originalRange = mapping.OriginalRange;
+        Range modifiedRange = mapping.ModifiedRange;
 
         if (modifiedRange.EndColumn == 1 && originalRange.EndColumn == 1 && originalRange.StartLineNumber + lineStartDelta <= originalRange.EndLineNumber && modifiedRange.StartLineNumber + lineStartDelta <= modifiedRange.EndLineNumber)
         {
@@ -204,8 +204,8 @@ internal static class LineRangeMappingBuilder
             lineStartDelta = 1;
         }
 
-        var originalLineRange = new LineRange(originalRange.StartLineNumber + lineStartDelta, originalRange.EndLineNumber + 1 + lineEndDelta);
-        var modifiedLineRange = new LineRange(modifiedRange.StartLineNumber + lineStartDelta, modifiedRange.EndLineNumber + 1 + lineEndDelta);
+        LineRange originalLineRange = new(originalRange.StartLineNumber + lineStartDelta, originalRange.EndLineNumber + 1 + lineEndDelta);
+        LineRange modifiedLineRange = new(modifiedRange.StartLineNumber + lineStartDelta, modifiedRange.EndLineNumber + 1 + lineEndDelta);
 
         return new DetailedLineRangeMapping(originalLineRange, modifiedLineRange, new[] { mapping });
     }
@@ -228,10 +228,10 @@ internal static class LineRangeMappingBuilder
             yield break;
         }
 
-        var current = new List<T> { items[0] };
-        for (var i = 1; i < items.Count; i++)
+        List<T> current = [items[0]];
+        for (int i = 1; i < items.Count; i++)
         {
-            var item = items[i];
+            T? item = items[i];
             if (predicate(current[^1], item))
             {
                 current.Add(item);
@@ -239,7 +239,7 @@ internal static class LineRangeMappingBuilder
             else
             {
                 yield return current;
-                current = new List<T> { item };
+                current = [item];
             }
         }
 

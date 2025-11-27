@@ -43,8 +43,8 @@ public readonly struct OffsetRange : IEquatable<OffsetRange>
 
     public OffsetRange? Intersect(OffsetRange other)
     {
-        var start = Math.Max(Start, other.Start);
-        var end = Math.Min(EndExclusive, other.EndExclusive);
+        int start = Math.Max(Start, other.Start);
+        int end = Math.Min(EndExclusive, other.EndExclusive);
         if (start <= end)
         {
             return new OffsetRange(start, end);
@@ -55,15 +55,15 @@ public readonly struct OffsetRange : IEquatable<OffsetRange>
 
     public bool Intersects(OffsetRange other)
     {
-        var start = Math.Max(Start, other.Start);
-        var end = Math.Min(EndExclusive, other.EndExclusive);
+        int start = Math.Max(Start, other.Start);
+        int end = Math.Min(EndExclusive, other.EndExclusive);
         return start < end;
     }
 
     public bool IntersectsOrTouches(OffsetRange other)
     {
-        var start = Math.Max(Start, other.Start);
-        var end = Math.Min(EndExclusive, other.EndExclusive);
+        int start = Math.Max(Start, other.Start);
+        int end = Math.Min(EndExclusive, other.EndExclusive);
         return start <= end;
     }
 
@@ -74,7 +74,7 @@ public readonly struct OffsetRange : IEquatable<OffsetRange>
 
     public IEnumerable<int> Enumerate()
     {
-        for (var i = Start; i < EndExclusive; i++)
+        for (int i = Start; i < EndExclusive; i++)
         {
             yield return i;
         }

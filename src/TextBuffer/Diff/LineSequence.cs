@@ -25,15 +25,15 @@ internal sealed class LineSequence : ISequence
 
     public int GetBoundaryScore(int length)
     {
-        var indentationBefore = length == 0 ? 0 : GetIndentation(_lines[length - 1]);
-        var indentationAfter = length == _lines.Length ? 0 : GetIndentation(_lines[Math.Min(length, _lines.Length - 1)]);
+        int indentationBefore = length == 0 ? 0 : GetIndentation(_lines[length - 1]);
+        int indentationAfter = length == _lines.Length ? 0 : GetIndentation(_lines[Math.Min(length, _lines.Length - 1)]);
         return 1000 - (indentationBefore + indentationAfter);
     }
 
     public string GetText(OffsetRange range)
     {
-        var start = Math.Clamp(range.Start, 0, _lines.Length);
-        var end = Math.Clamp(range.EndExclusive, start, _lines.Length);
+        int start = Math.Clamp(range.Start, 0, _lines.Length);
+        int end = Math.Clamp(range.EndExclusive, start, _lines.Length);
         return string.Join('\n', _lines.Skip(start).Take(end - start));
     }
 
@@ -44,7 +44,7 @@ internal sealed class LineSequence : ISequence
 
     private static int GetIndentation(string line)
     {
-        var i = 0;
+        int i = 0;
         while (i < line.Length && (line[i] == ' ' || line[i] == '\t'))
         {
             i++;

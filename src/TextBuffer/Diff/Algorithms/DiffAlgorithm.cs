@@ -42,12 +42,12 @@ internal sealed class SequenceDiff
 {
     public static IReadOnlyList<SequenceDiff> Invert(IReadOnlyList<SequenceDiff> sequenceDiffs, int doc1Length)
     {
-        var result = new List<SequenceDiff>();
-        for (var i = 0; i <= sequenceDiffs.Count; i++)
+        List<SequenceDiff> result = [];
+        for (int i = 0; i <= sequenceDiffs.Count; i++)
         {
-            var previous = i == 0 ? null : sequenceDiffs[i - 1];
-            var next = i == sequenceDiffs.Count ? null : sequenceDiffs[i];
-            var startPair = previous?.GetEndExclusives() ?? OffsetPair.Zero;
+            SequenceDiff? previous = i == 0 ? null : sequenceDiffs[i - 1];
+            SequenceDiff? next = i == sequenceDiffs.Count ? null : sequenceDiffs[i];
+            OffsetPair startPair = previous?.GetEndExclusives() ?? OffsetPair.Zero;
             OffsetPair endPair;
             if (next != null)
             {
@@ -55,7 +55,7 @@ internal sealed class SequenceDiff
             }
             else
             {
-                var offset2 = (previous != null ? previous.Seq2Range.EndExclusive - previous.Seq1Range.EndExclusive : 0) + doc1Length;
+                int offset2 = (previous != null ? previous.Seq2Range.EndExclusive - previous.Seq1Range.EndExclusive : 0) + doc1Length;
                 endPair = new OffsetPair(doc1Length, offset2);
             }
 
@@ -123,8 +123,8 @@ internal sealed class SequenceDiff
 
     public SequenceDiff? Intersect(SequenceDiff other)
     {
-        var i1 = Seq1Range.Intersect(other.Seq1Range);
-        var i2 = Seq2Range.Intersect(other.Seq2Range);
+        OffsetRange? i1 = Seq1Range.Intersect(other.Seq1Range);
+        OffsetRange? i2 = Seq2Range.Intersect(other.Seq2Range);
         if (i1.HasValue && i2.HasValue)
         {
             return new SequenceDiff(i1.Value, i2.Value);

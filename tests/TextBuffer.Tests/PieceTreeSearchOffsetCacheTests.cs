@@ -20,7 +20,7 @@ public sealed class PieceTreeSearchOffsetCacheTests
     [Fact]
     public void RenderWhitespaceScriptPreservesSearchCache()
     {
-        using var harness = CreateHarness(nameof(RenderWhitespaceScriptPreservesSearchCache), SearchOffsetRenderWhitespaceSeed);
+        using PieceTreeFuzzHarness harness = CreateHarness(nameof(RenderWhitespaceScriptPreservesSearchCache), SearchOffsetRenderWhitespaceSeed);
         RunScript(harness, SearchOffsetRenderWhitespace);
 
         PieceTreeBufferAssertions.AssertState(harness, "search-offset-render-final");
@@ -31,7 +31,7 @@ public sealed class PieceTreeSearchOffsetCacheTests
     [Fact]
     public void NormalizedInsert_AppendsWithoutTrailingLf_MaintainsCache()
     {
-        using var harness = CreateHarness(nameof(NormalizedInsert_AppendsWithoutTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithoutTrailingLf);
+        using PieceTreeFuzzHarness harness = CreateHarness(nameof(NormalizedInsert_AppendsWithoutTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithoutTrailingLf);
         RunScript(harness, SearchOffsetNormalizedEolCase1);
 
         PieceTreeBufferAssertions.AssertState(harness, "search-offset-norm-case1");
@@ -42,7 +42,7 @@ public sealed class PieceTreeSearchOffsetCacheTests
     [Fact]
     public void NormalizedInsert_AppendsAfterTrailingLf_MaintainsCache()
     {
-        using var harness = CreateHarness(nameof(NormalizedInsert_AppendsAfterTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
+        using PieceTreeFuzzHarness harness = CreateHarness(nameof(NormalizedInsert_AppendsAfterTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
         RunScript(harness, SearchOffsetNormalizedEolCase2);
 
         PieceTreeBufferAssertions.AssertState(harness, "search-offset-norm-case2");
@@ -53,7 +53,7 @@ public sealed class PieceTreeSearchOffsetCacheTests
     [Fact]
     public void NormalizedInsert_WithinPrefix_MaintainsCache()
     {
-        using var harness = CreateHarness(nameof(NormalizedInsert_WithinPrefix_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
+        using PieceTreeFuzzHarness harness = CreateHarness(nameof(NormalizedInsert_WithinPrefix_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
         RunScript(harness, SearchOffsetNormalizedEolCase3);
 
         PieceTreeBufferAssertions.AssertState(harness, "search-offset-norm-case3");
@@ -64,7 +64,7 @@ public sealed class PieceTreeSearchOffsetCacheTests
     [Fact]
     public void NormalizedInsert_BeforeTrailingLf_MaintainsCache()
     {
-        using var harness = CreateHarness(nameof(NormalizedInsert_BeforeTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
+        using PieceTreeFuzzHarness harness = CreateHarness(nameof(NormalizedInsert_BeforeTrailingLf_MaintainsCache), SearchOffsetNormalizedSeedWithTrailingLf);
         RunScript(harness, SearchOffsetNormalizedEolCase4);
 
         PieceTreeBufferAssertions.AssertState(harness, "search-offset-norm-case4");

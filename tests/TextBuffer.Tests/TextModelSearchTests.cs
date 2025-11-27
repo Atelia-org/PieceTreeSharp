@@ -21,7 +21,7 @@ internal static class TextModelSearchTestHelper
     internal static readonly RegexOptions DefaultRegexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ECMAScript;
 
     internal static Range R(int startLine, int startColumn, int endLine, int endColumn)
-        => new Range(startLine, startColumn, endLine, endColumn);
+        => new(startLine, startColumn, endLine, endColumn);
 
     internal static void AssertParseSearchResult(
         string searchString,
@@ -30,8 +30,8 @@ internal static class TextModelSearchTestHelper
         string? wordSeparators,
         ExpectedSearchData? expected)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
-        var actual = searchParams.ParseSearchRequest();
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
+        SearchData? actual = searchParams.ParseSearchRequest();
 
         if (expected == null)
         {
@@ -50,19 +50,19 @@ internal static class TextModelSearchTestHelper
 
     internal static void AssertFindMatches(string text, string pattern, bool isRegex, bool matchCase, string? wordSeparators, params Range[] expected)
     {
-        var searchParams = new SearchParams(pattern, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(pattern, isRegex, matchCase, wordSeparators);
         AssertFindMatches(new TextModel(text), searchParams, expected);
 
-        var crlfModel = new TextModel(text);
+        TextModel crlfModel = new(text);
         crlfModel.SetEol(EndOfLineSequence.CRLF);
         AssertFindMatches(crlfModel, searchParams, expected);
     }
 
     internal static void AssertFindMatches(TextModel model, SearchParams searchParams, params Range[] expected)
     {
-        var matches = model.FindMatches(searchParams, searchRange: null, captureMatches: false);
+        IReadOnlyList<FindMatch> matches = model.FindMatches(searchParams, searchRange: null, captureMatches: false);
         Assert.Equal(expected.Length, matches.Count);
-        for (var i = 0; i < expected.Length; i++)
+        for (int i = 0; i < expected.Length; i++)
         {
             AssertRangeEqual(expected[i], matches[i].Range);
         }
@@ -70,28 +70,28 @@ internal static class TextModelSearchTestHelper
         if (expected.Length == 0)
         {
             Assert.Null(model.FindNextMatch(searchParams, new TextPosition(1, 1)));
-            var documentEnd = new TextPosition(model.GetLineCount(), model.GetLineMaxColumn(model.GetLineCount()));
+            TextPosition documentEnd = new(model.GetLineCount(), model.GetLineMaxColumn(model.GetLineCount()));
             Assert.Null(model.FindPreviousMatch(searchParams, documentEnd));
             return;
         }
 
-        var next = model.FindNextMatch(searchParams, new TextPosition(1, 1));
+        FindMatch? next = model.FindNextMatch(searchParams, new TextPosition(1, 1));
         Assert.NotNull(next);
         AssertRangeEqual(expected[0], next!.Range);
 
-        foreach (var expectedMatch in expected)
+        foreach (Range expectedMatch in expected)
         {
             next = model.FindNextMatch(searchParams, new TextPosition(expectedMatch.StartLineNumber, expectedMatch.StartColumn), captureMatches: false);
             Assert.NotNull(next);
             AssertRangeEqual(expectedMatch, next!.Range);
         }
 
-        var docEnd = new TextPosition(model.GetLineCount(), model.GetLineMaxColumn(model.GetLineCount()));
-        var previous = model.FindPreviousMatch(searchParams, docEnd, captureMatches: false);
+        TextPosition docEnd = new(model.GetLineCount(), model.GetLineMaxColumn(model.GetLineCount()));
+        FindMatch? previous = model.FindPreviousMatch(searchParams, docEnd, captureMatches: false);
         Assert.NotNull(previous);
         AssertRangeEqual(expected[^1], previous!.Range);
 
-        foreach (var expectedMatch in expected)
+        foreach (Range expectedMatch in expected)
         {
             previous = model.FindPreviousMatch(searchParams, new TextPosition(expectedMatch.EndLineNumber, expectedMatch.EndColumn), captureMatches: false);
             Assert.NotNull(previous);
@@ -148,14 +148,14 @@ public class TextModelSearchTests_RangeScopes
     // Source: textModelSearch.test.ts – multi-range literal search coverage
     public void MultiRangeFindMatchesHonorsSelection()
     {
-        var model = new TextModel("alpha bravo\ncharlie delta\nalpha echo\n");
+        TextModel model = new("alpha bravo\ncharlie delta\nalpha echo\n");
         Range[] ranges =
-        {
+        [
             new Range(new TextPosition(1, 1), new TextPosition(1, 6)),
             new Range(new TextPosition(3, 1), new TextPosition(3, 6)),
-        };
+        ];
 
-        var matches = model.FindMatches(
+        IReadOnlyList<FindMatch> matches = model.FindMatches(
             "alpha",
             ranges,
             findInSelection: true,
@@ -173,14 +173,14 @@ public class TextModelSearchTests_RangeScopes
     // Source: textModelSearch.test.ts – findNextMatch within selection ranges
     public void FindNextMatchWrapsWithinSelection()
     {
-        var model = new TextModel("one two three\none two three\n");
+        TextModel model = new("one two three\none two three\n");
         Range[] ranges =
-        {
+        [
             new Range(new TextPosition(1, 1), new TextPosition(1, 4)),
             new Range(new TextPosition(2, 1), new TextPosition(2, 4)),
-        };
+        ];
 
-        var match1 = model.FindNextMatch(
+        FindMatch? match1 = model.FindNextMatch(
             "one",
             new TextPosition(1, 1),
             ranges,
@@ -192,7 +192,7 @@ public class TextModelSearchTests_RangeScopes
         Assert.NotNull(match1);
         Assert.Equal(1, match1!.Range.StartLineNumber);
 
-        var match2 = model.FindNextMatch(
+        FindMatch? match2 = model.FindNextMatch(
             "one",
             new TextPosition(1, 4),
             ranges,
@@ -209,14 +209,14 @@ public class TextModelSearchTests_RangeScopes
     // Source: textModelSearch.test.ts – findPreviousMatch within selection ranges
     public void FindPreviousMatchWrapsWithinSelection()
     {
-        var model = new TextModel("one two three\none two three\n");
+        TextModel model = new("one two three\none two three\n");
         Range[] ranges =
-        {
+        [
             new Range(new TextPosition(1, 1), new TextPosition(1, 4)),
             new Range(new TextPosition(2, 1), new TextPosition(2, 4)),
-        };
+        ];
 
-        var match = model.FindPreviousMatch(
+        FindMatch? match = model.FindPreviousMatch(
             "one",
             new TextPosition(2, 14),
             ranges,
@@ -228,7 +228,7 @@ public class TextModelSearchTests_RangeScopes
         Assert.NotNull(match);
         Assert.Equal(2, match!.Range.StartLineNumber);
 
-        var wrapped = model.FindPreviousMatch(
+        FindMatch? wrapped = model.FindPreviousMatch(
             "one",
             new TextPosition(2, 1),
             ranges,
@@ -245,14 +245,14 @@ public class TextModelSearchTests_RangeScopes
     // Source: textModelSearch.test.ts – selection-scoped regex find
     public void MultiRangeRegexSearchFindsCafeWithinSelection()
     {
-        var model = new TextModel("caf\u00E9\ncaf\ncaf\u00E9\n");
+        TextModel model = new("caf\u00E9\ncaf\ncaf\u00E9\n");
         Range[] ranges =
-        {
+        [
             new Range(new TextPosition(1, 1), new TextPosition(1, model.GetLineMaxColumn(1))),
             new Range(new TextPosition(3, 1), new TextPosition(3, model.GetLineMaxColumn(3))),
-        };
+        ];
 
-        var matches = model.FindMatches(
+        IReadOnlyList<FindMatch> matches = model.FindMatches(
             "\\bcaf\\b",
             ranges,
             findInSelection: true,
@@ -270,13 +270,13 @@ public class TextModelSearchTests_RangeScopes
 public class TextModelSearchTests_WordBoundaries
 {
     private static readonly string[] RegularText =
-    {
+    [
         "This is some foo - bar text which contains foo and bar - as in Barcelona.",
         "Now it begins a word fooBar and now it is caps Foo-isn't this great?",
         "And here's a dull line with nothing interesting in it",
         "It is also interesting if it's part of a word like amazingFooBar",
         "Again nothing interesting here"
-    };
+    ];
 
     private static readonly string RegularParagraph = string.Join('\n', RegularText);
 
@@ -331,7 +331,7 @@ public class TextModelSearchTests_WordBoundaries
     // Source: textModelSearch.test.ts – "issue #3623"
     public void Issue3623_WholeWordMatchesNonLatin()
     {
-        var text = string.Join('\n', "я", "компилятор", "обфускация", ":я-я");
+        string text = string.Join('\n', "я", "компилятор", "обфускация", ":я-я");
         AssertFindMatches(
             text,
             "я",
@@ -347,7 +347,7 @@ public class TextModelSearchTests_WordBoundaries
     // Source: textModelSearch.test.ts – "issue #27459"
     public void Issue27459_WholeWordRegression()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "this._register(this._textAreaInput.onKeyDown((e: IKeyboardEvent) => {",
             "       this._viewController.emitKeyDown(e);",
             "}));");
@@ -365,7 +365,7 @@ public class TextModelSearchTests_WordBoundaries
     // Source: textModelSearch.test.ts – "issue #27594"
     public void Issue27594_SearchResultsPersist()
     {
-        var text = "this.server.listen(0);";
+        string text = "this.server.listen(0);";
         AssertFindMatches(
             text,
             "listen(",
@@ -464,7 +464,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find 1"
     public void MultilineFind_TextFollowedByNewline()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             "Just some text text",
             "some text again",
@@ -484,7 +484,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find 2"
     public void MultilineFind_TextFollowedByLiteral()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             "Just some text text",
             "some text again",
@@ -503,7 +503,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find 3"
     public void MultilineFind_NewlineAgain()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             "Just some text text",
             "some text again",
@@ -522,7 +522,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find 4"
     public void MultilineFind_MatchesAcrossThreeLines()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             "Just some text text",
             "some text again",
@@ -541,7 +541,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find with line beginning regex"
     public void MultilineFind_WithLineBeginningRegex()
     {
-        var text = string.Join('\n', "if", "else", string.Empty, "if", "else");
+        string text = string.Join('\n', "if", "else", string.Empty, "if", "else");
         AssertFindMatches(
             text,
             "^if\\nelse",
@@ -556,7 +556,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "matching empty lines using boundary expression"
     public void BoundaryExpressionMatchesEmptyLines()
     {
-        var text = string.Join('\n', "if", string.Empty, "else", "  ", "if", " ", "else");
+        string text = string.Join('\n', "if", string.Empty, "else", "  ", "if", " ", "else");
         AssertFindMatches(
             text,
             "^\\s*$\\n",
@@ -572,7 +572,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "matching lines starting with A and ending with B"
     public void RegexMatchesLinesStartingAndEnding()
     {
-        var text = string.Join('\n', "a if b", "a", "ab", "eb");
+        string text = string.Join('\n', "a if b", "a", "ab", "eb");
         AssertFindMatches(
             text,
             "^a.*b$",
@@ -587,7 +587,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find with line ending regex"
     public void MultilineFind_WithLineEndingRegex()
     {
-        var text = string.Join('\n', "if", "else", string.Empty, "if", "elseif", "else");
+        string text = string.Join('\n', "if", "else", string.Empty, "if", "elseif", "else");
         AssertFindMatches(
             text,
             "if\\nelse$",
@@ -602,7 +602,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "issue #4836 - ^.*$"
     public void Issue4836_CaretDotStarMatchesEmptyLines()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             string.Empty,
             "some text again",
@@ -626,7 +626,7 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "multiline find for non-regex string"
     public void MultilineFindForLiteralString()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "Just some text text",
             "some text text",
             "some text again",
@@ -647,12 +647,12 @@ public class TextModelSearchTests_MultilineRegex
     // Source: textModelSearch.test.ts – "\\n matches \\r\\n" / "\\r can never be found"
     public void NewlineEscapeMatchesWhileCarriageReturnDoesNot()
     {
-        var text = string.Join("\r\n", new[] { "a", "b", "c", "d", "e", "f", "g", "h", "i" });
-        var model = new TextModel(text);
+        string text = string.Join("\r\n", new[] { "a", "b", "c", "d", "e", "f", "g", "h", "i" });
+        TextModel model = new(text);
         Assert.Equal("\r\n", model.Eol);
 
-        var searchParams = new SearchParams("h\\n", isRegex: true, matchCase: false, wordSeparators: null);
-        var matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
+        SearchParams searchParams = new("h\\n", isRegex: true, matchCase: false, wordSeparators: null);
+        IReadOnlyList<FindMatch> matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
         Assert.Single(matches);
         TextModelSearchTestHelper.AssertMatch(matches[0], R(8, 1, 9, 1), "h\n");
 
@@ -666,7 +666,7 @@ public class TextModelSearchTests_MultilineRegex
         Assert.Single(matches);
         TextModelSearchTestHelper.AssertMatch(matches[0], R(8, 2, 9, 2), "\ni");
 
-        var noMatchParams = new SearchParams("\\r\\n", isRegex: true, matchCase: false, wordSeparators: null);
+        SearchParams noMatchParams = new("\\r\\n", isRegex: true, matchCase: false, wordSeparators: null);
         Assert.Empty(TextModelSearchTestHelper.GetMatches(model, noMatchParams, captureMatches: true));
         Assert.Null(model.FindNextMatch(noMatchParams, new TextPosition(1, 1), captureMatches: true));
     }
@@ -680,9 +680,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findMatches with capturing matches"
     public void FindMatchesCapturingGroups()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
-        var matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
+        IReadOnlyList<FindMatch> matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
 
         Assert.Equal(3, matches.Count);
         TextModelSearchTestHelper.AssertMatch(matches[0], R(1, 5, 1, 9), "line", "line", "in");
@@ -694,9 +694,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findMatches multiline with capturing matches"
     public void FindMatchesMultilineCapturing()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
-        var matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
+        IReadOnlyList<FindMatch> matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
 
         Assert.Equal(2, matches.Count);
         TextModelSearchTestHelper.AssertMatch(matches[0], R(1, 10, 2, 1), "line\n", "line", "in");
@@ -707,9 +707,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findNextMatch with capturing matches"
     public void FindNextMatchReturnsCaptures()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
         TextModelSearchTestHelper.AssertMatch(match, R(1, 5, 1, 9), "line", "line", "in");
     }
 
@@ -717,9 +717,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findNextMatch multiline with capturing matches"
     public void FindNextMatchMultilineReturnsCaptures()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
         TextModelSearchTestHelper.AssertMatch(match, R(1, 10, 2, 1), "line\n", "line", "in");
     }
 
@@ -727,9 +727,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findPreviousMatch with capturing matches"
     public void FindPreviousMatchReturnsCaptures()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
-        var match = model.FindPreviousMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)", isRegex: true, matchCase: false, wordSeparators: null);
+        FindMatch? match = model.FindPreviousMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
         TextModelSearchTestHelper.AssertMatch(match, R(2, 5, 2, 9), "line", "line", "in");
     }
 
@@ -737,9 +737,9 @@ public class TextModelSearchTests_CaptureNavigation
     // Source: textModelSearch.test.ts – "findPreviousMatch multiline with capturing matches"
     public void FindPreviousMatchMultilineReturnsCaptures()
     {
-        var model = new TextModel(Sample);
-        var searchParams = new SearchParams("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
-        var match = model.FindPreviousMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
+        TextModel model = new(Sample);
+        SearchParams searchParams = new("(l(in)e)\\n", isRegex: true, matchCase: false, wordSeparators: null);
+        FindMatch? match = model.FindPreviousMatch(searchParams, new TextPosition(1, 1), captureMatches: true);
         TextModelSearchTestHelper.AssertMatch(match, R(2, 5, 3, 1), "line\n", "line", "in");
     }
 }
@@ -747,13 +747,13 @@ public class TextModelSearchTests_CaptureNavigation
 public class TextModelSearchTests_ZeroWidthAndUnicode
 {
     private static readonly string[] RegularText =
-    {
+    [
         "This is some foo - bar text which contains foo and bar - as in Barcelona.",
         "Now it begins a word fooBar and now it is caps Foo-isn't this great?",
         "And here's a dull line with nothing interesting in it",
         "It is also interesting if it's part of a word like amazingFooBar",
         "Again nothing interesting here"
-    };
+    ];
 
     [Fact]
     // Source: textModelSearch.test.ts – "/^/ find"
@@ -810,7 +810,7 @@ public class TextModelSearchTests_ZeroWidthAndUnicode
     // Source: textModelSearch.test.ts – "/^$/ find"
     public void CaretDollarMatchesEmptyLines()
     {
-        var text = string.Join('\n',
+        string text = string.Join('\n',
             "This is some foo - bar text which contains foo and bar - as in Barcelona.",
             string.Empty,
             "And here's a dull line with nothing interesting in it",
@@ -831,12 +831,12 @@ public class TextModelSearchTests_ZeroWidthAndUnicode
     // Source: textModelSearch.test.ts – "issue #74715"
     public void Issue74715_DigitStarAdvances()
     {
-        var model = new TextModel("10.243.30.10");
-        var searchParams = new SearchParams("\\d*", isRegex: true, matchCase: false, wordSeparators: null);
-        var matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
+        TextModel model = new("10.243.30.10");
+        SearchParams searchParams = new("\\d*", isRegex: true, matchCase: false, wordSeparators: null);
+        IReadOnlyList<FindMatch> matches = TextModelSearchTestHelper.GetMatches(model, searchParams, captureMatches: true);
 
-        var expected = new List<(Range Range, string Capture)>
-        {
+        List<(Range Range, string Capture)> expected =
+        [
             (R(1, 1, 1, 3), "10"),
             (R(1, 3, 1, 3), string.Empty),
             (R(1, 4, 1, 7), "243"),
@@ -844,10 +844,10 @@ public class TextModelSearchTests_ZeroWidthAndUnicode
             (R(1, 8, 1, 10), "30"),
             (R(1, 10, 1, 10), string.Empty),
             (R(1, 11, 1, 13), "10")
-        };
+        ];
 
         Assert.Equal(expected.Count, matches.Count);
-        for (var i = 0; i < expected.Count; i++)
+        for (int i = 0; i < expected.Count; i++)
         {
             TextModelSearchTestHelper.AssertMatch(matches[i], expected[i].Range, expected[i].Capture);
         }
@@ -900,8 +900,8 @@ public class TextModelSearchTests_ParseSearchRequest
     [Fact]
     public void ParseSearchRequest_NonRegex()
     {
-        var ignoreCase = TextModelSearchTestHelper.DefaultRegexOptions | RegexOptions.IgnoreCase;
-        var caseSensitive = TextModelSearchTestHelper.DefaultRegexOptions;
+        RegexOptions ignoreCase = TextModelSearchTestHelper.DefaultRegexOptions | RegexOptions.IgnoreCase;
+        RegexOptions caseSensitive = TextModelSearchTestHelper.DefaultRegexOptions;
 
         AssertParseSearchResult(
             "foo",
@@ -963,10 +963,10 @@ public class TextModelSearchTests_ParseSearchRequest
     [Fact]
     public void ParseSearchRequest_Regex()
     {
-        var ignoreCase = TextModelSearchTestHelper.DefaultRegexOptions | RegexOptions.IgnoreCase;
-        var caseSensitive = TextModelSearchTestHelper.DefaultRegexOptions;
-        var ignoreCaseMultiline = ignoreCase | RegexOptions.Multiline;
-        var caseSensitiveMultiline = caseSensitive | RegexOptions.Multiline;
+        RegexOptions ignoreCase = TextModelSearchTestHelper.DefaultRegexOptions | RegexOptions.IgnoreCase;
+        RegexOptions caseSensitive = TextModelSearchTestHelper.DefaultRegexOptions;
+        RegexOptions ignoreCaseMultiline = ignoreCase | RegexOptions.Multiline;
+        RegexOptions caseSensitiveMultiline = caseSensitive | RegexOptions.Multiline;
 
         AssertParseSearchResult(
             "foo",
@@ -1058,26 +1058,26 @@ public class TextModelSearchTests_IsMultilineRegexSource
     public void IsMultilineRegexSource_DifferentiatesPatternSets()
     {
         string[] singleLinePatterns =
-        {
+        [
             @"MARK:\s*(?<label>.*)$",
             @"^// Header$",
             @"\s*[-=]+\s*",
-        };
+        ];
 
         string[] multiLinePatterns =
-        {
+        [
             @"^// =+\n^// (?<label>[^\n]+?)\n^// =+$",
             @"header\r\nfooter",
             @"start\r|\nend",
             "top\nmiddle\r\nbottom"
-        };
+        ];
 
-        foreach (var pattern in singleLinePatterns)
+        foreach (string pattern in singleLinePatterns)
         {
             Assert.False(SearchPatternUtilities.IsMultilineRegexSource(pattern));
         }
 
-        foreach (var pattern in multiLinePatterns)
+        foreach (string pattern in multiLinePatterns)
         {
             Assert.True(SearchPatternUtilities.IsMultilineRegexSource(pattern));
         }
@@ -1089,10 +1089,10 @@ public class TextModelSearchTests_FindNextMatchNavigation
     [Fact]
     public void FindNextMatchWithoutRegex()
     {
-        var model = new TextModel("line line one\nline two\nthree");
-        var searchParams = new SearchParams("line", isRegex: false, matchCase: false, wordSeparators: null);
+        TextModel model = new("line line one\nline two\nthree");
+        SearchParams searchParams = new("line", isRegex: false, matchCase: false, wordSeparators: null);
 
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
         AssertMatch(match, R(1, 1, 1, 5));
 
         match = model.FindNextMatch(searchParams, new TextPosition(match!.Range.EndLineNumber, match.Range.EndColumn), captureMatches: false);
@@ -1108,10 +1108,10 @@ public class TextModelSearchTests_FindNextMatchNavigation
     [Fact]
     public void FindNextMatchWithBeginningBoundaryRegex()
     {
-        var model = new TextModel("line one\nline two\nthree");
-        var searchParams = new SearchParams("^line", isRegex: true, matchCase: false, wordSeparators: null);
+        TextModel model = new("line one\nline two\nthree");
+        SearchParams searchParams = new("^line", isRegex: true, matchCase: false, wordSeparators: null);
 
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
         AssertMatch(match, R(1, 1, 1, 5));
 
         match = model.FindNextMatch(searchParams, new TextPosition(match!.Range.EndLineNumber, match.Range.EndColumn), captureMatches: false);
@@ -1127,10 +1127,10 @@ public class TextModelSearchTests_FindNextMatchNavigation
     [Fact]
     public void FindNextMatchWithRepeatedPrefixes()
     {
-        var model = new TextModel("line line one\nline two\nthree");
-        var searchParams = new SearchParams("^line", isRegex: true, matchCase: false, wordSeparators: null);
+        TextModel model = new("line line one\nline two\nthree");
+        SearchParams searchParams = new("^line", isRegex: true, matchCase: false, wordSeparators: null);
 
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
         AssertMatch(match, R(1, 1, 1, 5));
 
         match = model.FindNextMatch(searchParams, new TextPosition(match!.Range.EndLineNumber, match.Range.EndColumn), captureMatches: false);
@@ -1146,10 +1146,10 @@ public class TextModelSearchTests_FindNextMatchNavigation
     [Fact]
     public void FindNextMatchWithMultilineBeginningRegex()
     {
-        var model = new TextModel("line line one\nline two\nline three\nline four");
-        var searchParams = new SearchParams("^line.*\\nline", isRegex: true, matchCase: false, wordSeparators: null);
+        TextModel model = new("line line one\nline two\nline three\nline four");
+        SearchParams searchParams = new("^line.*\\nline", isRegex: true, matchCase: false, wordSeparators: null);
 
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
         AssertMatch(match, R(1, 1, 2, 5));
 
         match = model.FindNextMatch(searchParams, new TextPosition(match!.Range.EndLineNumber, match.Range.EndColumn), captureMatches: false);
@@ -1163,10 +1163,10 @@ public class TextModelSearchTests_FindNextMatchNavigation
     public void FindNextMatchWithLineEndingRegex()
     {
         const string sample = "one line line\ntwo line\nthree";
-        var model = new TextModel(sample);
-        var searchParams = new SearchParams("line$", isRegex: true, matchCase: false, wordSeparators: null);
+        TextModel model = new(sample);
+        SearchParams searchParams = new("line$", isRegex: true, matchCase: false, wordSeparators: null);
 
-        var match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
+        FindMatch? match = model.FindNextMatch(searchParams, new TextPosition(1, 1), captureMatches: false);
         AssertMatch(match, R(1, 10, 1, 14));
 
         match = model.FindNextMatch(searchParams, new TextPosition(1, 4), captureMatches: false);

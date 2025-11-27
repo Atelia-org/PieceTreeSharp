@@ -37,8 +37,8 @@ public static class CursorTestHelper
             return (string.Empty, new List<TextPosition>());
         }
 
-        var positions = new List<TextPosition>();
-        var content = new StringBuilder();
+        List<TextPosition> positions = [];
+        StringBuilder content = new();
         int line = 1;
         int column = 1;
 
@@ -90,16 +90,16 @@ public static class CursorTestHelper
         }
 
         // Convert positions to offsets
-        var offsets = new List<int>();
-        foreach (var pos in positions)
+        List<int> offsets = [];
+        foreach (TextPosition pos in positions)
         {
             int offset = GetOffset(content, pos);
             offsets.Add(offset);
         }
         offsets.Sort((a, b) => b.CompareTo(a)); // Sort descending to insert from end
 
-        var result = new StringBuilder(content);
-        foreach (var offset in offsets)
+        StringBuilder result = new(content);
+        foreach (int offset in offsets)
         {
             if (offset >= 0 && offset <= result.Length)
             {
@@ -121,11 +121,11 @@ public static class CursorTestHelper
             return (string.Empty, new List<Selection>());
         }
 
-        var selections = new List<Selection>();
-        var content = new StringBuilder();
+        List<Selection> selections = [];
+        StringBuilder content = new();
         int line = 1;
         int column = 1;
-        
+
         TextPosition? bracketStart = null;
         bool inSelection = false;
 
@@ -145,7 +145,7 @@ public static class CursorTestHelper
                     // End of selection - if we have a start, create selection
                     if (bracketStart.HasValue)
                     {
-                        var endPos = new TextPosition(line, column);
+                        TextPosition endPos = new(line, column);
                         selections.Add(Selection.FromPositions(bracketStart.Value, endPos));
                         bracketStart = null;
                         inSelection = false;
@@ -156,7 +156,7 @@ public static class CursorTestHelper
                     // Cursor position (collapsed selection)
                     if (!inSelection)
                     {
-                        var pos = new TextPosition(line, column);
+                        TextPosition pos = new(line, column);
                         selections.Add(Selection.FromPositions(pos, pos));
                     }
                     break;
@@ -233,7 +233,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertPosition(TextPosition actual, int expectedLine, int expectedColumn, string? message = null)
     {
-        var msg = message ?? $"Position mismatch";
+        string msg = message ?? $"Position mismatch";
         Assert.True(
             actual.LineNumber == expectedLine && actual.Column == expectedColumn,
             $"{msg}: Expected ({expectedLine}, {expectedColumn}), got ({actual.LineNumber}, {actual.Column})");
@@ -252,7 +252,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertSelection(Selection actual, int startLine, int startColumn, int endLine, int endColumn, string? message = null)
     {
-        var msg = message ?? "Selection mismatch";
+        string msg = message ?? "Selection mismatch";
         Assert.True(
             actual.SelectionStart.LineNumber == startLine &&
             actual.SelectionStart.Column == startColumn &&
@@ -266,9 +266,9 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertSelectionEquals(Selection expected, Selection actual, string? message = null)
     {
-        AssertSelection(actual, 
+        AssertSelection(actual,
             expected.SelectionStart.LineNumber, expected.SelectionStart.Column,
-            expected.SelectionEnd.LineNumber, expected.SelectionEnd.Column, 
+            expected.SelectionEnd.LineNumber, expected.SelectionEnd.Column,
             message);
     }
 
@@ -277,7 +277,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertSelectionIsEmpty(Selection actual, string? message = null)
     {
-        var msg = message ?? "Selection should be empty";
+        string msg = message ?? "Selection should be empty";
         Assert.True(actual.IsEmpty, $"{msg}: Selection is not empty: ({actual.SelectionStart.LineNumber},{actual.SelectionStart.Column})-({actual.SelectionEnd.LineNumber},{actual.SelectionEnd.Column})");
     }
 
@@ -286,7 +286,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertSelectionIsNotEmpty(Selection actual, string? message = null)
     {
-        var msg = message ?? "Selection should not be empty";
+        string msg = message ?? "Selection should not be empty";
         Assert.False(actual.IsEmpty, $"{msg}: Selection is empty at ({actual.SelectionStart.LineNumber},{actual.SelectionStart.Column})");
     }
 
@@ -331,7 +331,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertCursorStatesEqual(SingleCursorState expected, SingleCursorState actual, string? message = null)
     {
-        var msg = message ?? "CursorState mismatch";
+        string msg = message ?? "CursorState mismatch";
         Assert.True(expected.Equals(actual), $"{msg}: States are not equal");
     }
 
@@ -359,8 +359,8 @@ public static class CursorTestHelper
         Assert.Equal(expected.Length, actual.Count);
         for (int i = 0; i < expected.Length; i++)
         {
-            var e = expected[i];
-            AssertSelection(actual[i], e.startLine, e.startCol, e.endLine, e.endCol, $"Selection {i}");
+            (int startLine, int startCol, int endLine, int endCol) = expected[i];
+            AssertSelection(actual[i], startLine, startCol, endLine, endCol, $"Selection {i}");
         }
     }
 
@@ -381,7 +381,7 @@ public static class CursorTestHelper
     /// </summary>
     public static List<string> CompareMultiSelections(IReadOnlyList<Selection> expected, IReadOnlyList<Selection> actual)
     {
-        var differences = new List<string>();
+        List<string> differences = [];
 
         if (expected.Count != actual.Count)
         {
@@ -391,8 +391,8 @@ public static class CursorTestHelper
         int count = Math.Min(expected.Count, actual.Count);
         for (int i = 0; i < count; i++)
         {
-            var e = expected[i];
-            var a = actual[i];
+            Selection e = expected[i];
+            Selection a = actual[i];
             if (!e.EqualsSelection(a))
             {
                 differences.Add($"Selection {i}: expected ({e.SelectionStart.LineNumber},{e.SelectionStart.Column})-({e.SelectionEnd.LineNumber},{e.SelectionEnd.Column}), got ({a.SelectionStart.LineNumber},{a.SelectionStart.Column})-({a.SelectionEnd.LineNumber},{a.SelectionEnd.Column})");
@@ -415,12 +415,12 @@ public static class CursorTestHelper
         Func<TextPosition, TextPosition> moveAction,
         int maxIterations = 100)
     {
-        var positions = new List<TextPosition> { startPosition };
-        var current = startPosition;
+        List<TextPosition> positions = [startPosition];
+        TextPosition current = startPosition;
 
         for (int i = 0; i < maxIterations; i++)
         {
-            var next = moveAction(current);
+            TextPosition next = moveAction(current);
             if (next.Equals(current))
             {
                 break; // Reached boundary
@@ -440,10 +440,10 @@ public static class CursorTestHelper
         Func<TextPosition, TextPosition> moveAction,
         params (int line, int column)[] expectedSequence)
     {
-        var positions = ExecuteAndCollectPositions(startPosition, moveAction, expectedSequence.Length + 1);
-        
+        List<TextPosition> positions = ExecuteAndCollectPositions(startPosition, moveAction, expectedSequence.Length + 1);
+
         Assert.Equal(expectedSequence.Length + 1, positions.Count); // +1 for start position
-        
+
         for (int i = 0; i < expectedSequence.Length; i++)
         {
             AssertPosition(positions[i + 1], expectedSequence[i].line, expectedSequence[i].column, $"Step {i + 1}");
@@ -459,7 +459,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertVisibleColumn(string lineContent, int column, int tabSize, int expectedVisibleColumn)
     {
-        var actual = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
+        int actual = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
         Assert.Equal(expectedVisibleColumn, actual);
     }
 
@@ -468,7 +468,7 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertColumnFromVisible(string lineContent, int visibleColumn, int tabSize, int expectedColumn)
     {
-        var actual = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, tabSize);
+        int actual = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, tabSize);
         Assert.Equal(expectedColumn, actual);
     }
 
@@ -477,8 +477,8 @@ public static class CursorTestHelper
     /// </summary>
     public static void AssertColumnRoundTrip(string lineContent, int column, int tabSize)
     {
-        var visibleColumn = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
-        var resultColumn = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, tabSize);
+        int visibleColumn = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
+        int resultColumn = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, tabSize);
         Assert.Equal(column, resultColumn);
     }
 
@@ -491,7 +491,7 @@ public static class CursorTestHelper
     /// </summary>
     public static SingleCursorState CreateCursorAt(int line, int column)
     {
-        var pos = new TextPosition(line, column);
+        TextPosition pos = new(line, column);
         return new SingleCursorState(
             new Range(line, column, line, column),
             SelectionStartKind.Simple,
@@ -508,8 +508,8 @@ public static class CursorTestHelper
         int activeLine, int activeColumn,
         SelectionStartKind kind = SelectionStartKind.Simple)
     {
-        var selectionStart = new Range(anchorLine, anchorColumn, anchorLine, anchorColumn);
-        var position = new TextPosition(activeLine, activeColumn);
+        Range selectionStart = new(anchorLine, anchorColumn, anchorLine, anchorColumn);
+        TextPosition position = new(activeLine, activeColumn);
         return new SingleCursorState(selectionStart, kind, 0, position, 0);
     }
 
@@ -518,7 +518,7 @@ public static class CursorTestHelper
     /// </summary>
     public static CursorState CreateFullCursorState(int line, int column)
     {
-        var singleState = CreateCursorAt(line, column);
+        SingleCursorState singleState = CreateCursorAt(line, column);
         return new CursorState(singleState, singleState);
     }
 
@@ -529,7 +529,7 @@ public static class CursorTestHelper
         int anchorLine, int anchorColumn,
         int activeLine, int activeColumn)
     {
-        var singleState = CreateCursorWithSelection(anchorLine, anchorColumn, activeLine, activeColumn);
+        SingleCursorState singleState = CreateCursorWithSelection(anchorLine, anchorColumn, activeLine, activeColumn);
         return new CursorState(singleState, singleState);
     }
 

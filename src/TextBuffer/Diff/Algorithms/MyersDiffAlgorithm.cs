@@ -30,13 +30,13 @@ internal sealed class MyersDiffAlgorithm : IDiffAlgorithm
             return x;
         }
 
-        var v = new FastInt32Array();
-        var paths = new FastArrayNegativeIndices<SnakePath?>();
+        FastInt32Array v = new();
+        FastArrayNegativeIndices<SnakePath?> paths = new();
         v.Set(0, GetXAfterSnake(0, 0));
         paths.Set(0, v.Get(0) == 0 ? null : new SnakePath(null, 0, 0, v.Get(0)));
 
-        var d = 0;
-        var k = 0;
+        int d = 0;
+        int k = 0;
 
         while (true)
         {
@@ -46,22 +46,22 @@ internal sealed class MyersDiffAlgorithm : IDiffAlgorithm
                 return DiffAlgorithmResult.TrivialTimedOut(seq1, seq2);
             }
 
-            var lowerBound = -Math.Min(d, seq2.Length + (d % 2));
-            var upperBound = Math.Min(d, seq1.Length + (d % 2));
+            int lowerBound = -Math.Min(d, seq2.Length + (d % 2));
+            int upperBound = Math.Min(d, seq1.Length + (d % 2));
             for (k = lowerBound; k <= upperBound; k += 2)
             {
-                var maxXofDLineTop = k == upperBound ? -1 : v.Get(k + 1);
-                var maxXofDLineLeft = k == lowerBound ? -1 : v.Get(k - 1) + 1;
-                var x = Math.Min(Math.Max(maxXofDLineTop, maxXofDLineLeft), seq1.Length);
-                var y = x - k;
+                int maxXofDLineTop = k == upperBound ? -1 : v.Get(k + 1);
+                int maxXofDLineLeft = k == lowerBound ? -1 : v.Get(k - 1) + 1;
+                int x = Math.Min(Math.Max(maxXofDLineTop, maxXofDLineLeft), seq1.Length);
+                int y = x - k;
                 if (x > seq1.Length || y > seq2.Length)
                 {
                     continue;
                 }
 
-                var newMaxX = GetXAfterSnake(x, y);
+                int newMaxX = GetXAfterSnake(x, y);
                 v.Set(k, newMaxX);
-                var lastPath = x == maxXofDLineTop ? paths.Get(k + 1) : paths.Get(k - 1);
+                SnakePath? lastPath = x == maxXofDLineTop ? paths.Get(k + 1) : paths.Get(k - 1);
                 paths.Set(k, newMaxX != x ? new SnakePath(lastPath, x, y, newMaxX - x) : lastPath);
 
                 if (v.Get(k) == seq1.Length && v.Get(k) - k == seq2.Length)
@@ -72,15 +72,15 @@ internal sealed class MyersDiffAlgorithm : IDiffAlgorithm
         }
 
     BuildResult:
-        var path = paths.Get(k);
-        var diffs = new List<SequenceDiff>();
-        var lastAligningPosS1 = seq1.Length;
-        var lastAligningPosS2 = seq2.Length;
+        SnakePath? path = paths.Get(k);
+        List<SequenceDiff> diffs = [];
+        int lastAligningPosS1 = seq1.Length;
+        int lastAligningPosS2 = seq2.Length;
 
         while (true)
         {
-            var endX = path != null ? path.X + path.Length : 0;
-            var endY = path != null ? path.Y + path.Length : 0;
+            int endX = path != null ? path.X + path.Length : 0;
+            int endY = path != null ? path.Y + path.Length : 0;
             if (endX != lastAligningPosS1 || endY != lastAligningPosS2)
             {
                 diffs.Add(new SequenceDiff(new OffsetRange(endX, lastAligningPosS1), new OffsetRange(endY, lastAligningPosS2)));
@@ -157,8 +157,8 @@ internal sealed class MyersDiffAlgorithm : IDiffAlgorithm
 
     private sealed class FastArrayNegativeIndices<T>
     {
-        private readonly List<T> _positive = new();
-        private readonly List<T> _negative = new();
+        private readonly List<T> _positive = [];
+        private readonly List<T> _negative = [];
 
         public T? Get(int index)
         {

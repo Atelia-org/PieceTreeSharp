@@ -49,9 +49,9 @@ public sealed record class TextModelCreationOptions
 
     public TextModelCreationOptions Normalize(DefaultEndOfLine fallbackEol)
     {
-        var tabSize = Math.Max(1, TabSize);
-        var indentSize = IndentSizeFollowsTabSize ? tabSize : Math.Max(1, IndentSize);
-        var defaultEol = DefaultEol == 0 ? fallbackEol : DefaultEol;
+        int tabSize = Math.Max(1, TabSize);
+        int indentSize = IndentSizeFollowsTabSize ? tabSize : Math.Max(1, IndentSize);
+        DefaultEndOfLine defaultEol = DefaultEol == 0 ? fallbackEol : DefaultEol;
         return this with
         {
             TabSize = tabSize,
@@ -137,9 +137,9 @@ public sealed class TextModelResolvedOptions
 
     public static TextModelResolvedOptions Resolve(TextModelCreationOptions? creationOptions, DefaultEndOfLine fallbackEol)
     {
-        var normalized = (creationOptions ?? TextModelCreationOptions.Default).Normalize(fallbackEol);
-        var indentSizeIsTab = normalized.IndentSizeFollowsTabSize;
-        var sanitized = normalized with
+        TextModelCreationOptions normalized = (creationOptions ?? TextModelCreationOptions.Default).Normalize(fallbackEol);
+        bool indentSizeIsTab = normalized.IndentSizeFollowsTabSize;
+        TextModelCreationOptions sanitized = normalized with
         {
             TabSize = normalized.TabSize,
             IndentSize = normalized.IndentSize,
@@ -156,20 +156,20 @@ public sealed class TextModelResolvedOptions
             return this;
         }
 
-        var updated = CreationOptions with { DefaultEol = defaultEol };
+        TextModelCreationOptions updated = CreationOptions with { DefaultEol = defaultEol };
         return new TextModelResolvedOptions(updated, TabSize, IndentSize, _indentSizeIsTabSize, InsertSpaces, defaultEol, TrimAutoWhitespace);
     }
 
     public TextModelResolvedOptions WithUpdate(TextModelUpdateOptions update)
     {
-        var newTabSize = update.TabSize ?? TabSize;
-        var indentSizeFollowsTab = _indentSizeIsTabSize && !update.IndentSize.HasValue;
-        var newIndentSize = update.IndentSize ?? (indentSizeFollowsTab ? newTabSize : IndentSize);
-        var newInsertSpaces = update.InsertSpaces ?? InsertSpaces;
-        var newTrimAutoWhitespace = update.TrimAutoWhitespace ?? TrimAutoWhitespace;
-        var newBracketOptions = update.BracketPairColorizationOptions ?? BracketPairColorizationOptions;
+        int newTabSize = update.TabSize ?? TabSize;
+        bool indentSizeFollowsTab = _indentSizeIsTabSize && !update.IndentSize.HasValue;
+        int newIndentSize = update.IndentSize ?? (indentSizeFollowsTab ? newTabSize : IndentSize);
+        bool newInsertSpaces = update.InsertSpaces ?? InsertSpaces;
+        bool newTrimAutoWhitespace = update.TrimAutoWhitespace ?? TrimAutoWhitespace;
+        BracketPairColorizationOptions newBracketOptions = update.BracketPairColorizationOptions ?? BracketPairColorizationOptions;
 
-        var updatedCreation = CreationOptions with
+        TextModelCreationOptions updatedCreation = CreationOptions with
         {
             TabSize = newTabSize,
             IndentSize = newIndentSize,

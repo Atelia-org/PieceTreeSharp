@@ -14,14 +14,14 @@ internal sealed class FuzzLogCollector : IDisposable
     private readonly string _testName;
     private readonly string _directory;
     private readonly string? _explicitPath;
-    private readonly List<string> _entries = new();
+    private readonly List<string> _entries = [];
     private string? _materializedPath;
 
     public FuzzLogCollector(string testName)
     {
         _testName = string.IsNullOrWhiteSpace(testName) ? "piecetree-fuzz" : testName;
         _explicitPath = Environment.GetEnvironmentVariable("PIECETREE_FUZZ_LOG");
-        var dirFromEnv = Environment.GetEnvironmentVariable("PIECETREE_FUZZ_LOG_DIR");
+        string? dirFromEnv = Environment.GetEnvironmentVariable("PIECETREE_FUZZ_LOG_DIR");
         _directory = string.IsNullOrWhiteSpace(dirFromEnv)
             ? Path.Combine(Path.GetTempPath(), "piecetree-fuzz")
             : dirFromEnv!;
@@ -44,7 +44,7 @@ internal sealed class FuzzLogCollector : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(_explicitPath))
         {
-            var explicitDirectory = Path.GetDirectoryName(_explicitPath);
+            string? explicitDirectory = Path.GetDirectoryName(_explicitPath);
             if (!string.IsNullOrEmpty(explicitDirectory))
             {
                 Directory.CreateDirectory(explicitDirectory);
@@ -77,7 +77,7 @@ internal readonly record struct FuzzOperationLogEntry(
 {
     public override string ToString()
     {
-        var sanitized = Sanitize(Text);
+        string sanitized = Sanitize(Text);
         return string.Format(
             CultureInfo.InvariantCulture,
             "[{0:00000}] op={1} offset={2} length={3} seed={4} text=\"{5}\"",

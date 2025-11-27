@@ -89,7 +89,7 @@ public class TextModel : ITextSearchAccess
     private readonly PieceTreeBuffer _buffer;
     private readonly DecorationsTrees _decorationTrees = new();
     private readonly Dictionary<string, ModelDecoration> _decorationsById = new(StringComparer.Ordinal);
-    private readonly Dictionary<int, HashSet<string>> _decorationIdsByOwner = new();
+    private readonly Dictionary<int, HashSet<string>> _decorationIdsByOwner = [];
     private readonly IUndoRedoService _undoRedoService;
     private readonly ILanguageConfigurationService _languageConfigurationService;
     private readonly EditStack _editStack;
@@ -132,7 +132,7 @@ public class TextModel : ITextSearchAccess
         _buffer = new PieceTreeBuffer(text);
         _languageId = string.IsNullOrWhiteSpace(languageId) ? "plaintext" : languageId;
 
-        var normalizedEol = NormalizeEol(_creationOptions.DefaultEol == DefaultEndOfLine.CRLF ? "\r\n" : "\n");
+        string normalizedEol = NormalizeEol(_creationOptions.DefaultEol == DefaultEndOfLine.CRLF ? "\r\n" : "\n");
         if (_buffer.Length == 0)
         {
             _buffer.SetEol(normalizedEol);
@@ -143,7 +143,7 @@ public class TextModel : ITextSearchAccess
             _eol = _buffer.GetEol();
         }
 
-        var defaultEol = _eol == "\r\n" ? DefaultEndOfLine.CRLF : DefaultEndOfLine.LF;
+        DefaultEndOfLine defaultEol = _eol == "\r\n" ? DefaultEndOfLine.CRLF : DefaultEndOfLine.LF;
         _options = TextModelResolvedOptions.Resolve(_creationOptions, defaultEol);
         _creationOptions = _options.CreationOptions;
         _editStack = new EditStack(this, _undoRedoService);
@@ -189,8 +189,8 @@ public class TextModel : ITextSearchAccess
 
     public ITextSnapshot CreateSnapshot(bool preserveBom = false)
     {
-        var bom = preserveBom ? _buffer.GetBom() : string.Empty;
-        var snapshot = _buffer.InternalModel.CreateSnapshot(bom);
+        string bom = preserveBom ? _buffer.GetBom() : string.Empty;
+        ITextSnapshot snapshot = _buffer.InternalModel.CreateSnapshot(bom);
         return new TextModelSnapshot(snapshot);
     }
 
@@ -218,7 +218,7 @@ public class TextModel : ITextSearchAccess
 
     public string GetLineContent(int lineNumber)
     {
-        var content = _buffer.GetLineContent(lineNumber);
+        string content = _buffer.GetLineContent(lineNumber);
         int len = content.Length;
         if (len > 0)
         {
@@ -251,8 +251,8 @@ public class TextModel : ITextSearchAccess
     /// </summary>
     public TextPosition ValidatePosition(TextPosition position)
     {
-        var lineCount = GetLineCount();
-        var line = position.LineNumber;
+        int lineCount = GetLineCount();
+        int line = position.LineNumber;
 
         if (line < 1)
         {
@@ -261,13 +261,13 @@ public class TextModel : ITextSearchAccess
 
         if (line > lineCount)
         {
-            var lastLineMaxCol = GetLineMaxColumn(lineCount);
+            int lastLineMaxCol = GetLineMaxColumn(lineCount);
             return new TextPosition(lineCount, lastLineMaxCol);
         }
 
-        var minColumn = 1;
-        var maxColumn = GetLineMaxColumn(line);
-        var column = position.Column;
+        int minColumn = 1;
+        int maxColumn = GetLineMaxColumn(line);
+        int column = position.Column;
 
         if (column < minColumn)
         {
@@ -287,8 +287,8 @@ public class TextModel : ITextSearchAccess
     /// </summary>
     public Range ValidateRange(Range range)
     {
-        var start = ValidatePosition(range.GetStartPosition());
-        var end = ValidatePosition(range.GetEndPosition());
+        TextPosition start = ValidatePosition(range.GetStartPosition());
+        TextPosition end = ValidatePosition(range.GetEndPosition());
 
         // Ensure start <= end
         if (start.CompareTo(end) > 0)
@@ -329,7 +329,7 @@ public class TextModel : ITextSearchAccess
         if (range == null)
         {
             // Remove the tracked range
-            if (id != null && _trackedRanges.TryGetValue(id, out var existing))
+            if (id != null && _trackedRanges.TryGetValue(id, out ModelDecoration? existing))
             {
                 UnregisterDecoration(existing);
                 _trackedRanges.Remove(id);
@@ -338,17 +338,17 @@ public class TextModel : ITextSearchAccess
         }
 
         // Validate the range
-        var validatedRange = ValidateRange(range.Value);
-        var startOffset = GetOffsetAt(validatedRange.GetStartPosition());
-        var endOffset = GetOffsetAt(validatedRange.GetEndPosition());
-        var textRange = new Decorations.TextRange(startOffset, endOffset);
+        Range validatedRange = ValidateRange(range.Value);
+        int startOffset = GetOffsetAt(validatedRange.GetStartPosition());
+        int endOffset = GetOffsetAt(validatedRange.GetEndPosition());
+        TextRange textRange = new(startOffset, endOffset);
 
-        var options = Decorations.ModelDecorationOptions.CreateHiddenOptions(stickiness);
+        ModelDecorationOptions options = Decorations.ModelDecorationOptions.CreateHiddenOptions(stickiness);
 
-        if (id != null && _trackedRanges.TryGetValue(id, out var existingDecor))
+        if (id != null && _trackedRanges.TryGetValue(id, out ModelDecoration? existingDecor))
         {
             // Update existing tracked range - just update the range
-            var previousRange = existingDecor.Range;
+            TextRange previousRange = existingDecor.Range;
             existingDecor.Range = textRange;
             existingDecor.VersionId = _versionId;
             _decorationTrees.Reinsert(existingDecor);
@@ -357,8 +357,8 @@ public class TextModel : ITextSearchAccess
         else
         {
             // Create new tracked range
-            var newId = id ?? AllocateTrackedRangeId();
-            var decoration = new Decorations.ModelDecoration(newId, TrackedRangeOwnerId, textRange, options);
+            string newId = id ?? AllocateTrackedRangeId();
+            ModelDecoration decoration = new(newId, TrackedRangeOwnerId, textRange, options);
             decoration.VersionId = _versionId;
             RegisterDecoration(decoration);
             _trackedRanges[newId] = decoration;
@@ -379,13 +379,13 @@ public class TextModel : ITextSearchAccess
             return null;
         }
 
-        if (!_trackedRanges.TryGetValue(id, out var decoration))
+        if (!_trackedRanges.TryGetValue(id, out ModelDecoration? decoration))
         {
             return null;
         }
 
-        var startPos = GetPositionAt(decoration.Range.StartOffset);
-        var endPos = GetPositionAt(decoration.Range.EndOffset);
+        TextPosition startPos = GetPositionAt(decoration.Range.StartOffset);
+        TextPosition endPos = GetPositionAt(decoration.Range.EndOffset);
         return new Range(startPos, endPos);
     }
 
@@ -393,7 +393,7 @@ public class TextModel : ITextSearchAccess
 
     public IReadOnlyList<FindMatch> FindMatches(string searchString, Range? searchRange, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches, int limitResultCount = TextModelSearch.DefaultLimit)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindMatches(searchParams, searchRange, captureMatches, limitResultCount);
     }
 
@@ -407,21 +407,21 @@ public class TextModel : ITextSearchAccess
         bool captureMatches,
         int limitResultCount = TextModelSearch.DefaultLimit)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindMatches(searchParams, searchRanges, findInSelection, captureMatches, limitResultCount);
     }
 
     public IReadOnlyList<FindMatch> FindMatches(SearchParams searchParams, Range? searchRange = null, bool captureMatches = false, int limitResultCount = TextModelSearch.DefaultLimit)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return Array.Empty<FindMatch>();
         }
 
-        var range = searchRange ?? GetDocumentRange();
-        var rangeSet = SearchRangeSet.FromRange(this, range);
+        Range range = searchRange ?? GetDocumentRange();
+        SearchRangeSet rangeSet = SearchRangeSet.FromRange(this, range);
         return TextModelSearch.FindMatches(this, searchData, rangeSet, captureMatches, limitResultCount);
     }
 
@@ -433,19 +433,19 @@ public class TextModel : ITextSearchAccess
         int limitResultCount = TextModelSearch.DefaultLimit)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return Array.Empty<FindMatch>();
         }
 
-        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        SearchRangeSet rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
         return TextModelSearch.FindMatches(this, searchData, rangeSet, captureMatches, limitResultCount);
     }
 
     public FindMatch? FindNextMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindNextMatch(searchParams, searchStart, captureMatches);
     }
 
@@ -459,14 +459,14 @@ public class TextModel : ITextSearchAccess
         string? wordSeparators,
         bool captureMatches = false)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindNextMatch(searchParams, searchStart, searchRanges, findInSelection, captureMatches);
     }
 
     public FindMatch? FindNextMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return null;
@@ -483,19 +483,19 @@ public class TextModel : ITextSearchAccess
         bool captureMatches = false)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return null;
         }
 
-        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        SearchRangeSet rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
         return TextModelSearch.FindNextMatch(this, searchData, searchStart, captureMatches, rangeSet);
     }
 
     public FindMatch? FindPreviousMatch(string searchString, TextPosition searchStart, bool isRegex, bool matchCase, string? wordSeparators, bool captureMatches = false)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindPreviousMatch(searchParams, searchStart, captureMatches);
     }
 
@@ -509,14 +509,14 @@ public class TextModel : ITextSearchAccess
         string? wordSeparators,
         bool captureMatches = false)
     {
-        var searchParams = new SearchParams(searchString, isRegex, matchCase, wordSeparators);
+        SearchParams searchParams = new(searchString, isRegex, matchCase, wordSeparators);
         return FindPreviousMatch(searchParams, searchStart, searchRanges, findInSelection, captureMatches);
     }
 
     public FindMatch? FindPreviousMatch(SearchParams searchParams, TextPosition searchStart, bool captureMatches = false)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return null;
@@ -533,19 +533,19 @@ public class TextModel : ITextSearchAccess
         bool captureMatches = false)
     {
         ArgumentNullException.ThrowIfNull(searchParams);
-        var searchData = searchParams.ParseSearchRequest();
+        SearchData? searchData = searchParams.ParseSearchRequest();
         if (searchData == null)
         {
             return null;
         }
 
-        var rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
+        SearchRangeSet rangeSet = SearchRangeSet.FromRanges(this, searchRanges, findInSelection);
         return TextModelSearch.FindPreviousMatch(this, searchData, searchStart, captureMatches, rangeSet);
     }
 
     public ModelDecoration AddDecoration(TextRange range, ModelDecorationOptions? options = null, int ownerId = DecorationOwnerIds.Default)
     {
-        var decoration = CreateDecoration(range, options ?? ModelDecorationOptions.Default, ownerId);
+        ModelDecoration decoration = CreateDecoration(range, options ?? ModelDecorationOptions.Default, ownerId);
         RegisterDecoration(decoration);
         RaiseDecorationsChanged(new[] { new DecorationChange(decoration, DecorationDeltaKind.Added) });
         return decoration;
@@ -561,8 +561,8 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        var decorations = new List<ModelDecoration>();
-        foreach (var decoration in _decorationTrees.EnumerateAll())
+        List<ModelDecoration> decorations = [];
+        foreach (ModelDecoration decoration in _decorationTrees.EnumerateAll())
         {
             if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
             {
@@ -582,20 +582,20 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        var start = GetOffsetAt(new TextPosition(lineNumber, 1));
-        var end = lineNumber == GetLineCount()
+        int start = GetOffsetAt(new TextPosition(lineNumber, 1));
+        int end = lineNumber == GetLineCount()
             ? _buffer.Length
             : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
 
-        var range = new TextRange(start, end);
-        var decorations = _decorationTrees.Search(range, ownerIdFilter);
+        TextRange range = new(start, end);
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, ownerIdFilter);
         if (decorations.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
         }
 
-        var filtered = new List<ModelDecoration>(decorations.Count);
-        foreach (var decoration in decorations)
+        List<ModelDecoration> filtered = new(decorations.Count);
+        foreach (ModelDecoration decoration in decorations)
         {
             if (decoration.IsCollapsed && !decoration.Options.ShowIfCollapsed)
             {
@@ -622,7 +622,7 @@ public class TextModel : ITextSearchAccess
                 : _decorationsById.Keys.ToArray();
         }
 
-        if (!_decorationIdsByOwner.TryGetValue(ownerId, out var ids) || ids.Count == 0)
+        if (!_decorationIdsByOwner.TryGetValue(ownerId, out HashSet<string>? ids) || ids.Count == 0)
         {
             return Array.Empty<string>();
         }
@@ -632,18 +632,18 @@ public class TextModel : ITextSearchAccess
 
     public IReadOnlyList<ModelDecoration> DeltaDecorations(int ownerId, IReadOnlyList<string>? oldDecorationIds, IReadOnlyList<ModelDeltaDecoration>? newDecorations)
     {
-        var changes = new List<DecorationChange>();
+        List<DecorationChange> changes = [];
 
         if (oldDecorationIds != null)
         {
-            foreach (var id in oldDecorationIds)
+            foreach (string id in oldDecorationIds)
             {
                 if (string.IsNullOrEmpty(id))
                 {
                     continue;
                 }
 
-                if (_decorationsById.TryGetValue(id, out var existing) && existing.OwnerId == ownerId)
+                if (_decorationsById.TryGetValue(id, out ModelDecoration? existing) && existing.OwnerId == ownerId)
                 {
                     UnregisterDecoration(existing);
                     changes.Add(new DecorationChange(existing, DecorationDeltaKind.Removed));
@@ -651,12 +651,12 @@ public class TextModel : ITextSearchAccess
             }
         }
 
-        var added = new List<ModelDecoration>();
+        List<ModelDecoration> added = [];
         if (newDecorations != null)
         {
-            foreach (var descriptor in newDecorations)
+            foreach (ModelDeltaDecoration descriptor in newDecorations)
             {
-                var decoration = CreateDecoration(descriptor.Range, descriptor.Options, ownerId);
+                ModelDecoration decoration = CreateDecoration(descriptor.Range, descriptor.Options, ownerId);
                 RegisterDecoration(decoration);
                 added.Add(decoration);
                 changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Added));
@@ -673,7 +673,7 @@ public class TextModel : ITextSearchAccess
 
     public void RemoveAllDecorations(int ownerId)
     {
-        if (!_decorationIdsByOwner.TryGetValue(ownerId, out var ids) || ids.Count == 0)
+        if (!_decorationIdsByOwner.TryGetValue(ownerId, out HashSet<string>? ids) || ids.Count == 0)
         {
             return;
         }
@@ -690,17 +690,17 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        var searchParams = new SearchParams(options.Query, options.IsRegex, options.MatchCase, options.WordSeparators);
-        var matches = FindMatches(searchParams, searchRange: null, captureMatches: options.CaptureMatches, limitResultCount: options.Limit);
-        var projections = new List<ModelDeltaDecoration>(matches.Count);
-        foreach (var match in matches)
+        SearchParams searchParams = new(options.Query, options.IsRegex, options.MatchCase, options.WordSeparators);
+        IReadOnlyList<FindMatch> matches = FindMatches(searchParams, searchRange: null, captureMatches: options.CaptureMatches, limitResultCount: options.Limit);
+        List<ModelDeltaDecoration> projections = new(matches.Count);
+        foreach (FindMatch match in matches)
         {
-            var startOffset = GetOffsetAt(match.Range.Start);
-            var endOffset = GetOffsetAt(match.Range.End);
+            int startOffset = GetOffsetAt(match.Range.Start);
+            int endOffset = GetOffsetAt(match.Range.End);
             projections.Add(new ModelDeltaDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSearchMatchOptions()));
         }
 
-        var previous = _decorationIdsByOwner.TryGetValue(options.OwnerId, out var ids)
+        string[] previous = _decorationIdsByOwner.TryGetValue(options.OwnerId, out HashSet<string>? ids)
             ? ids.ToArray()
             : Array.Empty<string>();
 
@@ -715,20 +715,20 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        var lineStart = GetOffsetAt(new TextPosition(lineNumber, 1));
-        var lineEnd = lineNumber == GetLineCount()
+        int lineStart = GetOffsetAt(new TextPosition(lineNumber, 1));
+        int lineEnd = lineNumber == GetLineCount()
             ? _buffer.Length
             : GetOffsetAt(new TextPosition(lineNumber + 1, 1));
 
-        var range = new TextRange(lineStart, lineEnd);
-        var decorations = _decorationTrees.Search(range, ownerIdFilter, DecorationTreeScope.InjectedText);
+        TextRange range = new(lineStart, lineEnd);
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, ownerIdFilter, DecorationTreeScope.InjectedText);
         if (decorations.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
         }
 
-        var filtered = new List<ModelDecoration>(decorations.Count);
-        foreach (var decoration in decorations)
+        List<ModelDecoration> filtered = new(decorations.Count);
+        foreach (ModelDecoration decoration in decorations)
         {
             if (decoration.IsCollapsed && !decoration.Options.ShowIfCollapsed)
             {
@@ -743,14 +743,14 @@ public class TextModel : ITextSearchAccess
 
     public IReadOnlyList<ModelDecoration> GetFontDecorationsInRange(TextRange range, int ownerIdFilter = DecorationOwnerIds.Any)
     {
-        var decorations = _decorationTrees.Search(range, ownerIdFilter);
+        IReadOnlyList<ModelDecoration> decorations = _decorationTrees.Search(range, ownerIdFilter);
         if (decorations.Count == 0)
         {
             return Array.Empty<ModelDecoration>();
         }
 
-        var result = new List<ModelDecoration>();
-        foreach (var decoration in decorations)
+        List<ModelDecoration> result = [];
+        foreach (ModelDecoration decoration in decorations)
         {
             if (decoration.Options.AffectsFont || decoration.Options.LineHeight.HasValue)
             {
@@ -768,15 +768,15 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<ModelDecoration>();
         }
 
-        var result = new List<ModelDecoration>();
-        foreach (var decoration in _decorationTrees.EnumerateAll())
+        List<ModelDecoration> result = [];
+        foreach (ModelDecoration decoration in _decorationTrees.EnumerateAll())
         {
             if (!DecorationOwnerIds.MatchesFilter(ownerIdFilter, decoration.OwnerId))
             {
                 continue;
             }
 
-            var options = decoration.Options;
+            ModelDecorationOptions options = decoration.Options;
             if (options.AffectsGlyphMargin ||
                 !string.IsNullOrWhiteSpace(options.MarginClassName) ||
                 !string.IsNullOrWhiteSpace(options.LinesDecorationsClassName) ||
@@ -795,7 +795,7 @@ public class TextModel : ITextSearchAccess
 
     public void AttachEditor()
     {
-        var previous = _attachedEditorCount;
+        int previous = _attachedEditorCount;
         _attachedEditorCount++;
         if (previous == 0 && _attachedEditorCount == 1)
         {
@@ -847,7 +847,7 @@ public class TextModel : ITextSearchAccess
 
     public bool Undo()
     {
-        var element = _editStack.PopUndo();
+        TextModelUndoRedoElement? element = _editStack.PopUndo();
         if (element is null)
         {
             return false;
@@ -859,7 +859,7 @@ public class TextModel : ITextSearchAccess
 
     public bool Redo()
     {
-        var element = _editStack.PopRedo();
+        TextModelUndoRedoElement? element = _editStack.PopRedo();
         if (element is null)
         {
             return false;
@@ -872,13 +872,13 @@ public class TextModel : ITextSearchAccess
 
     public void PushEol(EndOfLineSequence sequence)
     {
-        var target = SequenceToString(sequence);
+        string target = SequenceToString(sequence);
         if (string.Equals(_eol, target, StringComparison.Ordinal))
         {
             return;
         }
 
-        var element = _editStack.GetOrCreateElement(null, null);
+        EditStackElement element = _editStack.GetOrCreateElement(null, null);
         SetEolInternal(target, recordStackDelta: false, isUndo: false, isRedo: false);
         element.RecordEolChange(target, _alternativeVersionId);
     }
@@ -890,13 +890,13 @@ public class TextModel : ITextSearchAccess
 
     public void UpdateOptions(TextModelUpdateOptions update)
     {
-        var updated = _options.WithUpdate(update);
+        TextModelResolvedOptions updated = _options.WithUpdate(update);
         if (_options.Equals(updated))
         {
             return;
         }
 
-        var diff = _options.Diff(updated);
+        TextModelOptionsChangedEventArgs diff = _options.Diff(updated);
         _options = updated;
         _creationOptions = updated.CreationOptions;
         OnDidChangeOptions?.Invoke(this, diff);
@@ -914,7 +914,7 @@ public class TextModel : ITextSearchAccess
         result.LooksLikeAlignment = false;
 
         int i = 0;
-        var maxCommon = Math.Min(aLength, bLength);
+        int maxCommon = Math.Min(aLength, bLength);
         while (i < maxCommon && a[i] == b[i])
         {
             i++;
@@ -924,7 +924,7 @@ public class TextModel : ITextSearchAccess
         int aTabsCount = 0;
         for (int j = i; j < aLength; j++)
         {
-            var ch = a[j];
+            char ch = a[j];
             if (ch == ' ')
             {
                 aSpacesCount++;
@@ -939,7 +939,7 @@ public class TextModel : ITextSearchAccess
         int bTabsCount = 0;
         for (int j = i; j < bLength; j++)
         {
-            var ch = b[j];
+            char ch = b[j];
             if (ch == ' ')
             {
                 bSpacesCount++;
@@ -987,32 +987,32 @@ public class TextModel : ITextSearchAccess
         }
     }
 
-    private static readonly int[] AllowedTabSizeGuesses = { 2, 4, 6, 8, 3, 5, 7 };
+    private static readonly int[] AllowedTabSizeGuesses = [2, 4, 6, 8, 3, 5, 7];
     private const int MaxAllowedTabSizeGuess = 8;
 
     public void DetectIndentation(bool defaultInsertSpaces, int defaultTabSize)
     {
-        var linesCount = Math.Min(GetLineCount(), 10000);
-        var linesIndentedWithTabsCount = 0;
-        var linesIndentedWithSpacesCount = 0;
-        var previousLineText = string.Empty;
-        var previousLineIndentation = 0;
-        var spacesDiffCount = new int[MaxAllowedTabSizeGuess + 1];
-        var diffResult = new SpacesDiffResult();
+        int linesCount = Math.Min(GetLineCount(), 10000);
+        int linesIndentedWithTabsCount = 0;
+        int linesIndentedWithSpacesCount = 0;
+        string previousLineText = string.Empty;
+        int previousLineIndentation = 0;
+        int[] spacesDiffCount = new int[MaxAllowedTabSizeGuess + 1];
+        SpacesDiffResult diffResult = new();
 
         for (int line = 1; line <= linesCount; line++)
         {
-            var currentLineText = GetLineContent(line);
-            var currentLineLength = currentLineText.Length;
+            string currentLineText = GetLineContent(line);
+            int currentLineLength = currentLineText.Length;
 
-            var currentLineHasContent = false;
-            var currentLineIndentation = 0;
-            var currentLineSpacesCount = 0;
-            var currentLineTabsCount = 0;
+            bool currentLineHasContent = false;
+            int currentLineIndentation = 0;
+            int currentLineSpacesCount = 0;
+            int currentLineTabsCount = 0;
 
             for (int j = 0; j < currentLineLength; j++)
             {
-                var ch = currentLineText[j];
+                char ch = currentLineText[j];
                 if (ch == '\t')
                 {
                     currentLineTabsCount++;
@@ -1053,7 +1053,7 @@ public class TextModel : ITextSearchAccess
                 }
             }
 
-            var currentSpacesDiff = diffResult.SpacesDiff;
+            int currentSpacesDiff = diffResult.SpacesDiff;
             if (currentSpacesDiff <= MaxAllowedTabSizeGuess)
             {
                 spacesDiffCount[currentSpacesDiff]++;
@@ -1063,21 +1063,21 @@ public class TextModel : ITextSearchAccess
             previousLineIndentation = currentLineIndentation;
         }
 
-        var insertSpaces = defaultInsertSpaces;
+        bool insertSpaces = defaultInsertSpaces;
         if (linesIndentedWithTabsCount != linesIndentedWithSpacesCount)
         {
             insertSpaces = linesIndentedWithTabsCount < linesIndentedWithSpacesCount;
         }
 
-        var tabSize = defaultTabSize;
+        int tabSize = defaultTabSize;
 
         if (insertSpaces)
         {
             double tabSizeScore = insertSpaces ? 0 : 0.1 * linesCount;
 
-            foreach (var possibleTabSize in AllowedTabSizeGuesses)
+            foreach (int possibleTabSize in AllowedTabSizeGuesses)
             {
-                var possibleScore = spacesDiffCount[possibleTabSize];
+                int possibleScore = spacesDiffCount[possibleTabSize];
                 if (possibleScore > tabSizeScore)
                 {
                     tabSizeScore = possibleScore;
@@ -1106,7 +1106,7 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        var previous = _languageId;
+        string previous = _languageId;
         _languageId = languageId;
         SubscribeToLanguageConfiguration(_languageId);
         OnDidChangeLanguage?.Invoke(this, new TextModelLanguageChangedEventArgs(previous, languageId));
@@ -1127,20 +1127,20 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<TextChange>();
         }
 
-        var pending = PreparePendingEdits(edits);
+        List<PendingEdit> pending = PreparePendingEdits(edits);
         if (pending.Count == 0)
         {
             return Array.Empty<TextChange>();
         }
 
-        var documentRangeBeforeEdit = GetDocumentRange();
-        var isFlushEdit = pending.Count == 1
+        Range documentRangeBeforeEdit = GetDocumentRange();
+        bool isFlushEdit = pending.Count == 1
             && pending[0].Edit.Start.Equals(documentRangeBeforeEdit.Start)
             && pending[0].Edit.End.Equals(documentRangeBeforeEdit.End);
 
-        var decorationChanges = ApplyPendingEdits(pending, forceMoveMarkers);
+        List<DecorationChange> decorationChanges = ApplyPendingEdits(pending, forceMoveMarkers);
 
-        foreach (var edit in pending)
+        foreach (PendingEdit edit in pending)
         {
             edit.NewStartPosition = _buffer.GetPositionAt(edit.NewStartOffset);
             edit.NewEndPosition = _buffer.GetPositionAt(edit.NewEndOffset);
@@ -1148,14 +1148,14 @@ public class TextModel : ITextSearchAccess
 
         IncreaseVersionId();
 
-        var changes = new List<TextChange>(pending.Count);
-        foreach (var edit in pending)
+        List<TextChange> changes = new(pending.Count);
+        foreach (PendingEdit edit in pending)
         {
             changes.Add(new TextChange(edit.Edit.Start, edit.Edit.End, edit.NewText));
         }
 
-        var recordedEdits = new List<RecordedEdit>(pending.Count);
-        foreach (var edit in pending)
+        List<RecordedEdit> recordedEdits = new(pending.Count);
+        foreach (PendingEdit edit in pending)
         {
             recordedEdits.Add(new RecordedEdit(
                 edit.Edit.Start,
@@ -1192,7 +1192,7 @@ public class TextModel : ITextSearchAccess
                 }
             }
 
-            var element = _editStack.GetOrCreateElement(undoLabel ?? DefaultUndoLabel, beforeCursorState);
+            EditStackElement element = _editStack.GetOrCreateElement(undoLabel ?? DefaultUndoLabel, beforeCursorState);
             element.AppendEdits(recordedEdits, _eol, _alternativeVersionId, afterCursorState);
         }
 
@@ -1201,30 +1201,30 @@ public class TextModel : ITextSearchAccess
 
     private List<PendingEdit> PreparePendingEdits(TextEdit[] edits)
     {
-        var pending = new List<PendingEdit>(edits.Length);
-        foreach (var edit in edits)
+        List<PendingEdit> pending = new(edits.Length);
+        foreach (TextEdit edit in edits)
         {
-            var startOffset = _buffer.GetOffsetAt(edit.Start.LineNumber, edit.Start.Column);
-            var endOffset = _buffer.GetOffsetAt(edit.End.LineNumber, edit.End.Column);
+            int startOffset = _buffer.GetOffsetAt(edit.Start.LineNumber, edit.Start.Column);
+            int endOffset = _buffer.GetOffsetAt(edit.End.LineNumber, edit.End.Column);
             if (endOffset < startOffset)
             {
                 (startOffset, endOffset) = (endOffset, startOffset);
             }
 
-            var newText = edit.Text ?? string.Empty;
+            string newText = edit.Text ?? string.Empty;
             if (startOffset == endOffset && newText.Length == 0)
             {
                 continue;
             }
 
-            var oldText = _buffer.GetText(startOffset, endOffset - startOffset);
+            string oldText = _buffer.GetText(startOffset, endOffset - startOffset);
             pending.Add(new PendingEdit(edit, startOffset, endOffset, oldText));
         }
 
         pending.Sort((a, b) => a.OldStartOffset.CompareTo(b.OldStartOffset));
 
         int delta = 0;
-        foreach (var edit in pending)
+        foreach (PendingEdit edit in pending)
         {
             edit.NewStartOffset = edit.OldStartOffset + delta;
             edit.NewEndOffset = edit.NewStartOffset + edit.NewText.Length;
@@ -1236,10 +1236,10 @@ public class TextModel : ITextSearchAccess
 
     private List<DecorationChange> ApplyPendingEdits(List<PendingEdit> pending, bool forceMoveMarkers)
     {
-        var applyOrder = new List<PendingEdit>(pending);
+        List<PendingEdit> applyOrder = new(pending);
         applyOrder.Sort((a, b) =>
         {
-            var cmp = b.OldStartOffset.CompareTo(a.OldStartOffset);
+            int cmp = b.OldStartOffset.CompareTo(a.OldStartOffset);
             if (cmp != 0)
             {
                 return cmp;
@@ -1248,11 +1248,11 @@ public class TextModel : ITextSearchAccess
             return b.OldEndOffset.CompareTo(a.OldEndOffset);
         });
 
-        var decorationChanges = new List<DecorationChange>();
-        foreach (var edit in applyOrder)
+        List<DecorationChange> decorationChanges = [];
+        foreach (PendingEdit edit in applyOrder)
         {
-            var removedLength = edit.OldEndOffset - edit.OldStartOffset;
-            var deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length, forceMoveMarkers);
+            int removedLength = edit.OldEndOffset - edit.OldStartOffset;
+            IReadOnlyList<DecorationChange> deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length, forceMoveMarkers);
             if (deltas.Count > 0)
             {
                 decorationChanges.AddRange(deltas);
@@ -1272,10 +1272,10 @@ public class TextModel : ITextSearchAccess
         {
             if (element.Edits.Count > 0)
             {
-                var replay = new TextEdit[element.Edits.Count];
+                TextEdit[] replay = new TextEdit[element.Edits.Count];
                 for (int i = 0; i < element.Edits.Count; i++)
                 {
-                    var recorded = element.Edits[i];
+                    RecordedEdit recorded = element.Edits[i];
                     replay[i] = isUndo
                         ? new TextEdit(recorded.NewStart, recorded.NewEnd, recorded.OldText)
                         : new TextEdit(recorded.OldStart, recorded.OldEnd, recorded.NewText);
@@ -1284,7 +1284,7 @@ public class TextModel : ITextSearchAccess
                 ApplyEditsInternal(replay, recordInUndoStack: false, isUndo: isUndo, isRedo: !isUndo);
             }
 
-            var targetEol = isUndo ? element.BeforeEol : element.AfterEol;
+            string targetEol = isUndo ? element.BeforeEol : element.AfterEol;
             if (!string.Equals(_eol, targetEol, StringComparison.Ordinal))
             {
                 SetEolInternal(targetEol, recordStackDelta: false, isUndo: isUndo, isRedo: !isUndo);
@@ -1306,17 +1306,17 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        var oldEnd = GetDocumentEndPosition();
+        TextPosition oldEnd = GetDocumentEndPosition();
         _buffer.SetEol(newEol);
         _eol = newEol;
         IncreaseVersionId();
 
-        var change = new TextChange(new TextPosition(1, 1), oldEnd, _buffer.GetText());
+        TextChange change = new(new TextPosition(1, 1), oldEnd, _buffer.GetText());
         OnDidChangeContent?.Invoke(this, new TextModelContentChangedEventArgs(new[] { change }, _versionId, isUndo, isRedo, false));
 
         if (recordStackDelta)
         {
-            var element = _editStack.GetOrCreateElement(null, null);
+            EditStackElement element = _editStack.GetOrCreateElement(null, null);
             element.RecordEolChange(newEol, _alternativeVersionId);
         }
 
@@ -1326,8 +1326,8 @@ public class TextModel : ITextSearchAccess
 
     private TextPosition GetDocumentEndPosition()
     {
-        var lineCount = GetLineCount();
-        var lastLine = GetLineContent(lineCount);
+        int lineCount = GetLineCount();
+        string lastLine = GetLineContent(lineCount);
         return new TextPosition(lineCount, lastLine.Length + 1);
     }
 
@@ -1344,22 +1344,22 @@ public class TextModel : ITextSearchAccess
 
     private Range GetDocumentRange()
     {
-        var lineCount = GetLineCount();
-        var end = new TextPosition(lineCount, GetLineMaxColumn(lineCount));
+        int lineCount = GetLineCount();
+        TextPosition end = new(lineCount, GetLineMaxColumn(lineCount));
         return new Range(new TextPosition(1, 1), end);
     }
 
     private string GetValueInRangeInternal(Range range, bool normalizeLineEndings, out LineFeedCounter? lineFeedCounter)
     {
-        var startOffset = GetOffsetAt(range.Start);
-        var endOffset = GetOffsetAt(range.End);
+        int startOffset = GetOffsetAt(range.Start);
+        int endOffset = GetOffsetAt(range.End);
         if (endOffset < startOffset)
         {
             (startOffset, endOffset) = (endOffset, startOffset);
         }
 
-        var length = Math.Max(0, endOffset - startOffset);
-        var value = _buffer.GetText(startOffset, length);
+        int length = Math.Max(0, endOffset - startOffset);
+        string value = _buffer.GetText(startOffset, length);
         if (!normalizeLineEndings)
         {
             lineFeedCounter = null;
@@ -1372,7 +1372,7 @@ public class TextModel : ITextSearchAccess
             return value;
         }
 
-        var normalized = NormalizeToLf(value);
+        string normalized = NormalizeToLf(value);
         lineFeedCounter = new LineFeedCounter(normalized);
         return normalized;
     }
@@ -1394,10 +1394,10 @@ public class TextModel : ITextSearchAccess
             return text;
         }
 
-        var builder = new StringBuilder(text.Length);
+        StringBuilder builder = new(text.Length);
         for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r')
             {
                 if (i + 1 < text.Length && text[i + 1] == '\n')
@@ -1447,7 +1447,7 @@ public class TextModel : ITextSearchAccess
         right = Math.Abs(right);
         while (right != 0)
         {
-            var temp = right;
+            int temp = right;
             right = left % right;
             left = temp;
         }
@@ -1457,7 +1457,7 @@ public class TextModel : ITextSearchAccess
 
     private ModelDecoration CreateDecoration(TextRange range, ModelDecorationOptions options, int ownerId)
     {
-        var decoration = new ModelDecoration(Guid.NewGuid().ToString(), ownerId, range, options);
+        ModelDecoration decoration = new(Guid.NewGuid().ToString(), ownerId, range, options);
         decoration.VersionId = _versionId;
         return decoration;
     }
@@ -1478,7 +1478,7 @@ public class TextModel : ITextSearchAccess
 
     private void TrackDecoration(ModelDecoration decoration)
     {
-        if (!_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out var ids))
+        if (!_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out HashSet<string>? ids))
         {
             ids = new HashSet<string>(StringComparer.Ordinal);
             _decorationIdsByOwner[decoration.OwnerId] = ids;
@@ -1489,7 +1489,7 @@ public class TextModel : ITextSearchAccess
 
     private void UntrackDecoration(ModelDecoration decoration)
     {
-        if (_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out var ids))
+        if (_decorationIdsByOwner.TryGetValue(decoration.OwnerId, out HashSet<string>? ids))
         {
             ids.Remove(decoration.Id);
             if (ids.Count == 0)
@@ -1506,23 +1506,23 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        var args = BuildDecorationsChangedEventArgs(changes);
+        TextModelDecorationsChangedEventArgs args = BuildDecorationsChangedEventArgs(changes);
         OnDidChangeDecorations?.Invoke(this, args);
     }
 
     private TextModelDecorationsChangedEventArgs BuildDecorationsChangedEventArgs(IReadOnlyList<DecorationChange> changes)
     {
-        var affectsMinimap = false;
-        var affectsOverviewRuler = false;
-        var affectsGlyphMargin = false;
-        var affectsLineNumber = false;
-        var injectedLines = new SortedSet<int>();
-        var lineHeightChanges = new HashSet<LineHeightChange>();
-        var fontLineChanges = new HashSet<LineFontChange>();
+        bool affectsMinimap = false;
+        bool affectsOverviewRuler = false;
+        bool affectsGlyphMargin = false;
+        bool affectsLineNumber = false;
+        SortedSet<int> injectedLines = [];
+        HashSet<LineHeightChange> lineHeightChanges = [];
+        HashSet<LineFontChange> fontLineChanges = [];
 
-        foreach (var change in changes)
+        foreach (DecorationChange change in changes)
         {
-            var options = change.Options;
+            ModelDecorationOptions options = change.Options;
             affectsMinimap |= options.AffectsMinimap;
             affectsOverviewRuler |= options.AffectsOverviewRuler;
             affectsGlyphMargin |= options.AffectsGlyphMargin;
@@ -1561,10 +1561,10 @@ public class TextModel : ITextSearchAccess
             return;
         }
 
-        var startOffset = range.StartOffset;
-        var endOffset = range.EndOffset;
-        var startLine = GetPositionAt(startOffset).LineNumber;
-        var endLine = GetPositionAt(endOffset).LineNumber;
+        int startOffset = range.StartOffset;
+        int endOffset = range.EndOffset;
+        int startLine = GetPositionAt(startOffset).LineNumber;
+        int endLine = GetPositionAt(endOffset).LineNumber;
         if (endLine < startLine)
         {
             endLine = startLine;
@@ -1602,10 +1602,10 @@ public class TextModel : ITextSearchAccess
             return Array.Empty<DecorationChange>();
         }
 
-        var processed = new HashSet<string>(StringComparer.Ordinal);
-        var changes = new List<DecorationChange>();
-        var searchEnd = removedLength > 0 ? offset + removedLength : offset + insertedLength;
-        var overlaps = _decorationTrees.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
+        HashSet<string> processed = new(StringComparer.Ordinal);
+        List<DecorationChange> changes = [];
+        int searchEnd = removedLength > 0 ? offset + removedLength : offset + insertedLength;
+        IReadOnlyList<ModelDecoration> overlaps = _decorationTrees.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
         ProcessDecorations(overlaps);
         ProcessDecorations(_decorationTrees.EnumerateFrom(offset));
 
@@ -1613,14 +1613,14 @@ public class TextModel : ITextSearchAccess
 
         void ProcessDecorations(IEnumerable<ModelDecoration> decorations)
         {
-            foreach (var decoration in decorations)
+            foreach (ModelDecoration decoration in decorations)
             {
                 if (!processed.Add(decoration.Id))
                 {
                     continue;
                 }
 
-                var previousRange = decoration.Range;
+                TextRange previousRange = decoration.Range;
                 if (DecorationRangeUpdater.ApplyEdit(decoration, offset, removedLength, insertedLength, forceMoveMarkers))
                 {
                     decoration.VersionId = _versionId;
@@ -1642,7 +1642,7 @@ public class TextModel : ITextSearchAccess
         OnDidChangeLanguageConfiguration?.Invoke(this, new TextModelLanguageConfigurationChangedEventArgs(args.LanguageId));
     }
 
-    
+
 
     private sealed class PendingEdit
     {

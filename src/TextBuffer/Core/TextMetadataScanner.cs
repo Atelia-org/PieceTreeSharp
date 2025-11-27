@@ -9,13 +9,13 @@ namespace PieceTree.TextBuffer.Core;
 
 internal static class TextMetadataScanner
 {
-    private static readonly (int Start, int End)[] RtlRanges = new[]
-    {
+    private static readonly (int Start, int End)[] RtlRanges =
+    [
         (0x0590, 0x08FF), // Hebrew, Arabic, Syriac, Thaana, etc.
         (0x200F, 0x202E), // Directional formatting characters
         (0xFB1D, 0xFDFF), // Hebrew presentation forms
         (0xFE70, 0xFEFC), // Arabic presentation forms-B
-    };
+    ];
 
     public static bool ContainsRightToLeftCharacters(string? text)
     {
@@ -24,7 +24,7 @@ internal static class TextMetadataScanner
             return false;
         }
 
-        foreach (var ch in text)
+        foreach (char ch in text)
         {
             if (IsRightToLeftChar(ch))
             {
@@ -42,7 +42,7 @@ internal static class TextMetadataScanner
             return false;
         }
 
-        foreach (var ch in text)
+        foreach (char ch in text)
         {
             if (ch == '\u2028' || ch == '\u2029' || ch == '\u0085')
             {
@@ -60,7 +60,7 @@ internal static class TextMetadataScanner
             return true;
         }
 
-        foreach (var ch in text)
+        foreach (char ch in text)
         {
             if (ch > 0x7F)
             {
@@ -78,8 +78,8 @@ internal static class TextMetadataScanner
 
     private static bool IsRtlRangeChar(char ch)
     {
-        var code = ch;
-        foreach (var (start, end) in RtlRanges)
+        char code = ch;
+        foreach ((int start, int end) in RtlRanges)
         {
             if (code >= start && code <= end)
             {

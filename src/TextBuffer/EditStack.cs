@@ -28,7 +28,7 @@ internal sealed class EditStack
     {
         if (_openElement is null)
         {
-            var element = new EditStackElement(_model.AlternativeVersionId, _model.Eol, label, beforeCursorState);
+            EditStackElement element = new(_model.AlternativeVersionId, _model.Eol, label, beforeCursorState);
             _openElement = new TextModelUndoRedoElement(_model, element);
             _undoRedoService.PushElement(_openElement);
         }
@@ -93,7 +93,7 @@ internal sealed class EditStack
 
 internal sealed class EditStackElement
 {
-    private readonly List<RecordedEdit> _edits = new();
+    private readonly List<RecordedEdit> _edits = [];
 
     public EditStackElement(int beforeVersionId, string beforeEol, string? label, IReadOnlyList<TextPosition>? beforeCursorState)
     {

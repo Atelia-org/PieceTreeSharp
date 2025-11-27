@@ -90,7 +90,7 @@ public sealed class CursorConfiguration
     {
         ArgumentNullException.ThrowIfNull(modelOptions);
 
-        var opts = editorOptions ?? EditorCursorOptions.Default;
+        EditorCursorOptions opts = editorOptions ?? EditorCursorOptions.Default;
         _language = opts.LanguageConfiguration ?? LanguageConfigurationOptions.Default;
 
         ReadOnly = opts.ReadOnly;
@@ -130,7 +130,7 @@ public sealed class CursorConfiguration
     public int VisibleColumnFromColumn(ICursorSimpleModel model, TextPosition position)
     {
         ArgumentNullException.ThrowIfNull(model);
-        var lineContent = model.GetLineContent(position.LineNumber);
+        string lineContent = model.GetLineContent(position.LineNumber);
         return CursorColumnsHelper.VisibleColumnFromColumn(lineContent, position.Column, TabSize);
     }
 
@@ -138,16 +138,16 @@ public sealed class CursorConfiguration
     {
         ArgumentNullException.ThrowIfNull(model);
 
-        var lineContent = model.GetLineContent(lineNumber);
-        var result = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, TabSize);
+        string lineContent = model.GetLineContent(lineNumber);
+        int result = CursorColumnsHelper.ColumnFromVisibleColumn(lineContent, visibleColumn, TabSize);
 
-        var minColumn = model.GetLineMinColumn(lineNumber);
+        int minColumn = model.GetLineMinColumn(lineNumber);
         if (result < minColumn)
         {
             return minColumn;
         }
 
-        var maxColumn = model.GetLineMaxColumn(lineNumber);
+        int maxColumn = model.GetLineMaxColumn(lineNumber);
         if (result > maxColumn)
         {
             return maxColumn;
@@ -163,13 +163,13 @@ public sealed class CursorConfiguration
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        var firstNonWhitespace = FirstNonWhitespaceIndex(text);
+        int firstNonWhitespace = FirstNonWhitespaceIndex(text);
         if (firstNonWhitespace == -1)
         {
             return NormalizeLeadingWhitespace(text);
         }
 
-        var prefix = NormalizeLeadingWhitespace(text[..firstNonWhitespace]);
+        string prefix = NormalizeLeadingWhitespace(text[..firstNonWhitespace]);
         return prefix + text[firstNonWhitespace..];
     }
 
@@ -180,8 +180,8 @@ public sealed class CursorConfiguration
             return string.Empty;
         }
 
-        var visible = 0;
-        foreach (var ch in text)
+        int visible = 0;
+        foreach (char ch in text)
         {
             visible = ch == '\t'
                 ? CursorColumnsHelper.NextIndentTabStop(visible, IndentSize)
@@ -190,8 +190,8 @@ public sealed class CursorConfiguration
 
         if (!InsertSpaces)
         {
-            var tabs = visible / IndentSize;
-            var spaces = visible % IndentSize;
+            int tabs = visible / IndentSize;
+            int spaces = visible % IndentSize;
             return new string('\t', tabs) + new string(' ', spaces);
         }
 
@@ -200,9 +200,9 @@ public sealed class CursorConfiguration
 
     private static int FirstNonWhitespaceIndex(string text)
     {
-        for (var i = 0; i < text.Length; i++)
+        for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch != ' ' && ch != '\t')
             {
                 return i;
@@ -238,7 +238,7 @@ public sealed class CursorConfiguration
             return static _ => true;
         }
 
-        var lookup = new HashSet<char>(charSet);
+        HashSet<char> lookup = new(charSet);
         return ch => lookup.Contains(ch);
     }
 
@@ -246,10 +246,10 @@ public sealed class CursorConfiguration
 
     private static IReadOnlyDictionary<string, string> CreateSurroundingPairsDictionary(IEnumerable<SurroundingPairDefinition> pairs)
     {
-        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, string> dict = new(StringComparer.Ordinal);
         if (pairs != null)
         {
-            foreach (var pair in pairs)
+            foreach (SurroundingPairDefinition pair in pairs)
             {
                 if (!string.IsNullOrEmpty(pair.Open) && !string.IsNullOrEmpty(pair.Close))
                 {
@@ -358,24 +358,24 @@ public sealed record class SurroundingPairDefinition(string Open, string Close);
 public sealed record class LanguageConfigurationOptions
 {
     private static readonly AutoClosingPairDefinition[] s_defaultAutoClosingPairs =
-    {
+    [
         new("(", ")"),
         new("[", "]"),
         new("{", "}"),
         new("'", "'"),
         new("\"", "\""),
         new("`", "`"),
-    };
+    ];
 
     private static readonly SurroundingPairDefinition[] s_defaultSurroundingPairs =
-    {
+    [
         new("(", ")"),
         new("[", "]"),
         new("{", "}"),
         new("'", "'"),
         new("\"", "\""),
         new("`", "`"),
-    };
+    ];
 
     private const string DefaultQuoteAutoCloseBefore = " \t\r\n)]}'\";:>,./?";
     private const string DefaultBracketAutoCloseBefore = " \t\r\n)]}>.,;:";
@@ -514,7 +514,7 @@ public static class CursorColumnsHelper
             return 0;
         }
 
-        var textLen = Math.Min(column - 1, lineContent.Length);
+        int textLen = Math.Min(column - 1, lineContent.Length);
         int result = 0;
 
         for (int i = 0; i < textLen; i++)
@@ -582,7 +582,7 @@ public static class CursorColumnsHelper
     /// </summary>
     public static int NextRenderTabStop(int visibleColumn, int tabSize)
     {
-        return visibleColumn + tabSize - visibleColumn % tabSize;
+        return visibleColumn + tabSize - (visibleColumn % tabSize);
     }
 
     /// <summary>
@@ -591,7 +591,7 @@ public static class CursorColumnsHelper
     /// </summary>
     public static int PrevRenderTabStop(int visibleColumn, int tabSize)
     {
-        return Math.Max(0, visibleColumn - 1 - (visibleColumn - 1) % tabSize);
+        return Math.Max(0, visibleColumn - 1 - ((visibleColumn - 1) % tabSize));
     }
 
     /// <summary>

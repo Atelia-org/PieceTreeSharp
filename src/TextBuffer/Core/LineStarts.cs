@@ -13,7 +13,7 @@ namespace PieceTree.TextBuffer.Core;
 /// </summary>
 internal readonly struct LineStartTable
 {
-    private static readonly int[] DefaultStarts = { 0 };
+    private static readonly int[] DefaultStarts = [0];
     private readonly int[]? _lineStarts;
 
     public LineStartTable(int[] lineStarts, int carriageReturnCount, int lineFeedCount, int carriageReturnLineFeedCount, bool isBasicAscii)
@@ -85,28 +85,28 @@ internal static class LineStartBuilder
     private static LineStartTable BuildWithFallback(string text, bool trackAscii)
     {
         // Slow path mirrors TS createLineStarts by forcing a temporary char array allocation.
-        var buffer = text.ToCharArray();
+        char[] buffer = text.ToCharArray();
         return BuildCore(buffer.AsSpan(), trackAscii);
     }
 
     private static LineStartTable BuildCore(ReadOnlySpan<char> text, bool trackAscii)
     {
-        var starts = new List<int>(Math.Max(4, text.Length / 64)) { 0 };
-        var cr = 0;
-        var lf = 0;
-        var crlf = 0;
-        var isBasicAscii = true;
+        List<int> starts = new(Math.Max(4, text.Length / 64)) { 0 };
+        int cr = 0;
+        int lf = 0;
+        int crlf = 0;
+        bool isBasicAscii = true;
 
-        var index = 0;
+        int index = 0;
         while (index < text.Length)
         {
-            var current = text[index];
+            char current = text[index];
             char? peekNext = index + 1 < text.Length ? text[index + 1] : null;
             ProcessChar(current, peekNext, ref index, starts, ref cr, ref lf, ref crlf, trackAscii, ref isBasicAscii);
             index++;
         }
 
-        var basicAscii = trackAscii ? isBasicAscii : true;
+        bool basicAscii = trackAscii ? isBasicAscii : true;
         return new LineStartTable(starts.ToArray(), cr, lf, crlf, basicAscii);
     }
 

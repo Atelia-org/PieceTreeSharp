@@ -27,19 +27,19 @@ public static class SnapshotTestUtils
     static SnapshotTestUtils()
     {
         // Find the Snapshots directory relative to the test project
-        var currentDir = Directory.GetCurrentDirectory();
-        
+        string currentDir = Directory.GetCurrentDirectory();
+
         // Navigate up to find the test project root
-        var testProjectDir = FindTestProjectDirectory(currentDir);
+        string testProjectDir = FindTestProjectDirectory(currentDir);
         SnapshotsDirectory = Path.Combine(testProjectDir, "Snapshots");
-        
+
         // Ensure the directory exists
         Directory.CreateDirectory(SnapshotsDirectory);
     }
 
     private static string FindTestProjectDirectory(string startDir)
     {
-        var dir = startDir;
+        string? dir = startDir;
         while (!string.IsNullOrEmpty(dir))
         {
             if (File.Exists(Path.Combine(dir, "TextBuffer.Tests.csproj")))
@@ -48,7 +48,7 @@ public static class SnapshotTestUtils
             }
             dir = Path.GetDirectoryName(dir);
         }
-        
+
         // Fallback to current directory + Snapshots
         return startDir;
     }
@@ -63,7 +63,7 @@ public static class SnapshotTestUtils
     /// <param name="extension">File extension (default: .txt)</param>
     public static string GetSnapshotPath(string category, string name, string extension = ".txt")
     {
-        var categoryDir = Path.Combine(SnapshotsDirectory, category);
+        string categoryDir = Path.Combine(SnapshotsDirectory, category);
         Directory.CreateDirectory(categoryDir);
         return Path.Combine(categoryDir, name + extension);
     }
@@ -77,7 +77,7 @@ public static class SnapshotTestUtils
     /// <returns>Content of the snapshot file, or null if not found</returns>
     public static string? ReadSnapshot(string category, string name, string extension = ".txt")
     {
-        var path = GetSnapshotPath(category, name, extension);
+        string path = GetSnapshotPath(category, name, extension);
         if (!File.Exists(path))
         {
             return null;
@@ -90,7 +90,7 @@ public static class SnapshotTestUtils
     /// </summary>
     public static string[]? ReadSnapshotLines(string category, string name, string extension = ".txt")
     {
-        var path = GetSnapshotPath(category, name, extension);
+        string path = GetSnapshotPath(category, name, extension);
         if (!File.Exists(path))
         {
             return null;
@@ -103,7 +103,7 @@ public static class SnapshotTestUtils
     /// </summary>
     public static T? ReadJsonSnapshot<T>(string category, string name) where T : class
     {
-        var content = ReadSnapshot(category, name, ".json");
+        string? content = ReadSnapshot(category, name, ".json");
         if (content == null)
         {
             return null;
@@ -120,7 +120,7 @@ public static class SnapshotTestUtils
     /// <param name="extension">File extension (default: .txt)</param>
     public static void WriteSnapshot(string category, string name, string content, string extension = ".txt")
     {
-        var path = GetSnapshotPath(category, name, extension);
+        string path = GetSnapshotPath(category, name, extension);
         File.WriteAllText(path, content);
     }
 
@@ -129,8 +129,8 @@ public static class SnapshotTestUtils
     /// </summary>
     public static void WriteJsonSnapshot<T>(string category, string name, T data)
     {
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var content = JsonSerializer.Serialize(data, options);
+        JsonSerializerOptions options = new() { WriteIndented = true };
+        string content = JsonSerializer.Serialize(data, options);
         WriteSnapshot(category, name, content, ".json");
     }
 
@@ -139,7 +139,7 @@ public static class SnapshotTestUtils
     /// </summary>
     public static bool DeleteSnapshot(string category, string name, string extension = ".txt")
     {
-        var path = GetSnapshotPath(category, name, extension);
+        string path = GetSnapshotPath(category, name, extension);
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -170,8 +170,8 @@ public static class SnapshotTestUtils
         [CallerFilePath] string callerFilePath = "",
         [CallerMemberName] string callerMemberName = "")
     {
-        var updateSnapshots = Environment.GetEnvironmentVariable("UPDATE_SNAPSHOTS") == "1";
-        var path = GetSnapshotPath(category, name, extension);
+        bool updateSnapshots = Environment.GetEnvironmentVariable("UPDATE_SNAPSHOTS") == "1";
+        string path = GetSnapshotPath(category, name, extension);
 
         if (updateSnapshots)
         {
@@ -179,7 +179,7 @@ public static class SnapshotTestUtils
             return;
         }
 
-        var expected = ReadSnapshot(category, name, extension);
+        string? expected = ReadSnapshot(category, name, extension);
         if (expected == null)
         {
             // First run - create the snapshot
@@ -191,7 +191,7 @@ public static class SnapshotTestUtils
 
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
-            var diff = GenerateDiff(expected, actual);
+            string diff = GenerateDiff(expected, actual);
             throw new XunitException($"Snapshot mismatch for '{name}'.\n" +
                                      $"Snapshot path: {path}\n" +
                                      $"Called from: {callerMemberName} in {Path.GetFileName(callerFilePath)}\n" +
@@ -210,8 +210,8 @@ public static class SnapshotTestUtils
         [CallerFilePath] string callerFilePath = "",
         [CallerMemberName] string callerMemberName = "")
     {
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var actualJson = JsonSerializer.Serialize(actual, options);
+        JsonSerializerOptions options = new() { WriteIndented = true };
+        string actualJson = JsonSerializer.Serialize(actual, options);
         AssertMatchesSnapshot(category, name, actualJson, ".json", callerFilePath, callerMemberName);
     }
 
@@ -225,7 +225,7 @@ public static class SnapshotTestUtils
         [CallerFilePath] string callerFilePath = "",
         [CallerMemberName] string callerMemberName = "")
     {
-        var actual = string.Join(Environment.NewLine, actualLines);
+        string actual = string.Join(Environment.NewLine, actualLines);
         AssertMatchesSnapshot(category, name, actual, ".txt", callerFilePath, callerMemberName);
     }
 
@@ -234,15 +234,15 @@ public static class SnapshotTestUtils
     /// </summary>
     public static string GenerateDiff(string expected, string actual)
     {
-        var expectedLines = expected.Split('\n');
-        var actualLines = actual.Split('\n');
-        var sb = new StringBuilder();
+        string[] expectedLines = expected.Split('\n');
+        string[] actualLines = actual.Split('\n');
+        StringBuilder sb = new();
 
         int maxLines = Math.Max(expectedLines.Length, actualLines.Length);
         for (int i = 0; i < maxLines; i++)
         {
-            var expectedLine = i < expectedLines.Length ? expectedLines[i].TrimEnd('\r') : null;
-            var actualLine = i < actualLines.Length ? actualLines[i].TrimEnd('\r') : null;
+            string? expectedLine = i < expectedLines.Length ? expectedLines[i].TrimEnd('\r') : null;
+            string? actualLine = i < actualLines.Length ? actualLines[i].TrimEnd('\r') : null;
 
             if (expectedLine == null)
             {
@@ -271,13 +271,13 @@ public static class SnapshotTestUtils
     /// </summary>
     public static IEnumerable<string> ListSnapshots(string category, string pattern = "*.*")
     {
-        var categoryDir = Path.Combine(SnapshotsDirectory, category);
+        string categoryDir = Path.Combine(SnapshotsDirectory, category);
         if (!Directory.Exists(categoryDir))
         {
             yield break;
         }
 
-        foreach (var file in Directory.GetFiles(categoryDir, pattern))
+        foreach (string file in Directory.GetFiles(categoryDir, pattern))
         {
             yield return Path.GetFileNameWithoutExtension(file);
         }
@@ -304,7 +304,7 @@ public static class SnapshotTestUtils
         Func<string> generateOutput,
         string extension = ".txt")
     {
-        var output = generateOutput();
+        string output = generateOutput();
         WriteSnapshot(category, name, output, extension);
     }
 
@@ -313,15 +313,15 @@ public static class SnapshotTestUtils
     /// </summary>
     public static IEnumerable<object[]> GenerateMemberDataFromSnapshots(string category, string inputPattern = "*.input.txt")
     {
-        var categoryDir = Path.Combine(SnapshotsDirectory, category);
+        string categoryDir = Path.Combine(SnapshotsDirectory, category);
         if (!Directory.Exists(categoryDir))
         {
             yield break;
         }
 
-        foreach (var file in Directory.GetFiles(categoryDir, inputPattern))
+        foreach (string file in Directory.GetFiles(categoryDir, inputPattern))
         {
-            var baseName = Path.GetFileNameWithoutExtension(file);
+            string baseName = Path.GetFileNameWithoutExtension(file);
             if (baseName.EndsWith(".input"))
             {
                 baseName = baseName[..^6]; // Remove ".input"
@@ -356,9 +356,9 @@ public static class SnapshotTestUtils
             return text;
         }
 
-        var lines = NormalizeLineEndings(text).Split('\n');
-        var sb = new StringBuilder();
-        foreach (var line in lines)
+        string[] lines = NormalizeLineEndings(text).Split('\n');
+        StringBuilder sb = new();
+        foreach (string line in lines)
         {
             sb.AppendLine(line.TrimEnd());
         }

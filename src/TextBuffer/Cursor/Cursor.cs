@@ -18,7 +18,7 @@ public class Cursor : IDisposable
     private int _stickyColumn = -1;
     private bool _isColumnSelecting = false;
     private int _columnSelectAnchorVisible = -1;
-    private TextPosition _columnSelectAnchorPosition = new TextPosition(1,1);
+    private TextPosition _columnSelectAnchorPosition = new(1, 1);
     private readonly int _ownerId;
     private string[] _decorationIds = Array.Empty<string>();
     private bool _disposed;
@@ -36,7 +36,7 @@ public class Cursor : IDisposable
 
     public void MoveTo(TextPosition position)
     {
-        var validated = ValidatePosition(position);
+        TextPosition validated = ValidatePosition(position);
         _selection = new Selection(validated, validated);
         _stickyColumn = -1;
         UpdateDecorations();
@@ -44,7 +44,7 @@ public class Cursor : IDisposable
 
     public void StartColumnSelection()
     {
-        var tabSize = _model.GetOptions().TabSize;
+        int tabSize = _model.GetOptions().TabSize;
         _isColumnSelecting = true;
         _columnSelectAnchorVisible = CursorColumns.GetVisibleColumnFromPosition(_model, _selection.Active, tabSize);
         _columnSelectAnchorPosition = _selection.Active;
@@ -59,10 +59,10 @@ public class Cursor : IDisposable
             return;
         }
 
-        var tabSize = _model.GetOptions().TabSize;
-        var anchorReal = CursorColumns.GetPositionFromVisibleColumn(_model, _columnSelectAnchorPosition.LineNumber, _columnSelectAnchorVisible, tabSize);
-        var activeVisible = CursorColumns.GetVisibleColumnFromPosition(_model, active, tabSize);
-        var activeReal = CursorColumns.GetPositionFromVisibleColumn(_model, active.LineNumber, activeVisible, tabSize);
+        int tabSize = _model.GetOptions().TabSize;
+        TextPosition anchorReal = CursorColumns.GetPositionFromVisibleColumn(_model, _columnSelectAnchorPosition.LineNumber, _columnSelectAnchorVisible, tabSize);
+        int activeVisible = CursorColumns.GetVisibleColumnFromPosition(_model, active, tabSize);
+        TextPosition activeReal = CursorColumns.GetPositionFromVisibleColumn(_model, active.LineNumber, activeVisible, tabSize);
         _selection = new Selection(anchorReal, activeReal);
         UpdateDecorations();
     }
@@ -75,7 +75,7 @@ public class Cursor : IDisposable
 
     public void SelectTo(TextPosition position)
     {
-        var validated = ValidatePosition(position);
+        TextPosition validated = ValidatePosition(position);
         _selection = new Selection(_selection.Anchor, validated);
         _stickyColumn = -1;
         UpdateDecorations();
@@ -83,24 +83,24 @@ public class Cursor : IDisposable
 
     public void MoveLeft()
     {
-        var current = _selection.Active;
+        TextPosition current = _selection.Active;
         if (current.Column > 1)
         {
             MoveTo(new TextPosition(current.LineNumber, current.Column - 1));
         }
         else if (current.LineNumber > 1)
         {
-            var prevLine = current.LineNumber - 1;
-            var len = _model.GetLineContent(prevLine).Length;
+            int prevLine = current.LineNumber - 1;
+            int len = _model.GetLineContent(prevLine).Length;
             MoveTo(new TextPosition(prevLine, len + 1));
         }
     }
 
     public void MoveRight()
     {
-        var current = _selection.Active;
-        var lineLen = _model.GetLineContent(current.LineNumber).Length;
-        
+        TextPosition current = _selection.Active;
+        int lineLen = _model.GetLineContent(current.LineNumber).Length;
+
         if (current.Column <= lineLen)
         {
             MoveTo(new TextPosition(current.LineNumber, current.Column + 1));
@@ -113,16 +113,19 @@ public class Cursor : IDisposable
 
     public void MoveUp()
     {
-        var current = _selection.Active;
+        TextPosition current = _selection.Active;
         if (current.LineNumber > 1)
         {
             int sticky = _stickyColumn;
-            if (sticky == -1) sticky = current.Column;
+            if (sticky == -1)
+            {
+                sticky = current.Column;
+            }
 
-            var newLine = current.LineNumber - 1;
-            var len = _model.GetLineContent(newLine).Length;
-            var newCol = Math.Min(sticky, len + 1);
-            
+            int newLine = current.LineNumber - 1;
+            int len = _model.GetLineContent(newLine).Length;
+            int newCol = Math.Min(sticky, len + 1);
+
             MoveTo(new TextPosition(newLine, newCol));
             _stickyColumn = sticky;
         }
@@ -130,16 +133,19 @@ public class Cursor : IDisposable
 
     public void MoveDown()
     {
-        var current = _selection.Active;
+        TextPosition current = _selection.Active;
         if (current.LineNumber < _model.GetLineCount())
         {
             int sticky = _stickyColumn;
-            if (sticky == -1) sticky = current.Column;
+            if (sticky == -1)
+            {
+                sticky = current.Column;
+            }
 
-            var newLine = current.LineNumber + 1;
-            var len = _model.GetLineContent(newLine).Length;
-            var newCol = Math.Min(sticky, len + 1);
-            
+            int newLine = current.LineNumber + 1;
+            int len = _model.GetLineContent(newLine).Length;
+            int newCol = Math.Min(sticky, len + 1);
+
             MoveTo(new TextPosition(newLine, newCol));
             _stickyColumn = sticky;
         }
@@ -147,15 +153,15 @@ public class Cursor : IDisposable
 
     public void MoveWordLeft(string? wordSeparators = null)
     {
-        var current = _selection.Active;
-        var target = WordOperations.MoveWordLeft(_model, current, wordSeparators);
+        TextPosition current = _selection.Active;
+        TextPosition target = WordOperations.MoveWordLeft(_model, current, wordSeparators);
         MoveTo(target);
     }
 
     public void MoveWordRight(string? wordSeparators = null)
     {
-        var current = _selection.Active;
-        var target = WordOperations.MoveWordRight(_model, current, wordSeparators);
+        TextPosition current = _selection.Active;
+        TextPosition target = WordOperations.MoveWordRight(_model, current, wordSeparators);
         MoveTo(target);
     }
 
@@ -173,11 +179,11 @@ public class Cursor : IDisposable
 
     public void DeleteWordLeft(string? wordSeparators = null)
     {
-        var sel = WordOperations.DeleteWordLeft(_model, _selection, wordSeparators);
-        var start = sel.Start;
-        var end = sel.End;
-        var edit = new TextEdit(start, end, string.Empty);
-        _model.PushEditOperations(new[] { edit }, null);
+        Selection sel = WordOperations.DeleteWordLeft(_model, _selection, wordSeparators);
+        TextPosition start = sel.Start;
+        TextPosition end = sel.End;
+        TextEdit edit = new(start, end, string.Empty);
+        _model.PushEditOperations([edit], null);
         // Move cursor to start
         MoveTo(start);
     }
@@ -196,12 +202,12 @@ public class Cursor : IDisposable
 
     private TextPosition ValidatePosition(TextPosition position)
     {
-        var lineCount = _model.GetLineCount();
-        var line = Math.Clamp(position.LineNumber, 1, lineCount);
-        
-        var lineLen = _model.GetLineContent(line).Length;
-        var col = Math.Clamp(position.Column, 1, lineLen + 1);
-        
+        int lineCount = _model.GetLineCount();
+        int line = Math.Clamp(position.LineNumber, 1, lineCount);
+
+        int lineLen = _model.GetLineContent(line).Length;
+        int col = Math.Clamp(position.Column, 1, lineLen + 1);
+
         return new TextPosition(line, col);
     }
 
@@ -212,22 +218,22 @@ public class Cursor : IDisposable
             return;
         }
 
-        var specs = BuildDecorations();
-        var created = _model.DeltaDecorations(_ownerId, _decorationIds, specs);
+        IReadOnlyList<ModelDeltaDecoration> specs = BuildDecorations();
+        IReadOnlyList<ModelDecoration> created = _model.DeltaDecorations(_ownerId, _decorationIds, specs);
         _decorationIds = created.Select(d => d.Id).ToArray();
     }
 
     private IReadOnlyList<ModelDeltaDecoration> BuildDecorations()
     {
-        var result = new List<ModelDeltaDecoration>();
+        List<ModelDeltaDecoration> result = [];
 
-        var activeOffset = _model.GetOffsetAt(_selection.Active);
+        int activeOffset = _model.GetOffsetAt(_selection.Active);
         result.Add(new ModelDeltaDecoration(new TextRange(activeOffset, activeOffset), ModelDecorationOptions.CreateCursorOptions()));
 
         if (!_selection.IsEmpty)
         {
-            var startOffset = _model.GetOffsetAt(_selection.Start);
-            var endOffset = _model.GetOffsetAt(_selection.End);
+            int startOffset = _model.GetOffsetAt(_selection.Start);
+            int endOffset = _model.GetOffsetAt(_selection.End);
             result.Add(new ModelDeltaDecoration(new TextRange(startOffset, endOffset), ModelDecorationOptions.CreateSelectionOptions()));
         }
 

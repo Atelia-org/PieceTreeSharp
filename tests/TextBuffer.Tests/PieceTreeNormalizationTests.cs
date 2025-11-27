@@ -28,7 +28,7 @@ public class PieceTreeNormalizationTests
         //     assertTreeInvariants(pieceTable);
         // });
 
-        var buffer = CreateTextBuffer(new[] { "" }, false);
+        PieceTreeBuffer buffer = CreateTextBuffer([""], false);
         buffer.ApplyEdit(0, 0, "a\r\nb");
         buffer.ApplyEdit(0, 2, null); // Delete "a\r"
 
@@ -52,7 +52,7 @@ public class PieceTreeNormalizationTests
         //     assertTreeInvariants(pieceTable);
         // });
 
-        var buffer = CreateTextBuffer(new[] { "" }, false);
+        PieceTreeBuffer buffer = CreateTextBuffer([""], false);
         buffer.ApplyEdit(0, 0, "a\r\nb");
         buffer.ApplyEdit(2, 2, null); // Delete "\nb"
 
@@ -78,9 +78,9 @@ public class PieceTreeNormalizationTests
         //     assertTreeInvariants(pieceTable);
         // });
 
-        var buffer = CreateTextBuffer(new[] { "abc" }, true); // normalizeEOL = true
+        PieceTreeBuffer buffer = CreateTextBuffer(["abc"], true); // normalizeEOL = true
         buffer.ApplyEdit(3, 0, "def\nabc");
-        
+
         Assert.Equal("abcdef\nabc", buffer.GetText());
         Assert.Equal("abcdef", buffer.GetLineContent(1));
         Assert.Equal("abcdef\n", buffer.InternalModel.GetLineRawContent(1));

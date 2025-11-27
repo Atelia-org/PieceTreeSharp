@@ -8,6 +8,7 @@ using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Rendering;
 using PieceTree.TextBuffer.Tests.Helpers;
+using PieceTree.TextBuffer.Core;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -16,39 +17,39 @@ public class CursorMultiSelectionTests
     [Fact]
     public void MarkdownRenderer_RendersMultipleCursorsSnapshot()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithMarkedContent("|alpha beta|\ngamma |delta|")
             .BuildContext();
 
-        using var collection = CreateCollection(context);
-        var renderer = new MarkdownRenderer();
+        using CursorCollection collection = CreateCollection(context);
+        MarkdownRenderer renderer = new();
 
-        var output = renderer.Render(context.Model);
+        string output = renderer.Render(context.Model);
         SnapshotTestUtils.AssertMatchesSnapshot("Cursor", "multicursor-render-basic", output);
     }
 
     [Fact]
     public void MultiCursorPaste_PreservesInsertionOrder()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithLines("abc", "def")
             .WithCursor(1, 1)
             .WithCursor(2, 1)
             .BuildContext();
 
-        using var collection = CreateCollection(context);
+        using CursorCollection collection = CreateCollection(context);
         CursorTestHelper.AssertMultiCursors(collection.GetCursorPositions(), (1, 1), (2, 1));
 
-        var top = collection.Cursors[0];
-        var bottom = collection.Cursors[1];
+        Cursor.Cursor top = collection.Cursors[0];
+        Cursor.Cursor bottom = collection.Cursors[1];
 
-        var edits = new[]
-        {
+        TextEdit[] edits =
+        [
             new TextEdit(top.Selection.Active, top.Selection.Active, "1"),
             new TextEdit(bottom.Selection.Active, bottom.Selection.Active, "2"),
-        };
+        ];
 
-        var before = collection.GetCursorPositions();
+        IReadOnlyList<TextPosition> before = collection.GetCursorPositions();
         context.Model.PushEditOperations(edits, beforeCursorState: before, cursorStateComputer: _ => before);
 
         Assert.Equal("1abc", context.GetLineContent(1));
@@ -58,23 +59,23 @@ public class CursorMultiSelectionTests
     [Fact]
     public void CancellingSecondaryCursorsPreservesPrimarySelection()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithLines("var x = (3 * 5)", "var y = (3 * 5)", "var z = (3 * 5)")
             .WithCursor(2, 9)
             .BuildContext();
 
-        using var collection = CreateCollection(context);
-        var primary = collection.Cursors[0];
+        using CursorCollection collection = CreateCollection(context);
+        Cursor.Cursor primary = collection.Cursors[0];
         primary.SelectTo(new TextPosition(2, 16));
         CursorTestHelper.AssertSelection(primary.Selection, 2, 9, 2, 16);
 
-        var secondaryAbove = collection.CreateCursor(new TextPosition(1, 9));
+        Cursor.Cursor secondaryAbove = collection.CreateCursor(new TextPosition(1, 9));
         secondaryAbove.SelectTo(new TextPosition(1, 16));
-        var secondaryBelow = collection.CreateCursor(new TextPosition(3, 9));
+        Cursor.Cursor secondaryBelow = collection.CreateCursor(new TextPosition(3, 9));
         secondaryBelow.SelectTo(new TextPosition(3, 16));
 
         CursorTestHelper.AssertMultiCursors(collection.GetCursorPositions(), (2, 16), (1, 16), (3, 16));
-        var selections = collection.Cursors.Select(cursor => cursor.Selection).ToList();
+        List<Selection> selections = collection.Cursors.Select(cursor => cursor.Selection).ToList();
         CursorTestHelper.AssertMultiSelections(selections,
             (2, 9, 2, 16),
             (1, 9, 1, 16),
@@ -90,14 +91,14 @@ public class CursorMultiSelectionTests
 
     private static CursorCollection CreateCollection(TestEditorContext context)
     {
-        var collection = new CursorCollection(context.Model);
+        CursorCollection collection = new(context.Model);
         if (context.InitialCursors.Count == 0)
         {
             collection.CreateCursor();
         }
         else
         {
-            foreach (var cursor in context.InitialCursors)
+            foreach (TextPosition cursor in context.InitialCursors)
             {
                 collection.CreateCursor(cursor);
             }

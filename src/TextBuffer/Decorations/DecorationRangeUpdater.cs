@@ -18,15 +18,15 @@ internal static class DecorationRangeUpdater
 
     public static bool ApplyEdit(ModelDecoration decoration, int editStartOffset, int removedLength, int insertedLength, bool forceMoveMarkers)
     {
-        var nodeStart = decoration.Range.StartOffset;
-        var nodeEnd = decoration.Range.EndOffset;
-        var originalStart = nodeStart;
-        var originalEnd = nodeEnd;
-        var editEndOffset = editStartOffset + removedLength;
+        int nodeStart = decoration.Range.StartOffset;
+        int nodeEnd = decoration.Range.EndOffset;
+        int originalStart = nodeStart;
+        int originalEnd = nodeEnd;
+        int editEndOffset = editStartOffset + removedLength;
 
-        var stickiness = decoration.Options.Stickiness;
-        var startStickToPrevious = stickiness is TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges or TrackedRangeStickiness.GrowsOnlyWhenTypingBefore;
-        var endStickToPrevious = stickiness is TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges or TrackedRangeStickiness.GrowsOnlyWhenTypingBefore;
+        TrackedRangeStickiness stickiness = decoration.Options.Stickiness;
+        bool startStickToPrevious = stickiness is TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges or TrackedRangeStickiness.GrowsOnlyWhenTypingBefore;
+        bool endStickToPrevious = stickiness is TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges or TrackedRangeStickiness.GrowsOnlyWhenTypingBefore;
 
         bool startDone = false;
         bool endDone = false;
@@ -39,11 +39,11 @@ internal static class DecorationRangeUpdater
             endDone = true;
         }
 
-        var deletingCnt = removedLength;
-        var insertingCnt = insertedLength;
-        var commonLength = Math.Min(deletingCnt, insertingCnt);
+        int deletingCnt = removedLength;
+        int insertingCnt = insertedLength;
+        int commonLength = Math.Min(deletingCnt, insertingCnt);
 
-        var initialSemantics = forceMoveMarkers
+        MarkerMoveSemantics initialSemantics = forceMoveMarkers
             ? MarkerMoveSemantics.ForceMove
             : (deletingCnt > 0 ? MarkerMoveSemantics.ForceStay : MarkerMoveSemantics.MarkerDefined);
 
@@ -59,8 +59,8 @@ internal static class DecorationRangeUpdater
 
         if (commonLength > 0 && !forceMoveMarkers)
         {
-            var overlapSemantics = deletingCnt > insertingCnt ? MarkerMoveSemantics.ForceStay : MarkerMoveSemantics.MarkerDefined;
-            var overlapEdge = editStartOffset + commonLength;
+            MarkerMoveSemantics overlapSemantics = deletingCnt > insertingCnt ? MarkerMoveSemantics.ForceStay : MarkerMoveSemantics.MarkerDefined;
+            int overlapEdge = editStartOffset + commonLength;
             if (!startDone && AdjustMarkerBeforeColumn(nodeStart, startStickToPrevious, overlapEdge, overlapSemantics))
             {
                 startDone = true;
@@ -72,7 +72,7 @@ internal static class DecorationRangeUpdater
             }
         }
 
-        var tailSemantics = forceMoveMarkers ? MarkerMoveSemantics.ForceMove : MarkerMoveSemantics.MarkerDefined;
+        MarkerMoveSemantics tailSemantics = forceMoveMarkers ? MarkerMoveSemantics.ForceMove : MarkerMoveSemantics.MarkerDefined;
         if (!startDone && AdjustMarkerBeforeColumn(nodeStart, startStickToPrevious, editEndOffset, tailSemantics))
         {
             nodeStart = editStartOffset + insertingCnt;
@@ -85,7 +85,7 @@ internal static class DecorationRangeUpdater
             endDone = true;
         }
 
-        var deltaColumn = insertingCnt - deletingCnt;
+        int deltaColumn = insertingCnt - deletingCnt;
         if (!startDone)
         {
             nodeStart = Math.Max(0, nodeStart + deltaColumn);

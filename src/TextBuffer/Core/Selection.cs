@@ -32,11 +32,11 @@ public readonly struct Selection
 
     public TextPosition SelectionStart => Anchor <= Active ? Anchor : Active;
     public TextPosition SelectionEnd => Anchor <= Active ? Active : Anchor;
-    
+
     // Aliases for convenience/compatibility
     public TextPosition Start => SelectionStart;
     public TextPosition End => SelectionEnd;
-    
+
     public SelectionDirection Direction => Anchor <= Active ? SelectionDirection.LTR : SelectionDirection.RTL;
     public bool IsEmpty => Anchor == Active;
 
@@ -45,9 +45,9 @@ public readonly struct Selection
         return position >= SelectionStart && position <= SelectionEnd;
     }
 
-    public Selection CollapseToStart() => new Selection(SelectionStart, SelectionStart);
-    public Selection CollapseToEnd() => new Selection(SelectionEnd, SelectionEnd);
-    
+    public Selection CollapseToStart() => new(SelectionStart, SelectionStart);
+    public Selection CollapseToEnd() => new(SelectionEnd, SelectionEnd);
+
     public override string ToString() => $"[{SelectionStart.LineNumber},{SelectionStart.Column} -> {SelectionEnd.LineNumber},{SelectionEnd.Column}]";
 
     #region Instance methods
@@ -105,7 +105,7 @@ public readonly struct Selection
     /// </summary>
     public static Selection FromPositions(TextPosition start, TextPosition? end = null)
     {
-        var endPos = end ?? start;
+        TextPosition endPos = end ?? start;
         return new Selection(start, endPos);
     }
 

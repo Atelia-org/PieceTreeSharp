@@ -23,7 +23,7 @@ public class SharedHarnessExampleTests
     public void TestEditorBuilder_SimpleContent()
     {
         // Using the fluent builder to create a TextModel
-        var model = TestEditorBuilder.Create()
+        TextModel model = TestEditorBuilder.Create()
             .WithContent("hello world")
             .WithTabSize(4)
             .WithInsertSpaces(true)
@@ -37,7 +37,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void TestEditorBuilder_WithLines()
     {
-        var model = TestEditorBuilder.Create()
+        TextModel model = TestEditorBuilder.Create()
             .WithLines("line 1", "line 2", "line 3")
             .WithLF()
             .Build();
@@ -50,19 +50,19 @@ public class SharedHarnessExampleTests
     public void TestEditorBuilder_WithMarkedContent()
     {
         // Use pipe markers to indicate cursor positions
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithMarkedContent("hello| world")
             .BuildContext();
 
         Assert.Equal("hello world", context.GetValue());
-        Assert.Equal(1, context.InitialCursors.Count);
+        Assert.Single(context.InitialCursors);
         CursorTestHelper.AssertPosition(context.InitialCursors[0], 1, 6);
     }
 
     [Fact]
     public void TestEditorBuilder_WithMultipleCursors()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithContent("hello world")
             .WithCursor(1, 1)
             .WithCursor(1, 7)
@@ -75,19 +75,19 @@ public class SharedHarnessExampleTests
     [Fact]
     public void TestEditorBuilder_WithSelection()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithContent("hello world")
             .WithSelection(1, 1, 1, 6) // Select "hello"
             .BuildContext();
 
-        Assert.Equal(1, context.InitialSelections.Count);
+        Assert.Single(context.InitialSelections);
         CursorTestHelper.AssertSelection(context.PrimarySelection, 1, 1, 1, 6);
     }
 
     [Fact]
     public void TestEditorBuilder_BuildContext_ProvidesCursorConfig()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithContent("test")
             .WithTabSize(2)
             .WithStickyTabStops(true)
@@ -106,7 +106,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_ParsePipePositions()
     {
-        var (content, positions) = CursorTestHelper.ParsePipePositions("hello| world|");
+        (string? content, List<TextPosition>? positions) = CursorTestHelper.ParsePipePositions("hello| world|");
 
         Assert.Equal("hello world", content);
         Assert.Equal(2, positions.Count);
@@ -117,7 +117,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_ParsePipePositions_MultiLine()
     {
-        var (content, positions) = CursorTestHelper.ParsePipePositions("line1|\nline2|");
+        (string? content, List<TextPosition>? positions) = CursorTestHelper.ParsePipePositions("line1|\nline2|");
 
         Assert.Equal("line1\nline2", content);
         Assert.Equal(2, positions.Count);
@@ -128,8 +128,8 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_SerializePipePositions()
     {
-        var positions = new[] { new TextPosition(1, 6), new TextPosition(1, 12) };
-        var result = CursorTestHelper.SerializePipePositions("hello world", positions);
+        TextPosition[] positions = [new TextPosition(1, 6), new TextPosition(1, 12)];
+        string result = CursorTestHelper.SerializePipePositions("hello world", positions);
 
         Assert.Equal("hello| world|", result);
     }
@@ -137,8 +137,8 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_AssertionMethods()
     {
-        var pos = new TextPosition(3, 10);
-        var selection = new Selection(1, 5, 3, 10);
+        TextPosition pos = new(3, 10);
+        Selection selection = new(1, 5, 3, 10);
 
         // These assertions should pass
         CursorTestHelper.AssertPosition(pos, 3, 10);
@@ -150,7 +150,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_CreateCursorAt()
     {
-        var state = CursorTestHelper.CreateCursorAt(5, 10);
+        SingleCursorState state = CursorTestHelper.CreateCursorAt(5, 10);
 
         CursorTestHelper.AssertCursorStatePosition(state, 5, 10);
         CursorTestHelper.AssertCursorStateHasNoSelection(state);
@@ -159,7 +159,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void CursorTestHelper_CreateCursorWithSelection()
     {
-        var state = CursorTestHelper.CreateCursorWithSelection(1, 1, 2, 5);
+        SingleCursorState state = CursorTestHelper.CreateCursorWithSelection(1, 1, 2, 5);
 
         CursorTestHelper.AssertCursorStateHasSelection(state);
         CursorTestHelper.AssertCursorStatePosition(state, 2, 5);
@@ -171,7 +171,7 @@ public class SharedHarnessExampleTests
         // Tab expands to 4 spaces
         CursorTestHelper.AssertVisibleColumn("\thello", 2, 4, 4);
         CursorTestHelper.AssertColumnFromVisible("\thello", 4, 4, 2);
-        
+
         // Round-trip should preserve column
         CursorTestHelper.AssertColumnRoundTrip("hello\tworld", 8, 4);
     }
@@ -183,7 +183,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void WordTestUtils_DeserializePipePositions()
     {
-        var (text, positions) = WordTestUtils.DeserializePipePositions("|hello| world|");
+        (string? text, List<TextPosition>? positions) = WordTestUtils.DeserializePipePositions("|hello| world|");
 
         Assert.Equal("hello world", text);
         Assert.Equal(3, positions.Count);
@@ -195,7 +195,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void WordTestUtils_SerializePipePositions()
     {
-        var result = WordTestUtils.SerializePipePositions(
+        string result = WordTestUtils.SerializePipePositions(
             "hello world",
             new[]
             {
@@ -210,7 +210,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void WordTestUtils_GetWordBoundaries()
     {
-        var boundaries = WordTestUtils.GetWordBoundaries("hello world", " ");
+        List<int> boundaries = WordTestUtils.GetWordBoundaries("hello world", " ");
 
         // Boundaries: 1 (start), 6 (end of hello), 7 (start of world), 12 (end)
         Assert.Contains(1, boundaries);
@@ -222,7 +222,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void WordTestUtils_GetWordStarts()
     {
-        var starts = WordTestUtils.GetWordStarts("hello world foo", " ");
+        List<int> starts = WordTestUtils.GetWordStarts("hello world foo", " ");
 
         Assert.Equal(3, starts.Count);
         Assert.Contains(1, starts);  // hello
@@ -233,7 +233,7 @@ public class SharedHarnessExampleTests
     [Fact]
     public void WordTestUtils_GetWordEnds()
     {
-        var ends = WordTestUtils.GetWordEnds("hello world foo", " ");
+        List<int> ends = WordTestUtils.GetWordEnds("hello world foo", " ");
 
         Assert.Equal(3, ends.Count);
         Assert.Contains(6, ends);   // after hello
@@ -257,8 +257,8 @@ public class SharedHarnessExampleTests
     [Fact]
     public void SnapshotTestUtils_NormalizeLineEndings()
     {
-        var mixed = "line1\r\nline2\rline3\nline4";
-        var normalized = SnapshotTestUtils.NormalizeLineEndings(mixed);
+        string mixed = "line1\r\nline2\rline3\nline4";
+        string normalized = SnapshotTestUtils.NormalizeLineEndings(mixed);
 
         Assert.Equal("line1\nline2\nline3\nline4", normalized);
     }
@@ -266,10 +266,10 @@ public class SharedHarnessExampleTests
     [Fact]
     public void SnapshotTestUtils_GenerateDiff()
     {
-        var expected = "line1\nline2\nline3";
-        var actual = "line1\nmodified\nline3";
+        string expected = "line1\nline2\nline3";
+        string actual = "line1\nmodified\nline3";
 
-        var diff = SnapshotTestUtils.GenerateDiff(expected, actual);
+        string diff = SnapshotTestUtils.GenerateDiff(expected, actual);
 
         Assert.Contains("line2", diff);
         Assert.Contains("modified", diff);
@@ -300,7 +300,7 @@ public class SharedHarnessExampleTests
     [MemberData(nameof(VisibleColumnTestData))]
     public void VisibleColumn_MatchesTsOracle(string lineContent, int tabSize, int column, int expectedVisibleColumn)
     {
-        var result = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
+        int result = CursorColumnsHelper.VisibleColumnFromColumn(lineContent, column, tabSize);
         Assert.Equal(expectedVisibleColumn, result);
     }
 
@@ -311,7 +311,7 @@ public class SharedHarnessExampleTests
     [MemberData(nameof(WordBoundaryTestData))]
     public void WordBoundaries_DetectedCorrectly(string lineContent, string wordSeparators)
     {
-        var boundaries = WordTestUtils.GetWordBoundaries(lineContent, wordSeparators);
+        List<int> boundaries = WordTestUtils.GetWordBoundaries(lineContent, wordSeparators);
 
         // Basic sanity checks
         Assert.NotEmpty(boundaries);
@@ -327,7 +327,7 @@ public class SharedHarnessExampleTests
     public void Integration_BuilderWithHelperAssertions()
     {
         // Build a test context
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithLines("function test() {", "  return true;", "}")
             .WithCursor(2, 3) // Before "return"
             .WithTabSize(2)
@@ -338,7 +338,7 @@ public class SharedHarnessExampleTests
         CursorTestHelper.AssertPosition(context.PrimaryCursor, 2, 3);
 
         // Get the cursor state
-        var cursorState = context.CreateSingleCursorState();
+        SingleCursorState cursorState = context.CreateSingleCursorState();
         CursorTestHelper.AssertCursorStateHasNoSelection(cursorState);
 
         // Verify line content
@@ -348,14 +348,14 @@ public class SharedHarnessExampleTests
     [Fact]
     public void Integration_WordOperationsWithTestUtils()
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithContent(WordTestUtils.AsciiTestCases.SimpleWords)
             .WithCursor(1, 1)
             .BuildContext();
 
         // Get word starts and ends
-        var starts = WordTestUtils.GetWordStarts(context.GetLineContent(1), " ");
-        var ends = WordTestUtils.GetWordEnds(context.GetLineContent(1), " ");
+        List<int> starts = WordTestUtils.GetWordStarts(context.GetLineContent(1), " ");
+        List<int> ends = WordTestUtils.GetWordEnds(context.GetLineContent(1), " ");
 
         // "hello world foo bar" should have 4 words
         Assert.Equal(4, starts.Count);

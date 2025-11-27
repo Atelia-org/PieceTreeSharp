@@ -124,11 +124,11 @@ public sealed class SearchParams
             return null;
         }
 
-        var isMultiline = IsMultilinePattern(SearchString, IsRegex);
+        bool isMultiline = IsMultilinePattern(SearchString, IsRegex);
         string pattern;
         if (IsRegex)
         {
-            var expanded = ExpandUnicodeEscapes(SearchString);
+            string expanded = ExpandUnicodeEscapes(SearchString);
             pattern = ApplyUnicodeWildcardCompatibility(expanded);
         }
         else
@@ -136,7 +136,7 @@ public sealed class SearchParams
             pattern = Regex.Escape(SearchString);
         }
 
-        var options = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ECMAScript;
+        RegexOptions options = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ECMAScript;
         if (!MatchCase)
         {
             options |= RegexOptions.IgnoreCase;
@@ -159,7 +159,7 @@ public sealed class SearchParams
         string? simpleSearch = null;
         if (!IsRegex && !isMultiline)
         {
-            var hasCaseVariance = HasCaseVariance(SearchString);
+            bool hasCaseVariance = HasCaseVariance(SearchString);
             if (MatchCase || !hasCaseVariance)
             {
                 simpleSearch = SearchString;
@@ -167,7 +167,7 @@ public sealed class SearchParams
         }
 
         // TS Parity: use cached WordCharacterClassifier (getMapForWordSeparators) – we implement a 10-entry LRU
-        var classifier = string.IsNullOrEmpty(WordSeparators) ? null : WordCharacterClassifierCache.Get(WordSeparators!);
+        WordCharacterClassifier? classifier = string.IsNullOrEmpty(WordSeparators) ? null : WordCharacterClassifierCache.Get(WordSeparators!);
         return new SearchData(regex, classifier, simpleSearch, isMultiline, MatchCase);
     }
 
@@ -178,12 +178,12 @@ public sealed class SearchParams
             return pattern;
         }
 
-        var builder = new StringBuilder(pattern.Length);
-        var inCharClass = false;
-        var escaping = false;
-        for (var i = 0; i < pattern.Length; i++)
+        StringBuilder builder = new(pattern.Length);
+        bool inCharClass = false;
+        bool escaping = false;
+        for (int i = 0; i < pattern.Length; i++)
         {
-            var ch = pattern[i];
+            char ch = pattern[i];
             if (escaping)
             {
                 builder.Append('\\').Append(ch);
@@ -230,8 +230,8 @@ public sealed class SearchParams
 
     private static bool HasCaseVariance(string value)
     {
-        var lower = value.ToLowerInvariant();
-        var upper = value.ToUpperInvariant();
+        string lower = value.ToLowerInvariant();
+        string upper = value.ToUpperInvariant();
         return !string.Equals(lower, upper, StringComparison.Ordinal);
     }
 
@@ -257,17 +257,17 @@ public sealed class SearchParams
             return pattern;
         }
 
-        var sb = new StringBuilder(pattern.Length);
+        StringBuilder sb = new(pattern.Length);
         for (int i = 0; i < pattern.Length; i++)
         {
-            var ch = pattern[i];
+            char ch = pattern[i];
             if (ch == '\\' && i + 2 < pattern.Length && pattern[i + 1] == 'u' && pattern[i + 2] == '{')
             {
-                var end = pattern.IndexOf('}', i + 3);
+                int end = pattern.IndexOf('}', i + 3);
                 if (end > i)
                 {
-                    var span = pattern.AsSpan(i + 3, end - (i + 3));
-                    if (int.TryParse(span, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var codePoint))
+                    ReadOnlySpan<char> span = pattern.AsSpan(i + 3, end - (i + 3));
+                    if (int.TryParse(span, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int codePoint))
                     {
                         sb.Append(char.ConvertFromUtf32(codePoint));
                         i = end;
@@ -292,9 +292,9 @@ internal static class SearchPatternUtilities
             return false;
         }
 
-        for (var i = 0; i < source.Length; i++)
+        for (int i = 0; i < source.Length; i++)
         {
-            var ch = source[i];
+            char ch = source[i];
             if (ch == '\n')
             {
                 return true;
@@ -303,7 +303,7 @@ internal static class SearchPatternUtilities
             if (ch == '\\' && i + 1 < source.Length)
             {
                 i++;
-                var next = source[i];
+                char next = source[i];
                 if (next == 'n' || next == 'r' || next == 'W')
                 {
                     return true;
@@ -327,7 +327,7 @@ public sealed class LineFeedCounter
             return;
         }
 
-        var list = new List<int>();
+        List<int> list = [];
         for (int i = 0; i < text.Length; i++)
         {
             if (text[i] == '\n')
@@ -375,13 +375,13 @@ public sealed class LineFeedCounter
 /// </summary>
 public sealed class WordCharacterClassifier
 {
-    private readonly Dictionary<int, WordCharacterClass> _classes = new();
+    private readonly Dictionary<int, WordCharacterClass> _classes = [];
 
     public WordCharacterClassifier(string separators)
     {
         if (!string.IsNullOrEmpty(separators))
         {
-            foreach (var rune in separators.EnumerateRunes())
+            foreach (Rune rune in separators.EnumerateRunes())
             {
                 _classes[rune.Value] = WordCharacterClass.WordSeparator;
             }
@@ -400,13 +400,13 @@ public sealed class WordCharacterClassifier
 
     public WordCharacterClass GetClass(int codePoint)
     {
-        return _classes.TryGetValue(codePoint, out var @class) ? @class : WordCharacterClass.Regular;
+        return _classes.TryGetValue(codePoint, out WordCharacterClass @class) ? @class : WordCharacterClass.Regular;
     }
 
     public bool IsValidMatch(string text, int matchStartIndex, int matchLength)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var textLength = text.Length;
+        int textLength = text.Length;
         if (textLength == 0)
         {
             return true;
@@ -423,7 +423,7 @@ public sealed class WordCharacterClassifier
             return true;
         }
 
-        if (!UnicodeUtility.TryGetPreviousCodePoint(text, matchStartIndex, out var before, out _))
+        if (!UnicodeUtility.TryGetPreviousCodePoint(text, matchStartIndex, out int before, out _))
         {
             return true;
         }
@@ -435,7 +435,7 @@ public sealed class WordCharacterClassifier
 
         if (matchLength > 0)
         {
-            if (!UnicodeUtility.TryGetCodePointAt(text, matchStartIndex, out var firstInMatch, out _))
+            if (!UnicodeUtility.TryGetCodePointAt(text, matchStartIndex, out int firstInMatch, out _))
             {
                 return true;
             }
@@ -451,13 +451,13 @@ public sealed class WordCharacterClassifier
 
     private bool RightIsWordBoundary(string text, int textLength, int matchStartIndex, int matchLength)
     {
-        var endIndex = matchStartIndex + matchLength;
+        int endIndex = matchStartIndex + matchLength;
         if (endIndex >= textLength)
         {
             return true;
         }
 
-        if (!UnicodeUtility.TryGetCodePointAt(text, endIndex, out var after, out _))
+        if (!UnicodeUtility.TryGetCodePointAt(text, endIndex, out int after, out _))
         {
             return true;
         }
@@ -469,7 +469,7 @@ public sealed class WordCharacterClassifier
 
         if (matchLength > 0)
         {
-            if (!UnicodeUtility.TryGetPreviousCodePoint(text, endIndex, out var lastInMatch, out _))
+            if (!UnicodeUtility.TryGetPreviousCodePoint(text, endIndex, out int lastInMatch, out _))
             {
                 return true;
             }
@@ -511,17 +511,17 @@ internal static class WordCharacterClassifierCache
         lock (_sync)
         {
             _counter++;
-            if (_cache.TryGetValue(separators, out var entry))
+            if (_cache.TryGetValue(separators, out (WordCharacterClassifier classifier, long stamp) entry))
             {
                 _cache[separators] = (entry.classifier, _counter);
                 return entry.classifier;
             }
-            var classifier = new WordCharacterClassifier(separators);
+            WordCharacterClassifier classifier = new(separators);
             if (_cache.Count >= MaxEntries)
             {
                 string? oldestKey = null;
                 long oldestStamp = long.MaxValue;
-                foreach (var kv in _cache)
+                foreach (KeyValuePair<string, (WordCharacterClassifier classifier, long stamp)> kv in _cache)
                 {
                     if (kv.Value.stamp < oldestStamp)
                     {
@@ -551,7 +551,7 @@ internal static class UnicodeUtility
             return false;
         }
 
-        var ch = text[index];
+        char ch = text[index];
         if (char.IsHighSurrogate(ch) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
         {
             codePoint = char.ConvertToUtf32(ch, text[index + 1]);
@@ -574,7 +574,7 @@ internal static class UnicodeUtility
         }
 
         index--;
-        var ch = text[index];
+        char ch = text[index];
         if (char.IsLowSurrogate(ch) && index - 1 >= 0 && char.IsHighSurrogate(text[index - 1]))
         {
             codePoint = char.ConvertToUtf32(text[index - 1], ch);
@@ -594,7 +594,7 @@ internal static class UnicodeUtility
             return text.Length;
         }
 
-        var ch = text[index];
+        char ch = text[index];
         if (char.IsHighSurrogate(ch) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
         {
             return index + 2;
@@ -605,7 +605,7 @@ internal static class UnicodeUtility
 
     public static bool IsWhitespace(int codePoint)
     {
-        var category = CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(codePoint), 0);
+        UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(codePoint), 0);
         return category == UnicodeCategory.SpaceSeparator
             || category == UnicodeCategory.LineSeparator
             || category == UnicodeCategory.ParagraphSeparator;

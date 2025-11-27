@@ -42,31 +42,31 @@ internal sealed class ChunkBuffer
     public static ChunkBuffer FromText(string? text, bool forceSlowPath = false, bool trackAscii = true)
     {
         text ??= string.Empty;
-        var lineStarts = LineStartBuilder.Build(text, forceSlowPath, trackAscii);
+        LineStartTable lineStarts = LineStartBuilder.Build(text, forceSlowPath, trackAscii);
         return new ChunkBuffer(text, lineStarts);
     }
 
-    internal static ChunkBuffer FromPrecomputed(string text, LineStartTable lineStarts) => new ChunkBuffer(text, lineStarts);
+    internal static ChunkBuffer FromPrecomputed(string text, LineStartTable lineStarts) => new(text, lineStarts);
 
     internal BufferCursor CreateEndCursor()
     {
-        var starts = _lineStarts.AsSpan();
-        var lastLine = starts.Length - 1;
-        var column = _buffer.Length - starts[lastLine];
+        ReadOnlySpan<int> starts = _lineStarts.AsSpan();
+        int lastLine = starts.Length - 1;
+        int column = _buffer.Length - starts[lastLine];
         return new BufferCursor(lastLine, column);
     }
 
     internal int GetOffset(BufferCursor cursor)
     {
-        var starts = _lineStarts.AsSpan();
+        ReadOnlySpan<int> starts = _lineStarts.AsSpan();
         if ((uint)cursor.Line >= (uint)starts.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(cursor), "Cursor line outside chunk.");
         }
 
-        var lineStart = starts[cursor.Line];
-        var nextLineStart = cursor.Line + 1 < starts.Length ? starts[cursor.Line + 1] : _buffer.Length;
-        var absolute = lineStart + cursor.Column;
+        int lineStart = starts[cursor.Line];
+        int nextLineStart = cursor.Line + 1 < starts.Length ? starts[cursor.Line + 1] : _buffer.Length;
+        int absolute = lineStart + cursor.Column;
         if (cursor.Column < 0 || absolute > nextLineStart)
         {
             throw new ArgumentOutOfRangeException(nameof(cursor), "Cursor column outside chunk.");
@@ -77,8 +77,8 @@ internal sealed class ChunkBuffer
 
     internal string Slice(BufferCursor start, BufferCursor end)
     {
-        var startOffset = GetOffset(start);
-        var endOffset = GetOffset(end);
+        int startOffset = GetOffset(start);
+        int endOffset = GetOffset(end);
         if (endOffset < startOffset)
         {
             throw new ArgumentException("End cursor cannot precede start cursor.", nameof(end));
@@ -99,23 +99,23 @@ internal sealed class ChunkBuffer
             return this;
         }
 
-        var appended = LineStartBuilder.Build(text);
-        var oldStarts = _lineStarts.RawArray;
-        var appendedStarts = appended.RawArray;
-        var offset = _buffer.Length;
-        var mergedStarts = new int[oldStarts.Length + Math.Max(0, appendedStarts.Length - 1)];
+        LineStartTable appended = LineStartBuilder.Build(text);
+        int[] oldStarts = _lineStarts.RawArray;
+        int[] appendedStarts = appended.RawArray;
+        int offset = _buffer.Length;
+        int[] mergedStarts = new int[oldStarts.Length + Math.Max(0, appendedStarts.Length - 1)];
         Array.Copy(oldStarts, mergedStarts, oldStarts.Length);
         for (int i = 1; i < appendedStarts.Length; i++)
         {
             mergedStarts[oldStarts.Length + i - 1] = appendedStarts[i] + offset;
         }
 
-        var crCount = _lineStarts.CarriageReturnCount + appended.CarriageReturnCount;
-        var lfCount = _lineStarts.LineFeedCount + appended.LineFeedCount;
-        var crlfCount = _lineStarts.CarriageReturnLineFeedCount + appended.CarriageReturnLineFeedCount;
+        int crCount = _lineStarts.CarriageReturnCount + appended.CarriageReturnCount;
+        int lfCount = _lineStarts.LineFeedCount + appended.LineFeedCount;
+        int crlfCount = _lineStarts.CarriageReturnLineFeedCount + appended.CarriageReturnLineFeedCount;
 
-        var isAscii = _lineStarts.IsBasicAscii && appended.IsBasicAscii;
-        var mergedTable = new LineStartTable(mergedStarts, crCount, lfCount, crlfCount, isAscii);
+        bool isAscii = _lineStarts.IsBasicAscii && appended.IsBasicAscii;
+        LineStartTable mergedTable = new(mergedStarts, crCount, lfCount, crlfCount, isAscii);
 
         return new ChunkBuffer(string.Concat(_buffer, text), mergedTable);
     }

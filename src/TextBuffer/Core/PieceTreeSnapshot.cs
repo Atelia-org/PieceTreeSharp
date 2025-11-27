@@ -40,10 +40,10 @@ internal sealed class PieceTreeSnapshot : ITextSnapshot
             return null;
         }
 
-        var isFirstPiece = _index == 0;
-        var piece = _pieces[_index++];
-        var buffer = _buffers[piece.BufferIndex];
-        var slice = buffer.Slice(piece.Start, piece.End);
+        bool isFirstPiece = _index == 0;
+        PieceSegment piece = _pieces[_index++];
+        ChunkBuffer buffer = _buffers[piece.BufferIndex];
+        string slice = buffer.Slice(piece.Start, piece.End);
         return isFirstPiece ? _bom + slice : slice;
     }
 }

@@ -85,13 +85,13 @@ public readonly partial record struct Range
     /// Moves the range by the given amount of lines.
     /// </summary>
     public Range Delta(int lineCount)
-        => new Range(StartLineNumber + lineCount, StartColumn, EndLineNumber + lineCount, EndColumn);
+        => new(StartLineNumber + lineCount, StartColumn, EndLineNumber + lineCount, EndColumn);
 
     /// <summary>
     /// Moves the range by the given deltas.
     /// </summary>
     public Range Delta(int deltaStartLineNumber, int deltaStartColumn, int deltaEndLineNumber, int deltaEndColumn)
-        => new Range(
+        => new(
             StartLineNumber + deltaStartLineNumber,
             StartColumn + deltaStartColumn,
             EndLineNumber + deltaEndLineNumber,
@@ -357,13 +357,13 @@ public readonly partial record struct Range
     /// Create a new empty range using range's start position.
     /// </summary>
     public static Range CollapseToStart(Range range)
-        => new Range(range.StartLineNumber, range.StartColumn, range.StartLineNumber, range.StartColumn);
+        => new(range.StartLineNumber, range.StartColumn, range.StartLineNumber, range.StartColumn);
 
     /// <summary>
     /// Create a new empty range using range's end position.
     /// </summary>
     public static Range CollapseToEnd(Range range)
-        => new Range(range.EndLineNumber, range.EndColumn, range.EndLineNumber, range.EndColumn);
+        => new(range.EndLineNumber, range.EndColumn, range.EndLineNumber, range.EndColumn);
 
     /// <summary>
     /// Test if range a equals b (null-safe).

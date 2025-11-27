@@ -47,8 +47,8 @@ public sealed class LanguageConfigurationService : ILanguageConfigurationService
     public IDisposable Subscribe(string languageId, EventHandler<LanguageConfigurationChangedEventArgs> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
-        var key = string.IsNullOrWhiteSpace(languageId) ? "plaintext" : languageId;
-        var list = _handlers.GetOrAdd(key, _ => new List<EventHandler<LanguageConfigurationChangedEventArgs>>());
+        string key = string.IsNullOrWhiteSpace(languageId) ? "plaintext" : languageId;
+        List<EventHandler<LanguageConfigurationChangedEventArgs>> list = _handlers.GetOrAdd(key, _ => []);
         lock (list)
         {
             list.Add(callback);
@@ -56,7 +56,7 @@ public sealed class LanguageConfigurationService : ILanguageConfigurationService
 
         return new DelegateDisposable(() =>
         {
-            if (_handlers.TryGetValue(key, out var handlers))
+            if (_handlers.TryGetValue(key, out List<EventHandler<LanguageConfigurationChangedEventArgs>>? handlers))
             {
                 lock (handlers)
                 {
@@ -72,10 +72,10 @@ public sealed class LanguageConfigurationService : ILanguageConfigurationService
 
     public void RaiseChanged(string languageId)
     {
-        var args = new LanguageConfigurationChangedEventArgs(languageId);
+        LanguageConfigurationChangedEventArgs args = new(languageId);
         OnDidChange?.Invoke(this, args);
 
-        if (_handlers.TryGetValue(args.LanguageId, out var handlers))
+        if (_handlers.TryGetValue(args.LanguageId, out List<EventHandler<LanguageConfigurationChangedEventArgs>>? handlers))
         {
             EventHandler<LanguageConfigurationChangedEventArgs>[] snapshot;
             lock (handlers)
@@ -83,7 +83,7 @@ public sealed class LanguageConfigurationService : ILanguageConfigurationService
                 snapshot = handlers.ToArray();
             }
 
-            foreach (var handler in snapshot)
+            foreach (EventHandler<LanguageConfigurationChangedEventArgs> handler in snapshot)
             {
                 handler(this, args);
             }

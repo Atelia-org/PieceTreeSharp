@@ -21,17 +21,17 @@ internal static class ChunkUtilities
             yield break;
         }
 
-        var offset = 0;
-        var length = text.Length;
+        int offset = 0;
+        int length = text.Length;
         while (offset < length)
         {
-            var sliceLength = Math.Min(DefaultChunkSize, length - offset);
-            var end = offset + sliceLength;
+            int sliceLength = Math.Min(DefaultChunkSize, length - offset);
+            int end = offset + sliceLength;
 
             if (end < length)
             {
-                var lastChar = text[end - 1];
-                var nextChar = text[end];
+                char lastChar = text[end - 1];
+                char nextChar = text[end];
                 if (lastChar == '\r' && nextChar == '\n')
                 {
                     end++;
@@ -47,7 +47,7 @@ internal static class ChunkUtilities
                 end = length;
             }
 
-            var size = end - offset;
+            int size = end - offset;
             if (size <= 0)
             {
                 break;
@@ -63,10 +63,10 @@ internal static class ChunkUtilities
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(eol);
 
-        var result = new List<ChunkBuffer>();
-        var builder = new StringBuilder();
+        List<ChunkBuffer> result = [];
+        StringBuilder builder = new();
 
-        foreach (var segment in source)
+        foreach (string segment in source)
         {
             if (string.IsNullOrEmpty(segment))
             {
@@ -102,11 +102,11 @@ internal static class ChunkUtilities
             return;
         }
 
-        var lastChar = builder[^1];
+        char lastChar = builder[^1];
         if (!force && (lastChar == '\r' || char.IsHighSurrogate(lastChar)))
         {
             // Keep the trailing char for the next chunk to avoid splitting CRLF or surrogate pairs.
-            var carry = builder[^1];
+            char carry = builder[^1];
             builder.Length -= 1;
             if (builder.Length == 0)
             {
@@ -129,7 +129,7 @@ internal static class ChunkUtilities
             return;
         }
 
-        var normalized = ReplaceLineEndings(builder, eol);
+        string normalized = ReplaceLineEndings(builder, eol);
         target.Add(ChunkBuffer.FromText(normalized));
         builder.Clear();
     }
@@ -141,11 +141,11 @@ internal static class ChunkUtilities
             return string.Empty;
         }
 
-        var text = builder.ToString();
-        var result = new StringBuilder(text.Length);
+        string text = builder.ToString();
+        StringBuilder result = new(text.Length);
         for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r')
             {
                 result.Append(eol);

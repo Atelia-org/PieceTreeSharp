@@ -15,7 +15,7 @@ internal static class HeuristicSequenceOptimizations
 {
     public static List<SequenceDiff> OptimizeSequenceDiffs(ISequence sequence1, ISequence sequence2, IReadOnlyList<SequenceDiff> sequenceDiffs)
     {
-        var result = JoinSequenceDiffsByShifting(sequence1, sequence2, sequenceDiffs);
+        List<SequenceDiff> result = JoinSequenceDiffsByShifting(sequence1, sequence2, sequenceDiffs);
         result = JoinSequenceDiffsByShifting(sequence1, sequence2, result);
         result = ShiftSequenceDiffs(sequence1, sequence2, result);
         return result;
@@ -23,8 +23,8 @@ internal static class HeuristicSequenceOptimizations
 
     public static List<SequenceDiff> RemoveShortMatches(ISequence sequence1, ISequence sequence2, IReadOnlyList<SequenceDiff> sequenceDiffs)
     {
-        var result = new List<SequenceDiff>();
-        foreach (var diff in sequenceDiffs)
+        List<SequenceDiff> result = [];
+        foreach (SequenceDiff diff in sequenceDiffs)
         {
             if (result.Count == 0)
             {
@@ -32,7 +32,7 @@ internal static class HeuristicSequenceOptimizations
                 continue;
             }
 
-            var last = result[^1];
+            SequenceDiff last = result[^1];
             if (diff.Seq1Range.Start - last.Seq1Range.EndExclusive <= 2 || diff.Seq2Range.Start - last.Seq2Range.EndExclusive <= 2)
             {
                 result[^1] = last.Join(diff);
@@ -53,13 +53,13 @@ internal static class HeuristicSequenceOptimizations
         Func<LinesSliceCharSequence, int, OffsetRange?> findParent,
         bool force = false)
     {
-        var equalMappings = SequenceDiff.Invert(sequenceDiffs, sequence1.Length).ToList();
-        var additional = new List<SequenceDiff>();
-        var lastPoint = OffsetPair.Zero;
+        List<SequenceDiff> equalMappings = SequenceDiff.Invert(sequenceDiffs, sequence1.Length).ToList();
+        List<SequenceDiff> additional = [];
+        OffsetPair lastPoint = OffsetPair.Zero;
 
         while (equalMappings.Count > 0)
         {
-            var next = equalMappings[0];
+            SequenceDiff next = equalMappings[0];
             equalMappings.RemoveAt(0);
             if (next.Seq1Range.IsEmpty)
             {
@@ -75,25 +75,25 @@ internal static class HeuristicSequenceOptimizations
 
     public static List<SequenceDiff> RemoveVeryShortMatchingLinesBetweenDiffs(LineSequence sequence1, List<SequenceDiff> sequenceDiffs)
     {
-        var diffs = sequenceDiffs;
+        List<SequenceDiff> diffs = sequenceDiffs;
         if (diffs.Count == 0)
         {
             return diffs;
         }
 
-        var counter = 0;
+        int counter = 0;
         bool shouldRepeat;
         do
         {
             shouldRepeat = false;
-            var result = new List<SequenceDiff> { diffs[0] };
-            for (var i = 1; i < diffs.Count; i++)
+            List<SequenceDiff> result = [diffs[0]];
+            for (int i = 1; i < diffs.Count; i++)
             {
-                var current = diffs[i];
-                var last = result[^1];
-                var unchangedRange = new OffsetRange(last.Seq1Range.EndExclusive, current.Seq1Range.Start);
-                var text = sequence1.GetText(unchangedRange);
-                var stripped = text.Replace("\r", string.Empty).Replace("\n", string.Empty).Replace("\t", string.Empty).Replace(" ", string.Empty);
+                SequenceDiff current = diffs[i];
+                SequenceDiff last = result[^1];
+                OffsetRange unchangedRange = new(last.Seq1Range.EndExclusive, current.Seq1Range.Start);
+                string text = sequence1.GetText(unchangedRange);
+                string stripped = text.Replace("\r", string.Empty).Replace("\n", string.Empty).Replace("\t", string.Empty).Replace(" ", string.Empty);
 
                 if (stripped.Length <= 4 && (last.Seq1Range.Length + last.Seq2Range.Length > 5 || current.Seq1Range.Length + current.Seq2Range.Length > 5))
                 {
@@ -115,59 +115,59 @@ internal static class HeuristicSequenceOptimizations
 
     public static List<SequenceDiff> RemoveVeryShortMatchingTextBetweenLongDiffs(LinesSliceCharSequence sequence1, LinesSliceCharSequence sequence2, List<SequenceDiff> sequenceDiffs)
     {
-        var diffs = sequenceDiffs;
+        List<SequenceDiff> diffs = sequenceDiffs;
         if (diffs.Count == 0)
         {
             return diffs;
         }
 
-        var counter = 0;
+        int counter = 0;
         bool shouldRepeat;
         do
         {
             shouldRepeat = false;
-            var result = new List<SequenceDiff> { diffs[0] };
-            for (var i = 1; i < diffs.Count; i++)
+            List<SequenceDiff> result = [diffs[0]];
+            for (int i = 1; i < diffs.Count; i++)
             {
-                var current = diffs[i];
-                var last = result[^1];
+                SequenceDiff current = diffs[i];
+                SequenceDiff last = result[^1];
 
                 bool ShouldJoinDiffs(SequenceDiff before, SequenceDiff after)
                 {
-                    var unchangedRange = new OffsetRange(last.Seq1Range.EndExclusive, current.Seq1Range.Start);
-                    var unchangedLineCount = sequence1.CountLinesIn(unchangedRange);
+                    OffsetRange unchangedRange = new(last.Seq1Range.EndExclusive, current.Seq1Range.Start);
+                    int unchangedLineCount = sequence1.CountLinesIn(unchangedRange);
                     if (unchangedLineCount > 5 || unchangedRange.Length > 500)
                     {
                         return false;
                     }
 
-                    var unchangedText = sequence1.GetText(unchangedRange).Trim();
+                    string unchangedText = sequence1.GetText(unchangedRange).Trim();
                     if (unchangedText.Length > 20 || unchangedText.Contains('\r') || unchangedText.Contains('\n'))
                     {
                         return false;
                     }
 
-                    var beforeLineCount1 = sequence1.CountLinesIn(before.Seq1Range);
-                    var beforeSeq1Length = before.Seq1Range.Length;
-                    var beforeLineCount2 = sequence2.CountLinesIn(before.Seq2Range);
-                    var beforeSeq2Length = before.Seq2Range.Length;
+                    int beforeLineCount1 = sequence1.CountLinesIn(before.Seq1Range);
+                    int beforeSeq1Length = before.Seq1Range.Length;
+                    int beforeLineCount2 = sequence2.CountLinesIn(before.Seq2Range);
+                    int beforeSeq2Length = before.Seq2Range.Length;
 
-                    var afterLineCount1 = sequence1.CountLinesIn(after.Seq1Range);
-                    var afterSeq1Length = after.Seq1Range.Length;
-                    var afterLineCount2 = sequence2.CountLinesIn(after.Seq2Range);
-                    var afterSeq2Length = after.Seq2Range.Length;
+                    int afterLineCount1 = sequence1.CountLinesIn(after.Seq1Range);
+                    int afterSeq1Length = after.Seq1Range.Length;
+                    int afterLineCount2 = sequence2.CountLinesIn(after.Seq2Range);
+                    int afterSeq2Length = after.Seq2Range.Length;
 
-                    const double max = 2 * 40 + 50;
+                    const double max = (2 * 40) + 50;
                     static double Cap(double value, double cap) => Math.Min(value, cap);
 
                     double Score(double lineCount, double seqLength)
                     {
-                        return Math.Pow(Cap(lineCount * 40 + seqLength, max), 1.5);
+                        return Math.Pow(Cap((lineCount * 40) + seqLength, max), 1.5);
                     }
 
-                    var beforeScore = Math.Pow(Score(beforeLineCount1, beforeSeq1Length) + Score(beforeLineCount2, beforeSeq2Length), 1.5);
-                    var afterScore = Math.Pow(Score(afterLineCount1, afterSeq1Length) + Score(afterLineCount2, afterSeq2Length), 1.5);
-                    var threshold = Math.Pow(Math.Pow(max, 1.5), 1.5) * 1.3;
+                    double beforeScore = Math.Pow(Score(beforeLineCount1, beforeSeq1Length) + Score(beforeLineCount2, beforeSeq2Length), 1.5);
+                    double afterScore = Math.Pow(Score(afterLineCount1, afterSeq1Length) + Score(afterLineCount2, afterSeq2Length), 1.5);
+                    double threshold = Math.Pow(Math.Pow(max, 1.5), 1.5) * 1.3;
                     return beforeScore + afterScore > threshold;
                 }
 
@@ -186,38 +186,38 @@ internal static class HeuristicSequenceOptimizations
         }
         while (counter++ < 10 && shouldRepeat);
 
-        var merged = new List<SequenceDiff>();
-        for (var i = 0; i < diffs.Count; i++)
+        List<SequenceDiff> merged = [];
+        for (int i = 0; i < diffs.Count; i++)
         {
-            var prev = i > 0 ? diffs[i - 1] : null;
-            var cur = diffs[i];
-            var next = i + 1 < diffs.Count ? diffs[i + 1] : null;
+            SequenceDiff? prev = i > 0 ? diffs[i - 1] : null;
+            SequenceDiff cur = diffs[i];
+            SequenceDiff? next = i + 1 < diffs.Count ? diffs[i + 1] : null;
 
-            var newDiff = cur;
+            SequenceDiff newDiff = cur;
 
             bool ShouldMarkAsChanged(string text)
             {
                 return text.Length > 0 && text.Trim().Length <= 3 && cur.Seq1Range.Length + cur.Seq2Range.Length > 100;
             }
 
-            var fullRange1 = sequence1.ExtendToFullLines(cur.Seq1Range);
-            var prefix = sequence1.GetText(new OffsetRange(fullRange1.Start, cur.Seq1Range.Start));
+            OffsetRange fullRange1 = sequence1.ExtendToFullLines(cur.Seq1Range);
+            string prefix = sequence1.GetText(new OffsetRange(fullRange1.Start, cur.Seq1Range.Start));
             if (ShouldMarkAsChanged(prefix))
             {
                 newDiff = newDiff.DeltaStart(-prefix.Length);
             }
 
-            var suffix = sequence1.GetText(new OffsetRange(cur.Seq1Range.EndExclusive, fullRange1.EndExclusive));
+            string suffix = sequence1.GetText(new OffsetRange(cur.Seq1Range.EndExclusive, fullRange1.EndExclusive));
             if (ShouldMarkAsChanged(suffix))
             {
                 newDiff = newDiff.DeltaEnd(suffix.Length);
             }
 
-            var availableSpace = SequenceDiff.FromOffsetPairs(
+            SequenceDiff availableSpace = SequenceDiff.FromOffsetPairs(
                 prev?.GetEndExclusives() ?? OffsetPair.Zero,
                 next?.GetStarts() ?? OffsetPair.Max);
 
-            var clipped = newDiff.Intersect(availableSpace);
+            SequenceDiff? clipped = newDiff.Intersect(availableSpace);
             if (clipped == null)
             {
                 continue;
@@ -225,9 +225,9 @@ internal static class HeuristicSequenceOptimizations
 
             if (merged.Count > 0)
             {
-                var last = merged[^1];
-                var lastEnd = last.GetEndExclusives();
-                var start = clipped.GetStarts();
+                SequenceDiff last = merged[^1];
+                OffsetPair lastEnd = last.GetEndExclusives();
+                OffsetPair start = clipped.GetStarts();
                 if (lastEnd.Offset1 == start.Offset1 && lastEnd.Offset2 == start.Offset2)
                 {
                     merged[^1] = last.Join(clipped);
@@ -245,19 +245,19 @@ internal static class HeuristicSequenceOptimizations
     {
         if (sequenceDiffs.Count == 0)
         {
-            return new List<SequenceDiff>();
+            return [];
         }
 
-        var result = new List<SequenceDiff> { sequenceDiffs[0] };
-        for (var i = 1; i < sequenceDiffs.Count; i++)
+        List<SequenceDiff> result = [sequenceDiffs[0]];
+        for (int i = 1; i < sequenceDiffs.Count; i++)
         {
-            var prevResult = result[^1];
-            var current = sequenceDiffs[i];
+            SequenceDiff prevResult = result[^1];
+            SequenceDiff current = sequenceDiffs[i];
 
             if (current.Seq1Range.IsEmpty || current.Seq2Range.IsEmpty)
             {
-                var length = current.Seq1Range.Start - prevResult.Seq1Range.EndExclusive;
-                var d = 1;
+                int length = current.Seq1Range.Start - prevResult.Seq1Range.EndExclusive;
+                int d = 1;
                 while (d <= length)
                 {
                     if (sequence1.GetElement(current.Seq1Range.Start - d) != sequence1.GetElement(current.Seq1Range.EndExclusive - d)
@@ -284,16 +284,16 @@ internal static class HeuristicSequenceOptimizations
             result.Add(current);
         }
 
-        var secondPass = new List<SequenceDiff>();
-        for (var i = 0; i < result.Count - 1; i++)
+        List<SequenceDiff> secondPass = [];
+        for (int i = 0; i < result.Count - 1; i++)
         {
-            var next = result[i + 1];
-            var current = result[i];
+            SequenceDiff next = result[i + 1];
+            SequenceDiff current = result[i];
 
             if (current.Seq1Range.IsEmpty || current.Seq2Range.IsEmpty)
             {
-                var length = next.Seq1Range.Start - current.Seq1Range.EndExclusive;
-                var d = 0;
+                int length = next.Seq1Range.Start - current.Seq1Range.EndExclusive;
+                int d = 0;
                 while (d < length)
                 {
                     if (!sequence1.IsStronglyEqual(current.Seq1Range.Start + d, current.Seq1Range.EndExclusive + d)
@@ -337,14 +337,14 @@ internal static class HeuristicSequenceOptimizations
             return diffs;
         }
 
-        for (var i = 0; i < diffs.Count; i++)
+        for (int i = 0; i < diffs.Count; i++)
         {
-            var prev = i > 0 ? diffs[i - 1] : null;
-            var current = diffs[i];
-            var next = i + 1 < diffs.Count ? diffs[i + 1] : null;
+            SequenceDiff? prev = i > 0 ? diffs[i - 1] : null;
+            SequenceDiff current = diffs[i];
+            SequenceDiff? next = i + 1 < diffs.Count ? diffs[i + 1] : null;
 
-            var seq1ValidRange = new OffsetRange(prev != null ? prev.Seq1Range.EndExclusive + 1 : 0, next != null ? next.Seq1Range.Start - 1 : seq1.Length);
-            var seq2ValidRange = new OffsetRange(prev != null ? prev.Seq2Range.EndExclusive + 1 : 0, next != null ? next.Seq2Range.Start - 1 : seq2.Length);
+            OffsetRange seq1ValidRange = new(prev != null ? prev.Seq1Range.EndExclusive + 1 : 0, next != null ? next.Seq1Range.Start - 1 : seq1.Length);
+            OffsetRange seq2ValidRange = new(prev != null ? prev.Seq2Range.EndExclusive + 1 : 0, next != null ? next.Seq2Range.Start - 1 : seq2.Length);
 
             if (current.Seq1Range.IsEmpty)
             {
@@ -362,7 +362,7 @@ internal static class HeuristicSequenceOptimizations
     private static SequenceDiff ShiftDiffToBetterPosition(SequenceDiff diff, ISequence sequence1, ISequence sequence2, OffsetRange seq1ValidRange, OffsetRange seq2ValidRange)
     {
         const int maxShiftLimit = 100;
-        var deltaBefore = 1;
+        int deltaBefore = 1;
         while (diff.Seq1Range.Start - deltaBefore >= seq1ValidRange.Start
             && diff.Seq2Range.Start - deltaBefore >= seq2ValidRange.Start
             && sequence2.IsStronglyEqual(diff.Seq2Range.Start - deltaBefore, diff.Seq2Range.EndExclusive - deltaBefore)
@@ -372,7 +372,7 @@ internal static class HeuristicSequenceOptimizations
         }
 
         deltaBefore--;
-        var deltaAfter = 0;
+        int deltaAfter = 0;
         while (diff.Seq1Range.Start + deltaAfter < seq1ValidRange.EndExclusive
             && diff.Seq2Range.EndExclusive + deltaAfter < seq2ValidRange.EndExclusive
             && sequence2.IsStronglyEqual(diff.Seq2Range.Start + deltaAfter, diff.Seq2Range.EndExclusive + deltaAfter)
@@ -386,14 +386,14 @@ internal static class HeuristicSequenceOptimizations
             return diff;
         }
 
-        var bestDelta = 0;
-        var bestScore = double.NegativeInfinity;
-        for (var delta = -deltaBefore; delta <= deltaAfter; delta++)
+        int bestDelta = 0;
+        double bestScore = double.NegativeInfinity;
+        for (int delta = -deltaBefore; delta <= deltaAfter; delta++)
         {
-            var seq2OffsetStart = diff.Seq2Range.Start + delta;
-            var seq2OffsetEnd = diff.Seq2Range.EndExclusive + delta;
-            var seq1Offset = diff.Seq1Range.Start + delta;
-            var score = sequence1.GetBoundaryScore(seq1Offset) + sequence2.GetBoundaryScore(seq2OffsetStart) + sequence2.GetBoundaryScore(seq2OffsetEnd);
+            int seq2OffsetStart = diff.Seq2Range.Start + delta;
+            int seq2OffsetEnd = diff.Seq2Range.EndExclusive + delta;
+            int seq1Offset = diff.Seq1Range.Start + delta;
+            int score = sequence1.GetBoundaryScore(seq1Offset) + sequence2.GetBoundaryScore(seq2OffsetStart) + sequence2.GetBoundaryScore(seq2OffsetEnd);
             if (score > bestScore)
             {
                 bestScore = score;
@@ -406,9 +406,9 @@ internal static class HeuristicSequenceOptimizations
 
     private static List<SequenceDiff> MergeSequenceDiffs(IReadOnlyList<SequenceDiff> diffs1, IReadOnlyList<SequenceDiff> diffs2)
     {
-        var result = new List<SequenceDiff>();
-        var i = 0;
-        var j = 0;
+        List<SequenceDiff> result = [];
+        int i = 0;
+        int j = 0;
         while (i < diffs1.Count || j < diffs2.Count)
         {
             SequenceDiff next;
@@ -450,41 +450,41 @@ internal static class HeuristicSequenceOptimizations
             return;
         }
 
-        var w1 = findParent(sequence1, pair.Offset1);
-        var w2 = findParent(sequence2, pair.Offset2);
+        OffsetRange? w1 = findParent(sequence1, pair.Offset1);
+        OffsetRange? w2 = findParent(sequence2, pair.Offset2);
         if (w1 == null || w2 == null)
         {
             return;
         }
 
-        var wordDiff = new SequenceDiff(w1.Value, w2.Value);
-        var equalPart = wordDiff.Intersect(equalMapping);
+        SequenceDiff wordDiff = new(w1.Value, w2.Value);
+        SequenceDiff? equalPart = wordDiff.Intersect(equalMapping);
         if (equalPart == null)
         {
             return;
         }
 
-        var equalChars1 = equalPart.Seq1Range.Length;
-        var equalChars2 = equalPart.Seq2Range.Length;
+        int equalChars1 = equalPart.Seq1Range.Length;
+        int equalChars2 = equalPart.Seq2Range.Length;
 
         while (equalMappings.Count > 0)
         {
-            var next = equalMappings[0];
-            var intersects = next.Seq1Range.IntersectsOrTouches(wordDiff.Seq1Range) || next.Seq2Range.IntersectsOrTouches(wordDiff.Seq2Range);
+            SequenceDiff next = equalMappings[0];
+            bool intersects = next.Seq1Range.IntersectsOrTouches(wordDiff.Seq1Range) || next.Seq2Range.IntersectsOrTouches(wordDiff.Seq2Range);
             if (!intersects)
             {
                 break;
             }
 
-            var parent1 = findParent(sequence1, next.Seq1Range.Start);
-            var parent2 = findParent(sequence2, next.Seq2Range.Start);
+            OffsetRange? parent1 = findParent(sequence1, next.Seq1Range.Start);
+            OffsetRange? parent2 = findParent(sequence2, next.Seq2Range.Start);
             if (parent1 == null || parent2 == null)
             {
                 break;
             }
 
-            var nextWord = new SequenceDiff(parent1.Value, parent2.Value);
-            var eq = nextWord.Intersect(next);
+            SequenceDiff nextWord = new(parent1.Value, parent2.Value);
+            SequenceDiff? eq = nextWord.Intersect(next);
             if (eq != null)
             {
                 equalChars1 += eq.Seq1Range.Length;
@@ -502,7 +502,7 @@ internal static class HeuristicSequenceOptimizations
             }
         }
 
-        var total = wordDiff.Seq1Range.Length + wordDiff.Seq2Range.Length;
+        int total = wordDiff.Seq1Range.Length + wordDiff.Seq2Range.Length;
         if ((force && equalChars1 + equalChars2 < total) || equalChars1 + equalChars2 < total * 2 / 3)
         {
             additional.Add(wordDiff);

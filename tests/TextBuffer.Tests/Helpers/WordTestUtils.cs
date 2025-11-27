@@ -118,19 +118,19 @@ public static class WordTestUtils
     /// </summary>
     public static List<int> GetWordBoundaries(string lineContent, string wordSeparators)
     {
-        var boundaries = new List<int> { 1 }; // Start of line is always a boundary
+        List<int> boundaries = [1]; // Start of line is always a boundary
 
         if (string.IsNullOrEmpty(lineContent))
         {
             return boundaries;
         }
 
-        var separatorSet = new HashSet<char>(wordSeparators ?? string.Empty);
-        var prevCharType = GetCharType(lineContent[0], separatorSet);
+        HashSet<char> separatorSet = new(wordSeparators ?? string.Empty);
+        CharType prevCharType = GetCharType(lineContent[0], separatorSet);
 
         for (int i = 1; i < lineContent.Length; i++)
         {
-            var currentCharType = GetCharType(lineContent[i], separatorSet);
+            CharType currentCharType = GetCharType(lineContent[i], separatorSet);
             if (currentCharType != prevCharType)
             {
                 boundaries.Add(i + 1); // 1-based column
@@ -147,15 +147,15 @@ public static class WordTestUtils
     /// </summary>
     public static List<int> GetWordStarts(string lineContent, string wordSeparators)
     {
-        var starts = new List<int>();
+        List<int> starts = [];
 
         if (string.IsNullOrEmpty(lineContent))
         {
             return starts;
         }
 
-        var separatorSet = new HashSet<char>(wordSeparators ?? string.Empty);
-        
+        HashSet<char> separatorSet = new(wordSeparators ?? string.Empty);
+
         // First non-separator char at start is a word start
         if (!IsSeparatorOrWhitespace(lineContent[0], separatorSet))
         {
@@ -164,9 +164,9 @@ public static class WordTestUtils
 
         for (int i = 1; i < lineContent.Length; i++)
         {
-            var prevIsSeparator = IsSeparatorOrWhitespace(lineContent[i - 1], separatorSet);
-            var currentIsSeparator = IsSeparatorOrWhitespace(lineContent[i], separatorSet);
-            
+            bool prevIsSeparator = IsSeparatorOrWhitespace(lineContent[i - 1], separatorSet);
+            bool currentIsSeparator = IsSeparatorOrWhitespace(lineContent[i], separatorSet);
+
             if (prevIsSeparator && !currentIsSeparator)
             {
                 starts.Add(i + 1); // 1-based column
@@ -181,20 +181,20 @@ public static class WordTestUtils
     /// </summary>
     public static List<int> GetWordEnds(string lineContent, string wordSeparators)
     {
-        var ends = new List<int>();
+        List<int> ends = [];
 
         if (string.IsNullOrEmpty(lineContent))
         {
             return ends;
         }
 
-        var separatorSet = new HashSet<char>(wordSeparators ?? string.Empty);
+        HashSet<char> separatorSet = new(wordSeparators ?? string.Empty);
 
         for (int i = 0; i < lineContent.Length - 1; i++)
         {
-            var currentIsSeparator = IsSeparatorOrWhitespace(lineContent[i], separatorSet);
-            var nextIsSeparator = IsSeparatorOrWhitespace(lineContent[i + 1], separatorSet);
-            
+            bool currentIsSeparator = IsSeparatorOrWhitespace(lineContent[i], separatorSet);
+            bool nextIsSeparator = IsSeparatorOrWhitespace(lineContent[i + 1], separatorSet);
+
             if (!currentIsSeparator && nextIsSeparator)
             {
                 ends.Add(i + 2); // 1-based column, position after the word
@@ -202,7 +202,7 @@ public static class WordTestUtils
         }
 
         // Last char ends a word if it's not a separator
-        if (!IsSeparatorOrWhitespace(lineContent[lineContent.Length - 1], separatorSet))
+        if (!IsSeparatorOrWhitespace(lineContent[^1], separatorSet))
         {
             ends.Add(lineContent.Length + 1);
         }
@@ -248,14 +248,14 @@ public static class WordTestUtils
         string wordSeparators,
         params (int line, int column)[] expectedPositions)
     {
-        var current = startPosition;
-        var positions = new List<TextPosition> { current };
+        TextPosition current = startPosition;
+        List<TextPosition> positions = [current];
 
-        foreach (var expected in expectedPositions)
+        foreach ((int line, int column) in expectedPositions)
         {
             current = WordOperations.MoveWordLeft(model, current, wordSeparators);
             positions.Add(current);
-            CursorTestHelper.AssertPosition(current, expected.line, expected.column, 
+            CursorTestHelper.AssertPosition(current, line, column,
                 $"Word-left from ({positions[^2].LineNumber},{positions[^2].Column})");
         }
     }
@@ -269,14 +269,14 @@ public static class WordTestUtils
         string wordSeparators,
         params (int line, int column)[] expectedPositions)
     {
-        var current = startPosition;
-        var positions = new List<TextPosition> { current };
+        TextPosition current = startPosition;
+        List<TextPosition> positions = [current];
 
-        foreach (var expected in expectedPositions)
+        foreach ((int line, int column) in expectedPositions)
         {
             current = WordOperations.MoveWordRight(model, current, wordSeparators);
             positions.Add(current);
-            CursorTestHelper.AssertPosition(current, expected.line, expected.column,
+            CursorTestHelper.AssertPosition(current, line, column,
                 $"Word-right from ({positions[^2].LineNumber},{positions[^2].Column})");
         }
     }
@@ -369,15 +369,15 @@ public static class WordTestUtils
             return (string.Empty, new List<TextPosition>());
         }
 
-        var positions = new List<TextPosition>();
-        var sb = new StringBuilder();
+        List<TextPosition> positions = [];
+        StringBuilder sb = new();
         int line = 1;
         int column = 1;
         int index = 0;
 
         while (index < markedText.Length)
         {
-            var c = markedText[index];
+            char c = markedText[index];
 
             if (c == '|')
             {
@@ -425,10 +425,10 @@ public static class WordTestUtils
     public static string SerializePipePositions(string text, IEnumerable<TextPosition> positions)
     {
         text ??= string.Empty;
-        var orderedPositions = positions?.OrderBy(p => p.LineNumber).ThenBy(p => p.Column)
+        IEnumerable<TextPosition> orderedPositions = positions?.OrderBy(p => p.LineNumber).ThenBy(p => p.Column)
             ?? Enumerable.Empty<TextPosition>();
-        var queue = new Queue<TextPosition>(orderedPositions);
-        var sb = new StringBuilder();
+        Queue<TextPosition> queue = new(orderedPositions);
+        StringBuilder sb = new();
         int line = 1;
         int charIndex = 0;
         int index = 0;
@@ -447,7 +447,7 @@ public static class WordTestUtils
                 continue;
             }
 
-            var c = text[index];
+            char c = text[index];
             sb.Append(c);
             index++;
 
@@ -471,7 +471,7 @@ public static class WordTestUtils
 
         if (queue.Count > 0)
         {
-            var leftover = queue.Peek();
+            TextPosition leftover = queue.Peek();
             throw new InvalidOperationException($"Unexpected left over positions at ({leftover.LineNumber},{leftover.Column}).");
         }
 
@@ -502,7 +502,7 @@ public static class WordTestUtils
         Func<int, int> action,
         int maxIterations = 100)
     {
-        var positions = new List<TextPosition> { new TextPosition(1, startColumn) };
+        List<TextPosition> positions = [new TextPosition(1, startColumn)];
         int current = startColumn;
 
         for (int i = 0; i < maxIterations; i++)

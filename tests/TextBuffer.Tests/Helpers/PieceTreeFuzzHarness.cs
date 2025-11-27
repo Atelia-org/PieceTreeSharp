@@ -40,15 +40,15 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
         if (initialChunks is not null)
         {
-            var chunkList = initialChunks as IList<string> ?? new List<string>(initialChunks);
+            IList<string> chunkList = initialChunks as IList<string> ?? new List<string>(initialChunks);
             _buffer = PieceTreeBuffer.FromChunks(chunkList, normalizeChunks);
-            var concatenated = string.Concat(chunkList);
+            string concatenated = string.Concat(chunkList);
             _expected = new StringBuilder(concatenated);
             _log.Add($"chunks={chunkList.Count} normalizeChunks={normalizeChunks}");
         }
         else
         {
-            var seedText = initialText ?? string.Empty;
+            string seedText = initialText ?? string.Empty;
             _buffer = new PieceTreeBuffer(seedText);
             _expected = new StringBuilder(seedText);
         }
@@ -73,7 +73,7 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return;
         }
 
-        for (var i = 0; i < iterations; i++)
+        for (int i = 0; i < iterations; i++)
         {
             _iteration = i;
             PerformRandomOperation(maxInsertLength);
@@ -107,7 +107,7 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
         _buffer.ApplyEdit(offset, length, null);
         if (_expected.Length > 0 && offset < _expected.Length)
         {
-            var removable = Math.Min(length, _expected.Length - offset);
+            int removable = Math.Min(length, _expected.Length - offset);
             if (removable > 0)
             {
                 _expected.Remove(offset, removable);
@@ -127,7 +127,7 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
         if (length > 0 && _expected.Length > 0 && offset < _expected.Length)
         {
-            var removable = Math.Min(length, _expected.Length - offset);
+            int removable = Math.Min(length, _expected.Length - offset);
             if (removable > 0)
             {
                 _expected.Remove(offset, removable);
@@ -161,10 +161,10 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     public string GetValueInRange(Range range, EndOfLinePreference preference = EndOfLinePreference.TextDefined)
     {
-        var startOffset = _buffer.GetOffsetAt(range.StartLineNumber, range.StartColumn);
-        var endOffset = _buffer.GetOffsetAt(range.EndLineNumber, range.EndColumn);
-        var length = Math.Max(0, endOffset - startOffset);
-        var value = _buffer.GetText(startOffset, length);
+        int startOffset = _buffer.GetOffsetAt(range.StartLineNumber, range.StartColumn);
+        int endOffset = _buffer.GetOffsetAt(range.EndLineNumber, range.EndColumn);
+        int length = Math.Max(0, endOffset - startOffset);
+        string value = _buffer.GetText(startOffset, length);
         return preference switch
         {
             EndOfLinePreference.LF => NormalizeToLf(value),
@@ -175,8 +175,8 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     public PieceTreeRangeDiff DescribeFirstDifference(int context = 32)
     {
-        var actual = _buffer.GetText();
-        var expected = _expected.ToString();
+        string actual = _buffer.GetText();
+        string expected = _expected.ToString();
         return DescribeFirstDifference(actual, expected, context);
     }
 
@@ -192,13 +192,13 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     public void AssertState(string? phase = null)
     {
-        var actual = _buffer.GetText();
-        var expected = _expected.ToString();
+        string actual = _buffer.GetText();
+        string expected = _expected.ToString();
         if (!string.Equals(actual, expected, StringComparison.Ordinal))
         {
-            var diff = DescribeFirstDifference(actual, expected, 48);
-            var logPath = _log.FlushToFile();
-            var message = new StringBuilder();
+            PieceTreeRangeDiff diff = DescribeFirstDifference(actual, expected, 48);
+            string logPath = _log.FlushToFile();
+            StringBuilder message = new();
             message.AppendLine($"PieceTreeFuzzHarness state mismatch (phase: {phase ?? "n/a"}, iteration: {_iteration}, seed: {Seed}).");
             message.AppendLine(diff.ToString());
             message.AppendLine($"Expected length={expected.Length}, actual length={actual.Length}.");
@@ -227,20 +227,20 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return;
         }
 
-        var op = _random.Next(0, 3);
+        int op = _random.Next(0, 3);
         switch (op)
         {
             case 0:
                 Insert(_random.Next(0, _buffer.Length + 1), CreateRandomText(maxInsertLength));
                 break;
             case 1:
-                var deleteOffset = _random.Next(0, _buffer.Length);
-                var deleteLength = Math.Max(1, Math.Min(maxInsertLength, _buffer.Length - deleteOffset));
+                int deleteOffset = _random.Next(0, _buffer.Length);
+                int deleteLength = Math.Max(1, Math.Min(maxInsertLength, _buffer.Length - deleteOffset));
                 Delete(deleteOffset, deleteLength);
                 break;
             default:
-                var replaceOffset = _random.Next(0, _buffer.Length);
-                var replaceLength = Math.Max(1, Math.Min(maxInsertLength, _buffer.Length - replaceOffset));
+                int replaceOffset = _random.Next(0, _buffer.Length);
+                int replaceLength = Math.Max(1, Math.Min(maxInsertLength, _buffer.Length - replaceOffset));
                 Replace(replaceOffset, replaceLength, CreateRandomText(maxInsertLength));
                 break;
         }
@@ -248,10 +248,10 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     private string CreateRandomText(int maxLength)
     {
-        var target = Math.Max(1, maxLength);
-        var desiredLength = _random.Next(1, target + 1);
-        var builder = new StringBuilder(desiredLength);
-        for (var i = 0; i < desiredLength; i++)
+        int target = Math.Max(1, maxLength);
+        int desiredLength = _random.Next(1, target + 1);
+        StringBuilder builder = new(desiredLength);
+        for (int i = 0; i < desiredLength; i++)
         {
             builder.Append(Alphabet[_random.Next(Alphabet.Length)]);
         }
@@ -264,68 +264,68 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
     /// </summary>
     private void AssertLineParity(string expected, string? phase)
     {
-        var lines = SplitLines(expected);
-        var lineStarts = ComputeLineStarts(expected);
-        var expectedLineCount = lines.Count;
+        List<string> lines = SplitLines(expected);
+        List<int> lineStarts = ComputeLineStarts(expected);
+        int expectedLineCount = lines.Count;
 
         if (lineStarts.Count != expectedLineCount)
         {
             FailState($"Line start count mismatch (lines={expectedLineCount}, starts={lineStarts.Count}).", phase);
         }
 
-        var actualLineCount = GetLineCount();
+        int actualLineCount = GetLineCount();
         if (actualLineCount != expectedLineCount)
         {
             FailState($"Line count mismatch: expected {expectedLineCount}, actual {actualLineCount}.", phase);
         }
 
-        for (var i = 0; i < expectedLineCount; i++)
+        for (int i = 0; i < expectedLineCount; i++)
         {
-            var lineNumber = i + 1;
-            var expectedLine = lines[i];
-            var actualLine = _buffer.GetLineContent(lineNumber);
+            int lineNumber = i + 1;
+            string expectedLine = lines[i];
+            string actualLine = _buffer.GetLineContent(lineNumber);
             if (!string.Equals(actualLine, expectedLine, StringComparison.Ordinal))
             {
                 FailState($"GetLineContent mismatch at line {lineNumber}: expected '{SanitizeForLog(expectedLine)}', actual '{SanitizeForLog(actualLine)}'.", phase);
             }
 
-            var endColumn = expectedLine.Length + (i == expectedLineCount - 1 ? 1 : 2);
-            var range = new Range(new TextPosition(lineNumber, 1), new TextPosition(lineNumber, Math.Max(1, endColumn)));
-            var rangeValue = GetValueInRange(range);
-            var trimmed = TrimLineFeed(rangeValue);
+            int endColumn = expectedLine.Length + (i == expectedLineCount - 1 ? 1 : 2);
+            Range range = new(new TextPosition(lineNumber, 1), new TextPosition(lineNumber, Math.Max(1, endColumn)));
+            string rangeValue = GetValueInRange(range);
+            string trimmed = TrimLineFeed(rangeValue);
             if (!string.Equals(trimmed, expectedLine, StringComparison.Ordinal))
             {
                 FailState($"GetValueInRange mismatch at line {lineNumber}: expected '{SanitizeForLog(expectedLine)}', trimmed '{SanitizeForLog(trimmed)}', raw '{SanitizeForLog(rangeValue)}'.", phase);
             }
         }
 
-        for (var i = 0; i < lineStarts.Count; i++)
+        for (int i = 0; i < lineStarts.Count; i++)
         {
-            var expectedOffset = lineStarts[i];
-            var position = _buffer.GetPositionAt(expectedOffset);
-            var expectedPosition = new TextPosition(i + 1, 1);
+            int expectedOffset = lineStarts[i];
+            TextPosition position = _buffer.GetPositionAt(expectedOffset);
+            TextPosition expectedPosition = new(i + 1, 1);
             if (!position.Equals(expectedPosition))
             {
                 FailState($"GetPositionAt({expectedOffset}) => {position.LineNumber}:{position.Column}, expected {expectedPosition.LineNumber}:{expectedPosition.Column}.", phase);
             }
 
-            var offsetRoundTrip = _buffer.GetOffsetAt(i + 1, 1);
+            int offsetRoundTrip = _buffer.GetOffsetAt(i + 1, 1);
             if (offsetRoundTrip != expectedOffset)
             {
                 FailState($"GetOffsetAt({i + 1}, 1) => {offsetRoundTrip}, expected {expectedOffset}.", phase);
             }
         }
 
-        for (var i = 1; i < lineStarts.Count; i++)
+        for (int i = 1; i < lineStarts.Count; i++)
         {
-            var offset = lineStarts[i] - 1;
+            int offset = lineStarts[i] - 1;
             if (offset < 0)
             {
                 continue;
             }
 
-            var position = _buffer.GetPositionAt(offset);
-            var roundTrip = _buffer.GetOffsetAt(position.LineNumber, position.Column);
+            TextPosition position = _buffer.GetPositionAt(offset);
+            int roundTrip = _buffer.GetOffsetAt(position.LineNumber, position.Column);
             if (roundTrip != offset)
             {
                 FailState($"Offset round-trip mismatch near line {i + 1}: expected offset {offset}, got {roundTrip} via {position.LineNumber}:{position.Column}.", phase);
@@ -340,35 +340,35 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return PieceTreeRangeDiff.None;
         }
 
-        var shared = Math.Min(actual.Length, expected.Length);
-        var start = 0;
+        int shared = Math.Min(actual.Length, expected.Length);
+        int start = 0;
         while (start < shared && actual[start] == expected[start])
         {
             start++;
         }
 
-        var actualTail = actual.Length - 1;
-        var expectedTail = expected.Length - 1;
+        int actualTail = actual.Length - 1;
+        int expectedTail = expected.Length - 1;
         while (actualTail >= start && expectedTail >= start && actual[actualTail] == expected[expectedTail])
         {
             actualTail--;
             expectedTail--;
         }
 
-        var diffEnd = Math.Max(actualTail, expectedTail) + 1;
-        var snippetLength = Math.Min(context, Math.Max(1, diffEnd - start));
-        var actualFragment = Slice(actual, start, snippetLength);
-        var expectedFragment = Slice(expected, start, snippetLength);
-        var range = BuildRange(start, diffEnd);
+        int diffEnd = Math.Max(actualTail, expectedTail) + 1;
+        int snippetLength = Math.Min(context, Math.Max(1, diffEnd - start));
+        string actualFragment = Slice(actual, start, snippetLength);
+        string expectedFragment = Slice(expected, start, snippetLength);
+        Range range = BuildRange(start, diffEnd);
         return new PieceTreeRangeDiff(true, range, start, diffEnd, expectedFragment, actualFragment);
     }
 
     private Range BuildRange(int startOffset, int endOffset)
     {
-        var clampedStart = Math.Clamp(startOffset, 0, Math.Max(0, _buffer.Length));
-        var clampedEnd = Math.Clamp(endOffset, clampedStart, Math.Max(clampedStart, _buffer.Length));
-        var start = _buffer.GetPositionAt(clampedStart);
-        var end = _buffer.GetPositionAt(clampedEnd);
+        int clampedStart = Math.Clamp(startOffset, 0, Math.Max(0, _buffer.Length));
+        int clampedEnd = Math.Clamp(endOffset, clampedStart, Math.Max(clampedStart, _buffer.Length));
+        TextPosition start = _buffer.GetPositionAt(clampedStart);
+        TextPosition end = _buffer.GetPositionAt(clampedEnd);
         return new Range(start, end);
     }
 
@@ -389,7 +389,7 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return 0;
         }
 
-        var maxLength = Math.Max(0, _buffer.Length - offset);
+        int maxLength = Math.Max(0, _buffer.Length - offset);
         return Math.Clamp(length, 0, maxLength);
     }
 
@@ -400,8 +400,8 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     private void FailState(string reason, string? phase)
     {
-        var logPath = _log.FlushToFile();
-        var message = new StringBuilder();
+        string logPath = _log.FlushToFile();
+        StringBuilder message = new();
         message.AppendLine($"PieceTreeFuzzHarness invariant failure (phase: {phase ?? "n/a"}, iteration: {_iteration}, seed: {Seed}).");
         message.AppendLine(reason);
         if (!string.IsNullOrEmpty(logPath))
@@ -414,8 +414,8 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     private static int ResolveSeed()
     {
-        var seedValue = Environment.GetEnvironmentVariable("PIECETREE_FUZZ_SEED");
-        if (!string.IsNullOrWhiteSpace(seedValue) && int.TryParse(seedValue, out var parsed))
+        string? seedValue = Environment.GetEnvironmentVariable("PIECETREE_FUZZ_SEED");
+        if (!string.IsNullOrWhiteSpace(seedValue) && int.TryParse(seedValue, out int parsed))
         {
             return parsed;
         }
@@ -430,7 +430,7 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return string.Empty;
         }
 
-        var actualLength = Math.Min(length, value.Length - start);
+        int actualLength = Math.Min(length, value.Length - start);
         return value.Substring(start, actualLength);
     }
 
@@ -451,10 +451,10 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
             return text;
         }
 
-        var builder = new StringBuilder(text.Length);
-        for (var i = 0; i < text.Length; i++)
+        StringBuilder builder = new(text.Length);
+        for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r')
             {
                 if (i + 1 < text.Length && text[i + 1] == '\n')
@@ -475,11 +475,11 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     private static List<string> SplitLines(string text)
     {
-        var lines = new List<string>();
-        var lastStart = 0;
-        for (var i = 0; i < text.Length; i++)
+        List<string> lines = [];
+        int lastStart = 0;
+        for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r' || ch == '\n')
             {
                 lines.Add(text.Substring(lastStart, i - lastStart));
@@ -507,10 +507,10 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
     private static List<int> ComputeLineStarts(string text)
     {
-        var lineStarts = new List<int> { 0 };
-        for (var i = 0; i < text.Length; i++)
+        List<int> lineStarts = [0];
+        for (int i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
+            char ch = text[i];
             if (ch == '\r')
             {
                 if (i + 1 < text.Length && text[i + 1] == '\n')
@@ -541,11 +541,11 @@ internal sealed class PieceTreeFuzzHarness : IDisposable
 
         if (text.Length == 1)
         {
-            var last = text[0];
+            char last = text[0];
             return last == '\n' || last == '\r' ? string.Empty : text;
         }
 
-        var lastChar = text[^1];
+        char lastChar = text[^1];
         if (lastChar == '\n')
         {
             if (text.Length >= 2 && text[^2] == '\r')

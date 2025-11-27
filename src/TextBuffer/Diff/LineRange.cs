@@ -49,8 +49,8 @@ public readonly struct LineRange : IEquatable<LineRange>
 
     public LineRange? Intersect(LineRange other)
     {
-        var start = Math.Max(StartLineNumber, other.StartLineNumber);
-        var end = Math.Min(EndLineNumberExclusive, other.EndLineNumberExclusive);
+        int start = Math.Max(StartLineNumber, other.StartLineNumber);
+        int end = Math.Min(EndLineNumberExclusive, other.EndLineNumberExclusive);
         if (start <= end)
         {
             return new LineRange(start, end);
@@ -76,8 +76,8 @@ public readonly struct LineRange : IEquatable<LineRange>
             return null;
         }
 
-        var start = new TextPosition(StartLineNumber, 1);
-        var end = new TextPosition(EndLineNumberExclusive - 1, int.MaxValue);
+        TextPosition start = new(StartLineNumber, 1);
+        TextPosition end = new(EndLineNumberExclusive - 1, int.MaxValue);
         return new Range(start, end);
     }
 
@@ -110,13 +110,13 @@ internal sealed class LineRangeSet
 
     public LineRangeSet()
     {
-        _ranges = new List<LineRange>();
+        _ranges = [];
     }
 
     public LineRangeSet(IEnumerable<LineRange> ranges)
     {
-        _ranges = new List<LineRange>();
-        foreach (var range in ranges)
+        _ranges = [];
+        foreach (LineRange range in ranges)
         {
             AddRange(range);
         }
@@ -131,13 +131,13 @@ internal sealed class LineRangeSet
             return;
         }
 
-        var insertIndex = 0;
+        int insertIndex = 0;
         while (insertIndex < _ranges.Count && _ranges[insertIndex].EndLineNumberExclusive < range.StartLineNumber)
         {
             insertIndex++;
         }
 
-        var endIndex = insertIndex;
+        int endIndex = insertIndex;
         while (endIndex < _ranges.Count && _ranges[endIndex].StartLineNumber <= range.EndLineNumberExclusive)
         {
             endIndex++;
@@ -149,7 +149,7 @@ internal sealed class LineRangeSet
             return;
         }
 
-        var merged = range;
+        LineRange merged = range;
         merged = merged.Join(_ranges[insertIndex]);
         merged = merged.Join(_ranges[endIndex - 1]);
         _ranges.RemoveRange(insertIndex, endIndex - insertIndex);
@@ -158,7 +158,7 @@ internal sealed class LineRangeSet
 
     public bool Contains(int lineNumber)
     {
-        var (found, index) = BinarySearch(lineNumber);
+        (bool found, int index) = BinarySearch(lineNumber);
         if (found)
         {
             return true;
@@ -184,9 +184,9 @@ internal sealed class LineRangeSet
             return new LineRangeSet();
         }
 
-        var result = new List<LineRange>();
-        var cursor = range.StartLineNumber;
-        foreach (var current in _ranges)
+        List<LineRange> result = [];
+        int cursor = range.StartLineNumber;
+        foreach (LineRange current in _ranges)
         {
             if (current.EndLineNumberExclusive <= cursor)
             {
@@ -220,14 +220,14 @@ internal sealed class LineRangeSet
 
     public LineRangeSet GetIntersection(LineRangeSet other)
     {
-        var result = new List<LineRange>();
-        var i = 0;
-        var j = 0;
+        List<LineRange> result = [];
+        int i = 0;
+        int j = 0;
         while (i < _ranges.Count && j < other._ranges.Count)
         {
-            var a = _ranges[i];
-            var b = other._ranges[j];
-            var intersect = a.Intersect(b);
+            LineRange a = _ranges[i];
+            LineRange b = other._ranges[j];
+            LineRange? intersect = a.Intersect(b);
 
             if (intersect is LineRange intersection && !intersection.IsEmpty)
             {
@@ -249,8 +249,8 @@ internal sealed class LineRangeSet
 
     public LineRangeSet GetWithDelta(int delta)
     {
-        var shifted = new List<LineRange>(_ranges.Count);
-        foreach (var range in _ranges)
+        List<LineRange> shifted = new(_ranges.Count);
+        foreach (LineRange range in _ranges)
         {
             shifted.Add(range.Delta(delta));
         }
@@ -260,12 +260,12 @@ internal sealed class LineRangeSet
 
     private (bool found, int index) BinarySearch(int lineNumber)
     {
-        var low = 0;
-        var high = _ranges.Count - 1;
+        int low = 0;
+        int high = _ranges.Count - 1;
         while (low <= high)
         {
-            var mid = (low + high) / 2;
-            var current = _ranges[mid];
+            int mid = (low + high) / 2;
+            LineRange current = _ranges[mid];
             if (lineNumber < current.StartLineNumber)
             {
                 high = mid - 1;

@@ -9,11 +9,11 @@ namespace PieceTree.TextBuffer.Diff;
 
 internal sealed class LineRangeFragment
 {
-    private static readonly Dictionary<char, int> CharacterKeys = new();
+    private static readonly Dictionary<char, int> CharacterKeys = [];
 
     private static int GetKey(char ch)
     {
-        if (!CharacterKeys.TryGetValue(ch, out var key))
+        if (!CharacterKeys.TryGetValue(ch, out int key))
         {
             key = CharacterKeys.Count;
             CharacterKeys[ch] = key;
@@ -32,25 +32,25 @@ internal sealed class LineRangeFragment
         Source = source;
 
         _histogram = new int[Math.Max(1, CharacterKeys.Count)];
-        var histogram = new Dictionary<int, int>();
-        var counter = 0;
-        for (var i = range.StartLineNumber - 1; i < range.EndLineNumberExclusive - 1 && i < lines.Length; i++)
+        Dictionary<int, int> histogram = [];
+        int counter = 0;
+        for (int i = range.StartLineNumber - 1; i < range.EndLineNumberExclusive - 1 && i < lines.Length; i++)
         {
-            var line = lines[i];
-            foreach (var ch in line)
+            string line = lines[i];
+            foreach (char ch in line)
             {
                 counter++;
-                var key = GetKey(ch);
-                histogram[key] = histogram.TryGetValue(key, out var existing) ? existing + 1 : 1;
+                int key = GetKey(ch);
+                histogram[key] = histogram.TryGetValue(key, out int existing) ? existing + 1 : 1;
             }
 
             counter++;
-            var newlineKey = GetKey('\n');
-            histogram[newlineKey] = histogram.TryGetValue(newlineKey, out var newlineCount) ? newlineCount + 1 : 1;
+            int newlineKey = GetKey('\n');
+            histogram[newlineKey] = histogram.TryGetValue(newlineKey, out int newlineCount) ? newlineCount + 1 : 1;
         }
 
         _histogram = new int[Math.Max(histogram.Count, CharacterKeys.Count)];
-        foreach (var kvp in histogram)
+        foreach (KeyValuePair<int, int> kvp in histogram)
         {
             if (kvp.Key >= _histogram.Length)
             {
@@ -69,15 +69,15 @@ internal sealed class LineRangeFragment
 
     public double ComputeSimilarity(LineRangeFragment other)
     {
-        var maxLength = Math.Max(_histogram.Length, other._histogram.Length);
-        var sumDifferences = 0;
-        for (var i = 0; i < maxLength; i++)
+        int maxLength = Math.Max(_histogram.Length, other._histogram.Length);
+        int sumDifferences = 0;
+        for (int i = 0; i < maxLength; i++)
         {
-            var a = i < _histogram.Length ? _histogram[i] : 0;
-            var b = i < other._histogram.Length ? other._histogram[i] : 0;
+            int a = i < _histogram.Length ? _histogram[i] : 0;
+            int b = i < other._histogram.Length ? other._histogram[i] : 0;
             sumDifferences += Math.Abs(a - b);
         }
 
-        return 1 - (double)sumDifferences / (_totalCount + other._totalCount);
+        return 1 - ((double)sumDifferences / (_totalCount + other._totalCount));
     }
 }

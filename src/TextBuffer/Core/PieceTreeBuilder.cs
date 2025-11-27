@@ -10,7 +10,7 @@ namespace PieceTree.TextBuffer.Core;
 
 internal sealed class PieceTreeBuilder
 {
-    private readonly List<ChunkBuffer> _chunks = new();
+    private readonly List<ChunkBuffer> _chunks = [];
     private string _bom = string.Empty;
     private bool _hasPreviousChar;
     private char _previousChar;
@@ -38,7 +38,7 @@ internal sealed class PieceTreeBuilder
             }
         }
 
-        var lastChar = chunk[^1];
+        char lastChar = chunk[^1];
         if (lastChar == '\r' || char.IsHighSurrogate(lastChar))
         {
             AcceptChunkInternal(chunk.Substring(0, chunk.Length - 1));
@@ -56,7 +56,7 @@ internal sealed class PieceTreeBuilder
     public PieceTreeTextBufferFactory Finish(PieceTreeBuilderOptions? options = null)
     {
         FinalizeChunks();
-        var resolved = options ?? PieceTreeBuilderOptions.Default;
+        PieceTreeBuilderOptions resolved = options ?? PieceTreeBuilderOptions.Default;
         return new PieceTreeTextBufferFactory(
             new List<ChunkBuffer>(_chunks),
             _bom,
@@ -76,13 +76,13 @@ internal sealed class PieceTreeBuilder
     {
         ArgumentNullException.ThrowIfNull(chunks);
 
-        var builder = new PieceTreeBuilder();
-        foreach (var chunk in chunks)
+        PieceTreeBuilder builder = new();
+        foreach (string chunk in chunks)
         {
             builder.AcceptChunk(chunk);
         }
 
-        var options = PieceTreeBuilderOptions.Default with
+        PieceTreeBuilderOptions options = PieceTreeBuilderOptions.Default with
         {
             NormalizeEol = normalizeEol,
             DefaultEndOfLine = defaultEol
@@ -109,19 +109,19 @@ internal sealed class PieceTreeBuilder
 
     private void AddChunk(string chunk)
     {
-        foreach (var segment in ChunkUtilities.SplitText(chunk))
+        foreach (string segment in ChunkUtilities.SplitText(chunk))
         {
             if (segment.Length == 0)
             {
                 continue;
             }
 
-            var lineStarts = LineStartBuilder.Build(segment);
+            LineStartTable lineStarts = LineStartBuilder.Build(segment);
             _cr += lineStarts.CarriageReturnCount;
             _lf += lineStarts.LineFeedCount;
             _crlf += lineStarts.CarriageReturnLineFeedCount;
 
-            var isChunkBasicAscii = lineStarts.IsBasicAscii;
+            bool isChunkBasicAscii = lineStarts.IsBasicAscii;
             if (_isBasicAscii && !isChunkBasicAscii)
             {
                 _isBasicAscii = false;
@@ -140,7 +140,7 @@ internal sealed class PieceTreeBuilder
                 }
             }
 
-            var buffer = ChunkBuffer.FromPrecomputed(segment, lineStarts);
+            ChunkBuffer buffer = ChunkBuffer.FromPrecomputed(segment, lineStarts);
             _chunks.Add(buffer);
         }
     }
@@ -156,16 +156,16 @@ internal sealed class PieceTreeBuilder
             }
             else
             {
-                var lastIndex = _chunks.Count - 1;
-                var lastChunk = _chunks[lastIndex];
-                var merged = string.Concat(lastChunk.Buffer, _previousChar);
-                var lineStarts = LineStartBuilder.Build(merged);
+                int lastIndex = _chunks.Count - 1;
+                ChunkBuffer lastChunk = _chunks[lastIndex];
+                string merged = string.Concat(lastChunk.Buffer, _previousChar);
+                LineStartTable lineStarts = LineStartBuilder.Build(merged);
 
                 _cr += lineStarts.CarriageReturnCount - lastChunk.CarriageReturnCount;
                 _lf += lineStarts.LineFeedCount - lastChunk.LineFeedOnlyCount;
                 _crlf += lineStarts.CarriageReturnLineFeedCount - lastChunk.CarriageReturnLineFeedCount;
 
-                var isChunkBasicAscii = lineStarts.IsBasicAscii;
+                bool isChunkBasicAscii = lineStarts.IsBasicAscii;
                 if (_isBasicAscii && !isChunkBasicAscii)
                 {
                     _isBasicAscii = false;

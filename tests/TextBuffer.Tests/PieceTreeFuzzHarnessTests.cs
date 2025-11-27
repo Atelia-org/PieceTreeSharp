@@ -21,8 +21,8 @@ public sealed class PieceTreeFuzzHarnessTests
             return string.Empty;
         }
 
-        var builder = new StringBuilder(len - 1);
-        for (var i = 1; i < len; i++)
+        StringBuilder builder = new(len - 1);
+        for (int i = 1; i < len; i++)
         {
             builder.Append(TsAlphabet[random.Next(TsAlphabet.Length)]);
         }
@@ -32,8 +32,8 @@ public sealed class PieceTreeFuzzHarnessTests
 
     private static List<string> CreateRandomChunks(Random random, int count, int len)
     {
-        var chunks = new List<string>(count);
-        for (var i = 0; i < count; i++)
+        List<string> chunks = new(count);
+        for (int i = 0; i < count; i++)
         {
             chunks.Add(CreateTsRandomString(random, len));
         }
@@ -49,30 +49,30 @@ public sealed class PieceTreeFuzzHarnessTests
     [Fact]
     public void FuzzHarnessRunsShortDeterministicSequence()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(FuzzHarnessRunsShortDeterministicSequence), initialText: "seed", seedOverride: 314159);
+        using PieceTreeFuzzHarness harness = new(nameof(FuzzHarnessRunsShortDeterministicSequence), initialText: "seed", seedOverride: 314159);
         harness.RunRandomEdits(iterations: 75, maxInsertLength: 8);
 
-        var actual = harness.Buffer.GetText();
+        string actual = harness.Buffer.GetText();
         Assert.Equal(harness.ExpectedText, actual);
         Assert.True(harness.GetLineCount() >= 1);
 
-        var fullRange = new Range(TextPosition.Origin, harness.GetPositionAt(harness.Buffer.Length));
+        Range fullRange = new(TextPosition.Origin, harness.GetPositionAt(harness.Buffer.Length));
         Assert.Equal(harness.ExpectedText, harness.GetValueInRange(fullRange));
     }
 
     [Fact]
     public void HarnessDetectsExternalCorruption()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(HarnessDetectsExternalCorruption), initialText: "abc", seedOverride: 1337);
+        using PieceTreeFuzzHarness harness = new(nameof(HarnessDetectsExternalCorruption), initialText: "abc", seedOverride: 1337);
         harness.Insert(0, "XYZ");
         harness.Replace(1, 1, "\r\n");
         harness.Delete(0, 1);
 
         harness.Buffer.ApplyEdit(0, 0, "!");
-        var diff = harness.DescribeFirstDifference();
+        PieceTreeRangeDiff diff = harness.DescribeFirstDifference();
         Assert.True(diff.HasDifference);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => harness.AssertState("manual-corruption"));
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => harness.AssertState("manual-corruption"));
         Assert.Contains("PieceTreeFuzzHarness", ex.Message, StringComparison.Ordinal);
         Assert.Contains("seed", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -81,7 +81,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomTestOneMatchesTsScript()
     {
         // Mirrors ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts random test 1 (lines 271-312).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomTestOneMatchesTsScript), initialText: string.Empty, seedOverride: 1024);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomTestOneMatchesTsScript), initialText: string.Empty, seedOverride: 1024);
         RunScript(
             harness,
             InsertStep(0, "ceLPHmFzvCtFeHkCBej ", "random-test-1-step-1"),
@@ -96,7 +96,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomTestTwoMatchesTsScript()
     {
         // Mirrors TS random test 2 (pieceTreeTextBuffer.test.ts lines 271-312).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomTestTwoMatchesTsScript), initialText: string.Empty, seedOverride: 2048);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomTestTwoMatchesTsScript), initialText: string.Empty, seedOverride: 2048);
         RunScript(
             harness,
             InsertStep(0, "VgPG ", "random-test-2-step-1"),
@@ -112,7 +112,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomTestThreeMatchesTsScript()
     {
         // Mirrors TS random test 3 sequence (pieceTreeTextBuffer.test.ts lines 300-312).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomTestThreeMatchesTsScript), initialText: string.Empty, seedOverride: 4096);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomTestThreeMatchesTsScript), initialText: string.Empty, seedOverride: 4096);
         RunScript(
             harness,
             InsertStep(0, "gYSz", "random-test-3-step-1"),
@@ -128,7 +128,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomDeleteOneMatchesTsScript()
     {
         // Mirrors TS random delete 1 (pieceTreeTextBuffer.test.ts lines 331-360).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomDeleteOneMatchesTsScript), initialText: string.Empty, seedOverride: 8192);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomDeleteOneMatchesTsScript), initialText: string.Empty, seedOverride: 8192);
         RunScript(
             harness,
             InsertStep(0, "vfb", "random-delete-1-step-1"),
@@ -146,7 +146,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomDeleteTwoMatchesTsScript()
     {
         // Mirrors TS random delete 2 (pieceTreeTextBuffer.test.ts lines 360-385).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomDeleteTwoMatchesTsScript), initialText: string.Empty, seedOverride: 16384);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomDeleteTwoMatchesTsScript), initialText: string.Empty, seedOverride: 16384);
         RunScript(
             harness,
             InsertStep(0, "IDT", "random-delete-2-step-1"),
@@ -166,7 +166,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomDeleteThreeMatchesTsScript()
     {
         // Mirrors TS random delete 3 (pieceTreeTextBuffer.test.ts lines 385-404).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomDeleteThreeMatchesTsScript), initialText: string.Empty, seedOverride: 32768);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomDeleteThreeMatchesTsScript), initialText: string.Empty, seedOverride: 32768);
         RunScript(
             harness,
             InsertStep(0, "PqM", "random-delete-3-step-1"),
@@ -190,7 +190,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomInsertDeleteCrBugOneMatchesTsScript()
     {
         // Mirrors TS "random insert/delete \r bug 1" (pieceTreeTextBuffer.test.ts lines 404-432).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugOneMatchesTsScript), initialText: "a", seedOverride: 65536);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomInsertDeleteCrBugOneMatchesTsScript), initialText: "a", seedOverride: 65536);
         RunScript(
             harness,
             DeleteStep(0, 1, "cr-bug-1-delete-1"),
@@ -210,7 +210,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomInsertDeleteCrBugTwoMatchesTsScript()
     {
         // Mirrors TS "random insert/delete \r bug 2" (pieceTreeTextBuffer.test.ts lines 432-460).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugTwoMatchesTsScript), initialText: "a", seedOverride: 65537);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomInsertDeleteCrBugTwoMatchesTsScript), initialText: "a", seedOverride: 65537);
         RunScript(
             harness,
             InsertStep(1, "\naa\r", "cr-bug-2-insert-1"),
@@ -231,7 +231,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomInsertDeleteCrBugThreeMatchesTsScript()
     {
         // Mirrors TS "random insert/delete \r bug 3" (pieceTreeTextBuffer.test.ts lines 460-490).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugThreeMatchesTsScript), initialText: "a", seedOverride: 65538);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomInsertDeleteCrBugThreeMatchesTsScript), initialText: "a", seedOverride: 65538);
         RunScript(
             harness,
             InsertStep(0, "\r\na\r", "cr-bug-3-insert-1"),
@@ -252,7 +252,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomInsertDeleteCrBugFourMatchesTsScript()
     {
         // Mirrors TS "random insert/delete \r bug 4" (pieceTreeTextBuffer.test.ts lines 490-520).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugFourMatchesTsScript), initialText: "a", seedOverride: 65539);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomInsertDeleteCrBugFourMatchesTsScript), initialText: "a", seedOverride: 65539);
         RunScript(
             harness,
             DeleteStep(0, 1, "cr-bug-4-delete-1"),
@@ -273,7 +273,7 @@ public sealed class PieceTreeFuzzHarnessTests
     public void RandomInsertDeleteCrBugFiveMatchesTsScript()
     {
         // Mirrors TS "random insert/delete \r bug 5" (pieceTreeTextBuffer.test.ts lines 520-550).
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomInsertDeleteCrBugFiveMatchesTsScript), initialText: string.Empty, seedOverride: 65540);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomInsertDeleteCrBugFiveMatchesTsScript), initialText: string.Empty, seedOverride: 65540);
         RunScript(
             harness,
             InsertStep(0, "\n\n\n\r", "cr-bug-5-insert-1"),
@@ -295,25 +295,25 @@ public sealed class PieceTreeFuzzHarnessTests
     {
         // Mirrors TS "random chunks" suite (pieceTreeTextBuffer.test.ts lines 1668-1708).
         const int seed = 0xB3C001;
-        var rng = new Random(seed);
-        var chunks = CreateRandomChunks(rng, count: 5, len: 1000);
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomChunksMatchesTsSuite), chunks, normalizeChunks: false, seedOverride: seed);
-        var expected = new StringBuilder(string.Concat(chunks));
+        Random rng = new(seed);
+        List<string> chunks = CreateRandomChunks(rng, count: 5, len: 1000);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomChunksMatchesTsSuite), chunks, normalizeChunks: false, seedOverride: seed);
+        StringBuilder expected = new(string.Concat(chunks));
 
-        for (var i = 0; i < 1000; i++)
+        for (int i = 0; i < 1000; i++)
         {
             if (ShouldInsert(rng))
             {
-                var text = CreateTsRandomString(rng, 100);
-                var position = rng.Next(expected.Length + 1);
+                string text = CreateTsRandomString(rng, 100);
+                int position = rng.Next(expected.Length + 1);
                 harness.Insert(position, text, $"random-chunks-insert-{i}");
                 expected.Insert(position, text);
             }
             else if (expected.Length > 0)
             {
-                var position = rng.Next(expected.Length);
-                var maxLength = expected.Length - position;
-                var deleteLength = maxLength == 0 ? 0 : Math.Min(maxLength, rng.Next(10));
+                int position = rng.Next(expected.Length);
+                int maxLength = expected.Length - position;
+                int deleteLength = maxLength == 0 ? 0 : Math.Min(maxLength, rng.Next(10));
                 harness.Delete(position, deleteLength, $"random-chunks-delete-{i}");
                 if (deleteLength > 0)
                 {
@@ -331,25 +331,25 @@ public sealed class PieceTreeFuzzHarnessTests
     {
         // Mirrors TS "random chunks 2" suite (pieceTreeTextBuffer.test.ts lines 1708-1725).
         const int seed = 0xB3C002;
-        var rng = new Random(seed);
-        var chunks = CreateRandomChunks(rng, count: 1, len: 1000);
-        using var harness = new PieceTreeFuzzHarness(nameof(RandomChunksTwoMatchesTsSuite), chunks, normalizeChunks: false, seedOverride: seed);
-        var expected = new StringBuilder(string.Concat(chunks));
+        Random rng = new(seed);
+        List<string> chunks = CreateRandomChunks(rng, count: 1, len: 1000);
+        using PieceTreeFuzzHarness harness = new(nameof(RandomChunksTwoMatchesTsSuite), chunks, normalizeChunks: false, seedOverride: seed);
+        StringBuilder expected = new(string.Concat(chunks));
 
-        for (var i = 0; i < 50; i++)
+        for (int i = 0; i < 50; i++)
         {
             if (ShouldInsert(rng))
             {
-                var text = CreateTsRandomString(rng, 30);
-                var position = rng.Next(expected.Length + 1);
+                string text = CreateTsRandomString(rng, 30);
+                int position = rng.Next(expected.Length + 1);
                 harness.Insert(position, text, $"random-chunks2-insert-{i}");
                 expected.Insert(position, text);
             }
             else if (expected.Length > 0)
             {
-                var position = rng.Next(expected.Length);
-                var maxLength = expected.Length - position;
-                var deleteLength = maxLength == 0 ? 0 : Math.Min(maxLength, rng.Next(10));
+                int position = rng.Next(expected.Length);
+                int maxLength = expected.Length - position;
+                int deleteLength = maxLength == 0 ? 0 : Math.Min(maxLength, rng.Next(10));
                 harness.Delete(position, deleteLength, $"random-chunks2-delete-{i}");
                 if (deleteLength > 0)
                 {

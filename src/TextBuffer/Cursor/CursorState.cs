@@ -145,8 +145,8 @@ public sealed class SingleCursorState
     /// </summary>
     private static Selection ComputeSelection(Range selectionStart, TextPosition position)
     {
-        var startPos = selectionStart.GetStartPosition();
-        var endPos = selectionStart.GetEndPosition();
+        TextPosition startPos = selectionStart.GetStartPosition();
+        TextPosition endPos = selectionStart.GetEndPosition();
 
         if (selectionStart.IsEmpty || !position.IsBeforeOrEqual(startPos))
         {
@@ -223,8 +223,8 @@ public sealed class CursorState
     /// </summary>
     public static PartialModelCursorState FromModelSelection(Selection selection)
     {
-        var liftedSelection = selection;
-        var modelState = new SingleCursorState(
+        Selection liftedSelection = selection;
+        SingleCursorState modelState = new(
             Range.FromPositions(liftedSelection.GetSelectionStart(), liftedSelection.GetSelectionStart()),
             SelectionStartKind.Simple,
             0,
@@ -238,7 +238,7 @@ public sealed class CursorState
     /// </summary>
     public static IReadOnlyList<PartialModelCursorState> FromModelSelections(IReadOnlyList<Selection> selections)
     {
-        var states = new PartialModelCursorState[selections.Count];
+        PartialModelCursorState[] states = new PartialModelCursorState[selections.Count];
         for (int i = 0; i < selections.Count; i++)
         {
             states[i] = FromModelSelection(selections[i]);

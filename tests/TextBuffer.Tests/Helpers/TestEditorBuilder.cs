@@ -25,8 +25,8 @@ public sealed class TestEditorBuilder
     private bool _insertSpaces = true;
     private bool _detectIndentation = false;
     private string _languageId = "plaintext";
-    private List<Selection> _selections = new();
-    private List<TextPosition> _cursors = new();
+    private readonly List<Selection> _selections = [];
+    private readonly List<TextPosition> _cursors = [];
     private bool _stickyTabStops = false;
     private string _wordSeparators = CursorConfiguration.DefaultWordSeparators;
 
@@ -191,7 +191,7 @@ public sealed class TestEditorBuilder
     /// </summary>
     public TextModel Build()
     {
-        var creationOptions = new TextModelCreationOptions
+        TextModelCreationOptions creationOptions = new()
         {
             TabSize = _tabSize,
             IndentSize = _indentSize,
@@ -209,14 +209,14 @@ public sealed class TestEditorBuilder
     /// </summary>
     public TestEditorContext BuildContext()
     {
-        var model = Build();
-        var modelOptions = model.GetOptions();
-        var editorOptions = new EditorCursorOptions
+        TextModel model = Build();
+        TextModelResolvedOptions modelOptions = model.GetOptions();
+        EditorCursorOptions editorOptions = new()
         {
             StickyTabStops = _stickyTabStops,
             WordSeparators = _wordSeparators,
         };
-        var cursorConfig = new CursorConfiguration(modelOptions, editorOptions);
+        CursorConfiguration cursorConfig = new(modelOptions, editorOptions);
 
         return new TestEditorContext(model, cursorConfig, _selections, _cursors);
     }
@@ -228,7 +228,7 @@ public sealed class TestEditorBuilder
     /// </summary>
     public TestEditorBuilder WithMarkedContent(string markedContent)
     {
-        var (content, positions) = CursorTestHelper.ParsePipePositions(markedContent);
+        (string? content, List<TextPosition>? positions) = CursorTestHelper.ParsePipePositions(markedContent);
         _content = content;
         _cursors.AddRange(positions);
         return this;
@@ -240,7 +240,7 @@ public sealed class TestEditorBuilder
     /// </summary>
     public TestEditorBuilder WithMarkedSelection(string markedContent)
     {
-        var (content, selections) = CursorTestHelper.ParseSelectionMarkers(markedContent);
+        (string? content, List<Selection>? selections) = CursorTestHelper.ParseSelectionMarkers(markedContent);
         _content = content;
         _selections.AddRange(selections);
         return this;
@@ -301,7 +301,7 @@ public sealed class TestEditorContext
             }
             if (InitialCursors.Count > 0)
             {
-                var pos = InitialCursors[0];
+                TextPosition pos = InitialCursors[0];
                 return Selection.FromPositions(pos, pos);
             }
             return new Selection(1, 1, 1, 1);
@@ -313,7 +313,7 @@ public sealed class TestEditorContext
     /// </summary>
     public SingleCursorState CreateSingleCursorState()
     {
-        var sel = PrimarySelection;
+        Selection sel = PrimarySelection;
         return new SingleCursorState(
             Range.FromPositions(sel.GetSelectionStart(), sel.GetSelectionStart()),
             SelectionStartKind.Simple,

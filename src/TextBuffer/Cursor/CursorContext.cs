@@ -91,7 +91,7 @@ public sealed class IdentityCoordinatesConverter : ICoordinatesConverter
 
     public bool ModelPositionIsVisible(TextPosition modelPosition)
     {
-        var lineCount = _model.GetLineCount();
+        int lineCount = _model.GetLineCount();
         if (modelPosition.LineNumber < 1 || modelPosition.LineNumber > lineCount)
         {
             return false;
@@ -157,9 +157,9 @@ public sealed class CursorContext
     /// </summary>
     public static CursorContext FromModel(TextModel model)
     {
-        var viewModel = new TextModelCursorAdapter(model);
-        var converter = new IdentityCoordinatesConverter(model);
-        var config = new CursorConfiguration(model.GetOptions());
+        TextModelCursorAdapter viewModel = new(model);
+        IdentityCoordinatesConverter converter = new(model);
+        CursorConfiguration config = new(model.GetOptions());
         return new CursorContext(model, viewModel, converter, config);
     }
 
@@ -187,7 +187,7 @@ public sealed class TextModelCursorAdapter : ICursorSimpleModel
 
     public int GetLineFirstNonWhitespaceColumn(int lineNumber)
     {
-        var content = _model.GetLineContent(lineNumber);
+        string content = _model.GetLineContent(lineNumber);
         for (int i = 0; i < content.Length; i++)
         {
             if (!char.IsWhiteSpace(content[i]))
@@ -200,7 +200,7 @@ public sealed class TextModelCursorAdapter : ICursorSimpleModel
 
     public int GetLineLastNonWhitespaceColumn(int lineNumber)
     {
-        var content = _model.GetLineContent(lineNumber);
+        string content = _model.GetLineContent(lineNumber);
         for (int i = content.Length - 1; i >= 0; i--)
         {
             if (!char.IsWhiteSpace(content[i]))
@@ -219,7 +219,7 @@ public sealed class TextModelCursorAdapter : ICursorSimpleModel
 
     public int GetLineIndentColumn(int lineNumber)
     {
-        var firstNonWs = GetLineFirstNonWhitespaceColumn(lineNumber);
+        int firstNonWs = GetLineFirstNonWhitespaceColumn(lineNumber);
         return firstNonWs > 0 ? firstNonWs : GetLineMaxColumn(lineNumber);
     }
 }

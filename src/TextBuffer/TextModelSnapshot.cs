@@ -27,12 +27,12 @@ internal sealed class TextModelSnapshot : ITextSnapshot
             return null;
         }
 
-        var chunks = new List<string>();
-        var aggregateLength = 0;
+        List<string> chunks = [];
+        int aggregateLength = 0;
 
         while (true)
         {
-            var chunk = _source.Read();
+            string? chunk = _source.Read();
             if (chunk == null)
             {
                 _endOfStream = true;
@@ -66,8 +66,8 @@ internal sealed class TextModelSnapshot : ITextSnapshot
             return chunks[0];
         }
 
-        var builder = new StringBuilder(totalLength);
-        foreach (var chunk in chunks)
+        StringBuilder builder = new(totalLength);
+        foreach (string chunk in chunks)
         {
             builder.Append(chunk);
         }

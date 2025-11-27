@@ -13,10 +13,10 @@ public class PieceTreeFactoryTests
     [Fact]
     public void GetFirstAndLastLineTextHonorLineBreaks()
     {
-        var builder = new PieceTreeBuilder();
+        PieceTreeBuilder builder = new();
         builder.AcceptChunk("first line\r\nsecond line\nthird");
 
-        var factory = builder.Finish();
+        PieceTreeTextBufferFactory factory = builder.Finish();
         Assert.Equal("first line", factory.GetFirstLineText(100));
         Assert.Equal("third", factory.GetLastLineText(100));
     }
@@ -24,25 +24,25 @@ public class PieceTreeFactoryTests
     [Fact]
     public void CreateUsesDefaultEolWhenTextHasNoTerminators()
     {
-        var builder = new PieceTreeBuilder();
+        PieceTreeBuilder builder = new();
         builder.AcceptChunk("hello world");
-        var options = PieceTreeBuilderOptions.Default with { NormalizeEol = false };
-        var factory = builder.Finish(options);
+        PieceTreeBuilderOptions options = PieceTreeBuilderOptions.Default with { NormalizeEol = false };
+        PieceTreeTextBufferFactory factory = builder.Finish(options);
 
-        var result = factory.Create(DefaultEndOfLine.CRLF);
+        PieceTreeBuildResult result = factory.Create(DefaultEndOfLine.CRLF);
         Assert.Equal("\r\n", result.Model.Eol);
     }
 
     [Fact]
     public void CreateNormalizesMixedLineEndingsWhenRequested()
     {
-        var builder = new PieceTreeBuilder();
+        PieceTreeBuilder builder = new();
         builder.AcceptChunk("foo\rbar\nbaz\r\n");
-        var options = PieceTreeBuilderOptions.Default with { NormalizeEol = true };
-        var factory = builder.Finish(options);
+        PieceTreeBuilderOptions options = PieceTreeBuilderOptions.Default with { NormalizeEol = true };
+        PieceTreeTextBufferFactory factory = builder.Finish(options);
 
-        var result = factory.Create(DefaultEndOfLine.LF);
-        var text = PieceTreeTestHelpers.ReconstructText(result);
+        PieceTreeBuildResult result = factory.Create(DefaultEndOfLine.LF);
+        string text = PieceTreeTestHelpers.ReconstructText(result);
         Assert.Equal("foo\r\nbar\r\nbaz\r\n", text);
     }
 }

@@ -15,8 +15,8 @@ public class CursorCoreTests
     public static IEnumerable<object[]> CursorConfigurationPermutations => new[]
     {
         new object[] { 2, 2, true, EditorAutoIndentStrategy.Full },
-        new object[] { 4, 2, false, EditorAutoIndentStrategy.Keep },
-        new object[] { 8, 4, true, EditorAutoIndentStrategy.Brackets },
+        [4, 2, false, EditorAutoIndentStrategy.Keep],
+        [8, 4, true, EditorAutoIndentStrategy.Brackets],
     };
 
     #region SelectionStartKind Tests
@@ -36,13 +36,13 @@ public class CursorCoreTests
     [Fact]
     public void Selection_SetStartPosition_UpdatesActiveForRtlSelections()
     {
-        var selection = new Selection(
+        Selection selection = new(
             anchor: new TextPosition(2, 5),
             active: new TextPosition(1, 3));
 
         Assert.Equal(SelectionDirection.RTL, selection.Direction);
 
-        var updated = selection.SetStartPosition(1, 1);
+        Selection updated = selection.SetStartPosition(1, 1);
 
         Assert.Equal(new TextPosition(2, 5), updated.Anchor);
         Assert.Equal(new TextPosition(1, 1), updated.Active);
@@ -52,12 +52,12 @@ public class CursorCoreTests
     [Fact]
     public void Selection_SetEndPosition_UpdatesAnchorForRtlSelections()
     {
-        var selection = new Selection(
+        Selection selection = new(
             anchor: new TextPosition(3, 10),
             active: new TextPosition(1, 1));
         Assert.Equal(SelectionDirection.RTL, selection.Direction);
 
-        var updated = selection.SetEndPosition(4, 2);
+        Selection updated = selection.SetEndPosition(4, 2);
 
         Assert.Equal(new TextPosition(4, 2), updated.Anchor);
         Assert.Equal(new TextPosition(1, 1), updated.Active);
@@ -70,16 +70,16 @@ public class CursorCoreTests
     [Fact]
     public void SingleCursorState_Constructor_InitializesProperties()
     {
-        var selectionStart = new Range(1, 5, 1, 10);
-        var position = new TextPosition(1, 15);
-        
-        var state = new SingleCursorState(
+        Range selectionStart = new(1, 5, 1, 10);
+        TextPosition position = new(1, 15);
+
+        SingleCursorState state = new(
             selectionStart,
             SelectionStartKind.Word,
             0,
             position,
             3);
-        
+
         Assert.Equal(selectionStart, state.SelectionStart);
         Assert.Equal(SelectionStartKind.Word, state.SelectionStartKind);
         Assert.Equal(0, state.SelectionStartLeftoverVisibleColumns);
@@ -91,11 +91,11 @@ public class CursorCoreTests
     public void SingleCursorState_Selection_ComputedFromStartAndPosition()
     {
         // When position is after selectionStart
-        var selectionStart = new Range(1, 5, 1, 10);
-        var position = new TextPosition(1, 15);
-        
-        var state = new SingleCursorState(selectionStart, SelectionStartKind.Word, 0, position, 0);
-        
+        Range selectionStart = new(1, 5, 1, 10);
+        TextPosition position = new(1, 15);
+
+        SingleCursorState state = new(selectionStart, SelectionStartKind.Word, 0, position, 0);
+
         CursorTestHelper.AssertSelection(state.Selection, 1, 5, 1, 15);
     }
 
@@ -103,93 +103,93 @@ public class CursorCoreTests
     public void SingleCursorState_Selection_ComputedWhenPositionBeforeStart()
     {
         // When position is before selectionStart
-        var selectionStart = new Range(1, 10, 1, 15);
-        var position = new TextPosition(1, 5);
-        
-        var state = new SingleCursorState(selectionStart, SelectionStartKind.Word, 0, position, 0);
-        
+        Range selectionStart = new(1, 10, 1, 15);
+        TextPosition position = new(1, 5);
+
+        SingleCursorState state = new(selectionStart, SelectionStartKind.Word, 0, position, 0);
+
         CursorTestHelper.AssertSelection(state.Selection, 1, 5, 1, 15);
     }
 
     [Fact]
     public void SingleCursorState_HasSelection_TrueWhenNotEmpty()
     {
-        var selectionStart = new Range(1, 5, 1, 10);
-        var position = new TextPosition(1, 15);
-        
-        var state = new SingleCursorState(selectionStart, SelectionStartKind.Word, 0, position, 0);
-        
+        Range selectionStart = new(1, 5, 1, 10);
+        TextPosition position = new(1, 15);
+
+        SingleCursorState state = new(selectionStart, SelectionStartKind.Word, 0, position, 0);
+
         Assert.True(state.HasSelection());
     }
 
     [Fact]
     public void SingleCursorState_HasSelection_FalseWhenCollapsed()
     {
-        var selectionStart = new Range(1, 5, 1, 5);
-        var position = new TextPosition(1, 5);
-        
-        var state = new SingleCursorState(selectionStart, SelectionStartKind.Simple, 0, position, 0);
-        
+        Range selectionStart = new(1, 5, 1, 5);
+        TextPosition position = new(1, 5);
+
+        SingleCursorState state = new(selectionStart, SelectionStartKind.Simple, 0, position, 0);
+
         Assert.False(state.HasSelection());
     }
 
     [Fact]
     public void SingleCursorState_Equals_ReturnsTrueForSameState()
     {
-        var state1 = new SingleCursorState(
+        SingleCursorState state1 = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             2,
             new TextPosition(1, 15),
             3);
-        
-        var state2 = new SingleCursorState(
+
+        SingleCursorState state2 = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             2,
             new TextPosition(1, 15),
             3);
-        
+
         Assert.True(state1.Equals(state2));
     }
 
     [Fact]
     public void SingleCursorState_Equals_ReturnsFalseForDifferentPosition()
     {
-        var state1 = new SingleCursorState(
+        SingleCursorState state1 = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             0,
             new TextPosition(1, 15),
             0);
-        
-        var state2 = new SingleCursorState(
+
+        SingleCursorState state2 = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             0,
             new TextPosition(1, 20),
             0);
-        
+
         Assert.False(state1.Equals(state2));
     }
 
     [Fact]
     public void SingleCursorState_Move_ExtendSelection()
     {
-        var state = new SingleCursorState(
+        SingleCursorState state = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             0,
             new TextPosition(1, 15),
             0);
-        
-        var moved = state.Move(inSelectionMode: true, lineNumber: 2, column: 5, leftoverVisibleColumns: 0);
-        
+
+        SingleCursorState moved = state.Move(inSelectionMode: true, lineNumber: 2, column: 5, leftoverVisibleColumns: 0);
+
         // Selection start should be preserved
         Assert.Equal(1, moved.SelectionStart.StartLineNumber);
         Assert.Equal(5, moved.SelectionStart.StartColumn);
         Assert.Equal(SelectionStartKind.Word, moved.SelectionStartKind);
-        
+
         // Position should be updated
         Assert.Equal(2, moved.Position.LineNumber);
         Assert.Equal(5, moved.Position.Column);
@@ -198,19 +198,19 @@ public class CursorCoreTests
     [Fact]
     public void SingleCursorState_Move_CollapseSelection()
     {
-        var state = new SingleCursorState(
+        SingleCursorState state = new(
             new Range(1, 5, 1, 10),
             SelectionStartKind.Word,
             0,
             new TextPosition(1, 15),
             0);
-        
-        var moved = state.Move(inSelectionMode: false, lineNumber: 2, column: 5, leftoverVisibleColumns: 3);
-        
+
+        SingleCursorState moved = state.Move(inSelectionMode: false, lineNumber: 2, column: 5, leftoverVisibleColumns: 3);
+
         // Selection should collapse to new position
         CursorTestHelper.AssertCursorStateSelection(moved, 2, 5, 2, 5);
         Assert.Equal(SelectionStartKind.Simple, moved.SelectionStartKind);
-        
+
         // Position should be updated
         Assert.Equal(2, moved.Position.LineNumber);
         Assert.Equal(5, moved.Position.Column);
@@ -220,15 +220,15 @@ public class CursorCoreTests
     [Fact]
     public void SingleCursorState_Move_WithSelectionMode_PreservesStickyColumns()
     {
-        var selectionStart = new Range(2, 4, 2, 4);
-        var state = new SingleCursorState(
+        Range selectionStart = new(2, 4, 2, 4);
+        SingleCursorState state = new(
             selectionStart,
             SelectionStartKind.Line,
             selectionStartLeftoverVisibleColumns: 8,
             new TextPosition(2, 10),
             leftoverVisibleColumns: 3);
 
-        var moved = state.Move(inSelectionMode: true, lineNumber: 3, column: 6, leftoverVisibleColumns: 12);
+        SingleCursorState moved = state.Move(inSelectionMode: true, lineNumber: 3, column: 6, leftoverVisibleColumns: 12);
 
         CursorTestHelper.AssertCursorStateSelection(moved, 2, 4, 3, 6);
         Assert.Equal(8, moved.SelectionStartLeftoverVisibleColumns);
@@ -238,14 +238,14 @@ public class CursorCoreTests
     [Fact]
     public void SingleCursorState_Move_ResettingSelection_ClearsStickyColumns()
     {
-        var state = new SingleCursorState(
+        SingleCursorState state = new(
             new Range(3, 1, 3, 4),
             SelectionStartKind.Word,
             selectionStartLeftoverVisibleColumns: 5,
             new TextPosition(3, 4),
             leftoverVisibleColumns: 5);
 
-        var moved = state.Move(inSelectionMode: false, lineNumber: 4, column: 2, leftoverVisibleColumns: 7);
+        SingleCursorState moved = state.Move(inSelectionMode: false, lineNumber: 4, column: 2, leftoverVisibleColumns: 7);
 
         CursorTestHelper.AssertCursorStateSelection(moved, 4, 2, 4, 2);
         Assert.Equal(7, moved.SelectionStartLeftoverVisibleColumns);
@@ -260,22 +260,22 @@ public class CursorCoreTests
     [Fact]
     public void CursorState_Constructor_InitializesBothStates()
     {
-        var modelState = new SingleCursorState(
+        SingleCursorState modelState = new(
             new Range(1, 1, 1, 1),
             SelectionStartKind.Simple,
             0,
             new TextPosition(1, 1),
             0);
-        
-        var viewState = new SingleCursorState(
+
+        SingleCursorState viewState = new(
             new Range(1, 1, 1, 1),
             SelectionStartKind.Simple,
             0,
             new TextPosition(1, 1),
             0);
-        
-        var cursorState = new CursorState(modelState, viewState);
-        
+
+        CursorState cursorState = new(modelState, viewState);
+
         Assert.Equal(modelState, cursorState.ModelState);
         Assert.Equal(viewState, cursorState.ViewState);
     }
@@ -283,15 +283,15 @@ public class CursorCoreTests
     [Fact]
     public void CursorState_FromModelSelection_CreatesCorrectState()
     {
-        var selection = new Selection(1, 5, 2, 10);
-        
+        Selection selection = new(1, 5, 2, 10);
+
         // FromModelSelection returns PartialModelCursorState
-        var partialState = CursorState.FromModelSelection(selection);
-        
+        PartialModelCursorState partialState = CursorState.FromModelSelection(selection);
+
         // Model state should be set correctly - active position is (2,10)
         Assert.Equal(2, partialState.ModelState.Position.LineNumber);
         Assert.Equal(10, partialState.ModelState.Position.Column);
-        
+
         // Selection start should match start of selection
         Assert.Equal(1, partialState.ModelState.SelectionStart.StartLineNumber);
         Assert.Equal(5, partialState.ModelState.SelectionStart.StartColumn);
@@ -300,23 +300,23 @@ public class CursorCoreTests
     [Fact]
     public void CursorState_Equals_ReturnsTrueForSameState()
     {
-        var modelState = new SingleCursorState(
+        SingleCursorState modelState = new(
             new Range(1, 1, 1, 1),
             SelectionStartKind.Simple,
             0,
             new TextPosition(1, 1),
             0);
-        
-        var viewState = new SingleCursorState(
+
+        SingleCursorState viewState = new(
             new Range(1, 1, 1, 1),
             SelectionStartKind.Simple,
             0,
             new TextPosition(1, 1),
             0);
-        
-        var state1 = new CursorState(modelState, viewState);
-        var state2 = new CursorState(modelState, viewState);
-        
+
+        CursorState state1 = new(modelState, viewState);
+        CursorState state2 = new(modelState, viewState);
+
         Assert.True(state1.Equals(state2));
     }
 
@@ -327,14 +327,14 @@ public class CursorCoreTests
     [Fact]
     public void PartialModelCursorState_CanBeCreated()
     {
-        var singleState = new SingleCursorState(
+        SingleCursorState singleState = new(
             new Range(1, 5, 2, 10),
             SelectionStartKind.Simple,
             0,
             new TextPosition(2, 10),
             0);
-        var state = new PartialModelCursorState(singleState);
-        
+        PartialModelCursorState state = new(singleState);
+
         Assert.Equal(1, state.ModelState.SelectionStart.StartLineNumber);
         Assert.Equal(5, state.ModelState.SelectionStart.StartColumn);
         Assert.Equal(2, state.ModelState.SelectionStart.EndLineNumber);
@@ -344,14 +344,14 @@ public class CursorCoreTests
     [Fact]
     public void PartialViewCursorState_CanBeCreated()
     {
-        var singleState = new SingleCursorState(
+        SingleCursorState singleState = new(
             new Range(1, 5, 2, 10),
             SelectionStartKind.Simple,
             0,
             new TextPosition(2, 10),
             0);
-        var state = new PartialViewCursorState(singleState);
-        
+        PartialViewCursorState state = new(singleState);
+
         Assert.Equal(1, state.ViewState.SelectionStart.StartLineNumber);
         Assert.Equal(5, state.ViewState.SelectionStart.StartColumn);
         Assert.Equal(2, state.ViewState.SelectionStart.EndLineNumber);
@@ -366,14 +366,14 @@ public class CursorCoreTests
     [MemberData(nameof(CursorConfigurationPermutations))]
     public void CursorConfiguration_ResolvesBuilderPermutations(int tabSize, int indentSize, bool insertSpaces, EditorAutoIndentStrategy autoIndent)
     {
-        var context = TestEditorBuilder.Create()
+        TestEditorContext context = TestEditorBuilder.Create()
             .WithLines("function foo() {", "\treturn 0;", "}")
             .WithTabSize(tabSize)
             .WithIndentSize(indentSize)
             .WithInsertSpaces(insertSpaces)
             .BuildContext();
 
-        var config = new CursorConfiguration(context.Model.GetOptions(), new EditorCursorOptions
+        CursorConfiguration config = new(context.Model.GetOptions(), new EditorCursorOptions
         {
             AutoIndent = autoIndent,
             StickyTabStops = true,
@@ -389,10 +389,10 @@ public class CursorCoreTests
     [Fact]
     public void CursorConfiguration_Constructor_InitializesAllProperties()
     {
-        var modelOptions = TextModelResolvedOptions.Resolve(
+        TextModelResolvedOptions modelOptions = TextModelResolvedOptions.Resolve(
             new TextModelCreationOptions { TabSize = 4, IndentSize = 4, InsertSpaces = true },
             DefaultEndOfLine.LF);
-        var editorOptions = new EditorCursorOptions
+        EditorCursorOptions editorOptions = new()
         {
             ReadOnly = false,
             StickyTabStops = true,
@@ -408,12 +408,12 @@ public class CursorCoreTests
             CopyWithSyntaxHighlighting = false,
             AutoClosingBrackets = EditorAutoClosingStrategy.Never,
             AutoClosingQuotes = EditorAutoClosingStrategy.BeforeWhitespace,
-            WordSegmenterLocales = new[] { "en-US" },
+            WordSegmenterLocales = ["en-US"],
             OvertypeOnPaste = true,
         };
-        
-        var config = new CursorConfiguration(modelOptions, editorOptions);
-        
+
+        CursorConfiguration config = new(modelOptions, editorOptions);
+
         Assert.False(config.ReadOnly);
         Assert.Equal(4, config.TabSize);
         Assert.Equal(4, config.IndentSize);
@@ -441,13 +441,13 @@ public class CursorCoreTests
     [Fact]
     public void CursorConfiguration_FromTextModelResolvedOptions_Defaults()
     {
-        var modelOptions = TextModelResolvedOptions.Resolve(
+        TextModelResolvedOptions modelOptions = TextModelResolvedOptions.Resolve(
             new TextModelCreationOptions { TabSize = 2, IndentSize = 2, InsertSpaces = false },
             DefaultEndOfLine.LF);
-        var editorOptions = EditorCursorOptions.Default;
-        
-        var config = new CursorConfiguration(modelOptions, editorOptions);
-        
+        EditorCursorOptions editorOptions = EditorCursorOptions.Default;
+
+        CursorConfiguration config = new(modelOptions, editorOptions);
+
         Assert.Equal(2, config.TabSize);
         Assert.Equal(2, config.IndentSize);
         Assert.False(config.InsertSpaces);
@@ -488,10 +488,10 @@ public class CursorCoreTests
     [Fact]
     public void CursorColumnsHelper_RoundTrip_PreservesColumn()
     {
-        var lineContent = "Hello\tWorld";
+        string lineContent = "Hello\tWorld";
         int tabSize = 4;
         int originalColumn = 8;
-        
+
         CursorTestHelper.AssertColumnRoundTrip(lineContent, originalColumn, tabSize);
     }
 
@@ -534,13 +534,13 @@ public class CursorCoreTests
     [Fact]
     public void ColumnSelectData_CanBeCreated()
     {
-        var data = new ColumnSelectData(
+        ColumnSelectData data = new(
             isReal: true,
             fromViewLineNumber: 1,
             fromViewVisualColumn: 5,
             toViewLineNumber: 3,
             toViewVisualColumn: 10);
-        
+
         Assert.True(data.IsReal);
         Assert.Equal(1, data.FromViewLineNumber);
         Assert.Equal(5, data.FromViewVisualColumn);
@@ -555,18 +555,18 @@ public class CursorCoreTests
     [Fact]
     public void MultiCursorPaste_DefaultValue_IsSpread()
     {
-        var config = new CursorConfiguration(
+        CursorConfiguration config = new(
             TextModelResolvedOptions.Resolve(new TextModelCreationOptions(), DefaultEndOfLine.LF),
             EditorCursorOptions.Default);
-        
+
         Assert.Equal(MultiCursorPasteMode.Spread, config.MultiCursorPaste);
     }
 
     [Fact]
     public void CursorConfiguration_ShouldAutoCloseBefore_UsesLanguageDefinitions()
     {
-        var modelOptions = TextModelResolvedOptions.Resolve(new TextModelCreationOptions(), DefaultEndOfLine.LF);
-        var editorOptions = new EditorCursorOptions
+        TextModelResolvedOptions modelOptions = TextModelResolvedOptions.Resolve(new TextModelCreationOptions(), DefaultEndOfLine.LF);
+        EditorCursorOptions editorOptions = new()
         {
             AutoClosingQuotes = EditorAutoClosingStrategy.LanguageDefined,
             AutoClosingBrackets = EditorAutoClosingStrategy.BeforeWhitespace,
@@ -574,7 +574,7 @@ public class CursorCoreTests
             LanguageConfiguration = LanguageConfigurationOptions.Default with { AutoCloseBeforeQuotes = "abc" },
         };
 
-        var config = new CursorConfiguration(modelOptions, editorOptions);
+        CursorConfiguration config = new(modelOptions, editorOptions);
 
         Assert.True(config.ShouldAutoCloseBefore.Quote('a'));
         Assert.False(config.ShouldAutoCloseBefore.Quote('z'));
@@ -585,15 +585,15 @@ public class CursorCoreTests
     [Fact]
     public void CursorConfiguration_NormalizeIndentation_FollowsInsertSpacesSetting()
     {
-        var spacesOptions = TextModelResolvedOptions.Resolve(
+        TextModelResolvedOptions spacesOptions = TextModelResolvedOptions.Resolve(
             new TextModelCreationOptions { InsertSpaces = true, TabSize = 4, IndentSize = 4 },
             DefaultEndOfLine.LF);
-        var tabsOptions = TextModelResolvedOptions.Resolve(
+        TextModelResolvedOptions tabsOptions = TextModelResolvedOptions.Resolve(
             new TextModelCreationOptions { InsertSpaces = false, TabSize = 4, IndentSize = 4 },
             DefaultEndOfLine.LF);
 
-        var spacesConfig = new CursorConfiguration(spacesOptions);
-        var tabsConfig = new CursorConfiguration(tabsOptions);
+        CursorConfiguration spacesConfig = new(spacesOptions);
+        CursorConfiguration tabsConfig = new(tabsOptions);
 
         Assert.Equal("        foo", spacesConfig.NormalizeIndentation("\t\tfoo"));
         Assert.Equal("\t\tfoo", tabsConfig.NormalizeIndentation("\t\tfoo"));

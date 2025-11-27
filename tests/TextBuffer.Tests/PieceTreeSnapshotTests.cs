@@ -14,8 +14,8 @@ public class PieceTreeSnapshotTests
     [Fact]
     public void SnapshotReadsContent()
     {
-        var model = new TextModel("Hello World");
-        var snapshot = model.CreateSnapshot();
+        TextModel model = new("Hello World");
+        ITextSnapshot snapshot = model.CreateSnapshot();
 
         Assert.Equal("Hello World", SnapshotReader.ReadAll(snapshot));
     }
@@ -23,15 +23,15 @@ public class PieceTreeSnapshotTests
     [Fact]
     public void SnapshotIsImmutable()
     {
-        var model = new TextModel("Hello");
-        var snapshot = model.CreateSnapshot();
-        var snapshotContent = SnapshotReader.ReadAll(snapshot);
+        TextModel model = new("Hello");
+        ITextSnapshot snapshot = model.CreateSnapshot();
+        string snapshotContent = SnapshotReader.ReadAll(snapshot);
         Assert.Equal("Hello", snapshotContent);
 
-        model.ApplyEdits(new[]
-        {
+        model.ApplyEdits(
+        [
             new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), " World")
-        });
+        ]);
 
         Assert.Equal("Hello", snapshotContent);
         Assert.Equal("Hello World", model.GetValue());

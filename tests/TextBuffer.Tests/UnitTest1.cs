@@ -14,7 +14,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void InitializesWithProvidedText()
     {
-        var buffer = new PieceTreeBuffer("hello");
+        PieceTreeBuffer buffer = new("hello");
         Assert.Equal(5, buffer.Length);
         Assert.Equal("hello", buffer.GetText());
     }
@@ -22,8 +22,8 @@ public class PieceTreeBufferTests
     [Fact]
     public void LargeBufferRoundTripsContent()
     {
-        var largeText = new string('x', 16_384);
-        var buffer = new PieceTreeBuffer(largeText);
+        string largeText = new string('x', 16_384);
+        PieceTreeBuffer buffer = new(largeText);
 
         Assert.Equal(largeText.Length, buffer.Length);
         Assert.Equal(largeText, buffer.GetText());
@@ -32,7 +32,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void AppliesSimpleEdit()
     {
-        var buffer = new PieceTreeBuffer("hello world");
+        PieceTreeBuffer buffer = new("hello world");
         buffer.ApplyEdit(6, 5, "piece tree");
 
         Assert.Equal("hello piece tree", buffer.GetText());
@@ -42,8 +42,8 @@ public class PieceTreeBufferTests
     [Fact]
     public void FromChunksBuildsPieceTreeAcrossMultipleBuffers()
     {
-        var buffer = PieceTreeBuffer.FromChunks(new[] { "abc", string.Empty, "123\r\n", "xyz" });
-        var expected = "abc123\r\nxyz";
+        PieceTreeBuffer buffer = PieceTreeBuffer.FromChunks(new[] { "abc", string.Empty, "123\r\n", "xyz" });
+        string expected = "abc123\r\nxyz";
 
         Assert.Equal(expected, buffer.GetText());
         Assert.Equal(expected.Length, buffer.Length);
@@ -52,7 +52,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void PieceTreeModelTracksLineFeedsAcrossChunks()
     {
-        var build = PieceTreeBuilder.BuildFromChunks(new[]
+        PieceTreeBuildResult build = PieceTreeBuilder.BuildFromChunks(new[]
         {
             "line1\nline2\r\n",
             "tail"
@@ -65,10 +65,10 @@ public class PieceTreeBufferTests
     [Fact]
     public void ApplyEditHandlesCrLfSequences()
     {
-        var buffer = PieceTreeBuffer.FromChunks(new[] { "foo\r\nbar" });
+        PieceTreeBuffer buffer = PieceTreeBuffer.FromChunks(new[] { "foo\r\nbar" });
         buffer.ApplyEdit(5, 3, "piece\r\ntree");
 
-        var expected = "foo\r\npiece\r\ntree";
+        string expected = "foo\r\npiece\r\ntree";
         Assert.Equal(expected, buffer.GetText());
         Assert.Equal(expected.Length, buffer.Length);
     }
@@ -76,7 +76,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void ApplyEditAcrossChunkBoundarySpansMultiplePieces()
     {
-        var buffer = PieceTreeBuffer.FromChunks(new[] { "abcd", "ef", "ghij" });
+        PieceTreeBuffer buffer = PieceTreeBuffer.FromChunks(new[] { "abcd", "ef", "ghij" });
         buffer.ApplyEdit(3, 4, "XYZ");
 
         Assert.Equal("abcXYZhij", buffer.GetText());
@@ -87,15 +87,15 @@ public class PieceTreeBufferTests
     public void PositionLookupMatchesTsPrefixSumExpectations()
     {
         const string text = "line1\nline2\r\nline3";
-        var buffer = new PieceTreeBuffer(text);
+        PieceTreeBuffer buffer = new(text);
 
-        var pos0 = buffer.GetPositionAt(0);
+        TextPosition pos0 = buffer.GetPositionAt(0);
         Assert.Equal(new TextPosition(1, 1), pos0);
 
-        var posAfterLine1 = buffer.GetPositionAt("line1\n".Length);
+        TextPosition posAfterLine1 = buffer.GetPositionAt("line1\n".Length);
         Assert.Equal(new TextPosition(2, 1), posAfterLine1);
 
-        var posWithinLine3 = buffer.GetPositionAt(text.Length - 1);
+        TextPosition posWithinLine3 = buffer.GetPositionAt(text.Length - 1);
         Assert.Equal(new TextPosition(3, 5), posWithinLine3);
 
         Assert.Equal(0, buffer.GetOffsetAt(1, 1));
@@ -106,7 +106,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void LineCharCodeFollowsCrlfBoundaries()
     {
-        var buffer = PieceTreeBuffer.FromChunks(new[] { "foo\r\nbar", "\nend" });
+        PieceTreeBuffer buffer = PieceTreeBuffer.FromChunks(new[] { "foo\r\nbar", "\nend" });
 
         Assert.Equal('f', buffer.GetLineCharCode(1, 0));
         Assert.Equal('b', buffer.GetLineCharCode(2, 0));
@@ -120,7 +120,7 @@ public class PieceTreeBufferTests
     [Fact]
     public void CharCodeClampedWithinDocument()
     {
-        var buffer = new PieceTreeBuffer("abc");
+        PieceTreeBuffer buffer = new("abc");
         Assert.Equal('a', buffer.GetCharCode(0));
         Assert.Equal('c', buffer.GetCharCode(2));
         Assert.Equal('c', buffer.GetCharCode(100));
@@ -129,12 +129,12 @@ public class PieceTreeBufferTests
     [Fact]
     public void DeleteAcrossCrlfRepairsBoundary()
     {
-        var build = PieceTreeBuilder.BuildFromChunks(new[] { "foo\r", "\nbar" });
-        var model = build.Model;
+        PieceTreeBuildResult build = PieceTreeBuilder.BuildFromChunks(new[] { "foo\r", "\nbar" });
+        PieceTreeModel model = build.Model;
 
         model.Delete(0, 3);
 
-        var snapshot = ReadModelText(model);
+        string snapshot = ReadModelText(model);
         Assert.Equal("\r\nbar", snapshot);
         Assert.Equal(snapshot.Length, model.TotalLength);
         Assert.Equal(snapshot.Count(c => c == '\n'), model.TotalLineFeeds);
@@ -144,12 +144,12 @@ public class PieceTreeBufferTests
     public void MetadataRecomputesAfterMultiLineDelete()
     {
         const string text = "line1\r\nline2\r\nline3";
-        var build = PieceTreeBuilder.BuildFromChunks(new[] { text });
-        var model = build.Model;
+        PieceTreeBuildResult build = PieceTreeBuilder.BuildFromChunks(new[] { text });
+        PieceTreeModel model = build.Model;
 
         model.Delete("line1\r\n".Length, "line2\r\n".Length);
 
-        var snapshot = ReadModelText(model);
+        string snapshot = ReadModelText(model);
         Assert.Equal("line1\r\nline3", snapshot);
         Assert.Equal(snapshot.Length, model.TotalLength);
         Assert.Equal(snapshot.Count(c => c == '\n'), model.TotalLineFeeds);
@@ -158,8 +158,8 @@ public class PieceTreeBufferTests
     [Fact]
     public void PieceCountTracksTreeMutations()
     {
-        var build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
-        var model = build.Model;
+        PieceTreeBuildResult build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
+        PieceTreeModel model = build.Model;
 
         Assert.Equal(model.EnumeratePiecesInOrder().Count(), model.PieceCount);
 
@@ -172,15 +172,15 @@ public class PieceTreeBufferTests
     [Fact]
     public void SearchCacheDropsDetachedNodes()
     {
-        var build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
-        var model = build.Model;
+        PieceTreeBuildResult build = PieceTreeBuilder.BuildFromChunks(new[] { "abc", "def" });
+        PieceTreeModel model = build.Model;
 
-        var primed = model.NodeAt(0);
+        NodeHit primed = model.NodeAt(0);
         Assert.Equal("abc", ReadPieceText(model, primed.Node));
 
         model.Delete(0, 3);
 
-        var hit = model.NodeAt(0);
+        NodeHit hit = model.NodeAt(0);
         Assert.Equal("def", ReadPieceText(model, hit.Node));
     }
 
@@ -190,17 +190,17 @@ public class PieceTreeBufferTests
 
     private static string ReadModelText(PieceTreeModel model)
     {
-        var buffers = model.Buffers;
-        var builder = new StringBuilder();
+        IReadOnlyList<ChunkBuffer> buffers = model.Buffers;
+        StringBuilder builder = new();
 
-        foreach (var piece in model.EnumeratePiecesInOrder())
+        foreach (PieceSegment piece in model.EnumeratePiecesInOrder())
         {
             if (piece.Length == 0)
             {
                 continue;
             }
 
-            var buffer = buffers[piece.BufferIndex];
+            ChunkBuffer buffer = buffers[piece.BufferIndex];
             builder.Append(buffer.Slice(piece.Start, piece.End));
         }
 
@@ -214,7 +214,7 @@ public class PieceTreeBufferTests
             return string.Empty;
         }
 
-        var buffer = model.Buffers[node.Piece.BufferIndex];
+        ChunkBuffer buffer = model.Buffers[node.Piece.BufferIndex];
         return buffer.Slice(node.Piece.Start, node.Piece.End);
     }
 }

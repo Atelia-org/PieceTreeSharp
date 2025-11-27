@@ -13,10 +13,10 @@ namespace PieceTree.TextBuffer.Diff;
 
 internal sealed class LinesSliceCharSequence : ISequence
 {
-    private readonly List<int> _elements = new();
-    private readonly List<int> _firstElementOffsetByLineIdx = new();
-    private readonly List<int> _lineStartOffsets = new();
-    private readonly List<int> _trimmedWhitespaceByLineIdx = new();
+    private readonly List<int> _elements = [];
+    private readonly List<int> _firstElementOffsetByLineIdx = [];
+    private readonly List<int> _lineStartOffsets = [];
+    private readonly List<int> _trimmedWhitespaceByLineIdx = [];
 
     private readonly string[] _lines;
     private readonly Range _range;
@@ -34,10 +34,10 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     public string GetText(OffsetRange range)
     {
-        var builder = new StringBuilder(range.Length);
-        var start = Math.Clamp(range.Start, 0, _elements.Count);
-        var end = Math.Clamp(range.EndExclusive, start, _elements.Count);
-        for (var i = start; i < end; i++)
+        StringBuilder builder = new(range.Length);
+        int start = Math.Clamp(range.Start, 0, _elements.Count);
+        int end = Math.Clamp(range.EndExclusive, start, _elements.Count);
+        for (int i = start; i < end; i++)
         {
             builder.Append((char)_elements[i]);
         }
@@ -51,8 +51,8 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     public int GetBoundaryScore(int length)
     {
-        var prevCategory = GetCategory(length > 0 ? _elements[length - 1] : -1);
-        var nextCategory = GetCategory(length < _elements.Count ? _elements[length] : -1);
+        CharBoundaryCategory prevCategory = GetCategory(length > 0 ? _elements[length - 1] : -1);
+        CharBoundaryCategory nextCategory = GetCategory(length < _elements.Count ? _elements[length] : -1);
 
         if (prevCategory == CharBoundaryCategory.LineBreakCr && nextCategory == CharBoundaryCategory.LineBreakLf)
         {
@@ -64,7 +64,7 @@ internal sealed class LinesSliceCharSequence : ISequence
             return 150;
         }
 
-        var score = 0;
+        int score = 0;
         if (prevCategory != nextCategory)
         {
             score += 10;
@@ -86,22 +86,22 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     public TextPosition TranslateOffset(int offset, bool preferLeft = false)
     {
-        var index = FindLastIndex(_firstElementOffsetByLineIdx, v => v <= offset);
+        int index = FindLastIndex(_firstElementOffsetByLineIdx, v => v <= offset);
         if (index < 0)
         {
             index = 0;
         }
 
-        var lineOffset = offset - _firstElementOffsetByLineIdx[index];
-        var lineNumber = _range.Start.LineNumber + index;
-        var column = 1 + _lineStartOffsets[index] + lineOffset + ((lineOffset == 0 && preferLeft) ? 0 : _trimmedWhitespaceByLineIdx[index]);
+        int lineOffset = offset - _firstElementOffsetByLineIdx[index];
+        int lineNumber = _range.Start.LineNumber + index;
+        int column = 1 + _lineStartOffsets[index] + lineOffset + ((lineOffset == 0 && preferLeft) ? 0 : _trimmedWhitespaceByLineIdx[index]);
         return new TextPosition(lineNumber, column);
     }
 
     public Range TranslateRange(OffsetRange range)
     {
-        var start = TranslateOffset(range.Start, false);
-        var end = TranslateOffset(range.EndExclusive, true);
+        TextPosition start = TranslateOffset(range.Start, false);
+        TextPosition end = TranslateOffset(range.EndExclusive, true);
         if (end < start)
         {
             return Range.FromPositions(end, end);
@@ -122,13 +122,13 @@ internal sealed class LinesSliceCharSequence : ISequence
             return null;
         }
 
-        var start = offset;
+        int start = offset;
         while (start > 0 && IsWordChar(_elements[start - 1]))
         {
             start--;
         }
 
-        var end = offset;
+        int end = offset;
         while (end < _elements.Count && IsWordChar(_elements[end]))
         {
             end++;
@@ -149,13 +149,13 @@ internal sealed class LinesSliceCharSequence : ISequence
             return null;
         }
 
-        var start = offset;
+        int start = offset;
         while (start > 0 && IsWordChar(_elements[start - 1]) && !IsUpperCase(_elements[start]))
         {
             start--;
         }
 
-        var end = offset;
+        int end = offset;
         while (end < _elements.Count && IsWordChar(_elements[end]) && !IsUpperCase(_elements[end]))
         {
             end++;
@@ -166,16 +166,16 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     public int CountLinesIn(OffsetRange range)
     {
-        var start = TranslateOffset(range.Start);
-        var end = TranslateOffset(range.EndExclusive);
+        TextPosition start = TranslateOffset(range.Start);
+        TextPosition end = TranslateOffset(range.EndExclusive);
         return Math.Max(0, end.LineNumber - start.LineNumber);
     }
 
     public OffsetRange ExtendToFullLines(OffsetRange range)
     {
-        var start = FindLastIndex(_firstElementOffsetByLineIdx, x => x <= range.Start);
+        int start = FindLastIndex(_firstElementOffsetByLineIdx, x => x <= range.Start);
         start = Math.Max(0, start);
-        var end = FindFirstIndex(_firstElementOffsetByLineIdx, x => range.EndExclusive <= x);
+        int end = FindFirstIndex(_firstElementOffsetByLineIdx, x => range.EndExclusive <= x);
         if (end < 0)
         {
             end = _elements.Count;
@@ -187,10 +187,10 @@ internal sealed class LinesSliceCharSequence : ISequence
     private void BuildElements()
     {
         _firstElementOffsetByLineIdx.Add(0);
-        for (var lineNumber = _range.StartLineNumber; lineNumber <= _range.EndLineNumber; lineNumber++)
+        for (int lineNumber = _range.StartLineNumber; lineNumber <= _range.EndLineNumber; lineNumber++)
         {
-            var line = _lines[lineNumber - 1];
-            var lineStartOffset = 0;
+            string line = _lines[lineNumber - 1];
+            int lineStartOffset = 0;
             if (lineNumber == _range.StartLineNumber && _range.StartColumn > 1)
             {
                 lineStartOffset = _range.StartColumn - 1;
@@ -199,22 +199,22 @@ internal sealed class LinesSliceCharSequence : ISequence
 
             _lineStartOffsets.Add(lineStartOffset);
 
-            var trimmedWhitespace = 0;
-            var processedLine = line;
+            int trimmedWhitespace = 0;
+            string processedLine = line;
             if (!_considerWhitespaceChanges)
             {
-                var trimmedStart = processedLine.TrimStart();
+                string trimmedStart = processedLine.TrimStart();
                 trimmedWhitespace = processedLine.Length - trimmedStart.Length;
                 processedLine = trimmedStart.TrimEnd();
             }
 
             _trimmedWhitespaceByLineIdx.Add(trimmedWhitespace);
 
-            var maxLength = lineNumber == _range.EndLineNumber
+            int maxLength = lineNumber == _range.EndLineNumber
                 ? Math.Min(_range.EndColumn - 1 - lineStartOffset - trimmedWhitespace, processedLine.Length)
                 : processedLine.Length;
 
-            for (var i = 0; i < maxLength; i++)
+            for (int i = 0; i < maxLength; i++)
             {
                 _elements.Add(processedLine[i]);
             }
@@ -229,12 +229,12 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     private static int FindLastIndex(IReadOnlyList<int> list, Func<int, bool> predicate)
     {
-        var low = 0;
-        var high = list.Count - 1;
-        var result = -1;
+        int low = 0;
+        int high = list.Count - 1;
+        int result = -1;
         while (low <= high)
         {
-            var mid = (low + high) / 2;
+            int mid = (low + high) / 2;
             if (predicate(list[mid]))
             {
                 result = mid;
@@ -251,12 +251,12 @@ internal sealed class LinesSliceCharSequence : ISequence
 
     private static int FindFirstIndex(IReadOnlyList<int> list, Func<int, bool> predicate)
     {
-        var low = 0;
-        var high = list.Count - 1;
-        var result = -1;
+        int low = 0;
+        int high = list.Count - 1;
+        int result = -1;
         while (low <= high)
         {
-            var mid = (low + high) / 2;
+            int mid = (low + high) / 2;
             if (predicate(list[mid]))
             {
                 result = list[mid];

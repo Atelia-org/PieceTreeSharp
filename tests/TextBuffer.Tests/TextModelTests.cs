@@ -18,25 +18,25 @@ public class TextModelTests
     [Fact]
     public void TestSelectionLogic()
     {
-        var p1 = new TextPosition(1, 1);
-        var p2 = new TextPosition(1, 5);
-        
-        var sel1 = new Selection(p1, p2); // LTR
+        TextPosition p1 = new(1, 1);
+        TextPosition p2 = new(1, 5);
+
+        Selection sel1 = new(p1, p2); // LTR
         Assert.Equal(p1, sel1.Start);
         Assert.Equal(p2, sel1.End);
         Assert.Equal(SelectionDirection.LTR, sel1.Direction);
         Assert.False(sel1.IsEmpty);
-        
-        var sel2 = new Selection(p2, p1); // RTL
+
+        Selection sel2 = new(p2, p1); // RTL
         Assert.Equal(p1, sel2.Start);
         Assert.Equal(p2, sel2.End);
         Assert.Equal(SelectionDirection.RTL, sel2.Direction);
         Assert.False(sel2.IsEmpty);
-        
-        var sel3 = new Selection(p1, p1);
+
+        Selection sel3 = new(p1, p1);
         Assert.True(sel3.IsEmpty);
         Assert.Equal(sel3.Start, sel3.End);
-        
+
         Assert.True(sel1.Contains(new TextPosition(1, 3)));
         Assert.True(sel1.Contains(p1));
         Assert.True(sel1.Contains(p2));
@@ -46,7 +46,7 @@ public class TextModelTests
     [Fact]
     public void TestTextModel_Creation()
     {
-        var model = new TextModel("Hello\nWorld");
+        TextModel model = new("Hello\nWorld");
         Assert.Equal("Hello\nWorld", model.GetValue());
         Assert.Equal(2, model.GetLineCount());
         Assert.Equal("Hello", model.GetLineContent(1));
@@ -57,9 +57,9 @@ public class TextModelTests
     [Fact]
     public void TestTextModel_ApplyEdits()
     {
-        var model = new TextModel("Hello World");
+        TextModel model = new("Hello World");
         bool eventFired = false;
-        model.OnDidChangeContent += (s, e) => 
+        model.OnDidChangeContent += (s, e) =>
         {
             eventFired = true;
             Assert.Equal(2, e.VersionId);
@@ -68,8 +68,8 @@ public class TextModelTests
 
         // Replace "World" with "Universe"
         // "World" starts at 1, 7. Ends at 1, 12.
-        var edit = new TextEdit(new TextPosition(1, 7), new TextPosition(1, 12), "Universe");
-        model.ApplyEdits(new[] { edit });
+        TextEdit edit = new(new TextPosition(1, 7), new TextPosition(1, 12), "Universe");
+        model.ApplyEdits([edit]);
 
         Assert.Equal("Hello Universe", model.GetValue());
         Assert.Equal(2, model.VersionId);
@@ -79,45 +79,45 @@ public class TextModelTests
     [Fact]
     public void TestTextModel_MultipleEdits()
     {
-        var model = new TextModel("Hello World");
-        
+        TextModel model = new("Hello World");
+
         // Insert "Big " before "World" -> "Hello Big World"
         // Replace "Hello" with "Hi" -> "Hi Big World"
-        
+
         // Edits:
         // 1. Insert at 1, 7: "Big "
         // 2. Replace 1, 1 to 1, 6: "Hi"
-        
-        var edit1 = new TextEdit(new TextPosition(1, 7), new TextPosition(1, 7), "Big ");
-        var edit2 = new TextEdit(new TextPosition(1, 1), new TextPosition(1, 6), "Hi");
-        
-        model.ApplyEdits(new[] { edit1, edit2 });
-        
+
+        TextEdit edit1 = new(new TextPosition(1, 7), new TextPosition(1, 7), "Big ");
+        TextEdit edit2 = new(new TextPosition(1, 1), new TextPosition(1, 6), "Hi");
+
+        model.ApplyEdits([edit1, edit2]);
+
         Assert.Equal("Hi Big World", model.GetValue());
     }
 
     [Fact]
     public void TestTextModel_Decorations()
     {
-        var model = new TextModel("Hello World");
+        TextModel model = new("Hello World");
         // Decoration on "World" (offsets 6-11)
-        var range = new TextRange(6, 11);
-        var decoration = model.AddDecoration(range, ModelDecorationOptions.CreateSelectionOptions());
-        
+        TextRange range = new(6, 11);
+        ModelDecoration decoration = model.AddDecoration(range, ModelDecorationOptions.CreateSelectionOptions());
+
         Assert.Equal(6, decoration.Range.StartOffset);
         Assert.Equal(11, decoration.Range.EndOffset);
-        
+
         // Insert "Beautiful " before "World" at offset 6 (1, 7)
-        var edit = new TextEdit(new TextPosition(1, 7), new TextPosition(1, 7), "Beautiful ");
-        model.ApplyEdits(new[] { edit });
-        
+        TextEdit edit = new(new TextPosition(1, 7), new TextPosition(1, 7), "Beautiful ");
+        model.ApplyEdits([edit]);
+
         Assert.Equal("Hello Beautiful World", model.GetValue());
-        
+
         // Decoration should shift
         Assert.Equal(6, decoration.Range.StartOffset);
         Assert.Equal(21, decoration.Range.EndOffset);
-        
-        var found = model.GetDecorationsInRange(new TextRange(6, 21));
+
+        IReadOnlyList<ModelDecoration> found = model.GetDecorationsInRange(new TextRange(6, 21));
         Assert.Single(found);
         Assert.Equal(decoration, found[0]);
     }
@@ -125,15 +125,15 @@ public class TextModelTests
     [Fact]
     public void TextModel_RaisesDecorationEvents()
     {
-        var model = new TextModel("Hello World");
-        var decoration = model.AddDecoration(new TextRange(6, 11), ModelDecorationOptions.CreateSelectionOptions());
+        TextModel model = new("Hello World");
+        ModelDecoration decoration = model.AddDecoration(new TextRange(6, 11), ModelDecorationOptions.CreateSelectionOptions());
         TextModelDecorationsChangedEventArgs? observed = null;
         model.OnDidChangeDecorations += (_, args) => observed = args;
 
-        model.ApplyEdits(new[]
-        {
+        model.ApplyEdits(
+        [
             new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), "Beautiful ")
-        });
+        ]);
 
         Assert.NotNull(observed);
         Assert.Contains(observed!.Changes, c => c.Id == decoration.Id && c.Kind == DecorationDeltaKind.Updated);
@@ -142,11 +142,11 @@ public class TextModelTests
     [Fact]
     public void UndoRedo_Roundtrip()
     {
-        var model = new TextModel("Hello");
-        model.PushEditOperations(new[]
-        {
+        TextModel model = new("Hello");
+        model.PushEditOperations(
+        [
             new TextEdit(new TextPosition(1, 6), new TextPosition(1, 6), " World")
-        });
+        ]);
 
         Assert.Equal("Hello World", model.GetValue());
         Assert.True(model.CanUndo);
@@ -160,18 +160,18 @@ public class TextModelTests
     [Fact]
     public void StackElementBoundariesAreRespected()
     {
-        var model = new TextModel("abc123");
-        model.PushEditOperations(new[]
-        {
+        TextModel model = new("abc123");
+        model.PushEditOperations(
+        [
             new TextEdit(new TextPosition(1, 4), new TextPosition(1, 7), "XYZ")
-        });
+        ]);
 
         model.PushStackElement();
 
-        model.PushEditOperations(new[]
-        {
+        model.PushEditOperations(
+        [
             new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "HELLO ")
-        });
+        ]);
 
         Assert.Equal("HELLO abcXYZ", model.GetValue());
 
@@ -185,7 +185,7 @@ public class TextModelTests
     [Fact]
     public void UpdateOptionsRaisesChangeEvent()
     {
-        var model = new TextModel("line");
+        TextModel model = new("line");
         TextModelOptionsChangedEventArgs? captured = null;
         model.OnDidChangeOptions += (_, args) => captured = args;
 
@@ -207,11 +207,11 @@ public class TextModelTests
     [Fact]
     public void DetectIndentationPrefersSpaces()
     {
-        var text = "def\n  foo()\n    bar()\n";
-        var model = new TextModel(text);
+        string text = "def\n  foo()\n    bar()\n";
+        TextModel model = new(text);
         model.DetectIndentation(defaultInsertSpaces: false, defaultTabSize: 4);
 
-        var options = model.GetOptions();
+        TextModelResolvedOptions options = model.GetOptions();
         Assert.True(options.InsertSpaces);
         Assert.Equal(2, options.TabSize);
         Assert.Equal(2, options.IndentSize);
@@ -220,7 +220,7 @@ public class TextModelTests
     [Fact]
     public void PushEolIsUndoable()
     {
-        var model = new TextModel("A\nB\n");
+        TextModel model = new("A\nB\n");
         model.PushEol(EndOfLineSequence.CRLF);
         Assert.Contains("\r\n", model.GetValue());
 
@@ -241,7 +241,7 @@ public class TextModelTests
     [Fact]
     public void SetLanguageRaisesEvent()
     {
-        var model = new TextModel("text");
+        TextModel model = new("text");
         string? newLanguage = null;
         model.OnDidChangeLanguage += (_, args) => newLanguage = args.NewLanguageId;
 
@@ -256,7 +256,7 @@ public class TextModelTests
     [Fact]
     public void CreationOptionsAreApplied()
     {
-        var creation = new TextModelCreationOptions
+        TextModelCreationOptions creation = new()
         {
             DetectIndentation = false,
             TabSize = 2,
@@ -268,8 +268,8 @@ public class TextModelTests
             BracketPairColorizationOptions = new BracketPairColorizationOptions(false, true),
         };
 
-        var model = new TextModel("line1\r\nline2", creation, "plaintext");
-        var options = model.GetOptions();
+        TextModel model = new("line1\r\nline2", creation, "plaintext");
+        TextModelResolvedOptions options = model.GetOptions();
 
         Assert.Equal(2, options.TabSize);
         Assert.Equal(2, options.IndentSize);
@@ -284,7 +284,7 @@ public class TextModelTests
     [Fact]
     public void DetectIndentationRunsDuringConstruction()
     {
-        var creation = new TextModelCreationOptions
+        TextModelCreationOptions creation = new()
         {
             DetectIndentation = true,
             TabSize = 4,
@@ -292,8 +292,8 @@ public class TextModelTests
             InsertSpaces = true,
         };
 
-        var model = new TextModel("\tline\n\tindent", creation, "plaintext");
-        var options = model.GetOptions();
+        TextModel model = new("\tline\n\tindent", creation, "plaintext");
+        TextModelResolvedOptions options = model.GetOptions();
 
         Assert.False(options.InsertSpaces);
         Assert.Equal(4, options.TabSize);
@@ -302,7 +302,7 @@ public class TextModelTests
     [Fact]
     public void CursorStateComputerIsInvoked()
     {
-        var model = new TextModel("abc");
+        TextModel model = new("abc");
         bool invoked = false;
 
         CursorStateComputer computer = inverseChanges =>
@@ -312,7 +312,7 @@ public class TextModelTests
         };
 
         model.PushEditOperations(
-            new[] { new TextEdit(new TextPosition(1, 4), new TextPosition(1, 4), "!") },
+            [new TextEdit(new TextPosition(1, 4), new TextPosition(1, 4), "!")],
             beforeCursorState: null,
             cursorStateComputer: computer,
             undoLabel: "exclaim");
@@ -323,8 +323,8 @@ public class TextModelTests
     [Fact]
     public void LanguageConfigurationEventsFire()
     {
-        var service = new TestLanguageConfigurationService();
-        var model = new TextModel("text", TextModelCreationOptions.Default, "langA", service);
+        TestLanguageConfigurationService service = new();
+        TextModel model = new("text", TextModelCreationOptions.Default, "langA", service);
         string? observed = null;
         model.OnDidChangeLanguageConfiguration += (_, args) => observed = args.LanguageId;
 
@@ -344,8 +344,8 @@ public class TextModelTests
     [Fact]
     public void AttachedEventsFireOnTransitions()
     {
-        var model = new TextModel("text");
-        var events = new System.Collections.Generic.List<bool>();
+        TextModel model = new("text");
+        List<bool> events = [];
         model.OnDidChangeAttached += (_, args) => events.Add(args.IsAttached);
 
         model.AttachEditor();
@@ -358,7 +358,7 @@ public class TextModelTests
 
     private sealed class TestLanguageConfigurationService : ILanguageConfigurationService
     {
-        private readonly List<(string LanguageId, EventHandler<LanguageConfigurationChangedEventArgs> Handler)> _handlers = new();
+        private readonly List<(string LanguageId, EventHandler<LanguageConfigurationChangedEventArgs> Handler)> _handlers = [];
 
         public event EventHandler<LanguageConfigurationChangedEventArgs>? OnDidChange;
 
@@ -370,13 +370,13 @@ public class TextModelTests
 
         public void Raise(string languageId)
         {
-            var args = new LanguageConfigurationChangedEventArgs(languageId);
+            LanguageConfigurationChangedEventArgs args = new(languageId);
             OnDidChange?.Invoke(this, args);
-            foreach (var entry in _handlers.ToArray())
+            foreach ((string LanguageId, EventHandler<LanguageConfigurationChangedEventArgs> Handler) in _handlers.ToArray())
             {
-                if (string.Equals(entry.LanguageId, languageId, StringComparison.Ordinal))
+                if (string.Equals(LanguageId, languageId, StringComparison.Ordinal))
                 {
-                    entry.Handler(this, args);
+                    Handler(this, args);
                 }
             }
         }

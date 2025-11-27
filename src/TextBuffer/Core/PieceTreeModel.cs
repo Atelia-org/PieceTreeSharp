@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace PieceTree.TextBuffer.Core;
 
@@ -34,6 +35,19 @@ internal sealed partial class PieceTreeModel
         _eol = eol;
         _lastChangeBufferPos = BufferCursor.Zero;
         _lastChangeBufferOffset = _buffers.Count > ChangeBufferId ? _buffers[ChangeBufferId].Length : 0;
+        Diagnostics = new DiagnosticsView(this);
+    }
+
+    public sealed class DiagnosticsView
+    {
+        private readonly PieceTreeModel _owner;
+
+        internal DiagnosticsView(PieceTreeModel owner)
+        {
+            _owner = owner;
+        }
+
+        public SearchCacheSnapshot SearchCache => _owner._searchCache.Snapshot;
     }
 
     public PieceTreeNode Root => _root;
@@ -52,28 +66,23 @@ internal sealed partial class PieceTreeModel
 
     internal PieceTreeSearchCache SearchCache => _searchCache;
 
-#if DEBUG
-    /// <summary>
-    /// Gets a snapshot of the search cache diagnostics. Only available in DEBUG builds.
-    /// </summary>
-    public SearchCacheSnapshot GetSearchCacheDiagnostics() => _searchCache.Diagnostics.ToSnapshot();
-#endif
+    public DiagnosticsView Diagnostics { get; }
 
     public string Eol => _eol;
 
     public void NormalizeEOL(string eol)
     {
         _eol = eol;
-        var averageBufferSize = 65536;
-        var sb = new System.Text.StringBuilder();
-        var chunks = new List<string>();
+        int averageBufferSize = 65536;
+        StringBuilder sb = new();
+        List<string> chunks = [];
         bool skipNextLF = false;
 
-        foreach (var piece in EnumeratePiecesInOrder())
+        foreach (PieceSegment piece in EnumeratePiecesInOrder())
         {
-            var buffer = _buffers[piece.BufferIndex];
-            var text = buffer.Slice(piece.Start, piece.End);
-            
+            ChunkBuffer buffer = _buffers[piece.BufferIndex];
+            string text = buffer.Slice(piece.Start, piece.End);
+
             int start = 0;
             if (skipNextLF)
             {
@@ -83,7 +92,7 @@ internal sealed partial class PieceTreeModel
                 }
                 skipNextLF = false;
             }
-            
+
             for (int i = start; i < text.Length; i++)
             {
                 char ch = text[i];
@@ -111,19 +120,19 @@ internal sealed partial class PieceTreeModel
                     sb.Append(ch);
                 }
             }
-            
+
             if (sb.Length > averageBufferSize)
             {
                 chunks.Add(sb.ToString());
                 sb.Clear();
             }
         }
-        
+
         if (sb.Length > 0)
         {
             chunks.Add(sb.ToString());
         }
-        
+
         if (chunks.Count > 0)
         {
             _root = _sentinel;
@@ -131,13 +140,13 @@ internal sealed partial class PieceTreeModel
             _searchCache.Clear();
             _buffers.Clear();
             _buffers.Add(ChunkBuffer.Empty);
-            
-            foreach (var chunk in chunks)
+
+            foreach (string chunk in chunks)
             {
-                var chunkBuffer = ChunkBuffer.FromText(chunk);
+                ChunkBuffer chunkBuffer = ChunkBuffer.FromText(chunk);
                 _buffers.Add(chunkBuffer);
-                var bufferIndex = _buffers.Count - 1;
-                var piece = new PieceSegment(
+                int bufferIndex = _buffers.Count - 1;
+                PieceSegment piece = new(
                     bufferIndex,
                     BufferCursor.Zero,
                     chunkBuffer.CreateEndCursor(),
@@ -146,7 +155,7 @@ internal sealed partial class PieceTreeModel
                 );
                 InsertPieceAtEnd(piece);
             }
-            
+
             _eolNormalized = true;
         }
         // Reset change buffer write pointer when normalizing EOLs
@@ -161,9 +170,9 @@ internal sealed partial class PieceTreeModel
             yield break;
         }
 
-        var stack = new Stack<PieceTreeNode>();
-        var visited = _sentinel;
-        var current = _root;
+        Stack<PieceTreeNode> stack = new();
+        PieceTreeNode visited = _sentinel;
+        PieceTreeNode current = _root;
         while (!ReferenceEquals(current, _sentinel) || stack.Count > 0)
         {
             if (!ReferenceEquals(current, _sentinel))
@@ -173,7 +182,7 @@ internal sealed partial class PieceTreeModel
             }
             else
             {
-                var peek = stack.Peek();
+                PieceTreeNode peek = stack.Peek();
                 if (!ReferenceEquals(peek.Right, _sentinel) && !ReferenceEquals(peek.Right, visited))
                 {
                     current = peek.Right;
@@ -192,9 +201,9 @@ internal sealed partial class PieceTreeModel
     {
         PieceTreeDebug.Log($"DEBUG ComputeBufferMetadata START: TotalLength={TotalLength}, TotalLineFeeds={TotalLineFeeds}");
 
-        foreach (var node in EnumerateNodesPostOrder())
+        foreach (PieceTreeNode node in EnumerateNodesPostOrder())
         {
-            var normalizedPiece = NormalizePiece(node.Piece);
+            PieceSegment normalizedPiece = NormalizePiece(node.Piece);
             if (!node.Piece.Equals(normalizedPiece))
             {
                 node.Piece = normalizedPiece;
@@ -214,7 +223,7 @@ internal sealed partial class PieceTreeModel
             return piece;
         }
 
-        var normalized = CreateSegment(piece.BufferIndex, piece.Start, piece.End);
+        PieceSegment normalized = CreateSegment(piece.BufferIndex, piece.Start, piece.End);
         if (normalized.Length != piece.Length || normalized.LineFeedCount != piece.LineFeedCount)
         {
             PieceTreeDebug.Log($"NormalizePiece: BufIdx={piece.BufferIndex}, oldLen={piece.Length}, newLen={normalized.Length}, oldLF={piece.LineFeedCount}, newLF={normalized.LineFeedCount}");
@@ -226,14 +235,14 @@ internal sealed partial class PieceTreeModel
 
     public PieceTreeNode InsertPieceAtEnd(PieceSegment piece)
     {
-        var insertionOffset = TotalLength;
-        _searchCache.InvalidateRange(insertionOffset, int.MaxValue);
+        int insertionOffset = TotalLength;
+        _searchCache.InvalidateFromOffset(insertionOffset);
 
-        var node = new PieceTreeNode(piece, _sentinel);
+        PieceTreeNode node = new(piece, _sentinel);
         node.ResetLinks();
 
-        var parent = _sentinel;
-        var current = _root;
+        PieceTreeNode parent = _sentinel;
+        PieceTreeNode current = _root;
         while (!ReferenceEquals(current, _sentinel))
         {
             parent = current;
@@ -258,13 +267,13 @@ internal sealed partial class PieceTreeModel
 
     internal NodeHit NodeAt(int offset)
     {
-        var x = _root;
-        if (_searchCache.TryGetByOffset(offset, out var cachedNode, out var cachedStartOffset))
+        PieceTreeNode x = _root;
+        if (_searchCache.TryGetByOffset(offset, out PieceTreeNode? cachedNode, out int cachedStartOffset))
         {
-            return new NodeHit(cachedNode, offset - cachedStartOffset, cachedStartOffset);
+            return new NodeHit(cachedNode, offset - cachedStartOffset, cachedStartOffset, 0);
         }
 
-        var nodeStartOffset = 0;
+        int nodeStartOffset = 0;
 
         while (!ReferenceEquals(x, _sentinel))
         {
@@ -275,7 +284,7 @@ internal sealed partial class PieceTreeModel
             else if (x.SizeLeft + x.Piece.Length >= offset)
             {
                 nodeStartOffset += x.SizeLeft;
-                var hit = new NodeHit(x, offset - x.SizeLeft, nodeStartOffset);
+                NodeHit hit = new(x, offset - x.SizeLeft, nodeStartOffset, 0);
                 _searchCache.Remember(x, nodeStartOffset);
                 return hit;
             }
@@ -305,11 +314,11 @@ internal sealed partial class PieceTreeModel
         _searchCache.Remember(node, nodeStartOffset, nodeStartLineNumber);
     }
 
-    internal void InvalidateCacheFromOffset(int offset) => _searchCache.InvalidateRange(offset, int.MaxValue);
+    internal void InvalidateCacheFromOffset(int offset) => _searchCache.InvalidateFromOffset(offset);
 
     public IEnumerable<PieceSegment> EnumeratePiecesInOrder()
     {
-        foreach (var node in EnumerateNodesInOrder())
+        foreach (PieceTreeNode node in EnumerateNodesInOrder())
         {
             yield return node.Piece;
         }
@@ -323,7 +332,7 @@ internal sealed partial class PieceTreeModel
         }
 
         offset = Math.Clamp(offset, 0, TotalLength);
-        var hit = NodeAt(offset);
+        NodeHit hit = NodeAt(offset);
         if (hit == default || ReferenceEquals(hit.Node, _sentinel))
         {
             return string.Empty;
@@ -331,17 +340,17 @@ internal sealed partial class PieceTreeModel
 
         if (hit.Remainder == hit.Node.Piece.Length)
         {
-            var next = hit.Node.Next();
+            PieceTreeNode? next = hit.Node.Next();
             if (ReferenceEquals(next, _sentinel) || next is null)
             {
                 return string.Empty;
             }
 
-            var buffer = _buffers[next.Piece.BufferIndex];
+            ChunkBuffer buffer = _buffers[next.Piece.BufferIndex];
             return buffer.Slice(next.Piece.Start, next.Piece.End);
         }
 
-        var sliceStart = hit.Remainder == 0
+        BufferCursor sliceStart = hit.Remainder == 0
             ? hit.Node.Piece.Start
             : PositionInBuffer(hit.Node, hit.Remainder);
 
@@ -350,7 +359,7 @@ internal sealed partial class PieceTreeModel
             return string.Empty;
         }
 
-        var currentBuffer = _buffers[hit.Node.Piece.BufferIndex];
+        ChunkBuffer currentBuffer = _buffers[hit.Node.Piece.BufferIndex];
         return currentBuffer.Slice(sliceStart, hit.Node.Piece.End);
     }
 
@@ -366,8 +375,8 @@ internal sealed partial class PieceTreeModel
             yield break;
         }
 
-        var stack = new Stack<PieceTreeNode>();
-        var current = _root;
+        Stack<PieceTreeNode> stack = new();
+        PieceTreeNode current = _root;
         while (!ReferenceEquals(current, _sentinel) || stack.Count > 0)
         {
             while (!ReferenceEquals(current, _sentinel))
@@ -390,8 +399,8 @@ internal sealed partial class PieceTreeModel
             throw new ArgumentException("Sentinel node does not have an offset.", nameof(node));
         }
 
-        var offset = node.SizeLeft;
-        var current = node;
+        int offset = node.SizeLeft;
+        PieceTreeNode current = node;
         while (!ReferenceEquals(current.Parent, _sentinel))
         {
             if (ReferenceEquals(current, current.Parent.Right))
@@ -413,8 +422,8 @@ internal sealed partial class PieceTreeModel
             throw new ArgumentException("Sentinel node does not have line feed metadata.", nameof(node));
         }
 
-        var lineFeeds = node.LineFeedsLeft;
-        var current = node;
+        int lineFeeds = node.LineFeedsLeft;
+        PieceTreeNode current = node;
         while (!ReferenceEquals(current.Parent, _sentinel))
         {
             if (ReferenceEquals(current, current.Parent.Right))
@@ -440,7 +449,7 @@ internal sealed partial class PieceTreeModel
         {
             if (ReferenceEquals(node.Parent, node.Parent.Parent.Left))
             {
-                var uncle = node.Parent.Parent.Right;
+                PieceTreeNode uncle = node.Parent.Parent.Right;
                 if (uncle.Color == NodeColor.Red)
                 {
                     node.Parent.Color = NodeColor.Black;
@@ -463,7 +472,7 @@ internal sealed partial class PieceTreeModel
             }
             else
             {
-                var uncle = node.Parent.Parent.Left;
+                PieceTreeNode uncle = node.Parent.Parent.Left;
                 if (uncle.Color == NodeColor.Red)
                 {
                     node.Parent.Color = NodeColor.Black;
@@ -491,7 +500,7 @@ internal sealed partial class PieceTreeModel
 
     private void RotateLeft(PieceTreeNode node)
     {
-        var pivot = node.Right;
+        PieceTreeNode pivot = node.Right;
         node.Right = pivot.Left;
         if (!ReferenceEquals(pivot.Left, _sentinel))
         {
@@ -522,7 +531,7 @@ internal sealed partial class PieceTreeModel
 
     private void RotateRight(PieceTreeNode node)
     {
-        var pivot = node.Left;
+        PieceTreeNode pivot = node.Left;
         node.Left = pivot.Right;
         if (!ReferenceEquals(pivot.Right, _sentinel))
         {
@@ -569,19 +578,19 @@ internal sealed partial class PieceTreeModel
 
     private void ValidatePieceMetadata()
     {
-        var aggregatedLength = 0;
-        var aggregatedLineFeeds = 0;
+        int aggregatedLength = 0;
+        int aggregatedLineFeeds = 0;
 
-        foreach (var piece in EnumeratePiecesInOrder())
+        foreach (PieceSegment piece in EnumeratePiecesInOrder())
         {
-            var buffer = _buffers[piece.BufferIndex];
-            var textSlice = buffer.Slice(piece.Start, piece.End);
+            ChunkBuffer buffer = _buffers[piece.BufferIndex];
+            string textSlice = buffer.Slice(piece.Start, piece.End);
             if (textSlice.Length != piece.Length)
             {
                 throw new InvalidOperationException($"Piece metadata mismatch: expected length {textSlice.Length} but recorded {piece.Length} for buffer {piece.BufferIndex}.");
             }
 
-            var computedLineFeeds = GetLineFeedCnt(piece.BufferIndex, piece.Start, piece.End);
+            int computedLineFeeds = GetLineFeedCnt(piece.BufferIndex, piece.Start, piece.End);
             if (computedLineFeeds != piece.LineFeedCount)
             {
                 throw new InvalidOperationException($"Piece line feed mismatch: expected {computedLineFeeds} but recorded {piece.LineFeedCount} for buffer {piece.BufferIndex}.");
@@ -660,34 +669,34 @@ internal sealed partial class PieceTreeModel
             }
         }
 
-        var leftBlackHeight = AssertNodeInvariants(node.Left);
-        var rightBlackHeight = AssertNodeInvariants(node.Right);
+        int leftBlackHeight = AssertNodeInvariants(node.Left);
+        int rightBlackHeight = AssertNodeInvariants(node.Right);
         if (leftBlackHeight != rightBlackHeight)
         {
             throw new InvalidOperationException($"Black height mismatch at {DescribeNode(node)} (left={leftBlackHeight}, right={rightBlackHeight}).");
         }
 
-        var leftAggregatedLength = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLength;
+        int leftAggregatedLength = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLength;
         if (node.SizeLeft != leftAggregatedLength)
         {
             throw new InvalidOperationException($"SizeLeft mismatch at {DescribeNode(node)} expected={leftAggregatedLength} actual={node.SizeLeft}.");
         }
 
-        var leftAggregatedLineFeeds = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLineFeeds;
+        int leftAggregatedLineFeeds = ReferenceEquals(node.Left, _sentinel) ? 0 : node.Left.AggregatedLineFeeds;
         if (node.LineFeedsLeft != leftAggregatedLineFeeds)
         {
             throw new InvalidOperationException($"LineFeedsLeft mismatch at {DescribeNode(node)} expected={leftAggregatedLineFeeds} actual={node.LineFeedsLeft}.");
         }
 
-        var rightAggregatedLength = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLength;
-        var expectedAggregatedLength = leftAggregatedLength + node.Piece.Length + rightAggregatedLength;
+        int rightAggregatedLength = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLength;
+        int expectedAggregatedLength = leftAggregatedLength + node.Piece.Length + rightAggregatedLength;
         if (node.AggregatedLength != expectedAggregatedLength)
         {
             throw new InvalidOperationException($"AggregatedLength mismatch at {DescribeNode(node)} expected={expectedAggregatedLength} actual={node.AggregatedLength}.");
         }
 
-        var rightAggregatedLineFeeds = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLineFeeds;
-        var expectedAggregatedLineFeeds = leftAggregatedLineFeeds + node.Piece.LineFeedCount + rightAggregatedLineFeeds;
+        int rightAggregatedLineFeeds = ReferenceEquals(node.Right, _sentinel) ? 0 : node.Right.AggregatedLineFeeds;
+        int expectedAggregatedLineFeeds = leftAggregatedLineFeeds + node.Piece.LineFeedCount + rightAggregatedLineFeeds;
         if (node.AggregatedLineFeeds != expectedAggregatedLineFeeds)
         {
             throw new InvalidOperationException($"AggregatedLineFeeds mismatch at {DescribeNode(node)} expected={expectedAggregatedLineFeeds} actual={node.AggregatedLineFeeds}.");
@@ -698,13 +707,13 @@ internal sealed partial class PieceTreeModel
 
     private static string DescribeNode(PieceTreeNode node)
     {
-        var piece = node.Piece;
+        PieceSegment piece = node.Piece;
         return $"buf={piece.BufferIndex} start=({piece.Start.Line},{piece.Start.Column}) end=({piece.End.Line},{piece.End.Column}) len={piece.Length}";
     }
 }
 
 internal sealed record PieceTreeSearchPlan(string QueryText);
 
-internal readonly record struct NodeHit(PieceTreeNode Node, int Remainder, int NodeStartOffset);
+internal readonly record struct NodeHit(PieceTreeNode Node, int Remainder, int NodeStartOffset, int NodeStartLineNumber);
 
 internal sealed record PieceTreeSearchResult;

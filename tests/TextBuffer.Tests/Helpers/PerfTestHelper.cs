@@ -17,7 +17,7 @@ internal static class PerfTestHelper
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(workload);
 
-        using var context = new PerfContext(scenarioName, model);
+        using PerfContext context = new(scenarioName, model);
         return MeasureInternal(context, workload);
     }
 
@@ -25,15 +25,15 @@ internal static class PerfTestHelper
     {
         ResetDebugCounters();
 
-        var before = CaptureRequestNormalizeHits();
-        var stopwatch = Stopwatch.StartNew();
+        int before = CaptureRequestNormalizeHits();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         workload(context);
 
         stopwatch.Stop();
-        var after = CaptureRequestNormalizeHits();
+        int after = CaptureRequestNormalizeHits();
 
-        var result = new PerfRunResult(
+        PerfRunResult result = new(
             context.ScenarioName,
             stopwatch.ElapsedMilliseconds,
             after - before,
@@ -112,13 +112,13 @@ internal sealed class PerfContext : IDisposable
 
     public void WriteSummary(PerfRunResult result)
     {
-        var summary = $"[PERF] {result.ScenarioName} took {result.ElapsedMilliseconds}ms (requestNormalizeΔ={result.RequestNormalizeDelta})";
+        string summary = $"[PERF] {result.ScenarioName} took {result.ElapsedMilliseconds}ms (requestNormalizeΔ={result.RequestNormalizeDelta})";
         Debug.WriteLine(summary);
         Console.WriteLine(summary);
 
         if (!string.IsNullOrEmpty(result.LogPath))
         {
-            var logMessage = $"[PERF] Operations logged to {result.LogPath}";
+            string logMessage = $"[PERF] Operations logged to {result.LogPath}";
             Debug.WriteLine(logMessage);
             Console.WriteLine(logMessage);
         }

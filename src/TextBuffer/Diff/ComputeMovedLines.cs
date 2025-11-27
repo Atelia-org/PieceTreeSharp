@@ -25,15 +25,15 @@ internal static class MoveDetection
         int[] hashedModifiedLines,
         ITimeout timeout)
     {
-        var (moves, excludedChanges) = ComputeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLines, modifiedLines, timeout);
+        (List<LineRangeMapping>? moves, HashSet<DetailedLineRangeMapping>? excludedChanges) = ComputeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLines, modifiedLines, timeout);
         if (!timeout.IsValid)
         {
             return Array.Empty<LineRangeMapping>();
         }
 
-        var filteredChanges = changes.Where(c => !excludedChanges.Contains(c)).ToList();
-        var mergedChangesForMoves = MergeAdjacentChangesForMoves(filteredChanges, 1);
-        var unchangedMoves = ComputeUnchangedMoves(filteredChanges, mergedChangesForMoves, hashedOriginalLines, hashedModifiedLines, originalLines, modifiedLines, timeout);
+        List<DetailedLineRangeMapping> filteredChanges = changes.Where(c => !excludedChanges.Contains(c)).ToList();
+        List<DetailedLineRangeMapping> mergedChangesForMoves = MergeAdjacentChangesForMoves(filteredChanges, 1);
+        List<LineRangeMapping> unchangedMoves = ComputeUnchangedMoves(filteredChanges, mergedChangesForMoves, hashedOriginalLines, hashedModifiedLines, originalLines, modifiedLines, timeout);
         moves.AddRange(unchangedMoves);
 
         moves = JoinCloseConsecutiveMoves(moves);
@@ -41,7 +41,7 @@ internal static class MoveDetection
 
         moves = RemoveMovesInSameDiff(changes, moves);
 
-        var shiftedBlocks = DetectShiftedBlocks(filteredChanges, originalLines.Length, modifiedLines.Length);
+        List<LineRangeMapping> shiftedBlocks = DetectShiftedBlocks(filteredChanges, originalLines.Length, modifiedLines.Length);
         shiftedBlocks = FilterMovesByContent(shiftedBlocks, originalLines);
         moves.AddRange(shiftedBlocks);
         return moves;
@@ -49,8 +49,8 @@ internal static class MoveDetection
 
     private static int CountWhere<T>(IEnumerable<T> source, Func<T, bool> predicate)
     {
-        var count = 0;
-        foreach (var item in source)
+        int count = 0;
+        foreach (T? item in source)
         {
             if (predicate(item))
             {
@@ -67,23 +67,23 @@ internal static class MoveDetection
         string[] modifiedLines,
         ITimeout timeout)
     {
-        var moves = new List<LineRangeMapping>();
-        var deletions = changes
+        List<LineRangeMapping> moves = [];
+        List<LineRangeFragment> deletions = changes
             .Where(c => c.Modified.IsEmpty && c.Original.Length >= 3)
             .Select(c => new LineRangeFragment(c.Original, originalLines, c))
             .ToList();
-        var insertions = new HashSet<LineRangeFragment>(changes
+        HashSet<LineRangeFragment> insertions = new(changes
             .Where(c => c.Original.IsEmpty && c.Modified.Length >= 3)
             .Select(c => new LineRangeFragment(c.Modified, modifiedLines, c)));
 
-        var excluded = new HashSet<DetailedLineRangeMapping>();
-        foreach (var deletion in deletions)
+        HashSet<DetailedLineRangeMapping> excluded = [];
+        foreach (LineRangeFragment deletion in deletions)
         {
             double highestSimilarity = -1;
             LineRangeFragment? best = null;
-            foreach (var insertion in insertions)
+            foreach (LineRangeFragment insertion in insertions)
             {
-                var similarity = deletion.ComputeSimilarity(insertion);
+                double similarity = deletion.ComputeSimilarity(insertion);
                 if (similarity > highestSimilarity)
                 {
                     highestSimilarity = similarity;
@@ -117,26 +117,26 @@ internal static class MoveDetection
         string[] modifiedLines,
         ITimeout timeout)
     {
-        var changes = referenceChanges.ToList();
-        var moves = new List<LineRangeMapping>();
-        var originalWindowMap = new Dictionary<WindowKey, List<LineRange>>();
+        List<DetailedLineRangeMapping> changes = referenceChanges.ToList();
+        List<LineRangeMapping> moves = [];
+        Dictionary<WindowKey, List<LineRange>> originalWindowMap = [];
         const int contextLines = 2;
-        var clusters = BuildClusters(analysisChanges, contextLines);
+        List<(LineRange Original, LineRange Modified)> clusters = BuildClusters(analysisChanges, contextLines);
 
-        foreach (var cluster in clusters)
+        foreach ((LineRange Original, LineRange Modified) in clusters)
         {
-            var originalRangeWithContext = ExpandRange(cluster.Original, originalLines.Length + 1, contextLines);
-            for (var lineNumber = originalRangeWithContext.StartLineNumber; lineNumber <= originalRangeWithContext.EndLineNumberExclusive - 3; lineNumber++)
+            LineRange originalRangeWithContext = ExpandRange(Original, originalLines.Length + 1, contextLines);
+            for (int lineNumber = originalRangeWithContext.StartLineNumber; lineNumber <= originalRangeWithContext.EndLineNumberExclusive - 3; lineNumber++)
             {
-                var idx = lineNumber - 1;
-                if (!TryCreateWindowKey(hashedOriginalLines, idx, out var key))
+                int idx = lineNumber - 1;
+                if (!TryCreateWindowKey(hashedOriginalLines, idx, out WindowKey key))
                 {
                     continue;
                 }
 
-                if (!originalWindowMap.TryGetValue(key, out var ranges))
+                if (!originalWindowMap.TryGetValue(key, out List<LineRange>? ranges))
                 {
-                    ranges = new List<LineRange>();
+                    ranges = [];
                     originalWindowMap[key] = ranges;
                 }
 
@@ -144,32 +144,32 @@ internal static class MoveDetection
             }
         }
 
-        var possibleMappings = new List<PossibleMapping>();
+        List<PossibleMapping> possibleMappings = [];
         changes.Sort((a, b) => a.Modified.StartLineNumber.CompareTo(b.Modified.StartLineNumber));
 
-        foreach (var cluster in clusters)
+        foreach ((LineRange Original, LineRange Modified) in clusters)
         {
-            var lastMappings = new List<PossibleMapping>();
-            var modifiedRangeWithContext = ExpandRange(cluster.Modified, modifiedLines.Length + 1, contextLines);
-            for (var lineNumber = modifiedRangeWithContext.StartLineNumber; lineNumber <= modifiedRangeWithContext.EndLineNumberExclusive - 3; lineNumber++)
+            List<PossibleMapping> lastMappings = [];
+            LineRange modifiedRangeWithContext = ExpandRange(Modified, modifiedLines.Length + 1, contextLines);
+            for (int lineNumber = modifiedRangeWithContext.StartLineNumber; lineNumber <= modifiedRangeWithContext.EndLineNumberExclusive - 3; lineNumber++)
             {
-                var idx = lineNumber - 1;
-                if (!TryCreateWindowKey(hashedModifiedLines, idx, out var key))
+                int idx = lineNumber - 1;
+                if (!TryCreateWindowKey(hashedModifiedLines, idx, out WindowKey key))
                 {
                     continue;
                 }
 
-                if (!originalWindowMap.TryGetValue(key, out var candidates))
+                if (!originalWindowMap.TryGetValue(key, out List<LineRange>? candidates))
                 {
                     continue;
                 }
 
-                var currentModifiedRange = new LineRange(lineNumber, lineNumber + 3);
-                var nextMappings = new List<PossibleMapping>();
-                foreach (var candidate in candidates)
+                LineRange currentModifiedRange = new(lineNumber, lineNumber + 3);
+                List<PossibleMapping> nextMappings = [];
+                foreach (LineRange candidate in candidates)
                 {
-                    var extended = false;
-                    foreach (var previous in lastMappings)
+                    bool extended = false;
+                    foreach (PossibleMapping previous in lastMappings)
                     {
                         if (previous.OriginalRange.EndLineNumberExclusive + 1 == candidate.EndLineNumberExclusive
                             && previous.ModifiedRange.EndLineNumberExclusive + 1 == currentModifiedRange.EndLineNumberExclusive)
@@ -184,7 +184,7 @@ internal static class MoveDetection
 
                     if (!extended)
                     {
-                        var mapping = new PossibleMapping(currentModifiedRange, candidate);
+                        PossibleMapping mapping = new(currentModifiedRange, candidate);
                         possibleMappings.Add(mapping);
                         nextMappings.Add(mapping);
                     }
@@ -201,25 +201,25 @@ internal static class MoveDetection
 
         possibleMappings.Sort((a, b) => b.ModifiedRange.Length.CompareTo(a.ModifiedRange.Length));
 
-        var modifiedSet = new LineRangeSet();
-        var originalSet = new LineRangeSet();
+        LineRangeSet modifiedSet = new();
+        LineRangeSet originalSet = new();
 
-        foreach (var mapping in possibleMappings)
+        foreach (PossibleMapping mapping in possibleMappings)
         {
-            var diff = mapping.ModifiedRange.StartLineNumber - mapping.OriginalRange.StartLineNumber;
-            var modifiedSections = modifiedSet.SubtractFrom(mapping.ModifiedRange);
-            var originalSections = originalSet.SubtractFrom(mapping.OriginalRange).GetWithDelta(diff);
-            var intersections = modifiedSections.GetIntersection(originalSections);
+            int diff = mapping.ModifiedRange.StartLineNumber - mapping.OriginalRange.StartLineNumber;
+            LineRangeSet modifiedSections = modifiedSet.SubtractFrom(mapping.ModifiedRange);
+            LineRangeSet originalSections = originalSet.SubtractFrom(mapping.OriginalRange).GetWithDelta(diff);
+            LineRangeSet intersections = modifiedSections.GetIntersection(originalSections);
 
-            foreach (var section in intersections.Ranges)
+            foreach (LineRange section in intersections.Ranges)
             {
                 if (section.Length < 3)
                 {
                     continue;
                 }
 
-                var modifiedRange = section;
-                var originalRange = section.Delta(-diff);
+                LineRange modifiedRange = section;
+                LineRange originalRange = section.Delta(-diff);
                 moves.Add(new LineRangeMapping(originalRange, modifiedRange));
                 modifiedSet.AddRange(modifiedRange);
                 originalSet.AddRange(originalRange);
@@ -228,36 +228,36 @@ internal static class MoveDetection
 
         moves.Sort((a, b) => a.Original.StartLineNumber.CompareTo(b.Original.StartLineNumber));
 
-        for (var i = 0; i < moves.Count; i++)
+        for (int i = 0; i < moves.Count; i++)
         {
-            var move = moves[i];
-            var firstTouchingOriginal = FindLastMonotonous(changes, c => c.Original.StartLineNumber <= move.Original.StartLineNumber);
-            var firstTouchingModified = FindLastMonotonous(changes, c => c.Modified.StartLineNumber <= move.Modified.StartLineNumber);
+            LineRangeMapping move = moves[i];
+            DetailedLineRangeMapping? firstTouchingOriginal = FindLastMonotonous(changes, c => c.Original.StartLineNumber <= move.Original.StartLineNumber);
+            DetailedLineRangeMapping? firstTouchingModified = FindLastMonotonous(changes, c => c.Modified.StartLineNumber <= move.Modified.StartLineNumber);
             if (firstTouchingOriginal == null || firstTouchingModified == null)
             {
                 continue;
             }
 
-            var linesAbove = Math.Max(
+            int linesAbove = Math.Max(
                 move.Original.StartLineNumber - firstTouchingOriginal.Original.StartLineNumber,
                 move.Modified.StartLineNumber - firstTouchingModified.Modified.StartLineNumber);
 
-            var lastTouchingOriginal = FindLastMonotonous(changes, c => c.Original.StartLineNumber < move.Original.EndLineNumberExclusive);
-            var lastTouchingModified = FindLastMonotonous(changes, c => c.Modified.StartLineNumber < move.Modified.EndLineNumberExclusive);
+            DetailedLineRangeMapping? lastTouchingOriginal = FindLastMonotonous(changes, c => c.Original.StartLineNumber < move.Original.EndLineNumberExclusive);
+            DetailedLineRangeMapping? lastTouchingModified = FindLastMonotonous(changes, c => c.Modified.StartLineNumber < move.Modified.EndLineNumberExclusive);
             if (lastTouchingOriginal == null || lastTouchingModified == null)
             {
                 continue;
             }
 
-            var linesBelow = Math.Max(
+            int linesBelow = Math.Max(
                 lastTouchingOriginal.Original.EndLineNumberExclusive - move.Original.EndLineNumberExclusive,
                 lastTouchingModified.Modified.EndLineNumberExclusive - move.Modified.EndLineNumberExclusive);
 
-            var extendTop = 0;
+            int extendTop = 0;
             for (; extendTop < linesAbove; extendTop++)
             {
-                var origLine = move.Original.StartLineNumber - extendTop - 1;
-                var modLine = move.Modified.StartLineNumber - extendTop - 1;
+                int origLine = move.Original.StartLineNumber - extendTop - 1;
+                int modLine = move.Modified.StartLineNumber - extendTop - 1;
                 if (origLine <= 0 || modLine <= 0)
                 {
                     break;
@@ -285,11 +285,11 @@ internal static class MoveDetection
                 modifiedSet.AddRange(new LineRange(move.Modified.StartLineNumber - extendTop, move.Modified.StartLineNumber));
             }
 
-            var extendBottom = 0;
+            int extendBottom = 0;
             for (; extendBottom < linesBelow; extendBottom++)
             {
-                var origLine = move.Original.EndLineNumberExclusive + extendBottom;
-                var modLine = move.Modified.EndLineNumberExclusive + extendBottom;
+                int origLine = move.Original.EndLineNumberExclusive + extendBottom;
+                int modLine = move.Modified.EndLineNumberExclusive + extendBottom;
                 if (origLine > originalLines.Length || modLine > modifiedLines.Length)
                 {
                     break;
@@ -335,15 +335,15 @@ internal static class MoveDetection
             return false;
         }
 
-        var myers = new MyersDiffAlgorithm();
-        var slice1 = new LinesSliceCharSequence(new[] { line1 }, new Range(1, 1, 1, Math.Max(1, line1.Length)), false);
-        var slice2 = new LinesSliceCharSequence(new[] { line2 }, new Range(1, 1, 1, Math.Max(1, line2.Length)), false);
-        var result = myers.Compute(slice1, slice2, timeout);
-        var inverted = SequenceDiff.Invert(result.Diffs, line1.Length);
-        var commonNonSpaceChars = 0;
-        foreach (var seq in inverted)
+        MyersDiffAlgorithm myers = new();
+        LinesSliceCharSequence slice1 = new([line1], new Range(1, 1, 1, Math.Max(1, line1.Length)), false);
+        LinesSliceCharSequence slice2 = new([line2], new Range(1, 1, 1, Math.Max(1, line2.Length)), false);
+        DiffAlgorithmResult result = myers.Compute(slice1, slice2, timeout);
+        IReadOnlyList<SequenceDiff> inverted = SequenceDiff.Invert(result.Diffs, line1.Length);
+        int commonNonSpaceChars = 0;
+        foreach (SequenceDiff seq in inverted)
         {
-            for (var idx = seq.Seq1Range.Start; idx < seq.Seq1Range.EndExclusive; idx++)
+            for (int idx = seq.Seq1Range.Start; idx < seq.Seq1Range.EndExclusive; idx++)
             {
                 if (!IsSpace(line1[idx]))
                 {
@@ -352,14 +352,14 @@ internal static class MoveDetection
             }
         }
 
-        var longer = line1.Length > line2.Length ? line1 : line2;
-        var longerLength = CountNonWhitespace(longer);
+        string longer = line1.Length > line2.Length ? line1 : line2;
+        int longerLength = CountNonWhitespace(longer);
         return longerLength > 10 && longerLength > 0 && (double)commonNonSpaceChars / longerLength > 0.6;
 
         static int CountNonWhitespace(string value)
         {
-            var count = 0;
-            foreach (var ch in value)
+            int count = 0;
+            foreach (char ch in value)
             {
                 if (!IsSpace(ch))
                 {
@@ -381,14 +381,14 @@ internal static class MoveDetection
         }
 
         moves.Sort((a, b) => a.Original.StartLineNumber.CompareTo(b.Original.StartLineNumber));
-        var result = new List<LineRangeMapping> { moves[0] };
-        for (var i = 1; i < moves.Count; i++)
+        List<LineRangeMapping> result = [moves[0]];
+        for (int i = 1; i < moves.Count; i++)
         {
-            var last = result[^1];
-            var current = moves[i];
-            var originalDist = current.Original.StartLineNumber - last.Original.EndLineNumberExclusive;
-            var modifiedDist = current.Modified.StartLineNumber - last.Modified.EndLineNumberExclusive;
-            var currentAfterLast = originalDist >= 0 && modifiedDist >= 0;
+            LineRangeMapping last = result[^1];
+            LineRangeMapping current = moves[i];
+            int originalDist = current.Original.StartLineNumber - last.Original.EndLineNumberExclusive;
+            int modifiedDist = current.Modified.StartLineNumber - last.Modified.EndLineNumberExclusive;
+            bool currentAfterLast = originalDist >= 0 && modifiedDist >= 0;
             if (currentAfterLast && originalDist + modifiedDist <= 2)
             {
                 result[^1] = last.Join(current);
@@ -403,12 +403,12 @@ internal static class MoveDetection
 
     private static List<LineRangeMapping> RemoveMovesInSameDiff(IReadOnlyList<DetailedLineRangeMapping> changes, List<LineRangeMapping> moves)
     {
-        var sorted = changes.OrderBy(c => c.Modified.StartLineNumber).ToList();
+        List<DetailedLineRangeMapping> sorted = changes.OrderBy(c => c.Modified.StartLineNumber).ToList();
         return moves.Where(move =>
         {
-            var diffBeforeEndOriginal = FindLastMonotonous(sorted, c => c.Original.StartLineNumber < move.Original.EndLineNumberExclusive) ?? FallbackChange;
-            var diffBeforeEndModified = FindLastMonotonous(sorted, c => c.Modified.StartLineNumber < move.Modified.EndLineNumberExclusive);
-            var keep = diffBeforeEndOriginal != diffBeforeEndModified;
+            DetailedLineRangeMapping diffBeforeEndOriginal = FindLastMonotonous(sorted, c => c.Original.StartLineNumber < move.Original.EndLineNumberExclusive) ?? FallbackChange;
+            DetailedLineRangeMapping? diffBeforeEndModified = FindLastMonotonous(sorted, c => c.Modified.StartLineNumber < move.Modified.EndLineNumberExclusive);
+            bool keep = diffBeforeEndOriginal != diffBeforeEndModified;
             return keep;
         }).ToList();
     }
@@ -432,12 +432,12 @@ internal static class MoveDetection
             return new LineRange(1, 1);
         }
 
-        var start = Math.Max(1, range.StartLineNumber - context);
-        var end = Math.Min(maxLineNumberExclusive, range.EndLineNumberExclusive + context);
+        int start = Math.Max(1, range.StartLineNumber - context);
+        int end = Math.Min(maxLineNumberExclusive, range.EndLineNumberExclusive + context);
 
         if (start >= end)
         {
-            var anchor = Math.Clamp(range.StartLineNumber, 1, maxLineNumberExclusive - 1);
+            int anchor = Math.Clamp(range.StartLineNumber, 1, maxLineNumberExclusive - 1);
             start = Math.Max(1, anchor - context);
             end = Math.Min(maxLineNumberExclusive, start + context);
         }
@@ -447,20 +447,20 @@ internal static class MoveDetection
 
     private static List<(LineRange Original, LineRange Modified)> BuildClusters(IReadOnlyList<DetailedLineRangeMapping> changes, int maxGap)
     {
-        var clusters = new List<(LineRange Original, LineRange Modified)>();
+        List<(LineRange Original, LineRange Modified)> clusters = [];
         if (changes.Count == 0)
         {
             return clusters;
         }
 
-        var currentOriginal = changes[0].Original;
-        var currentModified = changes[0].Modified;
+        LineRange currentOriginal = changes[0].Original;
+        LineRange currentModified = changes[0].Modified;
 
-        for (var i = 1; i < changes.Count; i++)
+        for (int i = 1; i < changes.Count; i++)
         {
-            var change = changes[i];
-            var originalGap = change.Original.StartLineNumber - currentOriginal.EndLineNumberExclusive;
-            var modifiedGap = change.Modified.StartLineNumber - currentModified.EndLineNumberExclusive;
+            DetailedLineRangeMapping change = changes[i];
+            int originalGap = change.Original.StartLineNumber - currentOriginal.EndLineNumberExclusive;
+            int modifiedGap = change.Modified.StartLineNumber - currentModified.EndLineNumberExclusive;
 
             if (originalGap <= maxGap && modifiedGap <= maxGap)
             {
@@ -483,21 +483,21 @@ internal static class MoveDetection
     {
         if (changes.Count == 0)
         {
-            return new List<DetailedLineRangeMapping>();
+            return [];
         }
 
-        var merged = new List<DetailedLineRangeMapping>();
-        var current = changes[0];
+        List<DetailedLineRangeMapping> merged = [];
+        DetailedLineRangeMapping current = changes[0];
 
-        for (var i = 1; i < changes.Count; i++)
+        for (int i = 1; i < changes.Count; i++)
         {
-            var next = changes[i];
-            var originalGap = next.Original.StartLineNumber - current.Original.EndLineNumberExclusive;
-            var modifiedGap = next.Modified.StartLineNumber - current.Modified.EndLineNumberExclusive;
+            DetailedLineRangeMapping next = changes[i];
+            int originalGap = next.Original.StartLineNumber - current.Original.EndLineNumberExclusive;
+            int modifiedGap = next.Modified.StartLineNumber - current.Modified.EndLineNumberExclusive;
 
             if (originalGap <= maxGap && modifiedGap <= maxGap)
             {
-                var inner = current.InnerChanges.Concat(next.InnerChanges).ToArray();
+                RangeMapping[] inner = current.InnerChanges.Concat(next.InnerChanges).ToArray();
                 current = new DetailedLineRangeMapping(current.Original.Join(next.Original), current.Modified.Join(next.Modified), inner);
             }
             else
@@ -515,18 +515,18 @@ internal static class MoveDetection
     {
         return moves.Where(move =>
         {
-            var lines = ReadLines(move.Original, originalLines).Select(l => l.Trim()).ToArray();
-            var text = string.Join('\n', lines);
+            string[] lines = ReadLines(move.Original, originalLines).Select(l => l.Trim()).ToArray();
+            string text = string.Join('\n', lines);
             return text.Length >= 15 && CountWhere(lines, l => l.Length >= 2) >= 2;
         }).ToList();
     }
 
     private static List<LineRangeMapping> DetectShiftedBlocks(IReadOnlyList<DetailedLineRangeMapping> changes, int originalLineCount, int modifiedLineCount)
     {
-        var result = new List<LineRangeMapping>();
+        List<LineRangeMapping> result = [];
 
-        var prevOriginalEnd = 1;
-        var prevModifiedEnd = 1;
+        int prevOriginalEnd = 1;
+        int prevModifiedEnd = 1;
         LineRange? currentOriginal = null;
         LineRange? currentModified = null;
         int? currentOffset = null;
@@ -535,8 +535,8 @@ internal static class MoveDetection
         {
             if (currentOriginal.HasValue && currentModified.HasValue)
             {
-                var originalRange = currentOriginal.Value;
-                var modifiedRange = currentModified.Value;
+                LineRange originalRange = currentOriginal.Value;
+                LineRange modifiedRange = currentModified.Value;
                 if (originalRange.Length >= 3 && modifiedRange.Length >= 3)
                 {
                     result.Add(new LineRangeMapping(originalRange, modifiedRange));
@@ -548,21 +548,21 @@ internal static class MoveDetection
             currentOffset = null;
         }
 
-        for (var i = 0; i <= changes.Count; i++)
+        for (int i = 0; i <= changes.Count; i++)
         {
-            var nextOriginalStart = i < changes.Count ? changes[i].Original.StartLineNumber : originalLineCount + 1;
-            var nextModifiedStart = i < changes.Count ? changes[i].Modified.StartLineNumber : modifiedLineCount + 1;
+            int nextOriginalStart = i < changes.Count ? changes[i].Original.StartLineNumber : originalLineCount + 1;
+            int nextModifiedStart = i < changes.Count ? changes[i].Modified.StartLineNumber : modifiedLineCount + 1;
 
-            var originalLength = nextOriginalStart - prevOriginalEnd;
-            var modifiedLength = nextModifiedStart - prevModifiedEnd;
+            int originalLength = nextOriginalStart - prevOriginalEnd;
+            int modifiedLength = nextModifiedStart - prevModifiedEnd;
 
             if (originalLength > 0 && modifiedLength > 0)
             {
-                var segmentOffset = prevModifiedEnd - prevOriginalEnd;
+                int segmentOffset = prevModifiedEnd - prevOriginalEnd;
                 if (segmentOffset != 0)
                 {
-                    var segmentOriginal = new LineRange(prevOriginalEnd, nextOriginalStart);
-                    var segmentModified = new LineRange(prevModifiedEnd, nextModifiedStart);
+                    LineRange segmentOriginal = new(prevOriginalEnd, nextOriginalStart);
+                    LineRange segmentModified = new(prevModifiedEnd, nextModifiedStart);
                     if (currentOffset == segmentOffset && currentOriginal.HasValue && currentModified.HasValue)
                     {
                         currentOriginal = currentOriginal.Value.Join(segmentOriginal);
@@ -604,13 +604,13 @@ internal static class MoveDetection
 
     private static T? FindLastMonotonous<T>(IReadOnlyList<T> list, Func<T, bool> predicate) where T : class
     {
-        var low = 0;
-        var high = list.Count - 1;
+        int low = 0;
+        int high = list.Count - 1;
         T? result = null;
         while (low <= high)
         {
-            var mid = (low + high) / 2;
-            var value = list[mid];
+            int mid = (low + high) / 2;
+            T value = list[mid];
             if (predicate(value))
             {
                 result = value;
@@ -632,9 +632,9 @@ internal static class MoveDetection
             yield break;
         }
 
-        var start = Math.Max(0, range.StartLineNumber - 1);
-        var endExclusive = Math.Min(range.EndLineNumberExclusive - 1, lines.Length);
-        for (var i = start; i < endExclusive; i++)
+        int start = Math.Max(0, range.StartLineNumber - 1);
+        int endExclusive = Math.Min(range.EndLineNumberExclusive - 1, lines.Length);
+        for (int i = start; i < endExclusive; i++)
         {
             yield return lines[i];
         }
@@ -679,10 +679,10 @@ internal static class MoveDetection
         {
             unchecked
             {
-                var hash = 17;
-                hash = hash * 31 + First;
-                hash = hash * 31 + Second;
-                hash = hash * 31 + Third;
+                int hash = 17;
+                hash = (hash * 31) + First;
+                hash = (hash * 31) + Second;
+                hash = (hash * 31) + Third;
                 return hash;
             }
         }

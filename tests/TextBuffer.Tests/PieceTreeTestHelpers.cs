@@ -11,10 +11,10 @@ internal static class PieceTreeTestHelpers
 {
     public static string ReconstructText(PieceTreeBuildResult result)
     {
-        var builder = new StringBuilder();
-        foreach (var piece in result.Model.EnumeratePiecesInOrder())
+        StringBuilder builder = new();
+        foreach (PieceSegment piece in result.Model.EnumeratePiecesInOrder())
         {
-            var buffer = result.Buffers[piece.BufferIndex];
+            ChunkBuffer buffer = result.Buffers[piece.BufferIndex];
             builder.Append(buffer.Slice(piece.Start, piece.End));
         }
 

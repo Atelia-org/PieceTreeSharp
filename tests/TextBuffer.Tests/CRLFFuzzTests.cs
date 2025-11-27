@@ -19,10 +19,10 @@ public class CRLFFuzzTests
     [Fact]
     public void LargeInsert_HugePayload()
     {
-        var payload = new string('x', ChunkUtilities.DefaultChunkSize + 100);
-        var buffer = new PieceTreeBuffer("");
+        string payload = new string('x', ChunkUtilities.DefaultChunkSize + 100);
+        PieceTreeBuffer buffer = new("");
 
-        var initialPieces = buffer.InternalModel.PieceCount;
+        int initialPieces = buffer.InternalModel.PieceCount;
         buffer.ApplyEdit(0, 0, payload);
         Assert.True(buffer.InternalModel.PieceCount >= initialPieces + 2);
         Assert.Equal(payload.Length, buffer.Length);
@@ -33,7 +33,7 @@ public class CRLFFuzzTests
     [Fact]
     public void CRLF_SplitAcrossNodes()
     {
-        var buffer = PieceTreeBuffer.FromChunks(new[] { "Hello\r", "\nWorld" });
+        PieceTreeBuffer buffer = PieceTreeBuffer.FromChunks(new[] { "Hello\r", "\nWorld" });
         // Should normalize to a single CRLF
         Assert.Equal(1, buffer.InternalModel.TotalLineFeeds);
         Assert.Equal("Hello\r\nWorld", buffer.GetText());
@@ -42,19 +42,19 @@ public class CRLFFuzzTests
     [Fact]
     public void CRLF_RandomFuzz_1000()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(CRLF_RandomFuzz_1000), initialText: string.Empty, seedOverride: 123);
-        var rng = harness.Random;
+        using PieceTreeFuzzHarness harness = new(nameof(CRLF_RandomFuzz_1000), initialText: string.Empty, seedOverride: 123);
+        Random rng = harness.Random;
 
-        for (var i = 0; i < 1000; i++)
+        for (int i = 0; i < 1000; i++)
         {
             harness.SetIteration(i);
-            var bufferLength = harness.Buffer.Length;
-            var offset = rng.Next(0, Math.Max(0, bufferLength + 1));
-            var op = rng.Next(0, 10);
+            int bufferLength = harness.Buffer.Length;
+            int offset = rng.Next(0, Math.Max(0, bufferLength + 1));
+            int op = rng.Next(0, 10);
 
             if (op == 0 && bufferLength > 0)
             {
-                var deleteLength = Math.Min(bufferLength - offset, rng.Next(1, Math.Min(8, bufferLength - offset + 1)));
+                int deleteLength = Math.Min(bufferLength - offset, rng.Next(1, Math.Min(8, bufferLength - offset + 1)));
                 if (deleteLength > 0)
                 {
                     harness.Delete(offset, deleteLength, $"crlf-random-fuzz-delete-{i}");
@@ -62,7 +62,7 @@ public class CRLFFuzzTests
             }
             else
             {
-                var toInsert = NextCrlfPayload(rng);
+                string toInsert = NextCrlfPayload(rng);
                 harness.Insert(offset, toInsert, $"crlf-random-fuzz-insert-{i}");
             }
         }
@@ -74,7 +74,7 @@ public class CRLFFuzzTests
     [Fact]
     public void CRLF_NewlineInsert_BetweenCrLf()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(CRLF_NewlineInsert_BetweenCrLf));
+        using PieceTreeFuzzHarness harness = new(nameof(CRLF_NewlineInsert_BetweenCrLf));
         RunScript(
             harness,
             InsertStep(0, "vvvv", "crlf-newline-between-step-01"),
@@ -114,13 +114,13 @@ public class CRLFFuzzTests
     [Fact]
     public void Step2_AppendToNode_MultipleCRLFBridges()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         buffer.ApplyEdit(0, 0, "line1\r");
         buffer.ApplyEdit(buffer.Length, 0, "\nline2\r");
         buffer.ApplyEdit(buffer.Length, 0, "\nline3\r");
         buffer.ApplyEdit(buffer.Length, 0, "\nline4");
-        
+
         Assert.Equal("line1\r\nline2\r\nline3\r\nline4", buffer.GetText());
         Assert.Equal(4, buffer.InternalModel.TotalLineFeeds + 1);
         Assert.Equal("line1", buffer.GetLineContent(1));
@@ -141,15 +141,15 @@ public class CRLFFuzzTests
     [Fact]
     public void Step3_CreateNewPieces_CRLFBridge_PlaceholderTechnique()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         // First insert something that will go to change buffer and ends with \r
         buffer.ApplyEdit(0, 0, "test\r");
-        
+
         // Now insert a new piece that starts with \n
         // This should trigger the CRLF bridge in CreateNewPieces
         buffer.ApplyEdit(buffer.Length, 0, "\ncontinue");
-        
+
         Assert.Equal("test\r\ncontinue", buffer.GetText());
         Assert.Equal(2, buffer.InternalModel.TotalLineFeeds + 1);
         buffer.InternalModel.AssertPieceIntegrity();
@@ -161,11 +161,11 @@ public class CRLFFuzzTests
     [Fact]
     public void Step3_CreateNewPieces_GetLineContent_AfterBridge()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         buffer.ApplyEdit(0, 0, "first\r");
         buffer.ApplyEdit(buffer.Length, 0, "\nsecond");
-        
+
         Assert.Equal("first", buffer.GetLineContent(1));
         Assert.Equal("second", buffer.GetLineContent(2));
         buffer.InternalModel.AssertPieceIntegrity();
@@ -177,22 +177,22 @@ public class CRLFFuzzTests
     [Fact]
     public void Step3_CreateNewPieces_TotalLineFeedsConsistent()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         // Build up content with potential CRLF bridges
         buffer.ApplyEdit(0, 0, "A\r");
-        var lfAfterCR = buffer.InternalModel.TotalLineFeeds;
-        
+        int lfAfterCR = buffer.InternalModel.TotalLineFeeds;
+
         buffer.ApplyEdit(buffer.Length, 0, "\nB");
-        var lfAfterLF = buffer.InternalModel.TotalLineFeeds;
-        
+        int lfAfterLF = buffer.InternalModel.TotalLineFeeds;
+
         // TotalLineFeeds should stay the same (CR was already counted, now merged with LF)
         Assert.Equal(lfAfterCR, lfAfterLF);
         Assert.Equal(1, lfAfterLF);
-        
+
         buffer.ApplyEdit(buffer.Length, 0, "\nC");
         Assert.Equal(2, buffer.InternalModel.TotalLineFeeds);
-        
+
         Assert.Equal("A\r\nB\nC", buffer.GetText());
         buffer.InternalModel.AssertPieceIntegrity();
     }
@@ -203,16 +203,16 @@ public class CRLFFuzzTests
     [Fact]
     public void Step3_InterleavedAppendAndCreateNewPieces_CRLFBridge()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         // Small insert (append to change buffer node)
         buffer.ApplyEdit(0, 0, "x\r");
-        
+
         // Large insert that triggers CreateNewPieces with new buffer
-        var largeText = "\n" + new string('y', 100);
+        string largeText = "\n" + new string('y', 100);
         buffer.ApplyEdit(buffer.Length, 0, largeText);
-        
-        var expected = "x\r" + largeText;
+
+        string expected = "x\r" + largeText;
         Assert.Equal(expected, buffer.GetText());
         Assert.Equal(2, buffer.InternalModel.TotalLineFeeds + 1);
         buffer.InternalModel.AssertPieceIntegrity();
@@ -228,11 +228,11 @@ public class CRLFFuzzTests
     [Fact]
     public void EdgeCase_InsertOnlyLF_AfterCR()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         buffer.ApplyEdit(0, 0, "text\r");
         buffer.ApplyEdit(buffer.Length, 0, "\n");
-        
+
         Assert.Equal("text\r\n", buffer.GetText());
         Assert.Equal(2, buffer.InternalModel.TotalLineFeeds + 1);
         Assert.Equal("text", buffer.GetLineContent(1));
@@ -246,11 +246,11 @@ public class CRLFFuzzTests
     [Fact]
     public void EdgeCase_InsertCRLF_AfterCR()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         buffer.ApplyEdit(0, 0, "text\r");
         buffer.ApplyEdit(buffer.Length, 0, "\r\n");
-        
+
         // Should result in: text\r + \r\n = "text\r\r\n"
         // The first \r is a lone CR, then \r\n is a CRLF pair
         Assert.Equal("text\r\r\n", buffer.GetText());
@@ -264,17 +264,17 @@ public class CRLFFuzzTests
     [Fact]
     public void EdgeCase_SearchCacheInvalidation_AfterCRLFBridge()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         buffer.ApplyEdit(0, 0, "search target\r");
-        
+
         // Prime the cache by accessing content
         _ = buffer.GetLineContent(1);
         _ = buffer.GetLineContent(2);
-        
+
         // Now trigger CRLF bridge
         buffer.ApplyEdit(buffer.Length, 0, "\nnew content");
-        
+
         // Verify content is still correct (cache should be invalidated)
         Assert.Equal("search target", buffer.GetLineContent(1));
         Assert.Equal("new content", buffer.GetLineContent(2));
@@ -287,17 +287,17 @@ public class CRLFFuzzTests
     [Fact]
     public void EdgeCase_PlaceholderDoesNotLeakIntoContent()
     {
-        var buffer = new PieceTreeBuffer("");
-        
+        PieceTreeBuffer buffer = new("");
+
         // Create multiple CRLF bridges
         for (int i = 0; i < 5; i++)
         {
             buffer.ApplyEdit(buffer.Length, 0, $"line{i}\r");
             buffer.ApplyEdit(buffer.Length, 0, "\n");
         }
-        
-        var text = buffer.GetText();
-        
+
+        string text = buffer.GetText();
+
         // The placeholder '_' should never appear in the actual content
         Assert.DoesNotContain("_", text.Replace("_", "FOUND"));
         Assert.Equal("line0\r\nline1\r\nline2\r\nline3\r\nline4\r\n", text);
@@ -308,7 +308,7 @@ public class CRLFFuzzTests
 
     private static string NextCrlfPayload(Random rng)
     {
-        var variant = rng.Next(0, 6);
+        int variant = rng.Next(0, 6);
         return variant switch
         {
             0 => "\r",
@@ -327,8 +327,8 @@ public class CRLFFuzzTests
             return string.Empty;
         }
 
-        var chars = new char[length];
-        for (var i = 0; i < length; i++)
+        char[] chars = new char[length];
+        for (int i = 0; i < length; i++)
         {
             chars[i] = (char)('a' + rng.Next(0, 26));
         }

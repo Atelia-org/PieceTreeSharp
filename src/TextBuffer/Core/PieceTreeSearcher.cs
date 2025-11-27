@@ -30,7 +30,7 @@ public class PieceTreeSearcher
             return regex;
         }
 
-        var options = regex.Options | RegexOptions.ECMAScript;
+        RegexOptions options = regex.Options | RegexOptions.ECMAScript;
         return new Regex(regex.ToString(), options, regex.MatchTimeout);
     }
 
@@ -43,7 +43,7 @@ public class PieceTreeSearcher
 
     public Match? Next(string text)
     {
-        var textLength = text.Length;
+        int textLength = text.Length;
 
         // 改为了和原版相同的do while结构。
         Match? match;
@@ -68,8 +68,8 @@ public class PieceTreeSearcher
                 return null;
             }
 
-            var matchStartIndex = match.Index;
-            var matchLength = match.Length;
+            int matchStartIndex = match.Index;
+            int matchLength = match.Length;
 
             if (matchStartIndex == _prevMatchStartIndex && matchLength == _prevMatchLength)
             {
@@ -110,7 +110,7 @@ public class PieceTreeSearcher
 
     private void AdvanceForZeroLength(string text, int matchStartIndex)
     {
-        var nextIndex = UnicodeUtility.AdvanceByCodePoint(text, matchStartIndex);
+        int nextIndex = UnicodeUtility.AdvanceByCodePoint(text, matchStartIndex);
         if (nextIndex <= matchStartIndex)
         {
             nextIndex = matchStartIndex + 1;

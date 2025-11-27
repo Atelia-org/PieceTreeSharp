@@ -7,63 +7,62 @@ using System.Collections.Generic;
 using System.Linq;
 using PieceTree.TextBuffer.Core;
 
-namespace PieceTree.TextBuffer.Cursor
+namespace PieceTree.TextBuffer.Cursor;
+
+public sealed class CursorCollection : IDisposable
 {
-    public sealed class CursorCollection : IDisposable
+    private readonly TextModel _model;
+    private readonly List<Cursor> _cursors = [];
+    private bool _disposed;
+
+    public CursorCollection(TextModel model)
     {
-        private readonly TextModel _model;
-        private readonly List<Cursor> _cursors = new();
-        private bool _disposed;
+        _model = model ?? throw new ArgumentNullException(nameof(model));
+    }
 
-        public CursorCollection(TextModel model)
+    public IReadOnlyList<Cursor> Cursors => _cursors.AsReadOnly();
+
+    public Cursor CreateCursor(TextPosition? start = null)
+    {
+        Cursor cursor = new(_model);
+        if (start.HasValue)
         {
-            _model = model ?? throw new ArgumentNullException(nameof(model));
+            cursor.MoveTo(start.Value);
+        }
+        _cursors.Add(cursor);
+        return cursor;
+    }
+
+    public void RemoveCursor(Cursor cursor)
+    {
+        if (_cursors.Remove(cursor))
+        {
+            cursor.Dispose();
+        }
+    }
+
+    public IReadOnlyList<TextPosition> GetCursorPositions()
+    {
+        List<TextPosition> positions = new(_cursors.Count);
+        foreach (Cursor c in _cursors)
+        {
+            positions.Add(c.Selection.Active);
+        }
+        return positions;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
         }
 
-        public IReadOnlyList<Cursor> Cursors => _cursors.AsReadOnly();
-
-        public Cursor CreateCursor(TextPosition? start = null)
+        _disposed = true;
+        foreach (Cursor c in _cursors.ToArray())
         {
-            var cursor = new Cursor(_model);
-            if (start.HasValue)
-            {
-                cursor.MoveTo(start.Value);
-            }
-            _cursors.Add(cursor);
-            return cursor;
+            c.Dispose();
         }
-
-        public void RemoveCursor(Cursor cursor)
-        {
-            if (_cursors.Remove(cursor))
-            {
-                cursor.Dispose();
-            }
-        }
-
-        public IReadOnlyList<TextPosition> GetCursorPositions()
-        {
-            var positions = new List<TextPosition>(_cursors.Count);
-            foreach (var c in _cursors)
-            {
-                positions.Add(c.Selection.Active);
-            }
-            return positions;
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            foreach (var c in _cursors.ToArray())
-            {
-                c.Dispose();
-            }
-            _cursors.Clear();
-        }
+        _cursors.Clear();
     }
 }

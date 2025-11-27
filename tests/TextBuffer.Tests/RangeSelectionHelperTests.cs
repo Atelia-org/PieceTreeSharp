@@ -27,7 +27,7 @@ public class RangeSelectionHelperTests
         int expectedStartLine, int expectedStartColumn,
         int expectedEndLine, int expectedEndColumn)
     {
-        var range = new Range(inputStartLine, inputStartColumn, inputEndLine, inputEndColumn);
+        Range range = new(inputStartLine, inputStartColumn, inputEndLine, inputEndColumn);
 
         Assert.Equal(expectedStartLine, range.StartLineNumber);
         Assert.Equal(expectedStartColumn, range.StartColumn);
@@ -51,8 +51,8 @@ public class RangeSelectionHelperTests
         int startLine, int startCol, int endLine, int endCol,
         int posLine, int posCol, bool expected)
     {
-        var range = new Range(startLine, startCol, endLine, endCol);
-        var position = new TextPosition(posLine, posCol);
+        Range range = new(startLine, startCol, endLine, endCol);
+        TextPosition position = new(posLine, posCol);
         Assert.Equal(expected, Range.ContainsPosition(range, position));
         Assert.Equal(expected, range.ContainsPosition(position));
     }
@@ -67,8 +67,8 @@ public class RangeSelectionHelperTests
         int startLine, int startCol, int endLine, int endCol,
         int posLine, int posCol, bool expected)
     {
-        var range = new Range(startLine, startCol, endLine, endCol);
-        var position = new TextPosition(posLine, posCol);
+        Range range = new(startLine, startCol, endLine, endCol);
+        TextPosition position = new(posLine, posCol);
         Assert.Equal(expected, Range.StrictContainsPosition(range, position));
     }
 
@@ -95,8 +95,8 @@ public class RangeSelectionHelperTests
         int r2StartLine, int r2StartCol, int r2EndLine, int r2EndCol,
         bool expected)
     {
-        var range = new Range(r1StartLine, r1StartCol, r1EndLine, r1EndCol);
-        var other = new Range(r2StartLine, r2StartCol, r2EndLine, r2EndCol);
+        Range range = new(r1StartLine, r1StartCol, r1EndLine, r1EndCol);
+        Range other = new(r2StartLine, r2StartCol, r2EndLine, r2EndCol);
         Assert.Equal(expected, Range.ContainsRange(range, other));
         Assert.Equal(expected, range.ContainsRange(other));
     }
@@ -112,8 +112,8 @@ public class RangeSelectionHelperTests
         int r2StartLine, int r2StartCol, int r2EndLine, int r2EndCol,
         bool expected)
     {
-        var range = new Range(r1StartLine, r1StartCol, r1EndLine, r1EndCol);
-        var other = new Range(r2StartLine, r2StartCol, r2EndLine, r2EndCol);
+        Range range = new(r1StartLine, r1StartCol, r1EndLine, r1EndCol);
+        Range other = new(r2StartLine, r2StartCol, r2EndLine, r2EndCol);
         Assert.Equal(expected, Range.StrictContainsRange(range, other));
     }
 
@@ -124,10 +124,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void IntersectRanges_Overlapping_ReturnsIntersection()
     {
-        var a = new Range(1, 1, 3, 10);
-        var b = new Range(2, 5, 5, 1);
-        var result = Range.IntersectRanges(a, b);
-        
+        Range a = new(1, 1, 3, 10);
+        Range b = new(2, 5, 5, 1);
+        Range? result = Range.IntersectRanges(a, b);
+
         Assert.NotNull(result);
         Assert.Equal(2, result!.Value.StartLineNumber);
         Assert.Equal(5, result.Value.StartColumn);
@@ -138,19 +138,19 @@ public class RangeSelectionHelperTests
     [Fact]
     public void IntersectRanges_NoOverlap_ReturnsNull()
     {
-        var a = new Range(1, 1, 2, 5);
-        var b = new Range(3, 1, 4, 5);
-        var result = Range.IntersectRanges(a, b);
+        Range a = new(1, 1, 2, 5);
+        Range b = new(3, 1, 4, 5);
+        Range? result = Range.IntersectRanges(a, b);
         Assert.Null(result);
     }
 
     [Fact]
     public void IntersectRanges_Touching_ReturnsEmptyRange()
     {
-        var a = new Range(1, 1, 2, 5);
-        var b = new Range(2, 5, 3, 1);
-        var result = Range.IntersectRanges(a, b);
-        
+        Range a = new(1, 1, 2, 5);
+        Range b = new(2, 5, 3, 1);
+        Range? result = Range.IntersectRanges(a, b);
+
         Assert.NotNull(result);
         Assert.Equal(2, result!.Value.StartLineNumber);
         Assert.Equal(5, result.Value.StartColumn);
@@ -167,8 +167,8 @@ public class RangeSelectionHelperTests
         int a1, int a2, int a3, int a4,
         int b1, int b2, int b3, int b4, bool expected)
     {
-        var a = new Range(a1, a2, a3, a4);
-        var b = new Range(b1, b2, b3, b4);
+        Range a = new(a1, a2, a3, a4);
+        Range b = new(b1, b2, b3, b4);
         Assert.Equal(expected, Range.AreIntersectingOrTouching(a, b));
     }
 
@@ -187,8 +187,8 @@ public class RangeSelectionHelperTests
         int a1, int a2, int a3, int a4,
         int b1, int b2, int b3, int b4, bool expected)
     {
-        var a = new Range(a1, a2, a3, a4);
-        var b = new Range(b1, b2, b3, b4);
+        Range a = new(a1, a2, a3, a4);
+        Range b = new(b1, b2, b3, b4);
         Assert.Equal(expected, Range.AreIntersecting(a, b));
     }
 
@@ -199,10 +199,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void PlusRange_ReturnsUnion()
     {
-        var a = new Range(2, 5, 4, 10);
-        var b = new Range(1, 1, 3, 8);
-        var result = Range.PlusRange(a, b);
-        
+        Range a = new(2, 5, 4, 10);
+        Range b = new(1, 1, 3, 8);
+        Range result = Range.PlusRange(a, b);
+
         Assert.Equal(1, result.StartLineNumber);
         Assert.Equal(1, result.StartColumn);
         Assert.Equal(4, result.EndLineNumber);
@@ -212,10 +212,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void PlusRange_SameLine_TakesMinMaxColumns()
     {
-        var a = new Range(1, 5, 1, 10);
-        var b = new Range(1, 3, 1, 15);
-        var result = Range.PlusRange(a, b);
-        
+        Range a = new(1, 5, 1, 10);
+        Range b = new(1, 3, 1, 15);
+        Range result = Range.PlusRange(a, b);
+
         Assert.Equal(1, result.StartLineNumber);
         Assert.Equal(3, result.StartColumn);
         Assert.Equal(1, result.EndLineNumber);
@@ -225,8 +225,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Normalize_ReversedRange_SwapsEndpoints()
     {
-        var result = Range.Normalize(5, 10, 1, 1);
-        
+        Range result = Range.Normalize(5, 10, 1, 1);
+
         Assert.Equal(1, result.StartLineNumber);
         Assert.Equal(1, result.StartColumn);
         Assert.Equal(5, result.EndLineNumber);
@@ -236,8 +236,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Normalize_SameLine_ReversedColumns_SwapsColumns()
     {
-        var result = Range.Normalize(1, 10, 1, 5);
-        
+        Range result = Range.Normalize(1, 10, 1, 5);
+
         Assert.Equal(1, result.StartLineNumber);
         Assert.Equal(5, result.StartColumn);
         Assert.Equal(1, result.EndLineNumber);
@@ -251,9 +251,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void SetEndPosition_CreatesNewRange()
     {
-        var range = new Range(1, 1, 2, 5);
-        var result = range.SetEndPosition(3, 10);
-        
+        Range range = new(1, 1, 2, 5);
+        Range result = range.SetEndPosition(3, 10);
+
         Assert.Equal(1, result.StartLineNumber);
         Assert.Equal(1, result.StartColumn);
         Assert.Equal(3, result.EndLineNumber);
@@ -263,8 +263,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void SetEndPosition_DoesNotMutateOriginalRange()
     {
-        var range = new Range(1, 1, 2, 5);
-        var clone = range;
+        Range range = new(1, 1, 2, 5);
+        Range clone = range;
 
         _ = range.SetEndPosition(4, 7);
 
@@ -274,9 +274,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void SetStartPosition_CreatesNewRange()
     {
-        var range = new Range(1, 1, 3, 10);
-        var result = range.SetStartPosition(2, 5);
-        
+        Range range = new(1, 1, 3, 10);
+        Range result = range.SetStartPosition(2, 5);
+
         Assert.Equal(2, result.StartLineNumber);
         Assert.Equal(5, result.StartColumn);
         Assert.Equal(3, result.EndLineNumber);
@@ -286,8 +286,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void SetStartPosition_DoesNotMutateOriginalRange()
     {
-        var range = new Range(1, 1, 3, 10);
-        var clone = range;
+        Range range = new(1, 1, 3, 10);
+        Range clone = range;
 
         _ = range.SetStartPosition(2, 5);
 
@@ -297,9 +297,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void CollapseToStart_ReturnsEmptyRangeAtStart()
     {
-        var range = new Range(2, 5, 4, 10);
-        var result = range.CollapseToStart();
-        
+        Range range = new(2, 5, 4, 10);
+        Range result = range.CollapseToStart();
+
         Assert.Equal(2, result.StartLineNumber);
         Assert.Equal(5, result.StartColumn);
         Assert.Equal(2, result.EndLineNumber);
@@ -310,9 +310,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void CollapseToEnd_ReturnsEmptyRangeAtEnd()
     {
-        var range = new Range(2, 5, 4, 10);
-        var result = range.CollapseToEnd();
-        
+        Range range = new(2, 5, 4, 10);
+        Range result = range.CollapseToEnd();
+
         Assert.Equal(4, result.StartLineNumber);
         Assert.Equal(10, result.StartColumn);
         Assert.Equal(4, result.EndLineNumber);
@@ -323,9 +323,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Delta_SingleArg_MovesLines()
     {
-        var range = new Range(2, 5, 4, 10);
-        var result = range.Delta(3);
-        
+        Range range = new(2, 5, 4, 10);
+        Range result = range.Delta(3);
+
         Assert.Equal(5, result.StartLineNumber);
         Assert.Equal(5, result.StartColumn);
         Assert.Equal(7, result.EndLineNumber);
@@ -335,9 +335,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Delta_FourArgs_MovesAllCoordinates()
     {
-        var range = new Range(2, 5, 4, 10);
-        var result = range.Delta(1, 2, 3, 4);
-        
+        Range range = new(2, 5, 4, 10);
+        Range result = range.Delta(1, 2, 3, 4);
+
         Assert.Equal(3, result.StartLineNumber);
         Assert.Equal(7, result.StartColumn);
         Assert.Equal(7, result.EndLineNumber);
@@ -349,7 +349,7 @@ public class RangeSelectionHelperTests
     [InlineData(1, 1, 2, 1, false)]   // Different lines
     public void IsSingleLine_ReturnsExpected(int sl, int sc, int el, int ec, bool expected)
     {
-        var range = new Range(sl, sc, el, ec);
+        Range range = new(sl, sc, el, ec);
         Assert.Equal(expected, range.IsSingleLine);
     }
 
@@ -360,9 +360,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_FromPositions_SinglePosition_CreatesCollapsedSelection()
     {
-        var pos = new TextPosition(3, 5);
-        var selection = Selection.FromPositions(pos);
-        
+        TextPosition pos = new(3, 5);
+        Selection selection = Selection.FromPositions(pos);
+
         Assert.Equal(3, selection.Anchor.LineNumber);
         Assert.Equal(5, selection.Anchor.Column);
         Assert.Equal(3, selection.Active.LineNumber);
@@ -373,10 +373,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_FromPositions_TwoPositions_CreatesSelection()
     {
-        var start = new TextPosition(1, 1);
-        var end = new TextPosition(3, 5);
-        var selection = Selection.FromPositions(start, end);
-        
+        TextPosition start = new(1, 1);
+        TextPosition end = new(3, 5);
+        Selection selection = Selection.FromPositions(start, end);
+
         Assert.Equal(1, selection.Anchor.LineNumber);
         Assert.Equal(1, selection.Anchor.Column);
         Assert.Equal(3, selection.Active.LineNumber);
@@ -386,9 +386,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_FromPositions_ReversedInputs_NormalizesStartEnd()
     {
-        var start = new TextPosition(5, 10);
-        var end = new TextPosition(3, 1);
-        var selection = Selection.FromPositions(start, end);
+        TextPosition start = new(5, 10);
+        TextPosition end = new(3, 1);
+        Selection selection = Selection.FromPositions(start, end);
 
         Assert.Equal(end, selection.SelectionStart);
         Assert.Equal(start, selection.SelectionEnd);
@@ -398,9 +398,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_FromRange_LTR_AnchorIsStart()
     {
-        var range = new Range(1, 1, 3, 5);
-        var selection = Selection.FromRange(range, SelectionDirection.LTR);
-        
+        Range range = new(1, 1, 3, 5);
+        Selection selection = Selection.FromRange(range, SelectionDirection.LTR);
+
         Assert.Equal(SelectionDirection.LTR, selection.Direction);
         Assert.Equal(1, selection.Anchor.LineNumber);
         Assert.Equal(1, selection.Anchor.Column);
@@ -411,9 +411,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_FromRange_RTL_AnchorIsEnd()
     {
-        var range = new Range(1, 1, 3, 5);
-        var selection = Selection.FromRange(range, SelectionDirection.RTL);
-        
+        Range range = new(1, 1, 3, 5);
+        Selection selection = Selection.FromRange(range, SelectionDirection.RTL);
+
         Assert.Equal(SelectionDirection.RTL, selection.Direction);
         Assert.Equal(3, selection.Anchor.LineNumber);
         Assert.Equal(5, selection.Anchor.Column);
@@ -424,8 +424,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_CreateWithDirection_LTR()
     {
-        var selection = Selection.CreateWithDirection(1, 1, 3, 5, SelectionDirection.LTR);
-        
+        Selection selection = Selection.CreateWithDirection(1, 1, 3, 5, SelectionDirection.LTR);
+
         Assert.Equal(SelectionDirection.LTR, selection.Direction);
         Assert.Equal(new TextPosition(1, 1), selection.Anchor);
         Assert.Equal(new TextPosition(3, 5), selection.Active);
@@ -434,8 +434,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_CreateWithDirection_RTL()
     {
-        var selection = Selection.CreateWithDirection(1, 1, 3, 5, SelectionDirection.RTL);
-        
+        Selection selection = Selection.CreateWithDirection(1, 1, 3, 5, SelectionDirection.RTL);
+
         Assert.Equal(SelectionDirection.RTL, selection.Direction);
         Assert.Equal(new TextPosition(3, 5), selection.Anchor);
         Assert.Equal(new TextPosition(1, 1), selection.Active);
@@ -444,9 +444,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SetStartPosition_LTR_UpdatesAnchor()
     {
-        var selection = new Selection(1, 1, 3, 5); // LTR
-        var result = selection.SetStartPosition(2, 3);
-        
+        Selection selection = new(1, 1, 3, 5); // LTR
+        Selection result = selection.SetStartPosition(2, 3);
+
         Assert.Equal(2, result.Anchor.LineNumber);
         Assert.Equal(3, result.Anchor.Column);
         Assert.Equal(3, result.Active.LineNumber);
@@ -456,9 +456,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SetEndPosition_LTR_UpdatesActive()
     {
-        var selection = new Selection(1, 1, 3, 5); // LTR
-        var result = selection.SetEndPosition(4, 8);
-        
+        Selection selection = new(1, 1, 3, 5); // LTR
+        Selection result = selection.SetEndPosition(4, 8);
+
         Assert.Equal(1, result.Anchor.LineNumber);
         Assert.Equal(1, result.Anchor.Column);
         Assert.Equal(4, result.Active.LineNumber);
@@ -468,8 +468,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SetStartPosition_RTL_UpdatesActiveOnly()
     {
-        var selection = new Selection(new TextPosition(5, 10), new TextPosition(3, 1)); // RTL
-        var result = selection.SetStartPosition(2, 4);
+        Selection selection = new(new TextPosition(5, 10), new TextPosition(3, 1)); // RTL
+        Selection result = selection.SetStartPosition(2, 4);
 
         Assert.Equal(new TextPosition(5, 10), result.Anchor);
         Assert.Equal(new TextPosition(2, 4), result.Active);
@@ -480,8 +480,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SetEndPosition_RTL_UpdatesAnchorOnly()
     {
-        var selection = new Selection(new TextPosition(5, 10), new TextPosition(3, 1)); // RTL
-        var result = selection.SetEndPosition(6, 2);
+        Selection selection = new(new TextPosition(5, 10), new TextPosition(3, 1)); // RTL
+        Selection result = selection.SetEndPosition(6, 2);
 
         Assert.Equal(new TextPosition(6, 2), result.Anchor);
         Assert.Equal(new TextPosition(3, 1), result.Active);
@@ -496,32 +496,32 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SelectionsEqual_SameSelection_ReturnsTrue()
     {
-        var a = new Selection(1, 1, 3, 5);
-        var b = new Selection(1, 1, 3, 5);
+        Selection a = new(1, 1, 3, 5);
+        Selection b = new(1, 1, 3, 5);
         Assert.True(Selection.SelectionsEqual(a, b));
     }
 
     [Fact]
     public void Selection_SelectionsEqual_DifferentSelection_ReturnsFalse()
     {
-        var a = new Selection(1, 1, 3, 5);
-        var b = new Selection(1, 1, 3, 6);
+        Selection a = new(1, 1, 3, 5);
+        Selection b = new(1, 1, 3, 6);
         Assert.False(Selection.SelectionsEqual(a, b));
     }
 
     [Fact]
     public void Selection_SelectionsArrEqual_SameArrays_ReturnsTrue()
     {
-        var a = new Selection[] { new Selection(1, 1, 2, 2), new Selection(3, 3, 4, 4) };
-        var b = new Selection[] { new Selection(1, 1, 2, 2), new Selection(3, 3, 4, 4) };
+        Selection[] a = [new(1, 1, 2, 2), new(3, 3, 4, 4)];
+        Selection[] b = [new(1, 1, 2, 2), new(3, 3, 4, 4)];
         Assert.True(Selection.SelectionsArrEqual(a, b));
     }
 
     [Fact]
     public void Selection_SelectionsArrEqual_DifferentLengths_ReturnsFalse()
     {
-        var a = new Selection[] { new Selection(1, 1, 2, 2) };
-        var b = new Selection[] { new Selection(1, 1, 2, 2), new Selection(3, 3, 4, 4) };
+        Selection[] a = [new(1, 1, 2, 2)];
+        Selection[] b = [new(1, 1, 2, 2), new(3, 3, 4, 4)];
         Assert.False(Selection.SelectionsArrEqual(a, b));
     }
 
@@ -534,7 +534,7 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_SelectionsArrEqual_OneNull_ReturnsFalse()
     {
-        var a = new Selection[] { new Selection(1, 1, 2, 2) };
+        Selection[] a = [new(1, 1, 2, 2)];
         Assert.False(Selection.SelectionsArrEqual(a, null));
         Assert.False(Selection.SelectionsArrEqual(null, a));
     }
@@ -548,7 +548,7 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Selection_EqualsSelection_Nullable_OneNull_ReturnsFalse()
     {
-        var a = new Selection(1, 1, 2, 2);
+        Selection a = new(1, 1, 2, 2);
         Assert.False(Selection.EqualsSelection(a, null));
         Assert.False(Selection.EqualsSelection(null, a));
     }
@@ -560,9 +560,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_With_ChangesLineAndColumn()
     {
-        var pos = new TextPosition(3, 5);
-        var result = pos.With(newLineNumber: 7, newColumn: 10);
-        
+        TextPosition pos = new(3, 5);
+        TextPosition result = pos.With(newLineNumber: 7, newColumn: 10);
+
         Assert.Equal(7, result.LineNumber);
         Assert.Equal(10, result.Column);
     }
@@ -570,9 +570,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_With_NullParams_KeepsOriginal()
     {
-        var pos = new TextPosition(3, 5);
-        var result = pos.With();
-        
+        TextPosition pos = new(3, 5);
+        TextPosition result = pos.With();
+
         Assert.Equal(3, result.LineNumber);
         Assert.Equal(5, result.Column);
         Assert.Equal(pos, result);
@@ -581,13 +581,13 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_With_PartialChange_KeepsUnchanged()
     {
-        var pos = new TextPosition(3, 5);
-        
-        var result1 = pos.With(newLineNumber: 7);
+        TextPosition pos = new(3, 5);
+
+        TextPosition result1 = pos.With(newLineNumber: 7);
         Assert.Equal(7, result1.LineNumber);
         Assert.Equal(5, result1.Column);
-        
-        var result2 = pos.With(newColumn: 10);
+
+        TextPosition result2 = pos.With(newColumn: 10);
         Assert.Equal(3, result2.LineNumber);
         Assert.Equal(10, result2.Column);
     }
@@ -595,9 +595,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_Delta_AppliesDeltas()
     {
-        var pos = new TextPosition(3, 5);
-        var result = pos.Delta(2, 3);
-        
+        TextPosition pos = new(3, 5);
+        TextPosition result = pos.Delta(2, 3);
+
         Assert.Equal(5, result.LineNumber);
         Assert.Equal(8, result.Column);
     }
@@ -605,9 +605,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_Delta_ClampsToMinimumOne()
     {
-        var pos = new TextPosition(3, 5);
-        var result = pos.Delta(-10, -10);
-        
+        TextPosition pos = new(3, 5);
+        TextPosition result = pos.Delta(-10, -10);
+
         Assert.Equal(1, result.LineNumber);
         Assert.Equal(1, result.Column);
     }
@@ -615,10 +615,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_IsBefore_ReturnsCorrectly()
     {
-        var a = new TextPosition(1, 5);
-        var b = new TextPosition(2, 3);
-        var c = new TextPosition(1, 10);
-        
+        TextPosition a = new(1, 5);
+        TextPosition b = new(2, 3);
+        TextPosition c = new(1, 10);
+
         Assert.True(a.IsBefore(b));
         Assert.True(a.IsBefore(c));
         Assert.False(b.IsBefore(a));
@@ -628,10 +628,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_IsBeforeOrEqual_ReturnsCorrectly()
     {
-        var a = new TextPosition(1, 5);
-        var b = new TextPosition(2, 3);
-        var c = new TextPosition(1, 5);
-        
+        TextPosition a = new(1, 5);
+        TextPosition b = new(2, 3);
+        TextPosition c = new(1, 5);
+
         Assert.True(a.IsBeforeOrEqual(b));
         Assert.True(a.IsBeforeOrEqual(c)); // Equal
         Assert.False(b.IsBeforeOrEqual(a));
@@ -640,10 +640,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_Compare_Static_ReturnsCorrectOrder()
     {
-        var a = new TextPosition(1, 5);
-        var b = new TextPosition(2, 3);
-        var c = new TextPosition(1, 10);
-        
+        TextPosition a = new(1, 5);
+        TextPosition b = new(2, 3);
+        TextPosition c = new(1, 10);
+
         Assert.True(TextPosition.Compare(a, b) < 0);
         Assert.True(TextPosition.Compare(b, a) > 0);
         Assert.True(TextPosition.Compare(a, c) < 0);
@@ -659,7 +659,7 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_Equals_Static_Nullable_OneNull_ReturnsFalse()
     {
-        var a = new TextPosition(1, 1);
+        TextPosition a = new(1, 1);
         Assert.False(TextPosition.Equals(a, null));
         Assert.False(TextPosition.Equals(null, a));
     }
@@ -667,8 +667,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void TextPosition_Equals_Static_Nullable_SameValue_ReturnsTrue()
     {
-        var a = new TextPosition(3, 5);
-        var b = new TextPosition(3, 5);
+        TextPosition a = new(3, 5);
+        TextPosition b = new(3, 5);
         Assert.True(TextPosition.Equals(a, b));
     }
 
@@ -679,10 +679,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Range_CompareRangesUsingStarts_SortsCorrectly()
     {
-        var a = new Range(1, 1, 2, 5);
-        var b = new Range(1, 5, 3, 1);
-        var c = new Range(2, 1, 4, 1);
-        
+        Range a = new(1, 1, 2, 5);
+        Range b = new(1, 5, 3, 1);
+        Range c = new(2, 1, 4, 1);
+
         Assert.True(Range.CompareRangesUsingStarts(a, b) < 0); // Same line, a starts before
         Assert.True(Range.CompareRangesUsingStarts(a, c) < 0); // a starts on earlier line
         Assert.True(Range.CompareRangesUsingStarts(c, a) > 0);
@@ -691,8 +691,8 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Range_CompareRangesUsingStarts_NullHandling()
     {
-        var a = new Range(1, 1, 2, 5);
-        
+        Range a = new(1, 1, 2, 5);
+
         Assert.True(Range.CompareRangesUsingStarts(a, null) > 0); // Non-null > null
         Assert.True(Range.CompareRangesUsingStarts(null, a) < 0); // null < non-null
         Assert.Equal(0, Range.CompareRangesUsingStarts(null, null));
@@ -701,10 +701,10 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Range_CompareRangesUsingEnds_SortsCorrectly()
     {
-        var a = new Range(1, 1, 2, 5);
-        var b = new Range(1, 1, 2, 10);
-        var c = new Range(1, 1, 3, 1);
-        
+        Range a = new(1, 1, 2, 5);
+        Range b = new(1, 1, 2, 10);
+        Range c = new(1, 1, 3, 1);
+
         Assert.True(Range.CompareRangesUsingEnds(a, b) < 0); // Same end line, a ends before
         Assert.True(Range.CompareRangesUsingEnds(a, c) < 0); // a ends on earlier line
         Assert.True(Range.CompareRangesUsingEnds(c, a) > 0);
@@ -725,18 +725,18 @@ public class RangeSelectionHelperTests
         int b1, int b2, int b3, int b4,
         int expectedSign)
     {
-        var a = new Range(a1, a2, a3, a4);
-        var b = new Range(b1, b2, b3, b4);
-        var comparison = Math.Sign(Range.CompareRangesUsingEnds(a, b));
+        Range a = new(a1, a2, a3, a4);
+        Range b = new(b1, b2, b3, b4);
+        int comparison = Math.Sign(Range.CompareRangesUsingEnds(a, b));
         Assert.Equal(expectedSign, comparison);
     }
 
     [Fact]
     public void Range_EqualsRange_NullSafe()
     {
-        var a = new Range(1, 1, 2, 5);
-        var b = new Range(1, 1, 2, 5);
-        
+        Range a = new(1, 1, 2, 5);
+        Range b = new(1, 1, 2, 5);
+
         Assert.True(Range.EqualsRange(a, b));
         Assert.True(Range.EqualsRange(null, null));
         Assert.False(Range.EqualsRange(a, null));
@@ -746,9 +746,9 @@ public class RangeSelectionHelperTests
     [Fact]
     public void Range_SpansMultipleLines_ReturnsCorrectly()
     {
-        var single = new Range(1, 1, 1, 10);
-        var multi = new Range(1, 1, 2, 5);
-        
+        Range single = new(1, 1, 1, 10);
+        Range multi = new(1, 1, 2, 5);
+
         Assert.False(Range.SpansMultipleLines(single));
         Assert.True(Range.SpansMultipleLines(multi));
     }

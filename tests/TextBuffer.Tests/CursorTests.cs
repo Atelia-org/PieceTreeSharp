@@ -14,9 +14,9 @@ public class CursorTests
     [Fact]
     public void TestCursor_InitialState()
     {
-        var model = new TextModel("Hello");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello");
+        CursorClass cursor = new(model);
+
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Active);
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Anchor);
     }
@@ -24,22 +24,22 @@ public class CursorTests
     [Fact]
     public void TestCursor_MoveRight()
     {
-        var model = new TextModel("Hello\nWorld");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello\nWorld");
+        CursorClass cursor = new(model);
+
         // 1,1 -> 1,2
         cursor.MoveRight();
         Assert.Equal(new TextPosition(1, 2), cursor.Selection.Active);
-        
+
         // Move to end of line "Hello" (length 5) -> 1,6
         cursor.MoveTo(new TextPosition(1, 5));
         cursor.MoveRight();
         Assert.Equal(new TextPosition(1, 6), cursor.Selection.Active);
-        
+
         // Move right from end of line -> 2,1
         cursor.MoveRight();
         Assert.Equal(new TextPosition(2, 1), cursor.Selection.Active);
-        
+
         // Move right at end of document -> Stay
         cursor.MoveTo(new TextPosition(2, 6)); // "World" length 5 -> 2,6
         cursor.MoveRight();
@@ -49,18 +49,18 @@ public class CursorTests
     [Fact]
     public void TestCursor_MoveLeft()
     {
-        var model = new TextModel("Hello\nWorld");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello\nWorld");
+        CursorClass cursor = new(model);
+
         // 1,1 -> Stay
         cursor.MoveLeft();
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Active);
-        
+
         // 1,2 -> 1,1
         cursor.MoveTo(new TextPosition(1, 2));
         cursor.MoveLeft();
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Active);
-        
+
         // 2,1 -> 1,6 (End of "Hello")
         cursor.MoveTo(new TextPosition(2, 1));
         cursor.MoveLeft();
@@ -70,17 +70,17 @@ public class CursorTests
     [Fact]
     public void TestCursor_MoveDown()
     {
-        var model = new TextModel("Hello\nWorld");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello\nWorld");
+        CursorClass cursor = new(model);
+
         // 1,1 -> 2,1
         cursor.MoveDown();
         Assert.Equal(new TextPosition(2, 1), cursor.Selection.Active);
-        
+
         // 2,1 -> Stay
         cursor.MoveDown();
         Assert.Equal(new TextPosition(2, 1), cursor.Selection.Active);
-        
+
         // Column clamping
         // "LongLine" (8)
         // "Short" (5)
@@ -94,17 +94,17 @@ public class CursorTests
     [Fact]
     public void TestCursor_MoveUp()
     {
-        var model = new TextModel("Hello\nWorld");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello\nWorld");
+        CursorClass cursor = new(model);
+
         cursor.MoveTo(new TextPosition(2, 1));
         cursor.MoveUp();
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Active);
-        
+
         // 1,1 -> Stay
         cursor.MoveUp();
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Active);
-        
+
         // Column clamping
         // "Short" (5)
         // "LongLine" (8)
@@ -118,13 +118,13 @@ public class CursorTests
     [Fact]
     public void TestCursor_SelectTo()
     {
-        var model = new TextModel("Hello");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("Hello");
+        CursorClass cursor = new(model);
+
         cursor.SelectTo(new TextPosition(1, 3));
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Anchor);
         Assert.Equal(new TextPosition(1, 3), cursor.Selection.Active);
-        
+
         cursor.SelectTo(new TextPosition(1, 5));
         Assert.Equal(new TextPosition(1, 1), cursor.Selection.Anchor);
         Assert.Equal(new TextPosition(1, 5), cursor.Selection.Active);
@@ -136,28 +136,28 @@ public class CursorTests
         // Line 1: "LongLine" (8 chars)
         // Line 2: "Short" (5 chars)
         // Line 3: "LongLineAgain" (12 chars)
-        var model = new TextModel("LongLine\nShort\nLongLineAgain");
-        var cursor = new CursorClass(model);
-        
+        TextModel model = new("LongLine\nShort\nLongLineAgain");
+        CursorClass cursor = new(model);
+
         // Move to end of first line (1, 9)
         cursor.MoveTo(new TextPosition(1, 9));
-        
+
         // Move down to short line. Should be clamped to (2, 6).
         cursor.MoveDown();
         Assert.Equal(new TextPosition(2, 6), cursor.Selection.Active);
-        
+
         // Move down to long line. Should recover column 9.
         cursor.MoveDown();
         Assert.Equal(new TextPosition(3, 9), cursor.Selection.Active);
-        
+
         // Move up to short line. Should be clamped to (2, 6).
         cursor.MoveUp();
         Assert.Equal(new TextPosition(2, 6), cursor.Selection.Active);
-        
+
         // Move up to first line. Should recover column 9.
         cursor.MoveUp();
         Assert.Equal(new TextPosition(1, 9), cursor.Selection.Active);
-        
+
         // Move Left resets sticky column
         cursor.MoveLeft(); // (1, 8)
         cursor.MoveDown(); // (2, 6)
@@ -169,10 +169,10 @@ public class CursorTests
     [Fact]
     public void CursorProducesDecorations()
     {
-        var model = new TextModel("Hello");
-        using var cursor = new CursorClass(model);
+        TextModel model = new("Hello");
+        using CursorClass cursor = new(model);
 
-        var decorations = model.GetDecorationsInRange(new TextRange(0, model.GetLength()));
+        IReadOnlyList<ModelDecoration> decorations = model.GetDecorationsInRange(new TextRange(0, model.GetLength()));
         Assert.Single(decorations);
         Assert.Equal(DecorationRenderKind.Cursor, decorations[0].Options.RenderKind);
     }

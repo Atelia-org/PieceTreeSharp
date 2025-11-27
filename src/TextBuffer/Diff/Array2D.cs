@@ -19,7 +19,7 @@ internal sealed class Array2D<T>
     public int Width { get; }
     public int Height { get; }
 
-    public T Get(int x, int y) => _data[x + y * Width];
+    public T Get(int x, int y) => _data[x + (y * Width)];
 
-    public void Set(int x, int y, T value) => _data[x + y * Width] = value;
+    public void Set(int x, int y, T value) => _data[x + (y * Width)] = value;
 }

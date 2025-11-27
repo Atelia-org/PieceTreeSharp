@@ -20,9 +20,9 @@ public class PieceTreeBufferApiTests
 {
     #region Helper Methods
 
-    private static PieceTreeBuffer CreateBuffer(string content) => new PieceTreeBuffer(content);
+    private static PieceTreeBuffer CreateBuffer(string content) => new(content);
 
-    private static TextModel CreateModel(string content) => new TextModel(content);
+    private static TextModel CreateModel(string content) => new(content);
 
     private static PieceTreeBuffer CreateBufferFromChunks(params string[] chunks)
     {
@@ -31,7 +31,7 @@ public class PieceTreeBufferApiTests
 
     private static string ReadSnapshot(ITextSnapshot snapshot)
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new();
         string? chunk;
         while ((chunk = snapshot.Read()) is not null)
         {
@@ -53,7 +53,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineCharCode_Issue45735_SingleChunk()
     {
-        var buffer = CreateBuffer("LINE1\nline2");
+        PieceTreeBuffer buffer = CreateBuffer("LINE1\nline2");
 
         // Line 1: "LINE1\n"
         Assert.Equal('L', (char)buffer.GetLineCharCode(1, 0));
@@ -82,7 +82,7 @@ public class PieceTreeBufferApiTests
     {
         // In TS: createTextBuffer(['', 'LINE1\n', 'line2'])
         // This creates buffer from multiple chunks
-        var buffer = CreateBufferFromChunks("", "LINE1\n", "line2");
+        PieceTreeBuffer buffer = CreateBufferFromChunks("", "LINE1\n", "line2");
 
         // Line 1: "LINE1\n"
         Assert.Equal('L', (char)buffer.GetLineCharCode(1, 0));
@@ -107,13 +107,13 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineCharCode_OutOfBounds_ReturnsZero()
     {
-        var buffer = CreateBuffer("ab\ncd");
+        PieceTreeBuffer buffer = CreateBuffer("ab\ncd");
 
         // At the exact end of content, should return 0
         // Line 1 has "ab\n" (length 3 with terminator)
         // Line 2 has "cd" (length 2)
         // Testing beyond the buffer length
-        var emptyBuffer = CreateBuffer("");
+        PieceTreeBuffer emptyBuffer = CreateBuffer("");
         Assert.Equal(0, emptyBuffer.GetLineCharCode(1, 0));
         Assert.Equal(0, emptyBuffer.GetLineCharCode(1, 10));
     }
@@ -124,14 +124,14 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineCharCode_CrlfLineEndings()
     {
-        var buffer = CreateBuffer("AB\r\nCD");
+        PieceTreeBuffer buffer = CreateBuffer("AB\r\nCD");
 
         // Line 1: "AB\r\n"
         Assert.Equal('A', (char)buffer.GetLineCharCode(1, 0));
         Assert.Equal('B', (char)buffer.GetLineCharCode(1, 1));
         Assert.Equal('\r', (char)buffer.GetLineCharCode(1, 2));
         Assert.Equal('\n', (char)buffer.GetLineCharCode(1, 3));
-        
+
         // Line 2: "CD"
         Assert.Equal('C', (char)buffer.GetLineCharCode(2, 0));
         Assert.Equal('D', (char)buffer.GetLineCharCode(2, 1));
@@ -144,7 +144,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineCharCode_CrlfAcrossChunks()
     {
-        var buffer = CreateBufferFromChunks("A\r", "\nB");
+        PieceTreeBuffer buffer = CreateBufferFromChunks("A\r", "\nB");
 
         Assert.Equal('A', (char)buffer.GetLineCharCode(1, 0));
         Assert.Equal('\r', (char)buffer.GetLineCharCode(1, 1));
@@ -162,9 +162,9 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_IdenticalContent()
     {
-        var content = "hello\nworld";
-        var buffer1 = CreateBuffer(content);
-        var buffer2 = CreateBuffer(content);
+        string content = "hello\nworld";
+        PieceTreeBuffer buffer1 = CreateBuffer(content);
+        PieceTreeBuffer buffer2 = CreateBuffer(content);
 
         // Both buffers should have same content
         Assert.True(buffer1.Equal(buffer2));
@@ -177,8 +177,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_DifferentContent()
     {
-        var buffer1 = CreateBuffer("hello\nworld");
-        var buffer2 = CreateBuffer("hello\nworld!");
+        PieceTreeBuffer buffer1 = CreateBuffer("hello\nworld");
+        PieceTreeBuffer buffer2 = CreateBuffer("hello\nworld!");
 
         Assert.False(buffer1.Equal(buffer2));
         Assert.False(buffer2.Equal(buffer1));
@@ -190,8 +190,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_AfterEditsToSameContent()
     {
-        var buffer1 = CreateBuffer("abc");
-        var buffer2 = CreateBuffer("xyz");
+        PieceTreeBuffer buffer1 = CreateBuffer("abc");
+        PieceTreeBuffer buffer2 = CreateBuffer("xyz");
 
         // Edit buffer2 to have same content as buffer1
         buffer2.ApplyEdit(0, 3, "abc");
@@ -206,8 +206,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_EmptyBuffers()
     {
-        var buffer1 = CreateBuffer("");
-        var buffer2 = CreateBuffer("");
+        PieceTreeBuffer buffer1 = CreateBuffer("");
+        PieceTreeBuffer buffer2 = CreateBuffer("");
 
         Assert.True(buffer1.Equal(buffer2));
         Assert.True(buffer2.Equal(buffer1));
@@ -221,10 +221,10 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_SameContentAcrossChunkBoundaries()
     {
-        var bufferA = CreateBufferFromChunks("abc");
-        var bufferB = CreateBufferFromChunks("ab", "c");
-        var bufferC = CreateBufferFromChunks("abd");
-        var bufferD = CreateBufferFromChunks("abcd");
+        PieceTreeBuffer bufferA = CreateBufferFromChunks("abc");
+        PieceTreeBuffer bufferB = CreateBufferFromChunks("ab", "c");
+        PieceTreeBuffer bufferC = CreateBufferFromChunks("abd");
+        PieceTreeBuffer bufferD = CreateBufferFromChunks("abcd");
 
         Assert.True(bufferA.Equal(bufferB));
         Assert.True(bufferB.Equal(bufferA));
@@ -239,8 +239,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_ChunkPermutations()
     {
-        var bufferA = CreateBufferFromChunks("ab", "cd", "e");
-        var bufferB = CreateBufferFromChunks("ab", "c", "de");
+        PieceTreeBuffer bufferA = CreateBufferFromChunks("ab", "cd", "e");
+        PieceTreeBuffer bufferB = CreateBufferFromChunks("ab", "c", "de");
 
         Assert.True(bufferA.Equal(bufferB));
         Assert.True(bufferB.Equal(bufferA));
@@ -252,9 +252,9 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_EmptyVsNonEmpty()
     {
-        var emptyA = CreateBufferFromChunks("");
-        var emptyB = CreateBufferFromChunks("");
-        var nonEmpty = CreateBufferFromChunks("a");
+        PieceTreeBuffer emptyA = CreateBufferFromChunks("");
+        PieceTreeBuffer emptyB = CreateBufferFromChunks("");
+        PieceTreeBuffer nonEmpty = CreateBufferFromChunks("a");
 
         Assert.True(emptyA.Equal(emptyB));
         Assert.False(emptyA.Equal(nonEmpty));
@@ -268,8 +268,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_DifferentBom()
     {
-        var bomBuffer = CreateBuffer("\uFEFFhello");
-        var plainBuffer = CreateBuffer("hello");
+        PieceTreeBuffer bomBuffer = CreateBuffer("\uFEFFhello");
+        PieceTreeBuffer plainBuffer = CreateBuffer("hello");
 
         Assert.False(bomBuffer.Equal(plainBuffer));
         Assert.False(plainBuffer.Equal(bomBuffer));
@@ -281,8 +281,8 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void Buffer_Equal_DifferentEolSequences()
     {
-        var bufferLf = CreateBuffer("hello\nworld");
-        var bufferCrlf = CreateBuffer("hello\nworld");
+        PieceTreeBuffer bufferLf = CreateBuffer("hello\nworld");
+        PieceTreeBuffer bufferCrlf = CreateBuffer("hello\nworld");
 
         bufferLf.SetEol("\n");
         bufferCrlf.SetEol("\r\n");
@@ -301,7 +301,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetCharCode_BasicAscii()
     {
-        var buffer = CreateBuffer("Hello");
+        PieceTreeBuffer buffer = CreateBuffer("Hello");
 
         Assert.Equal('H', (char)buffer.GetCharCode(0));
         Assert.Equal('e', (char)buffer.GetCharCode(1));
@@ -316,7 +316,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetCharCode_Unicode()
     {
-        var buffer = CreateBuffer("你好");
+        PieceTreeBuffer buffer = CreateBuffer("你好");
 
         Assert.Equal('你', (char)buffer.GetCharCode(0));
         Assert.Equal('好', (char)buffer.GetCharCode(1));
@@ -328,7 +328,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetCharCode_LineBreaks()
     {
-        var buffer = CreateBuffer("a\nb\r\nc");
+        PieceTreeBuffer buffer = CreateBuffer("a\nb\r\nc");
 
         Assert.Equal('a', (char)buffer.GetCharCode(0));
         Assert.Equal('\n', (char)buffer.GetCharCode(1));
@@ -348,17 +348,17 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineCharCode_ConsistentWithGetLineContent()
     {
-        var content = "Line One\nLine Two\nLine Three";
-        var buffer = CreateBuffer(content);
+        string content = "Line One\nLine Two\nLine Three";
+        PieceTreeBuffer buffer = CreateBuffer(content);
 
         // Use the model's line count
-        var model = CreateModel(content);
+        TextModel model = CreateModel(content);
         for (int lineNum = 1; lineNum <= model.GetLineCount(); lineNum++)
         {
-            var lineContent = buffer.GetLineContent(lineNum);
+            string lineContent = buffer.GetLineContent(lineNum);
             for (int i = 0; i < lineContent.Length; i++)
             {
-                var charCode = buffer.GetLineCharCode(lineNum, i);
+                int charCode = buffer.GetLineCharCode(lineNum, i);
                 Assert.Equal(lineContent[i], (char)charCode);
             }
         }
@@ -370,7 +370,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void BufferApis_AfterInsert()
     {
-        var buffer = CreateBuffer("hello");
+        PieceTreeBuffer buffer = CreateBuffer("hello");
 
         // Insert " world" at end (offset 5)
         buffer.ApplyEdit(5, 0, " world");
@@ -387,7 +387,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void BufferApis_AfterDelete()
     {
-        var buffer = CreateBuffer("hello world");
+        PieceTreeBuffer buffer = CreateBuffer("hello world");
 
         // Delete " world" (offset 5, length 6)
         buffer.ApplyEdit(5, 6, null);
@@ -403,7 +403,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void BufferApis_MixedOperations()
     {
-        var buffer = CreateBuffer("abc");
+        PieceTreeBuffer buffer = CreateBuffer("abc");
 
         // Insert newline to create second line (at offset 1)
         buffer.ApplyEdit(1, 0, "\n");
@@ -424,7 +424,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetNearestChunk_BasicLifecycle()
     {
-        var buffer = CreateBuffer("012345678");
+        PieceTreeBuffer buffer = CreateBuffer("012345678");
 
         buffer.ApplyEdit(3, 0, "ABC");
         Assert.Equal("012ABC345678", buffer.GetText());
@@ -444,7 +444,7 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void GetLineRawContent_ReturnsRawLineIncludingTerminators()
     {
-        var buffer = CreateBuffer("foo\r\nbar\n");
+        PieceTreeBuffer buffer = CreateBuffer("foo\r\nbar\n");
 
         Assert.Equal("foo\r\n", buffer.GetLineRawContent(1));
         Assert.Equal("bar\n", buffer.GetLineRawContent(2));
@@ -454,10 +454,10 @@ public class PieceTreeBufferApiTests
     [Fact]
     public void CreateSnapshot_HonorsPreserveBomFlag()
     {
-        var buffer = CreateBuffer("\uFEFFabc\r\ndef");
+        PieceTreeBuffer buffer = CreateBuffer("\uFEFFabc\r\ndef");
 
-        var withBom = buffer.CreateSnapshot(preserveBom: true);
-        var withoutBom = buffer.CreateSnapshot();
+        ITextSnapshot withBom = buffer.CreateSnapshot(preserveBom: true);
+        ITextSnapshot withoutBom = buffer.CreateSnapshot();
 
         Assert.Equal("\uFEFFabc\r\ndef", ReadSnapshot(withBom));
         Assert.Equal("abc\r\ndef", ReadSnapshot(withoutBom));

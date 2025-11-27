@@ -25,7 +25,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumBasicMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumBasicMatchesTsExpectations), initialText: "1\n2\n3\n4");
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumBasicMatchesTsExpectations), initialText: "1\n2\n3\n4");
         PieceTreeBufferAssertions.AssertLineCount(harness, 4);
         PieceTreeBufferAssertions.AssertPositions(
             harness,
@@ -51,7 +51,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumAppendMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumAppendMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumAppendMatchesTsExpectations), initialText: "a\nb\nc\nde");
         harness.Insert(8, "fh\ni\njk", "prefix-sum-append-insert");
 
         PieceTreeBufferAssertions.AssertLineCount(harness, 6);
@@ -62,7 +62,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumInsertMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumInsertMatchesTsExpectations), initialText: "a\nb\nc\nde");
         harness.Insert(7, "fh\ni\njk", "prefix-sum-insert");
 
         PieceTreeBufferAssertions.AssertLineCount(harness, 6);
@@ -89,7 +89,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumDeleteMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteMatchesTsExpectations), initialText: "a\nb\nc\ndefh\ni\njk");
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumDeleteMatchesTsExpectations), initialText: "a\nb\nc\ndefh\ni\njk");
         harness.Delete(7, 2, "prefix-sum-delete");
 
         Assert.Equal("a\nb\nc\ndh\ni\njk", harness.Buffer.GetText());
@@ -100,7 +100,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumAddDeleteSequenceMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumAddDeleteSequenceMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumAddDeleteSequenceMatchesTsExpectations), initialText: "a\nb\nc\nde");
         harness.Insert(8, "fh\ni\njk", "prefix-sum-add-delete-insert");
         harness.Delete(7, 2, "prefix-sum-add-delete-delete");
 
@@ -112,7 +112,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumInsertRandomBugOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertRandomBugOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumInsertRandomBugOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, " ZX \n Z\nZ\n YZ\nY\nZXX ", "prefix-sum-insert-bug1-step1"),
@@ -122,7 +122,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumInsertRandomBugTwoMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumInsertRandomBugTwoMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumInsertRandomBugTwoMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "ZYZ\nYY XY\nX \nZ Y \nZ ", "prefix-sum-insert-bug2-step1"),
@@ -132,7 +132,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumDeleteRandomBugOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumDeleteRandomBugOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "ba\na\nca\nba\ncbab\ncaa ", "prefix-sum-delete-bug1-1"),
@@ -160,7 +160,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumDeleteRandomBugRbTreeOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumDeleteRandomBugRbTreeOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree1-1"),
@@ -172,7 +172,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumDeleteRandomBugRbTreeTwoMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeTwoMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumDeleteRandomBugRbTreeTwoMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree2-1"),
@@ -186,7 +186,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void PrefixSumDeleteRandomBugRbTreeThreeMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(PrefixSumDeleteRandomBugRbTreeThreeMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(PrefixSumDeleteRandomBugRbTreeThreeMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "YXXZ\n\nYY\n", "prefix-sum-delete-rbtree3-1"),
@@ -208,7 +208,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void OffsetToPositionRandomBugOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(OffsetToPositionRandomBugOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(OffsetToPositionRandomBugOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "huuyYzUfKOENwGgZLqn ", "offset2pos-bug1-1"),
@@ -227,7 +227,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeReturnsExpectedSegments()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeReturnsExpectedSegments), initialText: "a\nb\nc\nde");
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeReturnsExpectedSegments), initialText: "a\nb\nc\nde");
         harness.Insert(8, "fh\ni\njk", "range-basic-insert");
         harness.Delete(7, 2, "range-basic-delete");
 
@@ -242,7 +242,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeRandomValueSequence()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomValueSequence), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeRandomValueSequence), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "ZXXY", "range-random-1"),
@@ -255,7 +255,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeHandlesEmptyRange()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeHandlesEmptyRange), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeHandlesEmptyRange), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "XZ\nZ", "range-empty-1"),
@@ -264,14 +264,14 @@ public sealed class PieceTreeDeterministicTests
             InsertStep(0, "ZYX\n", "range-empty-4"),
             DeleteStep(0, 4, "range-empty-5"));
 
-        var value = harness.GetValueInRange(new Range(TextPosition.Origin, TextPosition.Origin));
+        string value = harness.GetValueInRange(new Range(TextPosition.Origin, TextPosition.Origin));
         Assert.Equal(string.Empty, value);
     }
 
     [Fact]
     public void GetTextInRangeRandomBugOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomBugOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeRandomBugOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "huuyYzUfKOENwGgZLqn ", "range-bug1-1"),
@@ -286,7 +286,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeRandomBugTwoMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomBugTwoMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeRandomBugTwoMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "xfouRDZwdAHjVXJAMV\n ", "range-bug2-1"),
@@ -304,7 +304,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetLineRawContentSingleLineMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentSingleLineMatchesTsExpectations), initialText: "1");
+        using PieceTreeFuzzHarness harness = new(nameof(GetLineRawContentSingleLineMatchesTsExpectations), initialText: "1");
         Assert.Equal("1", harness.Buffer.InternalModel.GetLineRawContent(1));
 
         harness.Insert(1, "2", "line-content-single-insert");
@@ -314,7 +314,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetLineRawContentMultipleLinesMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentMultipleLinesMatchesTsExpectations), initialText: "1\n2\n3\n4");
+        using PieceTreeFuzzHarness harness = new(nameof(GetLineRawContentMultipleLinesMatchesTsExpectations), initialText: "1\n2\n3\n4");
         Assert.Equal("1\n", harness.Buffer.InternalModel.GetLineRawContent(1));
         Assert.Equal("2\n", harness.Buffer.InternalModel.GetLineRawContent(2));
         Assert.Equal("3\n", harness.Buffer.InternalModel.GetLineRawContent(3));
@@ -324,7 +324,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetLineRawContentAfterMutationsMatchesTsExpectations()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetLineRawContentAfterMutationsMatchesTsExpectations), initialText: "a\nb\nc\nde");
+        using PieceTreeFuzzHarness harness = new(nameof(GetLineRawContentAfterMutationsMatchesTsExpectations), initialText: "a\nb\nc\nde");
         harness.Insert(8, "fh\ni\njk", "line-content-after-insert");
         harness.Delete(7, 2, "line-content-after-delete");
 
@@ -339,7 +339,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeRandomOneMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomOneMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeRandomOneMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "J eNnDzQpnlWyjmUu\ny ", "range-random-one-1"),
@@ -350,7 +350,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void GetTextInRangeRandomTwoMatchesTsScript()
     {
-        using var harness = new PieceTreeFuzzHarness(nameof(GetTextInRangeRandomTwoMatchesTsScript), initialText: string.Empty);
+        using PieceTreeFuzzHarness harness = new(nameof(GetTextInRangeRandomTwoMatchesTsScript), initialText: string.Empty);
         RunScript(
             harness,
             InsertStep(0, "DZoQ tglPCRHMltejRI ", "range-random-two-1"),
@@ -369,7 +369,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfDeleteCrInCrlfOneMatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfOneMatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfOneMatchesTsScript));
         harness.Insert(0, "a\r\nb", "crlf-delete-1-insert");
         harness.Delete(0, 2, "crlf-delete-1-delete");
         PieceTreeBufferAssertions.AssertLineCount(harness, 2);
@@ -379,7 +379,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfDeleteCrInCrlfTwoMatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfTwoMatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfDeleteCrInCrlfTwoMatchesTsScript));
         harness.Insert(0, "a\r\nb", "crlf-delete-2-insert");
         harness.Delete(2, 2, "crlf-delete-2-delete");
         PieceTreeBufferAssertions.AssertLineCount(harness, 2);
@@ -389,7 +389,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug01MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug01MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug01MatchesTsScript));
         RunScript(harness, CrlfRandomBug01);
         harness.AssertState("crlf-random-bug-01-final");
     }
@@ -397,7 +397,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug02MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug02MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug02MatchesTsScript));
         RunScript(harness, CrlfRandomBug02);
         harness.AssertState("crlf-random-bug-02-final");
     }
@@ -405,7 +405,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug03MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug03MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug03MatchesTsScript));
         RunScript(harness, CrlfRandomBug03);
         harness.AssertState("crlf-random-bug-03-final");
     }
@@ -413,7 +413,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug04MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug04MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug04MatchesTsScript));
         RunScript(harness, CrlfRandomBug04);
         harness.AssertState("crlf-random-bug-04-final");
     }
@@ -421,7 +421,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug05MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug05MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug05MatchesTsScript));
         RunScript(harness, CrlfRandomBug05);
         harness.AssertState("crlf-random-bug-05-final");
     }
@@ -429,7 +429,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug06MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug06MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug06MatchesTsScript));
         RunScript(harness, CrlfRandomBug06);
         harness.AssertState("crlf-random-bug-06-final");
     }
@@ -437,7 +437,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug07MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug07MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug07MatchesTsScript));
         RunScript(harness, CrlfRandomBug07);
         harness.AssertState("crlf-random-bug-07-final");
     }
@@ -445,7 +445,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug08MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug08MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug08MatchesTsScript));
         RunScript(harness, CrlfRandomBug08);
         harness.AssertState("crlf-random-bug-08-final");
     }
@@ -453,7 +453,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug09MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug09MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug09MatchesTsScript));
         RunScript(harness, CrlfRandomBug09);
         harness.AssertState("crlf-random-bug-09-final");
     }
@@ -461,7 +461,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CrlfRandomBug10MatchesTsScript()
     {
-        using var harness = CreateCrlfHarness(nameof(CrlfRandomBug10MatchesTsScript));
+        using PieceTreeFuzzHarness harness = CreateCrlfHarness(nameof(CrlfRandomBug10MatchesTsScript));
         RunScript(harness, CrlfRandomBug10);
         harness.AssertState("crlf-random-bug-10-final");
     }
@@ -473,7 +473,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsDeleteCrlfOneMatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfOneMatchesTsScript), normalizeChunks: false, "a\r\nb");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfOneMatchesTsScript), normalizeChunks: false, "a\r\nb");
         harness.Delete(2, 2, "cls-delete-crlf-1");
         PieceTreeBufferAssertions.AssertLineCount(harness, 2);
         harness.AssertState("cls-delete-crlf-1-final");
@@ -482,7 +482,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsDeleteCrlfTwoMatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfTwoMatchesTsScript), normalizeChunks: true, "a\r\nb");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsDeleteCrlfTwoMatchesTsScript), normalizeChunks: true, "a\r\nb");
         harness.Delete(0, 2, "cls-delete-crlf-2");
         PieceTreeBufferAssertions.AssertLineCount(harness, 2);
         harness.AssertState("cls-delete-crlf-2-final");
@@ -491,7 +491,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug01MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug01MatchesTsScript), normalizeChunks: false, "\n\n\r\r");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug01MatchesTsScript), normalizeChunks: false, "\n\n\r\r");
         RunScript(harness, CentralizedLineStartsRandomBug01);
         harness.AssertState("cls-random-bug-01-final");
     }
@@ -499,7 +499,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug02MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
         RunScript(harness, CentralizedLineStartsRandomBug02);
         harness.AssertState("cls-random-bug-02-final");
     }
@@ -507,7 +507,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug03MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug03MatchesTsScript), normalizeChunks: false, "\n\n\n\r");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug03MatchesTsScript), normalizeChunks: false, "\n\n\n\r");
         RunScript(harness, CentralizedLineStartsRandomBug03);
         harness.AssertState("cls-random-bug-03-final");
     }
@@ -515,7 +515,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug04MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug04MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug04MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
         RunScript(harness, CentralizedLineStartsRandomBug04);
         harness.AssertState("cls-random-bug-04-final");
     }
@@ -523,7 +523,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug05MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug05MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug05MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
         RunScript(harness, CentralizedLineStartsRandomBug05);
         harness.AssertState("cls-random-bug-05-final");
     }
@@ -531,7 +531,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug06MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug06MatchesTsScript), normalizeChunks: false, "\n\r\r\n");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug06MatchesTsScript), normalizeChunks: false, "\n\r\r\n");
         RunScript(harness, CentralizedLineStartsRandomBug06);
         harness.AssertState("cls-random-bug-06-final");
     }
@@ -539,7 +539,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug07MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug07MatchesTsScript), normalizeChunks: false, "\r\n\n\r");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug07MatchesTsScript), normalizeChunks: false, "\r\n\n\r");
         RunScript(harness, CentralizedLineStartsRandomBug07);
         harness.AssertState("cls-random-bug-07-final");
     }
@@ -547,7 +547,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug08MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug08MatchesTsScript), normalizeChunks: false, "\r\r\n\n");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug08MatchesTsScript), normalizeChunks: false, "\r\r\n\n");
         RunScript(harness, CentralizedLineStartsRandomBug08);
         harness.AssertState("cls-random-bug-08-final");
     }
@@ -555,7 +555,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug09MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug09MatchesTsScript), normalizeChunks: false, "qneW");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug09MatchesTsScript), normalizeChunks: false, "qneW");
         RunScript(harness, CentralizedLineStartsRandomBug09);
         harness.AssertState("cls-random-bug-09-final");
     }
@@ -563,7 +563,7 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomBug10MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug10MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomBug10MatchesTsScript), normalizeChunks: false, "\n\n\n\n");
         RunScript(harness, CentralizedLineStartsRandomBug10);
         harness.AssertState("cls-random-bug-10-final");
     }
@@ -571,32 +571,32 @@ public sealed class PieceTreeDeterministicTests
     [Fact]
     public void CentralizedLineStartsRandomChunkBug01MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug01MatchesTsScript), normalizeChunks: false, "\n\r\r\n\n\n\r\n\r");
-        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug01);
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug01MatchesTsScript), normalizeChunks: false, "\n\r\r\n\n\n\r\n\r");
+        string expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug01);
         AssertFinalText(harness, expected, "cls-random-chunk-bug-01-final");
     }
 
     [Fact]
     public void CentralizedLineStartsRandomChunkBug02MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\n\n\r\n\r\n\r\r\n\n\n\r\r\n\r\n");
-        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug02);
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug02MatchesTsScript), normalizeChunks: false, "\n\r\n\n\n\r\n\r\n\r\r\n\n\n\r\r\n\r\n");
+        string expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug02);
         AssertFinalText(harness, expected, "cls-random-chunk-bug-02-final");
     }
 
     [Fact]
     public void CentralizedLineStartsRandomChunkBug03MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug03MatchesTsScript), normalizeChunks: false, "\r\n\n\n\n\n\n\r\n");
-        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug03);
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug03MatchesTsScript), normalizeChunks: false, "\r\n\n\n\n\n\n\r\n");
+        string expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug03);
         AssertFinalText(harness, expected, "cls-random-chunk-bug-03-final");
     }
 
     [Fact]
     public void CentralizedLineStartsRandomChunkBug04MatchesTsScript()
     {
-        using var harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug04MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
-        var expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug04);
+        using PieceTreeFuzzHarness harness = CreateHarnessFromChunks(nameof(CentralizedLineStartsRandomChunkBug04MatchesTsScript), normalizeChunks: false, "\n\r\n\r");
+        string expected = RunScriptWithMirror(harness, CentralizedLineStartsRandomChunkBug04);
         AssertFinalText(harness, expected, "cls-random-chunk-bug-04-final");
     }
 

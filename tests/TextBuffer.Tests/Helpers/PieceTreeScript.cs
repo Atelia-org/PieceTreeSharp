@@ -42,14 +42,14 @@ internal static class PieceTreeScript
 
     public static string RunScriptWithMirror(PieceTreeFuzzHarness harness, params PieceTreeScriptStep[] steps)
     {
-        var expected = new StringBuilder(harness.ExpectedText);
+        StringBuilder expected = new(harness.ExpectedText);
         RunInternal(harness, expected, steps);
         return expected.ToString();
     }
 
     private static void RunInternal(PieceTreeFuzzHarness harness, StringBuilder? expected, PieceTreeScriptStep[] steps)
     {
-        foreach (var step in steps)
+        foreach (PieceTreeScriptStep step in steps)
         {
             switch (step.Operation)
             {
@@ -57,7 +57,7 @@ internal static class PieceTreeScript
                     harness.Insert(step.Offset, step.Text, step.Phase);
                     if (expected is not null)
                     {
-                        var insertOffset = ClampOffset(expected, step.Offset);
+                        int insertOffset = ClampOffset(expected, step.Offset);
                         expected.Insert(insertOffset, step.Text ?? string.Empty);
                     }
 
@@ -67,8 +67,8 @@ internal static class PieceTreeScript
                     harness.Delete(step.Offset, step.Length, step.Phase);
                     if (expected is not null)
                     {
-                        var deleteOffset = ClampOffset(expected, step.Offset);
-                        var deleteLength = ClampLength(expected, deleteOffset, step.Length);
+                        int deleteOffset = ClampOffset(expected, step.Offset);
+                        int deleteLength = ClampLength(expected, deleteOffset, step.Length);
                         if (deleteLength > 0)
                         {
                             expected.Remove(deleteOffset, deleteLength);
@@ -81,8 +81,8 @@ internal static class PieceTreeScript
                     harness.Replace(step.Offset, step.Length, step.Text, step.Phase);
                     if (expected is not null)
                     {
-                        var replaceOffset = ClampOffset(expected, step.Offset);
-                        var replaceLength = ClampLength(expected, replaceOffset, step.Length);
+                        int replaceOffset = ClampOffset(expected, step.Offset);
+                        int replaceLength = ClampLength(expected, replaceOffset, step.Length);
                         if (replaceLength > 0)
                         {
                             expected.Remove(replaceOffset, replaceLength);
@@ -114,7 +114,7 @@ internal static class PieceTreeScript
             return 0;
         }
 
-        var maxLength = Math.Max(0, builder.Length - offset);
+        int maxLength = Math.Max(0, builder.Length - offset);
         return Math.Clamp(length, 0, maxLength);
     }
 }

@@ -29,8 +29,8 @@ public static class DiffComputer
         ArgumentNullException.ThrowIfNull(originalLines);
         ArgumentNullException.ThrowIfNull(modifiedLines);
 
-        var original = NormalizeLines(originalLines);
-        var modified = NormalizeLines(modifiedLines);
+        string[] original = NormalizeLines(originalLines);
+        string[] modified = NormalizeLines(modifiedLines);
         return ComputeInternal(original, modified, options ?? new DiffComputerOptions());
     }
 
@@ -50,22 +50,22 @@ public static class DiffComputer
             ? InfiniteTimeout.Instance
             : new DateTimeout(options.MaxComputationTimeMs);
 
-        var considerWhitespaceChanges = !options.IgnoreTrimWhitespace;
-        var (hashedOriginalLines, hashedModifiedLines) = BuildLineHashes(originalLines, modifiedLines);
-        var sequence1 = new LineSequence(hashedOriginalLines, originalLines);
-        var sequence2 = new LineSequence(hashedModifiedLines, modifiedLines);
+        bool considerWhitespaceChanges = !options.IgnoreTrimWhitespace;
+        (int[]? hashedOriginalLines, int[]? hashedModifiedLines) = BuildLineHashes(originalLines, modifiedLines);
+        LineSequence sequence1 = new(hashedOriginalLines, originalLines);
+        LineSequence sequence2 = new(hashedModifiedLines, modifiedLines);
 
-        var lineAlignmentResult = sequence1.Length + sequence2.Length < 1700
+        DiffAlgorithmResult lineAlignmentResult = sequence1.Length + sequence2.Length < 1700
             ? DynamicProgramming.Compute(sequence1, sequence2, timeout, (offset1, offset2) => ComputeEqualityScore(originalLines[offset1], modifiedLines[offset2]))
             : Myers.Compute(sequence1, sequence2, timeout);
 
-        var hitTimeout = lineAlignmentResult.HitTimeout;
-        var lineAlignments = HeuristicSequenceOptimizations.OptimizeSequenceDiffs(sequence1, sequence2, lineAlignmentResult.Diffs);
+        bool hitTimeout = lineAlignmentResult.HitTimeout;
+        List<SequenceDiff> lineAlignments = HeuristicSequenceOptimizations.OptimizeSequenceDiffs(sequence1, sequence2, lineAlignmentResult.Diffs);
         lineAlignments = HeuristicSequenceOptimizations.RemoveVeryShortMatchingLinesBetweenDiffs(sequence1, lineAlignments);
 
-        var alignments = new List<RangeMapping>();
-        var seq1LastStart = 0;
-        var seq2LastStart = 0;
+        List<RangeMapping> alignments = [];
+        int seq1LastStart = 0;
+        int seq2LastStart = 0;
 
         void ScanWhitespace(int equalLinesCount)
         {
@@ -74,10 +74,10 @@ public static class DiffComputer
                 return;
             }
 
-            for (var i = 0; i < equalLinesCount; i++)
+            for (int i = 0; i < equalLinesCount; i++)
             {
-                var seq1Offset = seq1LastStart + i;
-                var seq2Offset = seq2LastStart + i;
+                int seq1Offset = seq1LastStart + i;
+                int seq2Offset = seq2LastStart + i;
                 if (seq1Offset >= originalLines.Length || seq2Offset >= modifiedLines.Length)
                 {
                     continue;
@@ -85,7 +85,7 @@ public static class DiffComputer
 
                 if (!string.Equals(originalLines[seq1Offset], modifiedLines[seq2Offset], StringComparison.Ordinal))
                 {
-                    var refinement = RefineDiff(
+                    DiffRefinementResult refinement = RefineDiff(
                         originalLines,
                         modifiedLines,
                         new SequenceDiff(
@@ -101,23 +101,23 @@ public static class DiffComputer
             }
         }
 
-        foreach (var diff in lineAlignments)
+        foreach (SequenceDiff diff in lineAlignments)
         {
-            var equalLinesCount = diff.Seq1Range.Start - seq1LastStart;
+            int equalLinesCount = diff.Seq1Range.Start - seq1LastStart;
             ScanWhitespace(equalLinesCount);
 
             seq1LastStart = diff.Seq1Range.EndExclusive;
             seq2LastStart = diff.Seq2Range.EndExclusive;
 
-            var refinement = RefineDiff(originalLines, modifiedLines, diff, timeout, considerWhitespaceChanges, options);
+            DiffRefinementResult refinement = RefineDiff(originalLines, modifiedLines, diff, timeout, considerWhitespaceChanges, options);
             alignments.AddRange(refinement.Mappings);
             hitTimeout |= refinement.HitTimeout;
         }
 
         ScanWhitespace(originalLines.Length - seq1LastStart);
 
-        var changes = LineRangeMappingBuilder.FromRangeMappings(alignments, originalLines, modifiedLines);
-        var moves = options.ComputeMoves
+        IReadOnlyList<DetailedLineRangeMapping> changes = LineRangeMappingBuilder.FromRangeMappings(alignments, originalLines, modifiedLines);
+        IReadOnlyList<DiffMove> moves = options.ComputeMoves
             ? ComputeMoves(changes, originalLines, modifiedLines, hashedOriginalLines, hashedModifiedLines, timeout, considerWhitespaceChanges, options)
             : Array.Empty<DiffMove>();
 
@@ -132,17 +132,17 @@ public static class DiffComputer
         bool considerWhitespaceChanges,
         DiffComputerOptions options)
     {
-        var lineRangeMapping = ToLineRangeMapping(diff);
-        var rangeMapping = lineRangeMapping.ToRangeMapping2(originalLines, modifiedLines);
+        LineRangeMapping lineRangeMapping = ToLineRangeMapping(diff);
+        RangeMapping rangeMapping = lineRangeMapping.ToRangeMapping2(originalLines, modifiedLines);
 
-        var slice1 = new LinesSliceCharSequence(originalLines, rangeMapping.OriginalRange, considerWhitespaceChanges);
-        var slice2 = new LinesSliceCharSequence(modifiedLines, rangeMapping.ModifiedRange, considerWhitespaceChanges);
+        LinesSliceCharSequence slice1 = new(originalLines, rangeMapping.OriginalRange, considerWhitespaceChanges);
+        LinesSliceCharSequence slice2 = new(modifiedLines, rangeMapping.ModifiedRange, considerWhitespaceChanges);
 
-        var diffResult = slice1.Length + slice2.Length < 500
+        DiffAlgorithmResult diffResult = slice1.Length + slice2.Length < 500
             ? DynamicProgramming.Compute(slice1, slice2, timeout)
             : Myers.Compute(slice1, slice2, timeout);
 
-        var diffs = HeuristicSequenceOptimizations.OptimizeSequenceDiffs(slice1, slice2, diffResult.Diffs);
+        List<SequenceDiff> diffs = HeuristicSequenceOptimizations.OptimizeSequenceDiffs(slice1, slice2, diffResult.Diffs);
 
         if (options.ExtendToWordBoundaries)
         {
@@ -157,7 +157,7 @@ public static class DiffComputer
         diffs = HeuristicSequenceOptimizations.RemoveShortMatches(slice1, slice2, diffs);
         diffs = HeuristicSequenceOptimizations.RemoveVeryShortMatchingTextBetweenLongDiffs(slice1, slice2, diffs);
 
-        var mappings = diffs
+        List<RangeMapping> mappings = diffs
             .Select(d => new RangeMapping(
                 slice1.TranslateRange(d.Seq1Range),
                 slice2.TranslateRange(d.Seq2Range)))
@@ -176,16 +176,16 @@ public static class DiffComputer
         bool considerWhitespaceChanges,
         DiffComputerOptions options)
     {
-        var ranges = MoveDetection.ComputeMovedLines(changes, originalLines, modifiedLines, hashedOriginalLines, hashedModifiedLines, timeout);
+        IReadOnlyList<LineRangeMapping> ranges = MoveDetection.ComputeMovedLines(changes, originalLines, modifiedLines, hashedOriginalLines, hashedModifiedLines, timeout);
         if (ranges.Count == 0)
         {
             return Array.Empty<DiffMove>();
         }
 
-        var moves = new List<DiffMove>(ranges.Count);
-        foreach (var move in ranges)
+        List<DiffMove> moves = new(ranges.Count);
+        foreach (LineRangeMapping move in ranges)
         {
-            var refinement = RefineDiff(
+            DiffRefinementResult refinement = RefineDiff(
                 originalLines,
                 modifiedLines,
                 new SequenceDiff(move.Original.ToOffsetRange(), move.Modified.ToOffsetRange()),
@@ -193,7 +193,7 @@ public static class DiffComputer
                 considerWhitespaceChanges,
                 options);
 
-            var mapped = LineRangeMappingBuilder.FromRangeMappings(refinement.Mappings, originalLines, modifiedLines, dontAssertStartLine: true);
+            IReadOnlyList<DetailedLineRangeMapping> mapped = LineRangeMappingBuilder.FromRangeMappings(refinement.Mappings, originalLines, modifiedLines, dontAssertStartLine: true);
             moves.Add(new DiffMove(move, mapped));
         }
 
@@ -207,7 +207,7 @@ public static class DiffComputer
             return false;
         }
 
-        for (var i = 0; i < original.Count; i++)
+        for (int i = 0; i < original.Count; i++)
         {
             if (!string.Equals(original[i], modified[i], StringComparison.Ordinal))
             {
@@ -225,10 +225,10 @@ public static class DiffComputer
 
     private static DiffResult BuildWholeDocumentChange(string[] originalLines, string[] modifiedLines)
     {
-        var originalRange = new Range(1, 1, Math.Max(1, originalLines.Length), originalLines[^1].Length + 1);
-        var modifiedRange = new Range(1, 1, Math.Max(1, modifiedLines.Length), modifiedLines[^1].Length + 1);
-        var mapping = new RangeMapping(originalRange, modifiedRange);
-        var change = new DetailedLineRangeMapping(
+        Range originalRange = new(1, 1, Math.Max(1, originalLines.Length), originalLines[^1].Length + 1);
+        Range modifiedRange = new(1, 1, Math.Max(1, modifiedLines.Length), modifiedLines[^1].Length + 1);
+        RangeMapping mapping = new(originalRange, modifiedRange);
+        DetailedLineRangeMapping change = new(
             new LineRange(1, originalLines.Length + 1),
             new LineRange(1, modifiedLines.Length + 1),
             new[] { mapping });
@@ -238,11 +238,11 @@ public static class DiffComputer
 
     private static (int[] Original, int[] Modified) BuildLineHashes(string[] originalLines, string[] modifiedLines)
     {
-        var hashes = new Dictionary<string, int>(StringComparer.Ordinal);
+        Dictionary<string, int> hashes = new(StringComparer.Ordinal);
 
         int GetOrCreateHash(string text)
         {
-            if (!hashes.TryGetValue(text, out var hash))
+            if (!hashes.TryGetValue(text, out int hash))
             {
                 hash = hashes.Count;
                 hashes[text] = hash;
@@ -251,15 +251,15 @@ public static class DiffComputer
             return hash;
         }
 
-        var original = new int[originalLines.Length];
-        var modified = new int[modifiedLines.Length];
+        int[] original = new int[originalLines.Length];
+        int[] modified = new int[modifiedLines.Length];
 
-        for (var i = 0; i < originalLines.Length; i++)
+        for (int i = 0; i < originalLines.Length; i++)
         {
             original[i] = GetOrCreateHash(originalLines[i].Trim());
         }
 
-        for (var i = 0; i < modifiedLines.Length; i++)
+        for (int i = 0; i < modifiedLines.Length; i++)
         {
             modified[i] = GetOrCreateHash(modifiedLines[i].Trim());
         }
@@ -290,15 +290,15 @@ public static class DiffComputer
     {
         if (value.Length == 0)
         {
-            return new[] { string.Empty };
+            return [string.Empty];
         }
 
-        var lines = new List<string>();
-        var start = 0;
+        List<string> lines = [];
+        int start = 0;
 
-        for (var i = 0; i < value.Length; i++)
+        for (int i = 0; i < value.Length; i++)
         {
-            var ch = value[i];
+            char ch = value[i];
             if (ch == '\r' || ch == '\n')
             {
                 lines.Add(value.Substring(start, i - start));
@@ -328,7 +328,7 @@ public static class DiffComputer
     {
         if (source.Count == 0)
         {
-            return new[] { string.Empty };
+            return [string.Empty];
         }
 
         return source as string[] ?? source.ToArray();

@@ -19,7 +19,7 @@ public class TextModelIndentationTests
         string[] lines,
         string? message = null)
     {
-        var options = TextModelCreationOptions.Default with
+        TextModelCreationOptions options = TextModelCreationOptions.Default with
         {
             DetectIndentation = true,
             InsertSpaces = defaultInsertSpaces,
@@ -27,8 +27,8 @@ public class TextModelIndentationTests
             IndentSize = defaultTabSize,
         };
 
-        var model = new TextModel(string.Join("\n", lines), options);
-        var resolved = model.GetOptions();
+        TextModel model = new(string.Join("\n", lines), options);
+        TextModelResolvedOptions resolved = model.GetOptions();
 
         Assert.Equal(expectedInsertSpaces, resolved.InsertSpaces);
         Assert.Equal(expectedTabSize, resolved.TabSize);
@@ -61,7 +61,7 @@ public class TextModelIndentationTests
             return;
         }
 
-        var insertSpaces = expectedInsertSpaces.Value;
+        bool insertSpaces = expectedInsertSpaces.Value;
         if (!expectedTabSize.HasValue)
         {
             TestGuessIndentation(true, DefaultSpacesTabSize, insertSpaces, DefaultSpacesTabSize, lines, message);
@@ -87,8 +87,8 @@ public class TextModelIndentationTests
     [Fact]
     public void GuessIndentation_MatrixMatchesTypeScript()
     {
-        AssertGuess(null, null, false, new[]
-        {
+        AssertGuess(null, null, false,
+        [
             "x",
             "x",
             "x",
@@ -96,10 +96,10 @@ public class TextModelIndentationTests
             "x",
             "x",
             "x",
-        }, "no clues");
+        ], "no clues");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "x",
             "x",
@@ -107,10 +107,10 @@ public class TextModelIndentationTests
             "x",
             "x",
             "x",
-        }, "no spaces, 1xTAB");
+        ], "no spaces, 1xTAB");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "  x",
             "x",
             "x",
@@ -118,10 +118,10 @@ public class TextModelIndentationTests
             "x",
             "x",
             "x",
-        }, "1x2");
+        ], "1x2");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\tx",
             "\tx",
@@ -129,10 +129,10 @@ public class TextModelIndentationTests
             "\tx",
             "\tx",
             "\tx",
-        }, "7xTAB");
+        ], "7xTAB");
 
-        AssertGuess(null, 2, true, new[]
-        {
+        AssertGuess(null, 2, true,
+        [
             "\tx",
             "  x",
             "\tx",
@@ -141,10 +141,10 @@ public class TextModelIndentationTests
             "  x",
             "\tx",
             "  x",
-        }, "4x2, 4xTAB");
+        ], "4x2, 4xTAB");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             " x",
             "\tx",
@@ -153,10 +153,10 @@ public class TextModelIndentationTests
             " x",
             "\tx",
             " x",
-        }, "4x1, 4xTAB");
+        ], "4x1, 4xTAB");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\tx",
             "  x",
@@ -166,10 +166,10 @@ public class TextModelIndentationTests
             "  x",
             "\tx",
             "  x",
-        }, "4x2, 5xTAB");
+        ], "4x2, 5xTAB");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\tx",
             "x",
@@ -179,10 +179,10 @@ public class TextModelIndentationTests
             "x",
             "\tx",
             "  x",
-        }, "1x2, 5xTAB");
+        ], "1x2, 5xTAB");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\tx",
             "x",
@@ -192,10 +192,10 @@ public class TextModelIndentationTests
             "x",
             "\tx",
             "    x",
-        }, "1x4, 5xTAB");
+        ], "1x4, 5xTAB");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\tx",
             "x",
@@ -205,10 +205,10 @@ public class TextModelIndentationTests
             "  x",
             "\tx",
             "    x",
-        }, "1x2, 1x4, 5xTAB");
+        ], "1x2, 1x4, 5xTAB");
 
-        AssertGuess(null, null, false, new[]
-        {
+        AssertGuess(null, null, false,
+        [
             "x",
             " x",
             " x",
@@ -217,10 +217,10 @@ public class TextModelIndentationTests
             " x",
             " x",
             " x",
-        }, "7x1 - 1 space is never guessed as an indentation");
+        ], "7x1 - 1 space is never guessed as an indentation");
 
-        AssertGuess(true, null, false, new[]
-        {
+        AssertGuess(true, null, false,
+        [
             "x",
             "          x",
             " x",
@@ -229,10 +229,10 @@ public class TextModelIndentationTests
             " x",
             " x",
             " x",
-        }, "1x10, 6x1");
+        ], "1x10, 6x1");
 
-        AssertGuess(null, null, false, new[]
-        {
+        AssertGuess(null, null, false,
+        [
             string.Empty,
             "  ",
             "    ",
@@ -241,10 +241,10 @@ public class TextModelIndentationTests
             "          ",
             "            ",
             "              ",
-        }, "whitespace lines don't count");
+        ], "whitespace lines don't count");
 
-        AssertGuess(true, 3, false, new[]
-        {
+        AssertGuess(true, 3, false,
+        [
             "x",
             "   x",
             "   x",
@@ -257,10 +257,10 @@ public class TextModelIndentationTests
             "   x",
             "   x",
             "    x",
-        }, "6x3, 3x4");
+        ], "6x3, 3x4");
 
-        AssertGuess(true, 5, false, new[]
-        {
+        AssertGuess(true, 5, false,
+        [
             "x",
             "     x",
             "     x",
@@ -273,10 +273,10 @@ public class TextModelIndentationTests
             "     x",
             "     x",
             "    x",
-        }, "6x5, 3x4");
+        ], "6x5, 3x4");
 
-        AssertGuess(true, 7, false, new[]
-        {
+        AssertGuess(true, 7, false,
+        [
             "x",
             "       x",
             "       x",
@@ -289,10 +289,10 @@ public class TextModelIndentationTests
             "       x",
             "       x",
             "    x",
-        }, "6x7, 1x5, 2x4");
+        ], "6x7, 1x5, 2x4");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "  x",
@@ -303,10 +303,10 @@ public class TextModelIndentationTests
             "  x",
             "  x",
             "  x",
-        }, "8x2");
+        ], "8x2");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "  x",
@@ -319,10 +319,10 @@ public class TextModelIndentationTests
             "x",
             "  x",
             "  x",
-        }, "8x2 (alternating)");
+        ], "8x2 (alternating)");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "    x",
@@ -335,10 +335,10 @@ public class TextModelIndentationTests
             "x",
             "  x",
             "    x",
-        }, "4x2, 4x4");
+        ], "4x2, 4x4");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "  x",
@@ -351,10 +351,10 @@ public class TextModelIndentationTests
             "  x",
             "  x",
             "    x",
-        }, "6x2, 3x4");
+        ], "6x2, 3x4");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "  x",
@@ -365,10 +365,10 @@ public class TextModelIndentationTests
             "  x",
             "    x",
             "    x",
-        }, "4x2, 4x4 (doubles)");
+        ], "4x2, 4x4 (doubles)");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "    x",
@@ -377,10 +377,10 @@ public class TextModelIndentationTests
             "  x",
             "    x",
             "    x",
-        }, "2x2, 4x4");
+        ], "2x2, 4x4");
 
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "x",
             "    x",
             "    x",
@@ -393,10 +393,10 @@ public class TextModelIndentationTests
             "x",
             "    x",
             "    x",
-        }, "8x4");
+        ], "8x4");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "    x",
@@ -407,10 +407,10 @@ public class TextModelIndentationTests
             "    x",
             "    x",
             "      x",
-        }, "2x2, 4x4, 2x6");
+        ], "2x2, 4x4, 2x6");
 
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             "x",
             "  x",
             "    x",
@@ -418,10 +418,10 @@ public class TextModelIndentationTests
             "      x",
             "      x",
             "        x",
-        }, "1x2, 2x4, 2x6, 1x8");
+        ], "1x2, 2x4, 2x6, 1x8");
 
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "x",
             "    x",
             "    x",
@@ -434,10 +434,10 @@ public class TextModelIndentationTests
             "    x",
             "     x",
             "        x",
-        }, "6x4, 2x5, 2x8");
+        ], "6x4, 2x5, 2x8");
 
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "x",
             "    x",
             "    x",
@@ -445,10 +445,10 @@ public class TextModelIndentationTests
             "     x",
             "        x",
             "        x",
-        }, "3x4, 1x5, 2x8");
+        ], "3x4, 1x5, 2x8");
 
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "x",
             "x",
             "    x",
@@ -463,10 +463,10 @@ public class TextModelIndentationTests
             "     x",
             "        x",
             "        x",
-        }, "6x4, 2x5, 4x8");
+        ], "6x4, 2x5, 4x8");
 
-        AssertGuess(true, 3, false, new[]
-        {
+        AssertGuess(true, 3, false,
+        [
             "x",
             " x",
             " x",
@@ -477,27 +477,27 @@ public class TextModelIndentationTests
             "   x",
             "    x",
             "    x",
-        }, "5x1, 2x0, 1x3, 2x4");
+        ], "5x1, 2x0, 1x3, 2x4");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\t x",
             " \t x",
             "\tx",
-        }, "mixed whitespace 1");
+        ], "mixed whitespace 1");
 
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "\tx",
             "\t    x",
-        }, "mixed whitespace 2");
+        ], "mixed whitespace 2");
     }
 
     [Fact]
     public void GuessIndentation_Issue44991()
     {
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "a = 10             # 0 space indent",
             "b = 5              # 0 space indent",
             "if a > 10:         # 0 space indent",
@@ -512,14 +512,14 @@ public class TextModelIndentationTests
             "        b += 1     # 8 space indent      delta 8 spaces",
             "        b += 1     # 8 space indent",
             "        b += 1     # 8 space indent",
-        });
+        ]);
     }
 
     [Fact]
     public void GuessIndentation_Issue55818()
     {
-        AssertGuess(true, 2, false, new[]
-        {
+        AssertGuess(true, 2, false,
+        [
             string.Empty,
             "/* REQUIRE */",
             string.Empty,
@@ -541,14 +541,14 @@ public class TextModelIndentationTests
             string.Empty,
             "module.exports = myFn;",
             string.Empty,
-        });
+        ]);
     }
 
     [Fact]
     public void GuessIndentation_Issue70832()
     {
-        AssertGuess(false, null, false, new[]
-        {
+        AssertGuess(false, null, false,
+        [
             "x",
             "x",
             "x",
@@ -564,40 +564,40 @@ public class TextModelIndentationTests
             "x",
             "x",
             "x",
-        });
+        ]);
     }
 
     [Fact]
     public void GuessIndentation_Issue62143()
     {
-        AssertGuess(true, 2, false, new[] { "x", "x", "  x", "  x" });
-        AssertGuess(true, 2, false, new[] { "x", "  - item2", "  - item3" });
+        AssertGuess(true, 2, false, ["x", "x", "  x", "  x"]);
+        AssertGuess(true, 2, false, ["x", "  - item2", "  - item3"]);
 
-        TestGuessIndentation(true, 2, true, 2, new[] { "x x", "  x", "  x" });
-        TestGuessIndentation(true, 2, true, 2, new[] { "x x", "  x", "  x", "    x" });
-        TestGuessIndentation(true, 2, true, 2, new[]
-        {
+        TestGuessIndentation(true, 2, true, 2, ["x x", "  x", "  x"]);
+        TestGuessIndentation(true, 2, true, 2, ["x x", "  x", "  x", "    x"]);
+        TestGuessIndentation(true, 2, true, 2,
+        [
             "<!--test1.md -->",
             "- item1",
             "  - item2",
             "    - item3",
-        });
+        ]);
     }
 
     [Fact]
     public void GuessIndentation_Issue84217()
     {
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "def main():",
             "    print('hello')",
-        });
+        ]);
 
-        AssertGuess(true, 4, false, new[]
-        {
+        AssertGuess(true, 4, false,
+        [
             "def main():",
             "    with open('foo') as fp:",
             "        print(fp.read())",
-        });
+        ]);
     }
 }

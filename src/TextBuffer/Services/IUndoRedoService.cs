@@ -40,7 +40,7 @@ internal sealed class InProcUndoRedoService : IUndoRedoService
 {
     public static InProcUndoRedoService Instance { get; } = new();
 
-    private readonly Dictionary<TextModel, UndoRedoState> _states = new();
+    private readonly Dictionary<TextModel, UndoRedoState> _states = [];
 
     private InProcUndoRedoService()
     {
@@ -48,7 +48,7 @@ internal sealed class InProcUndoRedoService : IUndoRedoService
 
     public void PushElement(TextModelUndoRedoElement element)
     {
-        var state = GetState(element.Model);
+        UndoRedoState state = GetState(element.Model);
         state.OpenElement = element;
         state.Undo.Push(element);
         state.Redo.Clear();
@@ -56,40 +56,40 @@ internal sealed class InProcUndoRedoService : IUndoRedoService
 
     public void CloseOpenElement(TextModel model)
     {
-        var state = GetState(model);
+        UndoRedoState state = GetState(model);
         state.OpenElement = null;
     }
 
     public TextModelUndoRedoElement? TryReopenLastElement(TextModel model)
     {
-        var state = GetState(model);
+        UndoRedoState state = GetState(model);
         if (state.Undo.Count == 0 || state.Redo.Count > 0)
         {
             return null;
         }
 
-        var element = state.Undo.Peek();
+        TextModelUndoRedoElement element = state.Undo.Peek();
         state.OpenElement = element;
         return element;
     }
 
     public TextModelUndoRedoElement? PopUndo(TextModel model)
     {
-        var state = GetState(model);
+        UndoRedoState state = GetState(model);
         state.OpenElement = null;
         if (state.Undo.Count == 0)
         {
             return null;
         }
 
-        var element = state.Undo.Pop();
+        TextModelUndoRedoElement element = state.Undo.Pop();
         state.Redo.Push(element);
         return element;
     }
 
     public TextModelUndoRedoElement? PopRedo(TextModel model)
     {
-        var state = GetState(model);
+        UndoRedoState state = GetState(model);
         state.OpenElement = null;
         if (state.Redo.Count == 0)
         {
@@ -101,7 +101,7 @@ internal sealed class InProcUndoRedoService : IUndoRedoService
 
     public void PushRedoResult(TextModelUndoRedoElement element)
     {
-        var state = GetState(element.Model);
+        UndoRedoState state = GetState(element.Model);
         state.OpenElement = null;
         state.Undo.Push(element);
     }
@@ -117,7 +117,7 @@ internal sealed class InProcUndoRedoService : IUndoRedoService
 
     private UndoRedoState GetState(TextModel model)
     {
-        if (!_states.TryGetValue(model, out var state))
+        if (!_states.TryGetValue(model, out UndoRedoState? state))
         {
             state = new UndoRedoState();
             _states[model] = state;

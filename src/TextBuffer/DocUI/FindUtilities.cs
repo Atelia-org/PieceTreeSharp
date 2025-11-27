@@ -10,177 +10,176 @@ using PieceTree.TextBuffer;
 using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 
-namespace PieceTree.TextBuffer.DocUI
+namespace PieceTree.TextBuffer.DocUI;
+
+/// <summary>
+/// Controls how <see cref="FindUtilities.GetSelectionSearchString"/> seeds text from the editor selection.
+/// Mirrors the TS union type ('none' | 'single' | 'multiple').
+/// </summary>
+public enum SelectionSeedMode
 {
+    None,
+    Single,
+    Multiple
+}
+
+/// <summary>
+/// Minimal context required to derive selection-based search strings (TextModel + current selection + word separators).
+/// </summary>
+public interface IEditorSelectionContext
+{
+    TextModel Model { get; }
+    Selection Selection { get; }
+    string? WordSeparators { get; }
+}
+
+/// <summary>
+/// Represents the word that surrounds a caret position.
+/// </summary>
+public readonly record struct WordAtPosition(string Word, int StartColumn, int EndColumn);
+
+/// <summary>
+/// Utility helpers shared by DocUI Find/Replace components.
+/// </summary>
+public static class FindUtilities
+{
+    private const int SearchStringMaxLength = 524_288;
+    private const string DefaultWordSeparators = "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?";
+
     /// <summary>
-    /// Controls how <see cref="FindUtilities.GetSelectionSearchString"/> seeds text from the editor selection.
-    /// Mirrors the TS union type ('none' | 'single' | 'multiple').
+    /// Derives the search string based on the current selection and word-under-cursor semantics.
+    /// TS parity of getSelectionSearchString() used by CommonFindController.
     /// </summary>
-    public enum SelectionSeedMode
+    public static string? GetSelectionSearchString(
+        IEditorSelectionContext context,
+        SelectionSeedMode seedMode = SelectionSeedMode.Single,
+        bool seedFromNonEmptySelection = false)
     {
-        None,
-        Single,
-        Multiple
+        if (context == null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
+
+        Selection selection = context.Selection;
+        if (!ShouldUseSelection(selection, seedMode))
+        {
+            return null;
+        }
+
+        if (selection.IsEmpty)
+        {
+            if (seedFromNonEmptySelection)
+            {
+                return null;
+            }
+
+            WordAtPosition? word = GetWordAtPosition(context);
+            return word?.Word;
+        }
+
+        Range range = new(selection.SelectionStart, selection.SelectionEnd);
+        TextModel model = context.Model;
+        int startOffset = model.GetOffsetAt(range.Start);
+        int endOffset = model.GetOffsetAt(range.End);
+
+        if (endOffset - startOffset >= SearchStringMaxLength)
+        {
+            return null;
+        }
+
+        return model.GetValueInRange(range);
     }
 
     /// <summary>
-    /// Minimal context required to derive selection-based search strings (TextModel + current selection + word separators).
+    /// Attempts to locate the word that contains or neighbors the caret position.
+    /// Returns null when the caret is on whitespace or separators.
     /// </summary>
-    public interface IEditorSelectionContext
+    public static WordAtPosition? GetWordAtPosition(IEditorSelectionContext context)
     {
-        TextModel Model { get; }
-        Selection Selection { get; }
-        string? WordSeparators { get; }
+        if (context == null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
+
+        TextPosition position = context.Selection.SelectionStart;
+        string lineText = context.Model.GetLineContent(position.LineNumber) ?? string.Empty;
+        if (lineText.Length == 0)
+        {
+            return null;
+        }
+
+        string separators = context.WordSeparators ?? DefaultWordSeparators;
+        WordCharacterClassifier classifier = WordCharacterClassifierCache.Get(separators);
+
+        int caretIndex = Math.Clamp(position.Column - 1, 0, lineText.Length);
+        int probeIndex = caretIndex;
+        if (probeIndex == lineText.Length && probeIndex > 0)
+        {
+            if (!UnicodeUtility.TryGetPreviousCodePoint(lineText, probeIndex, out _, out int prevLength))
+            {
+                return null;
+            }
+
+            probeIndex -= prevLength;
+        }
+
+        if (!TryGetWordBounds(lineText, probeIndex, classifier, out int wordStart, out int wordEnd))
+        {
+            return null;
+        }
+
+        string word = lineText.Substring(wordStart, wordEnd - wordStart);
+        return new WordAtPosition(word, wordStart + 1, wordEnd + 1);
     }
 
-    /// <summary>
-    /// Represents the word that surrounds a caret position.
-    /// </summary>
-    public readonly record struct WordAtPosition(string Word, int StartColumn, int EndColumn);
-
-    /// <summary>
-    /// Utility helpers shared by DocUI Find/Replace components.
-    /// </summary>
-    public static class FindUtilities
+    private static bool ShouldUseSelection(Selection selection, SelectionSeedMode seedMode)
     {
-        private const int SearchStringMaxLength = 524_288;
-        private const string DefaultWordSeparators = "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?";
-
-        /// <summary>
-        /// Derives the search string based on the current selection and word-under-cursor semantics.
-        /// TS parity of getSelectionSearchString() used by CommonFindController.
-        /// </summary>
-        public static string? GetSelectionSearchString(
-            IEditorSelectionContext context,
-            SelectionSeedMode seedMode = SelectionSeedMode.Single,
-            bool seedFromNonEmptySelection = false)
+        return seedMode switch
         {
-            if (context == null)
-            {
-                throw new ArgumentNullException(nameof(context));
-            }
+            SelectionSeedMode.None => false,
+            SelectionSeedMode.Single => selection.SelectionStart.LineNumber == selection.SelectionEnd.LineNumber,
+            SelectionSeedMode.Multiple => true,
+            _ => false
+        };
+    }
 
-            var selection = context.Selection;
-            if (!ShouldUseSelection(selection, seedMode))
-            {
-                return null;
-            }
-
-            if (selection.IsEmpty)
-            {
-                if (seedFromNonEmptySelection)
-                {
-                    return null;
-                }
-
-                var word = GetWordAtPosition(context);
-                return word?.Word;
-            }
-
-            var range = new Range(selection.SelectionStart, selection.SelectionEnd);
-            var model = context.Model;
-            var startOffset = model.GetOffsetAt(range.Start);
-            var endOffset = model.GetOffsetAt(range.End);
-
-            if (endOffset - startOffset >= SearchStringMaxLength)
-            {
-                return null;
-            }
-
-            return model.GetValueInRange(range);
+    private static bool TryGetWordBounds(string text, int initialIndex, WordCharacterClassifier classifier, out int wordStart, out int wordEnd)
+    {
+        wordStart = 0;
+        wordEnd = 0;
+        if (text.Length == 0 || initialIndex < 0 || initialIndex >= text.Length)
+        {
+            return false;
         }
 
-        /// <summary>
-        /// Attempts to locate the word that contains or neighbors the caret position.
-        /// Returns null when the caret is on whitespace or separators.
-        /// </summary>
-        public static WordAtPosition? GetWordAtPosition(IEditorSelectionContext context)
+        if (!UnicodeUtility.TryGetCodePointAt(text, initialIndex, out int codePoint, out int codeUnitLength) || !IsWordCharacter(codePoint, classifier))
         {
-            if (context == null)
-            {
-                throw new ArgumentNullException(nameof(context));
-            }
-
-            var position = context.Selection.SelectionStart;
-            var lineText = context.Model.GetLineContent(position.LineNumber) ?? string.Empty;
-            if (lineText.Length == 0)
-            {
-                return null;
-            }
-
-            var separators = context.WordSeparators ?? DefaultWordSeparators;
-            var classifier = WordCharacterClassifierCache.Get(separators);
-
-            var caretIndex = Math.Clamp(position.Column - 1, 0, lineText.Length);
-            var probeIndex = caretIndex;
-            if (probeIndex == lineText.Length && probeIndex > 0)
-            {
-                if (!UnicodeUtility.TryGetPreviousCodePoint(lineText, probeIndex, out _, out var prevLength))
-                {
-                    return null;
-                }
-
-                probeIndex -= prevLength;
-            }
-
-            if (!TryGetWordBounds(lineText, probeIndex, classifier, out var wordStart, out var wordEnd))
-            {
-                return null;
-            }
-
-            var word = lineText.Substring(wordStart, wordEnd - wordStart);
-            return new WordAtPosition(word, wordStart + 1, wordEnd + 1);
-        }
-
-        private static bool ShouldUseSelection(Selection selection, SelectionSeedMode seedMode)
-        {
-            return seedMode switch
-            {
-                SelectionSeedMode.None => false,
-                SelectionSeedMode.Single => selection.SelectionStart.LineNumber == selection.SelectionEnd.LineNumber,
-                SelectionSeedMode.Multiple => true,
-                _ => false
-            };
-        }
-
-        private static bool TryGetWordBounds(string text, int initialIndex, WordCharacterClassifier classifier, out int wordStart, out int wordEnd)
-        {
-            wordStart = 0;
-            wordEnd = 0;
-            if (text.Length == 0 || initialIndex < 0 || initialIndex >= text.Length)
+            if (!UnicodeUtility.TryGetPreviousCodePoint(text, initialIndex, out codePoint, out codeUnitLength) || !IsWordCharacter(codePoint, classifier))
             {
                 return false;
             }
 
-            if (!UnicodeUtility.TryGetCodePointAt(text, initialIndex, out var codePoint, out var codeUnitLength) || !IsWordCharacter(codePoint, classifier))
-            {
-                if (!UnicodeUtility.TryGetPreviousCodePoint(text, initialIndex, out codePoint, out codeUnitLength) || !IsWordCharacter(codePoint, classifier))
-                {
-                    return false;
-                }
-
-                initialIndex -= codeUnitLength;
-            }
-
-            wordStart = initialIndex;
-            wordEnd = initialIndex + codeUnitLength;
-
-            while (wordStart > 0 && UnicodeUtility.TryGetPreviousCodePoint(text, wordStart, out var prevCodePoint, out var prevLength) && IsWordCharacter(prevCodePoint, classifier))
-            {
-                wordStart -= prevLength;
-            }
-
-            while (wordEnd < text.Length && UnicodeUtility.TryGetCodePointAt(text, wordEnd, out var nextCodePoint, out var nextLength) && IsWordCharacter(nextCodePoint, classifier))
-            {
-                wordEnd += nextLength;
-            }
-
-            return true;
+            initialIndex -= codeUnitLength;
         }
 
-        private static bool IsWordCharacter(int codePoint, WordCharacterClassifier classifier)
+        wordStart = initialIndex;
+        wordEnd = initialIndex + codeUnitLength;
+
+        while (wordStart > 0 && UnicodeUtility.TryGetPreviousCodePoint(text, wordStart, out int prevCodePoint, out int prevLength) && IsWordCharacter(prevCodePoint, classifier))
         {
-            return classifier.GetClass(codePoint) == WordCharacterClass.Regular;
+            wordStart -= prevLength;
         }
+
+        while (wordEnd < text.Length && UnicodeUtility.TryGetCodePointAt(text, wordEnd, out int nextCodePoint, out int nextLength) && IsWordCharacter(nextCodePoint, classifier))
+        {
+            wordEnd += nextLength;
+        }
+
+        return true;
+    }
+
+    private static bool IsWordCharacter(int codePoint, WordCharacterClassifier classifier)
+    {
+        return classifier.GetClass(codePoint) == WordCharacterClass.Regular;
     }
 }

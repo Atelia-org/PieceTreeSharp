@@ -45,13 +45,13 @@ internal sealed class DecorationsTrees
 
     public IReadOnlyList<ModelDecoration> Search(TextRange range, int ownerFilter = DecorationOwnerIds.Any, DecorationTreeScope scope = DecorationTreeScope.All)
     {
-        var regular = scope.HasFlag(DecorationTreeScope.Regular)
+        IReadOnlyList<ModelDecoration> regular = scope.HasFlag(DecorationTreeScope.Regular)
             ? _regular.Search(range, ownerFilter)
             : Empty;
-        var overview = scope.HasFlag(DecorationTreeScope.Overview)
+        IReadOnlyList<ModelDecoration> overview = scope.HasFlag(DecorationTreeScope.Overview)
             ? _overview.Search(range, ownerFilter)
             : Empty;
-        var injected = scope.HasFlag(DecorationTreeScope.InjectedText)
+        IReadOnlyList<ModelDecoration> injected = scope.HasFlag(DecorationTreeScope.InjectedText)
             ? _injected.Search(range, ownerFilter)
             : Empty;
 
@@ -60,17 +60,17 @@ internal sealed class DecorationsTrees
 
     public IEnumerable<ModelDecoration> EnumerateAll()
     {
-        foreach (var decoration in _regular.EnumerateAll())
+        foreach (ModelDecoration decoration in _regular.EnumerateAll())
         {
             yield return decoration;
         }
 
-        foreach (var decoration in _overview.EnumerateAll())
+        foreach (ModelDecoration decoration in _overview.EnumerateAll())
         {
             yield return decoration;
         }
 
-        foreach (var decoration in _injected.EnumerateAll())
+        foreach (ModelDecoration decoration in _injected.EnumerateAll())
         {
             yield return decoration;
         }
@@ -78,17 +78,17 @@ internal sealed class DecorationsTrees
 
     public IEnumerable<ModelDecoration> EnumerateFrom(int offset)
     {
-        foreach (var decoration in _regular.EnumerateFrom(offset))
+        foreach (ModelDecoration decoration in _regular.EnumerateFrom(offset))
         {
             yield return decoration;
         }
 
-        foreach (var decoration in _overview.EnumerateFrom(offset))
+        foreach (ModelDecoration decoration in _overview.EnumerateFrom(offset))
         {
             yield return decoration;
         }
 
-        foreach (var decoration in _injected.EnumerateFrom(offset))
+        foreach (ModelDecoration decoration in _injected.EnumerateFrom(offset))
         {
             yield return decoration;
         }
@@ -111,7 +111,7 @@ internal sealed class DecorationsTrees
 
     private static IReadOnlyList<ModelDecoration> MergeOrdered(params IReadOnlyList<ModelDecoration>[] sources)
     {
-        var nonEmpty = sources.Where(static list => list.Count > 0).ToArray();
+        IReadOnlyList<ModelDecoration>[] nonEmpty = sources.Where(static list => list.Count > 0).ToArray();
         if (nonEmpty.Length == 0)
         {
             return Empty;
@@ -122,24 +122,24 @@ internal sealed class DecorationsTrees
             return nonEmpty[0];
         }
 
-        var indices = new int[nonEmpty.Length];
-        var comparer = DecorationComparer.Instance;
-        var total = nonEmpty.Sum(static list => list.Count);
-        var merged = new List<ModelDecoration>(total);
+        int[] indices = new int[nonEmpty.Length];
+        DecorationComparer comparer = DecorationComparer.Instance;
+        int total = nonEmpty.Sum(static list => list.Count);
+        List<ModelDecoration> merged = new(total);
 
         while (true)
         {
-            var nextIndex = -1;
+            int nextIndex = -1;
             ModelDecoration? candidate = null;
             for (int i = 0; i < nonEmpty.Length; i++)
             {
-                var idx = indices[i];
+                int idx = indices[i];
                 if (idx >= nonEmpty[i].Count)
                 {
                     continue;
                 }
 
-                var current = nonEmpty[i][idx];
+                ModelDecoration current = nonEmpty[i][idx];
                 if (candidate is null || comparer.Compare(current, candidate) < 0)
                 {
                     candidate = current;
@@ -180,7 +180,7 @@ internal sealed class DecorationsTrees
                 return 1;
             }
 
-            var cmp = x.Range.StartOffset.CompareTo(y.Range.StartOffset);
+            int cmp = x.Range.StartOffset.CompareTo(y.Range.StartOffset);
             if (cmp != 0)
             {
                 return cmp;
