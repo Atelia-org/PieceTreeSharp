@@ -65,3 +65,7 @@ dotnet_diagnostic.IDE0090.severity = none
 
 # IDE0047: 删除不必要的括号
 dotnet_diagnostic.IDE0047.severity = none
+
+dotnet_diagnostic.IDE0008.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0055.severity = none

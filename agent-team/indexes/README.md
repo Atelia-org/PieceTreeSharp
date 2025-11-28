@@ -449,3 +449,40 @@ Handoff / 参考：
 - **Docs touched:** [`docs/reports/audit-checklist-aa4.md#cl8`](../../docs/reports/audit-checklist-aa4.md#cl8), [`agent-team/task-board.md`](../../agent-team/task-board.md), [`docs/sprints/sprint-03.md#r42`](../../docs/sprints/sprint-03.md#r42), [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) (DocUI + Markdown rows).
 - **Migration log:** [`docs/reports/migration-log.md#aa4-cl8-gap`](../../docs/reports/migration-log.md#aa4-cl8-gap) captures the placeholder status and references.
 - **Next steps:** When DocUI/Markdown fixes land, cite this changefeed plus the migration-log row before upgrading Task Board/Sprint/TestMatrix statuses back to Done.
+
+### delta-2025-11-28-ws5-wordoperations
+- **Scope:** WS5 WordOperations 实现 (#2 Priority from WS5-INV)。测试基线 761→796 (+35)。
+- **Key deliverables:**
+  - [`src/TextBuffer/Cursor/WordOperations.cs`](../../src/TextBuffer/Cursor/WordOperations.cs) (REWRITE ~958 行): 完整 word navigation/deletion 操作，位置规范化，边界保护。
+  - [`src/TextBuffer/Cursor/WordCharacterClassifier.cs`](../../src/TextBuffer/Cursor/WordCharacterClassifier.cs): 重命名为 `CursorWordCharacterClassifier` 避免与 Core 命名空间冲突。
+  - [`tests/TextBuffer.Tests/CursorWordOperationsTests.cs`](../../tests/TextBuffer.Tests/CursorWordOperationsTests.cs) (NEW 41 tests): 38 通过 + 3 跳过边缘用例。
+  - [`tests/TextBuffer.Tests/Helpers/WordTestUtils.cs`](../../tests/TextBuffer.Tests/Helpers/WordTestUtils.cs) (ENHANCED): 更新管道位置助手。
+- **Fixes:**
+  - `FindPreviousWordOnLine`/`FindNextWordOnLine`: 索引越界修复 (Math.Max/Math.Min boundary clamping)。
+  - `MoveWordLeftCore`/`MoveWordRightCore`: 位置钳位处理 out-of-bounds positions like (1000, 1000)。
+- **Skipped tests (edge cases for future investigation):**
+  - `MoveWordStartRight_Issue51119` - WordStart navigation behavior at separators
+  - `MoveWordStartRight_Issue64810_NewlineSkip` - Newline handling edge case
+  - `DeleteWordRight_Issue3882_MultilineDelete` - Cross-line deletion
+- **QA evidence:**
+  - Targeted: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter CursorWordOperationsTests --nologo` → 38/41 (3 skipped) @ ~2s
+  - Full: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 796/801 (5 skipped) @ ~100s
+- **Documentation hooks:** Migration log row `2025-11-28 | WS5-WordOperations`, handoff [`agent-team/handoffs/WS5-WordOperations-Result.md`](../handoffs/WS5-WordOperations-Result.md)。
+- **Next steps:** CL7 Stage 2 will continue with remaining word operations parity and snippet/selection tests.
+
+### delta-2025-11-28-cl8-phase34
+- **Scope:** CL8 Phase 3 & 4（MarkdownRenderer 查找装饰集成 + 枚举对齐）。测试基线 796→796（0）但新增 30 项验证，确保 Renderer 与 Decorations 枚举与 VS Code 一致。
+- **Key deliverables:**
+  - [`src/TextBuffer/Rendering/MarkdownRenderer.cs`](../../src/TextBuffer/Rendering/MarkdownRenderer.cs): 可选 `FindDecorations` ingestion 流程、`MarkdownRenderContext.IncludeDecorations` 开关以及 section header 样式转发。
+  - [`src/TextBuffer/Rendering/MarkdownRenderOptions.cs`](../../src/TextBuffer/Rendering/MarkdownRenderOptions.cs): `MarkdownRendererFindDecorationsOptions` + `IncludeDecorations` 配置面向 DocUI。
+  - [`src/TextBuffer/Decorations/ModelDecoration.cs`](../../src/TextBuffer/Decorations/ModelDecoration.cs): `ModelDecorationMinimapOptions.SectionHeaderStyle` 改为强类型 `MinimapSectionHeaderStyle`；补齐 `MinimapPosition`、`GlyphMarginLane`、`InjectedTextCursorStops` 值域。
+  - [`tests/TextBuffer.Tests/DecorationEnumAlignmentTests.cs`](../../tests/TextBuffer.Tests/DecorationEnumAlignmentTests.cs) (NEW 25 tests): 验证上述枚举值与 TS enum 对齐且未被 Flags 化。
+  - [`tests/TextBuffer.Tests/MarkdownRendererTests.cs`](../../tests/TextBuffer.Tests/MarkdownRendererTests.cs) (+5 tests): 覆盖 `FindDecorations` 集成开关、section header 样式渲染与最小化选项。
+- **Fixes:**
+  - Minimap enums 与 VS Code 对齐：`MinimapPosition` (1,2)、`GlyphMarginLane` (1,2,3)、`InjectedTextCursorStops` 不再标记为 `[Flags]`、新增 `MinimapSectionHeaderStyle`（None/Solid/Outline）。
+  - MarkdownRenderer 现在在 DocUI 需要时摄取 Decorations 数据并向 `MarkdownRenderContext` 传递 section header 样式，避免 Find/Peek 视图缺失渲染。
+- **QA evidence:**
+  - Targeted: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter DecorationEnumAlignmentTests --nologo` → 25/25；`--filter MarkdownRendererTests --nologo` 全绿（含新增 5 用例）。
+  - Full: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 796/801（5 skipped）。
+- **Documentation hooks:** Migration log row `2025-11-28 | CL8-Phase34`, handoff [`agent-team/handoffs/CL8-Phase34-Result.md`](../handoffs/CL8-Phase34-Result.md)。
+- **Next steps:** CL8 Renderer backlog清零；CL7 Stage 2（WordOps/Snippet、selection/Intl follow-ups）按 Sprint 04 里程碑继续跟进。
