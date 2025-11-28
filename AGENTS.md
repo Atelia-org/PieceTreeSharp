@@ -1,5 +1,13 @@
 ## 跨会话记忆文档
-本文档(`./AGENTS.md`)会伴随每个 user 消消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。请及时维护你的外部记忆文件，对齐你的关键认知和后续思路。
+本文档(`./AGENTS.md`)会伴随每个 user 消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。
+
+## Team Leader 认知入口
+新会话唤醒时，按以下顺序读取认知文件：
+1. **[`agent-team/lead-metacognition.md`](agent-team/lead-metacognition.md)** — 元认知与方法论（我是谁、如何工作、如何成长）
+2. **[`agent-team/status.md`](agent-team/status.md)** — 项目当前状态快照（测试基线、里程碑进度、活跃 changefeed）
+3. **[`agent-team/todo.md`](agent-team/todo.md)** — 待办任务树（层次化目标拆分，完成即删除）
+
+详细追踪仍在 Task Board / Sprint / Migration Log，但上述三个文件是**认知恢复的第一优先级**。
 
 ## 已知的工具问题
 - 需要要删除请用改名替代，因为环境会拦截删除文件操作。

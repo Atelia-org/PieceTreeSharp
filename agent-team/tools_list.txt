@@ -1,0 +1,39 @@
+create_directory: Create a new directory structure in the workspace. Will recursively create all directories in the path, like mkdir -p.
+create_file: This is a tool for creating a new file in the workspace. The file will be created with the specified content. The directory will be created if it does not already exist.
+fetch_webpage: Fetches the main content from a web page. This tool is useful for summarizing or analyzing the content of a webpage.
+file_search: Search for files in the workspace by glob pattern. This only returns the paths of matching files.
+grep_search: Do a fast text search in the workspace. Use this tool when you want to search with an exact string or regex.
+get_changed_files: Get git diffs of current file changes in a git repository.
+get_errors: Get any compile or lint errors in a specific file or across all files.
+get_search_view_results: The results from the search view
+get_vscode_api: Get comprehensive VS Code API documentation and references for extension development.
+github_repo: Searches a GitHub repository for relevant source code snippets.
+list_code_usages: Request to list all usages (references, definitions, implementations etc) of a function, class, method, variable etc.
+list_dir: List the contents of a directory. Result will have the name of the child. If the name ends in /, it's a folder, otherwise a file
+read_file: Read the contents of a file. Line numbers are 1-indexed.
+replace_string_in_file: This is a tool for making edits in an existing file in the workspace.
+semantic_search: Run a natural language search for relevant code or documentation comments from the user's current workspace.
+test_failure: Includes test failure information in the prompt.
+vscode_searchExtensions_internal: 此工具用于浏览 Visual Studio Code 扩展市场。借助此工具，模型可以搜索扩展并检索有关它们的详细信息。
+configure_python_environment: This tool configures a Python environment in the given workspace.
+create_and_run_task: 通过根据项目结构生成或添加到 tasks.json 文件(例如 package.json 或 README.md)，为工作区创建和运行构建、运行或自定义任务。
+evaluateExpressionInDebugSession: Evaluate an expression in a specific debug session
+get_python_environment_details: This tool will retrieve the details of the Python Environment for the specified file or workspace.
+get_python_executable_details: This tool will retrieve the details of the Python Environment for the specified file or workspace.
+get_terminal_output: Get the output of a terminal command previously started with run_in_terminal
+github-pull-request_activePullRequest: Get comprehensive information about the active GitHub pull request (PR).
+github-pull-request_copilot-coding-agent: Completes the provided task using an asynchronous coding agent.
+github-pull-request_doSearch: Execute a GitHub search given a well formed GitHub search query.
+github-pull-request_formSearchQuery: Converts natural language to a GitHub search query.
+github-pull-request_issue_fetch: Get a GitHub issue/PR's details as a JSON object.
+github-pull-request_openPullRequest: Get comprehensive information about the GitHub pull request (PR) which is currently visible, but not necessarily checked out.
+github-pull-request_renderIssues: Render issue items from an issue search in a markdown table.
+github-pull-request_suggest-fix: Summarize and suggest a fix for a GitHub issue.
+install_python_packages: Installs Python packages in the given workspace.
+listDebugSessions: List all active debug sessions with their IDs, names, and expression language IDs
+run_in_terminal: This tool allows you to execute shell commands in a persistent bash terminal session, preserving environment variables, working directory, and other context across multiple commands.
+runSubagent: Launch a new agent to handle complex, multi-step tasks autonomously.
+runTests: Runs unit tests in files.
+terminal_last_command: Get the last command run in the active terminal.
+terminal_selection: Get the current selection in the active terminal.
+vscode-websearchforcopilot_webSearch: 在 Web 上搜索相关最新信息
