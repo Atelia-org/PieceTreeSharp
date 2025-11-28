@@ -115,6 +115,12 @@ public class FindDecorations : IDisposable
         _startPosition = new TextPosition(1, 1);
     }
 
+    /// <summary>
+    /// Owner identifier used when registering decorations on the model.
+    /// Exposed so renderers can respect owner-based filtering.
+    /// </summary>
+    public int OwnerId => _ownerId;
+
     public int GetCount()
     {
         return _decorationIds.Count;

@@ -329,7 +329,7 @@ Hello <World>
         Assert.Contains("{line-number:line-number-add}", output);
         Assert.Contains("{inline:inline-add}", output);
         Assert.Contains("{decor:diff-add}", output);
-        Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
+        Assert.Contains("{minimap:gutter:#00ff00#Add!underlined}", output);
         Assert.Contains("{overview:right:#00ff00}", output);
         Assert.Contains("{font:family=Fira Code,style=italic}", output);
         Assert.Contains("{line-height:24}", output);
@@ -382,7 +382,7 @@ Hello <World>
         });
 
         Assert.DoesNotContain("{overview:right:#00ff00}", output);
-        Assert.Contains("{minimap:gutter:#00ff00#Add!solid}", output);
+        Assert.Contains("{minimap:gutter:#00ff00#Add!underlined}", output);
     }
 
     [Fact]
@@ -397,7 +397,7 @@ Hello <World>
             IncludeMinimapAnnotations = false,
         });
 
-        Assert.DoesNotContain("{minimap:gutter:#00ff00#Add!solid}", output);
+        Assert.DoesNotContain("{minimap:gutter:#00ff00#Add!underlined}", output);
         Assert.Contains("{overview:right:#00ff00}", output);
     }
 
@@ -426,7 +426,7 @@ Hello <World>
                 Color = "#00ff00",
                 Position = MinimapPosition.Gutter,
                 SectionHeaderText = "Add",
-                SectionHeaderStyle = "solid",
+                SectionHeaderStyle = MinimapSectionHeaderStyle.Underlined,
             },
             InlineClassName = "inline-add",
             LineHeight = 24,
@@ -502,4 +502,183 @@ three
 ```";
         Assert.Equal(expected, output.Trim());
     }
+    
+    #region Phase 3: FindDecorations Integration Tests
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_UsesCachedMatches()
+    {
+        // Arrange
+        TextModel model = new("hello world, hello there");
+        MarkdownRenderer renderer = new();
+        
+        // Create FindDecorations and set matches
+        using var findDecorations = new PieceTree.TextBuffer.DocUI.FindDecorations(model);
+        PieceTree.TextBuffer.Core.FindMatch[] matches =
+        [
+            new(new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6), null),  // "hello" at start
+            new(new PieceTree.TextBuffer.Core.Range(1, 14, 1, 19), null), // "hello" second occurrence
+        ];
+        findDecorations.Set(matches, null);
+        
+        // Act
+        string output = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = findDecorations,
+            UseDirectFindDecorations = true,
+        });
+        
+        // Assert - should have search markers from FindDecorations
+        Assert.Contains("<", output);
+        Assert.Contains(">", output);
+    }
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_CurrentMatchHighlight()
+    {
+        // Arrange
+        TextModel model = new("hello world, hello there");
+        MarkdownRenderer renderer = new();
+        
+        using var findDecorations = new PieceTree.TextBuffer.DocUI.FindDecorations(model);
+        PieceTree.TextBuffer.Core.FindMatch[] matches =
+        [
+            new(new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6), null),
+            new(new PieceTree.TextBuffer.Core.Range(1, 14, 1, 19), null),
+        ];
+        findDecorations.Set(matches, null);
+        
+        // Set current match to first occurrence
+        var currentMatch = new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6);
+        findDecorations.SetCurrentMatch(currentMatch);
+        
+        // Act
+        string output = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = findDecorations,
+            UseDirectFindDecorations = true,
+        });
+        
+        // Assert - when FindDecorations provides cached data, search markers are added
+        // The model also renders its decorations, so we see both
+        Assert.Contains("<", output);  // Search marker from FindDecorations cache
+        Assert.Contains(">", output);  // Search marker from FindDecorations cache
+        Assert.Contains("hello", output);
+    }
+    
+    [Fact]
+    public void TestRender_WithoutFindDecorations_QueriesModelDirectly()
+    {
+        // Arrange
+        TextModel model = new("test content");
+        MarkdownRenderer renderer = new();
+        
+        // Add a search decoration directly to model
+        model.AddDecoration(new TextRange(0, 4), ModelDecorationOptions.CreateSearchMatchOptions());
+        
+        // Act - render without FindDecorations
+        string output = renderer.Render(model);
+        
+        // Assert - should still show search markers from model
+        Assert.Contains("<test>", output);
+    }
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_Disabled()
+    {
+        // Arrange
+        TextModel model = new("hello world");
+        MarkdownRenderer renderer = new();
+        
+        using var findDecorations = new PieceTree.TextBuffer.DocUI.FindDecorations(model);
+        PieceTree.TextBuffer.Core.FindMatch[] matches =
+        [
+            new(new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6), null),
+        ];
+        findDecorations.Set(matches, null);
+        
+        // Act - render with FindDecorations but disabled
+        // When disabled, we rely on model's decorations only
+        string output = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = findDecorations,
+            UseDirectFindDecorations = false,
+        });
+        
+        // Assert - model decorations still render as search markers
+        // even when the cached path is disabled
+        Assert.Contains("<hello>", output);
+        Assert.DoesNotContain("[hello]", output);
+    }
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_BackwardCompatibility()
+    {
+        // Test that rendering works the same way when FindDecorations is null
+        TextModel model = new("hello world");
+        MarkdownRenderer renderer = new();
+        
+        // Add search decoration directly
+        model.AddDecoration(new TextRange(0, 5), ModelDecorationOptions.CreateSearchMatchOptions());
+        
+        // Render with null FindDecorations (backward compatible path)
+        string outputWithNull = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = null,
+        });
+        
+        // Render without options at all
+        string outputWithoutOptions = renderer.Render(model);
+        
+        // Both should produce same output
+        Assert.Equal(outputWithoutOptions, outputWithNull);
+    }
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_SuppressesSelectionMarkers()
+    {
+        TextModel model = new("hello world, hello again");
+        MarkdownRenderer renderer = new();
+        using var findDecorations = new PieceTree.TextBuffer.DocUI.FindDecorations(model);
+        PieceTree.TextBuffer.Core.FindMatch[] matches =
+        [
+            new(new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6), null),
+            new(new PieceTree.TextBuffer.Core.Range(1, 14, 1, 19), null),
+        ];
+        findDecorations.Set(matches, null);
+        findDecorations.SetCurrentMatch(matches[0].Range);
+        
+        string output = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = findDecorations,
+            UseDirectFindDecorations = true,
+        });
+        
+        Assert.Contains("<hello", output);
+        Assert.DoesNotContain("[hello", output);
+    }
+    
+    [Fact]
+    public void TestRender_WithFindDecorations_RespectsOwnerFilterPredicate()
+    {
+        TextModel model = new("hello world");
+        MarkdownRenderer renderer = new();
+        using var findDecorations = new PieceTree.TextBuffer.DocUI.FindDecorations(model);
+        PieceTree.TextBuffer.Core.FindMatch[] matches =
+        [
+            new(new PieceTree.TextBuffer.Core.Range(1, 1, 1, 6), null),
+        ];
+        findDecorations.Set(matches, null);
+        
+        string filtered = renderer.Render(model, new MarkdownRenderOptions
+        {
+            FindDecorations = findDecorations,
+            UseDirectFindDecorations = true,
+            OwnerFilterPredicate = ownerId => ownerId != findDecorations.OwnerId,
+        });
+        
+        Assert.DoesNotContain("<hello", filtered);
+    }
+    
+    #endregion
 }

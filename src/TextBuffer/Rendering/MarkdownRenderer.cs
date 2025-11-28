@@ -1,5 +1,9 @@
+using System;
 using System.Text;
+using PieceTree.TextBuffer.Core;
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.DocUI;
+using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Rendering;
 
@@ -12,6 +16,8 @@ public class MarkdownRenderer
     private const int GenericPriority = 0;
     private const string FindMatchOnlyOverviewDescription = "find-match-only-overview";
     private const string FindScopeDescription = "find-scope";
+    private const string FindMatchDescription = "find-match";
+    private const string CurrentFindMatchDescription = "current-find-match";
 
     private readonly record struct InlineMarker(int Column, string Text, int Priority, int ZIndex);
 
@@ -21,6 +27,24 @@ public class MarkdownRenderer
         OwnerFilter ownerFilter = new(options);
         int ownerQuery = ownerFilter.QueryableOwnerId;
         bool includeInjectedText = options?.IncludeInjectedText ?? true;
+        
+        // Phase 3: FindDecorations integration
+        FindDecorations? findDecorations = options?.FindDecorations;
+        bool useDirect = options?.UseDirectFindDecorations ?? true;
+        Range[] cachedMatchRanges = Array.Empty<Range>();
+        Range? currentMatchRange = null;
+        bool renderFindDecorationsFromCache = false;
+        
+        if (useDirect && findDecorations != null && ownerFilter.Allows(findDecorations.OwnerId))
+        {
+            cachedMatchRanges = findDecorations.GetAllMatchRanges();
+            currentMatchRange = findDecorations.GetCurrentMatchRange();
+            renderFindDecorationsFromCache = true;
+        }
+        
+        bool suppressFindMatchInlineMarkers = renderFindDecorationsFromCache;
+        bool renderFindCacheMarkers = renderFindDecorationsFromCache && cachedMatchRanges.Length > 0;
+        
         StringBuilder sb = new();
         sb.AppendLine("```text");
 
@@ -41,7 +65,13 @@ public class MarkdownRenderer
                     continue;
                 }
 
-                AppendDecorationMarkers(model, decoration, lineNumber, markers, annotations);
+                AppendDecorationMarkers(model, decoration, lineNumber, markers, annotations, suppressFindMatchInlineMarkers);
+            }
+            
+            // Phase 3: When FindDecorations is provided, add cached match markers
+            if (renderFindCacheMarkers)
+            {
+                AppendFindDecorationsMarkers(cachedMatchRanges, currentMatchRange, lineNumber, markers);
             }
 
             if (includeInjectedText)
@@ -70,6 +100,38 @@ public class MarkdownRenderer
 
         sb.Append("```");
         return sb.ToString();
+    }
+    
+    /// <summary>
+    /// Appends find decoration markers from cached FindDecorations data.
+    /// This provides an optimized path when FindDecorations is available.
+    /// </summary>
+    private static void AppendFindDecorationsMarkers(
+        Range[] matchRanges,
+        Range? currentMatchRange,
+        int lineNumber,
+        List<InlineMarker> markers)
+    {
+        foreach (Range range in matchRanges)
+        {
+            if (range.StartLineNumber > lineNumber || range.EndLineNumber < lineNumber)
+            {
+                continue;
+            }
+            
+            bool isCurrent = currentMatchRange.HasValue && range.Equals(currentMatchRange.Value);
+            int zIndex = isCurrent ? 13 : 10;
+            
+            if (range.StartLineNumber == lineNumber)
+            {
+                markers.Add(new InlineMarker(range.StartColumn - 1, "<", SearchPriority, zIndex));
+            }
+            
+            if (range.EndLineNumber == lineNumber)
+            {
+                markers.Add(new InlineMarker(Math.Max(0, range.EndColumn - 1), ">", SearchPriority, zIndex));
+            }
+        }
     }
 
     private static TextRange GetLineRange(TextModel model, int lineNumber, int lineCount)
@@ -107,7 +169,8 @@ public class MarkdownRenderer
         ModelDecoration decoration,
         int lineNumber,
         List<InlineMarker> markers,
-        LineAnnotationBuilder annotations)
+        LineAnnotationBuilder annotations,
+        bool skipFindMatchSelectionMarkers)
     {
         ModelDecorationOptions options = decoration.Options;
         DecorationRenderKind renderKind = options.RenderKind;
@@ -118,8 +181,10 @@ public class MarkdownRenderer
         }
 
         bool shouldRenderInline = ShouldRenderInlineMarkers(options);
+        bool isFindMatchDecoration = IsFindMatchDecoration(options);
+        bool suppressInlineForFindMatch = skipFindMatchSelectionMarkers && isFindMatchDecoration;
 
-        if (shouldRenderInline)
+        if (shouldRenderInline && !suppressInlineForFindMatch)
         {
             TextPosition startPosition = model.GetPositionAt(decoration.Range.StartOffset);
             TextPosition endPosition = model.GetPositionAt(decoration.Range.EndOffset);
@@ -135,6 +200,10 @@ public class MarkdownRenderer
                     }
                     break;
                 case DecorationRenderKind.Selection:
+                    if (isFindMatchDecoration)
+                    {
+                        goto case DecorationRenderKind.SearchMatch;
+                    }
                     if (startLine == lineNumber)
                     {
                         markers.Add(new InlineMarker(startPosition.Column - 1, "[", SelectionPriority, options.ZIndex));
@@ -238,6 +307,17 @@ public class MarkdownRenderer
         }
 
         return "decor";
+    }
+
+    private static bool IsFindMatchDecoration(ModelDecorationOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.Description))
+        {
+            return false;
+        }
+
+        return string.Equals(options.Description, FindMatchDescription, StringComparison.Ordinal)
+            || string.Equals(options.Description, CurrentFindMatchDescription, StringComparison.Ordinal);
     }
 
     private sealed class OwnerFilter
@@ -480,9 +560,9 @@ public class MarkdownRenderer
             string header = string.IsNullOrWhiteSpace(minimap.SectionHeaderText)
                 ? string.Empty
                 : $"#{minimap.SectionHeaderText}";
-            string style = string.IsNullOrWhiteSpace(minimap.SectionHeaderStyle)
-                ? string.Empty
-                : $"!{minimap.SectionHeaderStyle}";
+            string style = minimap.SectionHeaderStyle.HasValue
+                ? $"!{minimap.SectionHeaderStyle.Value.ToString().ToLowerInvariant()}"
+                : string.Empty;
             _annotations.Add($"minimap:{position}:{color}{header}{style}");
         }
 

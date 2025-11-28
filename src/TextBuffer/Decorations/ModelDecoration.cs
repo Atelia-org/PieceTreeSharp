@@ -34,17 +34,25 @@ public enum OverviewRulerLane
     Full = Left | Center | Right,
 }
 
+/// <summary>
+/// Position in the minimap to render the decoration.
+/// Values match TS MinimapPosition enum.
+/// </summary>
 public enum MinimapPosition
 {
-    Inline = 0,
-    Gutter = 1,
+    Inline = 1,
+    Gutter = 2,
 }
 
+/// <summary>
+/// Vertical Lane in the glyph margin of the editor.
+/// Values match TS GlyphMarginLane enum.
+/// </summary>
 public enum GlyphMarginLane
 {
-    Left = 0,
-    Center = 1,
-    Right = 2,
+    Left = 1,
+    Center = 2,
+    Right = 3,
 }
 
 public enum TextDirection
@@ -53,13 +61,27 @@ public enum TextDirection
     Rtl = 1,
 }
 
-[Flags]
+/// <summary>
+/// Configures cursor stops around injected text.
+/// Non-flags enum to match TS InjectedTextCursorStops.
+/// Values: Both=0, Right=1, Left=2, None=3
+/// </summary>
 public enum InjectedTextCursorStops
 {
-    None = 0,
-    Before = 1,
-    After = 2,
-    Both = Before | After,
+    Both = 0,
+    Right = 1,
+    Left = 2,
+    None = 3,
+}
+
+/// <summary>
+/// Section header style for minimap decorations.
+/// Values match TS MinimapSectionHeaderStyle enum.
+/// </summary>
+public enum MinimapSectionHeaderStyle
+{
+    Normal = 1,
+    Underlined = 2,
 }
 
 public enum DecorationRenderKind
@@ -88,7 +110,7 @@ public sealed record class ModelDecorationMinimapOptions
     public string? Color { get; init; }
     public string? DarkColor { get; init; }
     public MinimapPosition Position { get; init; } = MinimapPosition.Inline;
-    public string? SectionHeaderStyle { get; init; }
+    public MinimapSectionHeaderStyle? SectionHeaderStyle { get; init; }
     public string? SectionHeaderText { get; init; }
 }
 

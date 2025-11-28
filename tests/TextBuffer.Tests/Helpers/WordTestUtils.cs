@@ -367,46 +367,38 @@ public static class WordTestUtils
         List<TextPosition> positions = [];
         StringBuilder sb = new();
         int line = 1;
-        int column = 1;
-        int index = 0;
+        int charIndex = 0;
 
-        while (index < markedText.Length)
+        for (int i = 0; i < markedText.Length; i++)
         {
-            char c = markedText[index];
-
-            if (c == '|')
-            {
-                positions.Add(new TextPosition(line, column));
-                index++;
-                continue;
-            }
-
-            if (c == '\r' && index + 1 < markedText.Length && markedText[index + 1] == '\n')
+            char chr = markedText[i];
+            if (chr == '\r')
             {
                 sb.Append('\r');
-                sb.Append('\n');
-                index += 2;
+                if (i + 1 < markedText.Length && markedText[i + 1] == '\n')
+                {
+                    sb.Append('\n');
+                    i++;
+                }
                 line++;
-                column = 1;
+                charIndex = 0;
                 continue;
             }
-
-            sb.Append(c);
-            index++;
-
-            if (c == '\n')
+            if (chr == '\n')
             {
+                sb.Append(chr);
                 line++;
-                column = 1;
+                charIndex = 0;
+                continue;
             }
-            else if (c == '\r')
+            if (chr == '|')
             {
-                line++;
-                column = 1;
+                positions.Add(new TextPosition(line, charIndex + 1));
             }
             else
             {
-                column++;
+                sb.Append(chr);
+                charIndex++;
             }
         }
 
@@ -420,38 +412,38 @@ public static class WordTestUtils
     public static string SerializePipePositions(string text, IEnumerable<TextPosition> positions)
     {
         text ??= string.Empty;
-        IEnumerable<TextPosition> orderedPositions = positions?.OrderBy(p => p.LineNumber).ThenBy(p => p.Column)
-            ?? Enumerable.Empty<TextPosition>();
-        Queue<TextPosition> queue = new(orderedPositions);
+        List<TextPosition> sortedPositions = positions?.OrderBy(p => p.LineNumber).ThenBy(p => p.Column).ToList()
+            ?? new List<TextPosition>();
+
         StringBuilder sb = new();
         int line = 1;
         int charIndex = 0;
-        int index = 0;
 
-        while (index < text.Length)
+        for (int i = 0; i < text.Length; i++)
         {
-            AppendPipeMarkers(sb, queue, line, charIndex + 1);
+            // Add pipes for positions at this location
+            while (sortedPositions.Count > 0 && sortedPositions[0].LineNumber == line && sortedPositions[0].Column == charIndex + 1)
+            {
+                sb.Append('|');
+                sortedPositions.RemoveAt(0);
+            }
 
-            if (IsCrLf(text, index))
+            char chr = text[i];
+            if (chr == '\r')
             {
                 sb.Append('\r');
-                sb.Append('\n');
-                index += 2;
+                if (i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    sb.Append('\n');
+                    i++;
+                }
                 line++;
                 charIndex = 0;
                 continue;
             }
 
-            char c = text[index];
-            sb.Append(c);
-            index++;
-
-            if (c == '\n')
-            {
-                line++;
-                charIndex = 0;
-            }
-            else if (c == '\r')
+            sb.Append(chr);
+            if (chr == '\n')
             {
                 line++;
                 charIndex = 0;
@@ -462,56 +454,127 @@ public static class WordTestUtils
             }
         }
 
-        AppendPipeMarkers(sb, queue, line, charIndex + 1);
-
-        if (queue.Count > 0)
+        // Add pipes at end of text
+        while (sortedPositions.Count > 0 && sortedPositions[0].LineNumber == line && sortedPositions[0].Column == charIndex + 1)
         {
-            TextPosition leftover = queue.Peek();
-            throw new InvalidOperationException($"Unexpected left over positions at ({leftover.LineNumber},{leftover.Column}).");
+            sb.Append('|');
+            sortedPositions.RemoveAt(0);
+        }
+
+        if (sortedPositions.Count > 0)
+        {
+            TextPosition leftover = sortedPositions[0];
+            throw new InvalidOperationException($"Unexpected left over positions at ({leftover.LineNumber},{leftover.Column})!");
         }
 
         return sb.ToString();
     }
 
-    private static void AppendPipeMarkers(StringBuilder sb, Queue<TextPosition> queue, int line, int nextColumn)
-    {
-        while (queue.Count > 0 && queue.Peek().LineNumber == line && queue.Peek().Column == nextColumn)
-        {
-            sb.Append('|');
-            queue.Dequeue();
-        }
-    }
-
-    private static bool IsCrLf(string text, int index)
-    {
-        return index + 1 < text.Length && text[index] == '\r' && text[index + 1] == '\n';
-    }
-
     /// <summary>
-    /// Test repeated action and extract positions.
+    /// Test repeated action and extract positions (for TextModel-based word operations).
     /// Equivalent to TS testRepeatedActionAndExtractPositions.
     /// </summary>
-    public static string TestRepeatedActionAndExtractPositions(
-        string lineContent,
-        int startColumn,
-        Func<int, int> action,
-        int maxIterations = 100)
+    public static List<TextPosition> TestRepeatedActionAndExtractPositions(
+        TextModel model,
+        TextPosition initialPosition,
+        Action<TextModel, TextPosition> action,
+        Func<TextModel, TextPosition> getPosition,
+        Func<TextModel, TextPosition, bool> stopCondition,
+        int maxIterations = 1000)
     {
-        List<TextPosition> positions = [new TextPosition(1, startColumn)];
-        int current = startColumn;
+        List<TextPosition> actualStops = [];
+        TextPosition currentPos = initialPosition;
 
         for (int i = 0; i < maxIterations; i++)
         {
-            int next = action(current);
-            if (next == current || next < 1 || next > lineContent.Length + 1)
+            action(model, currentPos);
+            TextPosition newPos = getPosition(model);
+            actualStops.Add(newPos);
+
+            if (stopCondition(model, newPos))
             {
                 break;
             }
-            positions.Add(new TextPosition(1, next));
-            current = next;
+
+            currentPos = newPos;
         }
 
-        return SerializePipePositions(lineContent, positions);
+        return actualStops;
+    }
+
+    /// <summary>
+    /// Simplified test helper that applies word operations and returns pipe-marked result.
+    /// </summary>
+    public static string TestWordMovement(
+        string markedText,
+        TextPosition startPosition,
+        Func<TextModel, TextPosition, TextPosition> wordAction,
+        Func<TextPosition, bool> stopCondition)
+    {
+        (string text, List<TextPosition> _) = DeserializePipePositions(markedText);
+        TextModel model = new(text);
+
+        List<TextPosition> positions = [];
+        TextPosition current = startPosition;
+
+        while (!stopCondition(current))
+        {
+            TextPosition next = wordAction(model, current);
+            positions.Add(next);
+
+            if (next.Equals(current))
+            {
+                break;
+            }
+            current = next;
+
+            // Safety limit
+            if (positions.Count > 1000)
+            {
+                throw new InvalidOperationException($"Endless loop detected involving position ({current.LineNumber},{current.Column})!");
+            }
+        }
+
+        return SerializePipePositions(text, positions);
+    }
+
+    /// <summary>
+    /// Simple test runner that compares expected marked positions with actual word operation results.
+    /// </summary>
+    public static void AssertWordMovementMatches(
+        string expected,
+        TextPosition startPosition,
+        Func<TextModel, TextPosition, TextPosition> wordAction,
+        Func<TextPosition, bool> stopCondition)
+    {
+        (string text, List<TextPosition> _) = DeserializePipePositions(expected);
+        TextModel model = new(text);
+
+        List<TextPosition> positions = [];
+        TextPosition current = startPosition;
+
+        while (!stopCondition(current))
+        {
+            TextPosition next = wordAction(model, current);
+            positions.Add(next);
+
+            if (next.Equals(current))
+            {
+                break;
+            }
+            current = next;
+
+            if (positions.Count > 1000)
+            {
+                throw new InvalidOperationException($"Endless loop detected involving position ({current.LineNumber},{current.Column})!");
+            }
+        }
+
+        string actual = SerializePipePositions(text, positions);
+        if (actual != expected)
+        {
+            throw new Xunit.Sdk.XunitException($"Word movement mismatch.\nExpected: {expected}\nActual:   {actual}");
+        }
     }
 
     #endregion

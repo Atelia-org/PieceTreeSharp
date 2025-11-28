@@ -1,4 +1,5 @@
 using PieceTree.TextBuffer.Decorations;
+using PieceTree.TextBuffer.DocUI;
 
 namespace PieceTree.TextBuffer.Rendering;
 
@@ -15,4 +16,15 @@ public sealed class MarkdownRenderOptions
     public bool IncludeOverviewAnnotations { get; init; } = true;
     public bool IncludeMinimapAnnotations { get; init; } = true;
     public bool IncludeInjectedText { get; init; } = true;
+    
+    /// <summary>
+    /// Optional FindDecorations instance to use for search match rendering.
+    /// When provided, the renderer will use cached match data instead of re-querying the model.
+    /// </summary>
+    public FindDecorations? FindDecorations { get; init; }
+    
+    /// <summary>
+    /// When true and FindDecorations is provided, skip querying model for find-related decorations.
+    /// </summary>
+    public bool UseDirectFindDecorations { get; init; } = true;
 }
