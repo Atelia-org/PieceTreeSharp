@@ -9,3 +9,4 @@ BugRepro/
 ts-upstream/
 chat-log/
 tests/TextBuffer.Tests/Snapshots/
+atelia-copilot-chat/
