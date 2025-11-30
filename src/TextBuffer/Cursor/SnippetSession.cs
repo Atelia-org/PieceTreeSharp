@@ -45,8 +45,8 @@ public sealed class SnippetSession : IDisposable
     /// </summary>
     public void InsertSnippet(TextPosition start, string snippet)
     {
-        // naive parser for ${n:text} forms
-        Regex pattern = new(@"\$\{(\d+):([^}]+)\}");
+        // naive parser for ${n:text} forms (text may be empty)
+        Regex pattern = new(@"\$\{(\d+):([^}]*)\}");
         MatchCollection matches = pattern.Matches(snippet);
 
         // Build plainText while recording placeholder offsets so we can create decorations.
