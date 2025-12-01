@@ -1,4 +1,4 @@
-# QA-Automation Snapshot (2025-11-26)
+# QA-Automation Snapshot (2025-12-01)
 
 ## Role & Mission
 - Own TextBuffer parity verification per `AGENTS.md`, keeping `tests/TextBuffer.Tests` aligned with TS sources and documenting every rerun inside `tests/TextBuffer.Tests/TestMatrix.md`.
@@ -81,3 +81,15 @@
 - **Artifacts**: `agent-team/handoffs/CL7-QA-Result.md`, `tests/TextBuffer.Tests/TestMatrix.md` (CL7 entries added).
 - **Changefeed**: Anchored at [`#delta-2025-11-28-aa4-cl7-stage1-qa`](../indexes/README.md#delta-2025-11-28-aa4-cl7-stage1-qa), references [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core).
 - **Findings**: No bugs found. All EnableVsCursorParity paths verified. TrackedRangeStickiness.AlwaysGrowsWhenTypingAtEdges confirmed for selection recovery.
+
+## 2025-12-01 Team Leader 谈话记录 (Session 2)
+- **会话类型**: 测试性团队谈话（角色验证）
+- **触发方**: Team Leader
+- **目的**: 验证 SubAgent 持久认知机制 + 角色理解
+- **汇报要点**:
+  1. 角色定位：PieceTreeSharp 测试验证专家 / 质量门禁
+  2. 核心职责：Parity Verification、Test Maintenance、Baseline Tracking、Regression Detection
+  3. 当前基线：683 tests (681 pass, 2 skip) @ `#delta-2025-11-28-aa4-cl7-stage1-qa`
+  4. 输出顺序纪律：先工具调用 → 后汇报（避免中间输出丢失）
+- **认知文件更新**: 本条目
+- **待处理事项**: 无新增验证任务，等待 Porter-CS 交付

@@ -47,6 +47,8 @@
 ## Session Log
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-01 | Team Leader 测试性团队谈话 #2：角色定位、职责、协作关系、输出顺序纪律确认 | 向 Team Leader 汇报了角色理解、核心职责、与 Porter-CS/QA-Automation 协作模式、Brief 结构、输出顺序纪律原因、记忆维护机制 |
+| 2025-12-01 | Team Leader 团队谈话：角色定位、职责、协作关系确认 | 向 Team Leader 汇报了角色理解、核心职责、与 Porter-CS/QA-Automation 协作模式、Brief 结构、记忆维护纪律 |
 | 2025-11-26 | WS5-INV 高风险测试 backlog 优先级排序 | `WS5-INV-TestBacklog.md` – Top-10 优先级列表、按模块分组 backlog、共享 harness 需求 |
 | 2025-11-27 | Alignment audit Module 01 更新（引用 `WS1-PORT-SearchCore`/`WS1-PORT-CRLF` 与 `#delta-2025-11-26-sprint04-r1-r11`） | 刷新 `docs/reports/alignment-audit/01-core-fundamentals.md`，补入 SearchCache/CRLF 依赖与 rerun 证据 |
 | 2025-11-27 | Alignment audit Module 02 更新（`WS2-PORT` + `FR-01/FR-02` + `AA4-CL8` 占位） | 刷新 `docs/reports/alignment-audit/02-core-support.md`：记录 Range/Selection/TextPosition helper 交付、`WordCharacterClassifierCache` LRU、Intl backlog (`#delta-2025-11-26-ws2-port`, `docs/reports/migration-log.md#ws2-port`, `docs/reports/migration-log.md#fr-01-02`, [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown))，并补入 `dotnet test --filter RangeSelectionHelperTests --nologo` 复测结果 |

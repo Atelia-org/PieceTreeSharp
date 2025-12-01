@@ -43,6 +43,14 @@
 4. **Changefeed Archive Hygiene**：`agent-team/indexes/README.md` 持续增长，需按 Info-Indexer 指引把 R37 以前的 delta 归档到 `agent-team/indexes/archive/`。
 
 ## Last Update
+- **Date**: 2025-12-01
+- **Task**: Team Leader 测试性团队谈话 — 确认角色定位与输出顺序纪律
+- **Result**: ✅ 向 Team Leader 汇报了角色定位（文档一致性守门人）、四项核心职责、与 Info-Indexer 协作关系、输出顺序纪律理解。工具调用→认知更新→最终汇报的流程已正确执行。
+
+- **Date**: 2025-12-01
+- **Task**: Team Leader 团队谈话 — 角色理解与职责确认
+- **Result**: ✅ 向 Team Leader 汇报了角色定位、核心职责、关键文档、与 Info-Indexer 协作关系、记忆维护纪律。确认理解正确。
+
 - **Date**: 2025-11-27
 - **Task**: Alignment audit Module 00 summary resync（Sprint04 R1-R11 / WS5-QA anchors）
 - **Result**: ✅ 更新 00-summary 计数、P0/P1 与 Verification Notes，引用 [`docs/reports/migration-log.md#sprint04-r1-r11`](../../docs/reports/migration-log.md#sprint04-r1-r11)、[`agent-team/indexes/README.md#delta-2025-11-26-alignment-audit`](../indexes/README.md#delta-2025-11-26-alignment-audit) 以及 CL7/CL8 占位与 [`#delta-2025-11-26-ws5-qa`](../indexes/README.md#delta-2025-11-26-ws5-qa) 基线。

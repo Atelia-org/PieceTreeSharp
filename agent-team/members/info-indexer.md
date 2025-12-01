@@ -44,4 +44,5 @@
 - Full worklogs, onboarding notes, and prior deltas now live in `agent-team/handoffs/` (per-run files) and the historical rows inside `agent-team/indexes/README.md`. Older memory snapshots remain in repo history if needed.
 
 ## Log
+- 2025-12-01 – **团队角色测试谈话**：Team Leader 进行首次角色定位测试。完成四项汇报：(1) 角色定位：changefeed 索引管理员，核心职责包含 Index Maintenance、Canonical Pointers、Broadcast Coordination、Archive Hygiene；(2) Changefeed/Anchor 概念解释：Changefeed 是变更流记录，Anchor 是索引中的唯一定位符（如 `#delta-2025-11-26-sprint04-r1-r11`），保证每次代码/文档变更有可追溯的规范指针；(3) DocMaintainer 协作：提供 canonical anchors 供其在文档中引用，在 sweep 前主动 surface blockers；(4) 输出顺序纪律：先完成所有工具调用（含认知文件更新），最后一次性输出汇报，避免 SubAgent 机制只返回最后一轮输出导致内容丢失。
 - 2025-11-27 – Refreshed `docs/reports/alignment-audit/06-services.md` to highlight `docs/reports/migration-log.md#ws2-port` helper ripple, `docs/reports/migration-log.md#ws5-qa` targeted runs, the `agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11` 585/585 baseline, and the open `#delta-2025-11-26-aa4-cl8-markdown`/`-capture`/`-intl`/`-wordcache` placeholders for Intl + word cache gaps.

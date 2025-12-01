@@ -12,15 +12,26 @@
 
 ---
 
+## Immediate (新会话优先)
+
+- ~~**AI Team 技术迁移**~~ ✅ 完成 (2025-12-01)
+  - CustomAgent 文件全部创建：9 个 agents in `.github/agents/`
+  - 所有 Agent 都有持久认知文件：8 个 members in `agent-team/members/`
+  - 所有 `.agent.md` 都添加了记忆维护纪律
+  - ~~验证 CustomAgent 调用机制~~ ✅ 团队谈话全员通过 (8/8)
+
+---
+
 ## Active Goals
 
 - **Sprint 04 M2: Cursor & Snippet 完整实现** → [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)
   - WS4-PORT-Collection: CursorCollection 完整生命周期 → ✅ Done (`#delta-2025-11-28-sprint04-r13-r18`)
-  - WS4-PORT-Snippet: SnippetController/Session parity
+  - WS4-PORT-Snippet: SnippetController/Session parity 🔄 **降级实现**
     - choice/variable/transform 占位符支持
-    - 多光标粘附与 undo/redo 集成
-    - → context: [`AA4-007-Plan.md`](handoffs/AA4-007-Plan.md)
-  - WS4-QA: Cursor/Snippet deterministic 测试套件 (80% TS coverage)
+    - ~~多光标粘附与 undo/redo 集成~~ → 简化为"多选区批量操作"（不含实时同步输入）
+    - Sticky Column：**不移植**（LLM-Native 规划决策）
+    - → context: [`AA4-007-Plan.md`](handoffs/AA4-007-Plan.md), [`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md)
+  - WS4-QA: Cursor/Snippet deterministic 测试套件 (80% TS coverage → 简化范围内)
 
 - **Sprint 04 M2: DocUI MarkdownRenderer 完善** → [`#delta-2025-11-26-aa4-cl8-markdown`](indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)
   - CL8-Phase34 基础枚举与 FindDecorations 集成 → ✅ Done (`#delta-2025-11-28-cl8-phase34`)

@@ -35,29 +35,30 @@ LLM 使用 TextEditor 的方式：
 
 ### 🔄 简化（保留核心，降级实现）
 
-| 功能 | TS 原版 | 简化方向 | 理由 |
-|------|--------|----------|------|
-| Cursor 导航 | word/line/paragraph 级移动 | 只保留 goto position/line | LLM 不需要细粒度导航 |
-| 多光标 | 实时同步输入、复杂合并逻辑 | 简化为"多选区批量操作" | 不需要实时同步 |
-| Sticky Column | 跨行移动保持列位置 | 可降级或移除 | 人类键盘导航专属 |
-| Word Boundary | Unicode 分词、CamelCase | 基础实现即可 | 搜索场景仍需要 |
-| Bracket Matching | 括号配对查找 | 可选实现 | 语义层面有用，视觉层面不需要 |
+| 功能 | TS 原版 | 简化方向 | 理由 | 实施状态 |
+|------|--------|----------|------|----------|
+| Cursor 导航 | word/line/paragraph 级移动 | 只保留 goto position/line | LLM 不需要细粒度导航 | ✅ CursorState/Context 已对齐 |
+| 多光标 | 实时同步输入、复杂合并逻辑 | 简化为"多选区批量操作" | 不需要实时同步 | ⏳ Snippet 计划中（已标记降级） |
+| Sticky Column | 跨行移动保持列位置 | ❌ 不移植 | 人类键盘导航专属 | 🚫 明确不做 |
+| Word Boundary | Unicode 分词、CamelCase | 基础实现即可 | 搜索场景仍需要 | ✅ WordOperations 已完成核心 |
+| Bracket Matching | 括号配对查找 | 可选实现 | 语义层面有用，视觉层面不需要 | ⏸️ 暂缓，按需添加 |
 
 ### ❌ 砍掉（不移植）
 
-| 功能 | 理由 |
-|------|------|
-| 键盘快捷键处理 | LLM 不用键盘 |
-| 鼠标事件处理 | LLM 不用鼠标 |
-| IME 输入法支持 | 不需要 |
-| 自动补全 UI | LLM 自己就是补全引擎 |
-| 语法高亮 | LLM 理解语义不靠颜色 |
-| Minimap/Overview | 不需要视觉概览 |
-| 缩进指南线 | 视觉辅助 |
-| Smooth scrolling | 没有滚动概念 |
-| 代码折叠 UI | 视觉交互，LoD 机制可替代 |
-| Hover 提示 | 鼠标交互 |
-| 上下文菜单 | 鼠标交互 |
+| 功能 | 理由 | 验证状态 |
+|------|------|----------|
+| 键盘快捷键处理 | LLM 不用键盘 | ✅ 未在 TODO |
+| 鼠标事件处理 | LLM 不用鼠标 | ✅ 未在 TODO |
+| IME 输入法支持 | 不需要 | ✅ 未在 TODO |
+| 自动补全 UI | LLM 自己就是补全引擎 | ✅ 未在 TODO |
+| 语法高亮 | LLM 理解语义不靠颜色 | ✅ 未在 TODO |
+| Minimap/Overview | 不需要视觉概览 | ✅ 未在 TODO |
+| 缩进指南线 | 视觉辅助 | ✅ 未在 TODO |
+| Smooth scrolling | 没有滚动概念 | ✅ 未在 TODO |
+| 代码折叠 UI | 视觉交互，LoD 机制可替代 | ✅ 未在 TODO |
+| Hover 提示 | 鼠标交互 | ✅ 未在 TODO |
+| 上下文菜单 | 鼠标交互 | ✅ 未在 TODO |
+| Sticky Column | 人类键盘导航专属 | ✅ 从简化列表升级为不移植 |
 
 ### 🆕 新增（LLM-Native 功能）
 
