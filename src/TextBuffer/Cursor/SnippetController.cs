@@ -1,6 +1,7 @@
 // Source: ts/src/vs/editor/contrib/snippet/browser/snippetController2.ts
 // - Class: SnippetController2 (Lines: 30-500)
 // Ported: 2025-11-22
+// Extended: 2025-12-02 (P1: Final Tabstop $0, adjustWhitespace options)
 
 namespace PieceTree.TextBuffer.Cursor;
 
@@ -17,6 +18,16 @@ public sealed class SnippetController : IDisposable
     {
         _model = model ?? throw new ArgumentNullException(nameof(model));
     }
+
+    /// <summary>
+    /// Returns true if the current session is at the final tabstop ($0).
+    /// </summary>
+    public bool IsAtFinalTabstop => _session?.IsAtFinalTabstop ?? false;
+
+    /// <summary>
+    /// Returns true if there is an active snippet session with placeholders.
+    /// </summary>
+    public bool HasActivePlaceholders => _session?.HasPlaceholders ?? false;
 
     public void Dispose()
     {
@@ -47,9 +58,22 @@ public sealed class SnippetController : IDisposable
         return _session?.PrevPlaceholder();
     }
 
+    /// <summary>
+    /// Gets the current placeholder's range (start and end positions).
+    /// </summary>
+    public (TextPosition Start, TextPosition End)? GetCurrentPlaceholderRange()
+    {
+        return _session?.GetCurrentPlaceholderRange();
+    }
+
     public void InsertSnippetAt(TextPosition pos, string snippet)
     {
+        InsertSnippetAt(pos, snippet, SnippetInsertOptions.Default);
+    }
+
+    public void InsertSnippetAt(TextPosition pos, string snippet, SnippetInsertOptions options)
+    {
         SnippetSession session = CreateSession();
-        session.InsertSnippet(pos, snippet);
+        session.InsertSnippet(pos, snippet, options);
     }
 }

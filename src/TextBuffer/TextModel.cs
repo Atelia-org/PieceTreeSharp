@@ -1306,7 +1306,7 @@ public class TextModel : ITextSearchAccess
         foreach (PendingEdit edit in applyOrder)
         {
             int removedLength = edit.OldEndOffset - edit.OldStartOffset;
-            IReadOnlyList<DecorationChange> deltas = AdjustDecorationsForEdit(edit.OldStartOffset, removedLength, edit.NewText.Length, forceMoveMarkers);
+            IReadOnlyList<DecorationChange> deltas = _decorationTrees.AcceptReplace(edit.OldStartOffset, removedLength, edit.NewText.Length, forceMoveMarkers);
             if (deltas.Count > 0)
             {
                 decorationChanges.AddRange(deltas);
@@ -1645,42 +1645,6 @@ public class TextModel : ITextSearchAccess
             for (int line = startLine; line <= endLine; line++)
             {
                 fontLineChanges.Add(new LineFontChange(ownerId, decorationId, line));
-            }
-        }
-    }
-
-    private IReadOnlyList<DecorationChange> AdjustDecorationsForEdit(int offset, int removedLength, int insertedLength, bool forceMoveMarkers)
-    {
-        if (_decorationTrees.Count == 0 || (removedLength == 0 && insertedLength == 0))
-        {
-            return Array.Empty<DecorationChange>();
-        }
-
-        HashSet<string> processed = new(StringComparer.Ordinal);
-        List<DecorationChange> changes = [];
-        int searchEnd = removedLength > 0 ? offset + removedLength : offset + insertedLength;
-        IReadOnlyList<ModelDecoration> overlaps = _decorationTrees.Search(new TextRange(Math.Max(0, offset - 1), Math.Max(offset, searchEnd + 1)));
-        ProcessDecorations(overlaps);
-        ProcessDecorations(_decorationTrees.EnumerateFrom(offset));
-
-        return changes;
-
-        void ProcessDecorations(IEnumerable<ModelDecoration> decorations)
-        {
-            foreach (ModelDecoration decoration in decorations)
-            {
-                if (!processed.Add(decoration.Id))
-                {
-                    continue;
-                }
-
-                TextRange previousRange = decoration.Range;
-                if (DecorationRangeUpdater.ApplyEdit(decoration, offset, removedLength, insertedLength, forceMoveMarkers))
-                {
-                    decoration.VersionId = _versionId;
-                    _decorationTrees.Reinsert(decoration);
-                    changes.Add(new DecorationChange(decoration, DecorationDeltaKind.Updated, previousRange));
-                }
             }
         }
     }

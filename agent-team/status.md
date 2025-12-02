@@ -4,9 +4,9 @@
 > 每次 runSubAgent 完成或里程碑变化时更新。
 
 ## Test Baseline
-- **Total:** 807 passed, 5 skipped
+- **Total:** 818 passed, 5 skipped
 - **Command:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
-- **Last Verified:** 2025-11-30
+- **Last Verified:** 2025-12-02
 
 ## Current Phase & Sprint
 - **Phase:** 8 – Alignment Remediation
@@ -35,8 +35,8 @@
 |----|-------|--------|-----------|
 | WS1 | PieceTree Search Parity | ✅ Done | `#delta-2025-11-27-ws1-port-search-step12` |
 | WS2 | Range/Selection Helpers | ✅ Done | `#delta-2025-11-26-ws2-port` |
-| WS3 | IntervalTree Lazy Normalize | ✅ Done (Tree), TextModel Planned | `#delta-2025-11-26-ws3-tree` |
-| WS4 | Cursor & Snippet | Core ✅, Collection ✅, Snippet +9 Tests | `#delta-2025-11-30-snippet-tests` |
+| WS3 | IntervalTree Lazy Normalize | Tree ✅, TextModel ✅ (AcceptReplace integrated) | `#delta-2025-12-02-ws3-textmodel` |
+| WS4 | Cursor & Snippet | Core ✅, Collection ✅, Snippet P0-P1 ✅ (+16 tests) | `#delta-2025-12-02-snippet-p1` |
 | WS5 | High-Risk Tests | ✅ Done (首批 45+WordOps 41) | `#delta-2025-11-28-ws5-wordoperations` |
 
 ## Active Changefeed Anchors

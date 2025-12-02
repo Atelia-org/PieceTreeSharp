@@ -57,9 +57,6 @@ const shouldAwaken = isFirstTurn && !isSubAgent;
 - 压缩前半部分上下文，保留后半部分
 - 每次压缩释放 ~N/2 rounds，减少压缩触发频率
 
-### 技术规格
-- 详见 [`half-context-compression-technical-spec.md`](./half-context-compression-technical-spec.md)
-
 ### 核心改动点
 1. `SummarizedConversationHistoryPropsBuilder.getProps()` — 添加半窗口分支
 2. `SimpleSummarizedHistory` — 支持 `roundsToSummarize` 参数

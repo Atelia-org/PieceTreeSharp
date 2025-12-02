@@ -110,6 +110,51 @@ internal sealed class DecorationsTrees
         }
     }
 
+    /// <summary>
+    /// Accept a replace edit across all decoration scopes.
+    /// Returns aggregated DecorationChanges from all trees.
+    /// </summary>
+    public IReadOnlyList<DecorationChange> AcceptReplace(int offset, int removedLength, int insertedLength, bool forceMoveMarkers)
+    {
+        // Early exit if no decorations
+        if (Count == 0 || (removedLength == 0 && insertedLength == 0))
+        {
+            return Array.Empty<DecorationChange>();
+        }
+
+        IReadOnlyList<DecorationChange> regularChanges = _regular.AcceptReplace(offset, removedLength, insertedLength, forceMoveMarkers);
+        IReadOnlyList<DecorationChange> overviewChanges = _overview.AcceptReplace(offset, removedLength, insertedLength, forceMoveMarkers);
+        IReadOnlyList<DecorationChange> injectedChanges = _injected.AcceptReplace(offset, removedLength, insertedLength, forceMoveMarkers);
+
+        // Fast path: single or no changes
+        if (regularChanges.Count == 0 && overviewChanges.Count == 0 && injectedChanges.Count == 0)
+        {
+            return Array.Empty<DecorationChange>();
+        }
+
+        if (regularChanges.Count > 0 && overviewChanges.Count == 0 && injectedChanges.Count == 0)
+        {
+            return regularChanges;
+        }
+
+        if (regularChanges.Count == 0 && overviewChanges.Count > 0 && injectedChanges.Count == 0)
+        {
+            return overviewChanges;
+        }
+
+        if (regularChanges.Count == 0 && overviewChanges.Count == 0 && injectedChanges.Count > 0)
+        {
+            return injectedChanges;
+        }
+
+        // Merge all changes
+        List<DecorationChange> merged = new(regularChanges.Count + overviewChanges.Count + injectedChanges.Count);
+        merged.AddRange(regularChanges);
+        merged.AddRange(overviewChanges);
+        merged.AddRange(injectedChanges);
+        return merged;
+    }
+
     private IntervalTree SelectTree(ModelDecorationOptions options)
     {
         if (options.HasInjectedText)

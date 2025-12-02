@@ -512,9 +512,12 @@ internal sealed class IntervalTree
 
     /// <summary>
     /// Accept a replace edit. Uses the TS four-phase algorithm for lazy updates.
+    /// Returns a list of DecorationChanges for decorations that were modified.
     /// </summary>
-    public void AcceptReplace(int offset, int length, int textLength, bool forceMoveMarkers)
+    public IReadOnlyList<DecorationChange> AcceptReplace(int offset, int length, int textLength, bool forceMoveMarkers)
     {
+        List<DecorationChange> changes = [];
+
         // (1) collect all nodes that are intersecting this edit as nodes of interest
         List<IntervalNode> nodesOfInterest = SearchForEditing(offset, offset + length);
 
@@ -530,26 +533,48 @@ internal sealed class IntervalTree
         NormalizeDeltaIfNeeded();
 
         // (3) edit all tree nodes except the nodes of interest (lazy delta update)
-        NoOverlapReplace(offset, offset + length, textLength);
-        NormalizeDeltaIfNeeded();
+        // Also collect changes for nodes that are shifted
+        NoOverlapReplace(offset, offset + length, textLength, changes);
+        
+        // Force normalize to ensure all Decoration.Range values are updated
+        // This is necessary because NoOverlapReplace uses lazy delta propagation
+        // which doesn't update Decoration.Range for nodes in the right subtree
+        if (_root != Sentinel)
+        {
+            _normalizePending = true;
+            NormalizeDeltaIfNeeded();
+        }
 
         // (4) edit the nodes of interest and insert them back in the tree
         for (int i = 0; i < nodesOfInterest.Count; i++)
         {
             IntervalNode node = nodesOfInterest[i];
+
+            // Capture old range before modification
+            TextRange oldRange = new(node.CachedAbsoluteStart, node.CachedAbsoluteEnd);
+
             node.Start = node.CachedAbsoluteStart;
             node.End = node.CachedAbsoluteEnd;
             NodeAcceptEdit(node, offset, offset + length, textLength, forceMoveMarkers);
             node.MaxEnd = node.End;
             RbTreeInsert(node);
 
-            // Update ModelDecoration.Range
+            // Update ModelDecoration.Range and emit change if modified
             if (node.Decoration != null)
             {
-                node.Decoration.Range = new TextRange(node.Start, node.End);
+                TextRange newRange = new(node.Start, node.End);
+                node.Decoration.Range = newRange;
+
+                // Emit change if range actually changed
+                if (oldRange.StartOffset != newRange.StartOffset || oldRange.EndOffset != newRange.EndOffset)
+                {
+                    changes.Add(new DecorationChange(node.Decoration, DecorationDeltaKind.Updated, oldRange));
+                }
             }
         }
         NormalizeDeltaIfNeeded();
+
+        return changes;
     }
 
     #endregion
@@ -569,6 +594,7 @@ internal sealed class IntervalTree
     /// <summary>
     /// In-order traversal to apply accumulated deltas to start/end and reset delta to 0.
     /// Uses iterative approach to avoid stack allocations.
+    /// Also updates Decoration.Range to match the normalized values.
     /// </summary>
     private void NormalizeDelta()
     {
@@ -593,10 +619,18 @@ internal sealed class IntervalTree
             }
 
             // handle current node
-            node.Start = delta + node.Start;
-            node.End = delta + node.End;
+            int newStart = delta + node.Start;
+            int newEnd = delta + node.End;
+            node.Start = newStart;
+            node.End = newEnd;
             node.Delta = 0;
             RecomputeMaxEnd(node);
+
+            // Update Decoration.Range to match
+            if (node.Decoration != null)
+            {
+                node.Decoration.Range = new TextRange(newStart, newEnd);
+            }
 
             node.SetIsVisited(true);
 
@@ -816,14 +850,22 @@ internal sealed class IntervalTree
 
     /// <summary>
     /// Apply edit delta to nodes not in the edit range (lazy update).
+    /// Also collects DecorationChanges for shifted nodes.
     /// </summary>
-    private void NoOverlapReplace(int start, int end, int textLength)
+    private void NoOverlapReplace(int start, int end, int textLength, List<DecorationChange> changes)
     {
         IntervalNode node = _root;
         int delta = 0;
         int nodeMaxEnd;
         int nodeStart;
+        int nodeEnd;
         int editDelta = textLength - (end - start);
+
+        // If editDelta is 0, no nodes will be shifted
+        if (editDelta == 0)
+        {
+            return;
+        }
 
         while (node != Sentinel)
         {
@@ -866,6 +908,10 @@ internal sealed class IntervalTree
             if (nodeStart > end)
             {
                 // This node is after the edit - apply delta lazily
+                // Capture old range before modification
+                nodeEnd = delta + node.End;
+                TextRange oldRange = new(nodeStart, nodeEnd);
+
                 node.Start += editDelta;
                 node.End += editDelta;
                 node.Delta += editDelta;
@@ -873,6 +919,15 @@ internal sealed class IntervalTree
                 {
                     RequestNormalize();
                 }
+
+                // Update ModelDecoration.Range and emit change
+                if (node.Decoration != null)
+                {
+                    TextRange newRange = new(nodeStart + editDelta, nodeEnd + editDelta);
+                    node.Decoration.Range = newRange;
+                    changes.Add(new DecorationChange(node.Decoration, DecorationDeltaKind.Updated, oldRange));
+                }
+
                 // cover case a) from above
                 // there is no need to search this node or its right subtree
                 node.SetIsVisited(true);

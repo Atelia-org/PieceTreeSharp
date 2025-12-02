@@ -14,11 +14,12 @@
 
 ## Immediate (新会话优先)
 
-- ~~**AI Team 技术迁移**~~ ✅ 完成 (2025-12-01)
-  - CustomAgent 文件全部创建：9 个 agents in `.github/agents/`
-  - 所有 Agent 都有持久认知文件：8 个 members in `agent-team/members/`
-  - 所有 `.agent.md` 都添加了记忆维护纪律
-  - ~~验证 CustomAgent 调用机制~~ ✅ 团队谈话全员通过 (8/8)
+- **半上下文压缩 PR 准备** (并行观察，无时间压力)
+  - Upstream: `github.com/microsoft/vscode-copilot-chat`
+  - 贡献指南: [`atelia-copilot-chat/CONTRIBUTING.md`](../atelia-copilot-chat/CONTRIBUTING.md)
+  - 需要: Simulation tests cache (需 VS Code 团队成员重建)
+  - 待观察: 实际使用中的 edge cases
+  - 待补充: 测试、文档、代码规范
 
 ---
 
@@ -26,12 +27,10 @@
 
 - **Sprint 04 M2: Cursor & Snippet 完整实现** → [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)
   - WS4-PORT-Collection: CursorCollection 完整生命周期 → ✅ Done (`#delta-2025-11-28-sprint04-r13-r18`)
-  - WS4-PORT-Snippet: SnippetController/Session parity 🔄 **降级实现**
-    - choice/variable/transform 占位符支持
-    - ~~多光标粘附与 undo/redo 集成~~ → 简化为"多选区批量操作"（不含实时同步输入）
-    - Sticky Column：**不移植**（LLM-Native 规划决策）
-    - → context: [`AA4-007-Plan.md`](handoffs/AA4-007-Plan.md), [`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md)
-  - WS4-QA: Cursor/Snippet deterministic 测试套件 (80% TS coverage → 简化范围内)
+  - WS4-PORT-Snippet P0-P1: Final Tabstop `$0` + adjustWhitespace → ✅ Done, Reviewed (`#delta-2025-12-02-snippet-p1`)
+  - WS4-PORT-Snippet P1.5: Placeholder grouping (同 index 同步) 🔄 **待实现**
+  - WS4-PORT-Snippet P2: Variable resolver (TM_FILENAME/SELECTION) 🔄 **可选**
+  - WS4-QA: Cursor/Snippet deterministic 测试套件
 
 - **Sprint 04 M2: DocUI MarkdownRenderer 完善** → [`#delta-2025-11-26-aa4-cl8-markdown`](indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)
   - CL8-Phase34 基础枚举与 FindDecorations 集成 → ✅ Done (`#delta-2025-11-28-cl8-phase34`)
@@ -45,11 +44,10 @@
   - PT-009.LineOpt anchor
   - → context: [`docs/reports/migration-log.md`](../docs/reports/migration-log.md) "Active Items"
 
-- **WS3-PORT-TextModel**: IntervalTree 集成到 TextModel
-  - DecorationsTrees 接入 lazy normalize
-  - `AcceptReplace` 替代 `AdjustDecorationsForEdit`
-  - DocUI perf harness (50k decorations O(log n))
-  - → context: [`PORT-IntervalTree-Normalize.md`](handoffs/PORT-IntervalTree-Normalize.md)
+- **WS3-PORT-TextModel**: IntervalTree 集成到 TextModel → ✅ Done (`#delta-2025-12-02-ws3-textmodel`)
+  - DecorationsTrees 接入 lazy normalize → ✅
+  - `AcceptReplace` 替代 `AdjustDecorationsForEdit` → ✅
+  - DocUI perf harness (50k decorations O(log n)) — 待验证
 
 ---
 
