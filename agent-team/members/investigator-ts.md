@@ -56,6 +56,9 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-02 | SSE Stream 处理底层调查 | 分析 `stream.ts` SSEProcessor，识别 token 级日志添加位置、现有 trace/debug 调用 |
+| 2025-12-02 | 半上下文压缩非流式请求深入调查 | 分析 `stream: false` 请求路径、超时处理、StopWatch 用法，识别关键日志添加位置 |
+| 2025-12-02 | atelia-copilot-chat LLM 调用架构调查 | 分析 LLM API 调用入口点、流式响应处理、半上下文压缩流程，输出架构图和日志点建议 |
 | 2025-12-02 | WS5 Gap Re-Assessment | 评估原 47 gaps 完成状态，识别剩余 gaps，输出 `WS5-Gap-Assessment-2025-12-02.md` |
 | 2025-12-02 | Sprint 05 M1/M2 Diff API Review | 快速审阅 RangeMapping、DiffMove、TextLength、DiffTextEdit，36/36 测试通过，结论 **PASS** |
 | 2025-12-02 | Sprint 05 方向建议 | 为 Team Leader 分析审计报告，识别 gap 模块并按优先级排序，输出方向建议 |
