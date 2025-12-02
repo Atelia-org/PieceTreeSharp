@@ -25,24 +25,12 @@
 
 ## Active Goals
 
-- **文档维护任务** (2025-12-02 批次)
-  - Handoffs 归档 → 待处理
-  - Alignment Audit 更新 → 待处理
-  - Task Board & Status 同步 → 待处理
-  - Plans 目录清理 → 待处理
-  - Team Members 认知维护 → 待处理
-  - Changefeed 清理 → 待处理
-
-- **Changefeed 历史清理** (低优先级，可批量处理)
-  - PT-004 系列 (LineInfra/Positions/Edit) 发布正式 anchor
-  - PT-005.Search anchor
-  - PT-008.Snapshot anchor
-  - PT-009.LineOpt anchor
-  - → context: [`docs/reports/migration-log.md`](../docs/reports/migration-log.md) "Active Items"
+- **Sprint 05 规划** (待启动)
+  - 评估 WS5 剩余 47 gaps 优先级
+  - 确定下一阶段移植目标
 
 ---
 
 ## Parking Lot (暂缓但需追踪)
 
-- WordSeparator cache/perf backlog → 待 Intl.Segmenter 研究后决定
 - WS5 剩余 47 gaps (~106h) → 按 Top-10 优先级逐步消化
