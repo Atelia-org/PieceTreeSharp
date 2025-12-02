@@ -29,7 +29,8 @@
 4. `agent-team/handoffs/B3-TextModelSearch-INV.md`、`B3-TextModelSearch-QA.md` —— Janitor `Intl.Segmenter & WordSeparator cache` notes，并保持 rerun 命令在 `tests/TextBuffer.Tests/TestMatrix.md` 中最新，同时引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)。
 
 ## Key Deliverables
-- **[NEW 2025-12-02]** `docs/reports/alignment-audit/00-08` — Sprint 04 M2 审计更新：873 passed/9 skipped 基线，Snippet P0-P2/Cursor/WordOps/IntervalTree AcceptReplace/FindModel 已完成标记
+- **[NEW 2025-12-02]** `agent-team/handoffs/WS5-Gap-Assessment-2025-12-02.md` — WS5 Gap 重评估：原 47 gaps 完成状态分析，26 个剩余 gaps (~42h)，按优先级排序的下一批 TODO
+- **[2025-12-02]** `docs/reports/alignment-audit/00-08` — Sprint 04 M2 审计更新：873 passed/9 skipped 基线，Snippet P0-P2/Cursor/WordOps/IntervalTree AcceptReplace/FindModel 已完成标记
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetVarResolver-2025-12-02.md` — TS Parity 审阅：SnippetVariableResolver，接口设计/SELECTION/TM_FILENAME/默认值处理 PASS WITH NOTES，16 个测试用例覆盖核心场景
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 快速审阅：Snippet 确定性测试 (27 tests)，边界情况/adjustWhitespace/Placeholder Grouping，52 passed/4 skipped (P2)，TS Reference 准确
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — TS Parity 审阅：Snippet P1.5 Placeholder Grouping，分组/导航逻辑 PASS，Stickiness 动态切换标记为 P2 追踪项
@@ -55,6 +56,7 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-02 | WS5 Gap Re-Assessment | 评估原 47 gaps 完成状态，识别剩余 gaps，输出 `WS5-Gap-Assessment-2025-12-02.md` |
 | 2025-12-02 | Sprint 05 M1/M2 Diff API Review | 快速审阅 RangeMapping、DiffMove、TextLength、DiffTextEdit，36/36 测试通过，结论 **PASS** |
 | 2025-12-02 | Sprint 05 方向建议 | 为 Team Leader 分析审计报告，识别 gap 模块并按优先级排序，输出方向建议 |
 | 2025-12-02 | ts-test-alignment.md 审计 | 检查 Live Checkpoints/Backlog/Appendix 与当前状态对齐，识别 Intl.Segmenter 砍除需更新 |

@@ -27,18 +27,21 @@
 
 - **Sprint 05: Diff → DocUI 渲染链路** (2025-12-02 ~ )
   - **M1 (Week 1): Diff 核心修复** ✅ Done
-    - [x] LineSequence.GetBoundaryScore 修复
-    - [x] DiffMove.Flip() 补齐
-    - [x] RangeMapping.Inverse/Clip 实现
   - **M2 (Week 2): RangeMapping API 补齐** ✅ Done
-    - [x] RangeMapping.FromEdit/FromEditJoin
-    - [x] DetailedLineRangeMapping.ToTextEdit
-    - [x] TextLength, DiffTextEdit 辅助类型
-    - [ ] Diff 回归测试扩展 (目前 36 tests)
+  - **M2.5: Diff 回归测试扩展** 🔄 进行中
+    - [ ] UnchangedRegions 测试 (10 cases)
+    - [ ] PostProcessCharChanges 测试 (5 cases)
+    - [ ] 边界 cases（空文档、单行、大 diff）
+    - [ ] 大文档性能基准 (10K/50K 行)
+    - 目标: 40 → 55+ tests
   - **M3 (Week 3): DocUI Diff 渲染** ⏸️ 延后（需求待明确）
-  - **M4 (Week 4): 集成与测试**
-    - [ ] 全量回归测试
-    - [x] 对齐度目标: 56% → ~60% (909 tests)
+  - **M4 (Week 4): 集成与测试** ✅ 基本完成 (909 tests)
+
+- **Sprint 05 Batch 2: 快速胜利任务** (可并行)
+  - [ ] Diff 回归测试扩展 (~2h) → 15+ 新测试
+  - [ ] validatePosition NaN/float 测试 (~1h)
+  - [ ] 解除 SelectHighlightsAction skipped test (~2h)
+  - [ ] 解除 MultiCursorSnippet skipped test (~2h)
 
 ---
 
@@ -54,4 +57,26 @@
 
 ## Parking Lot (暂缓但需追踪)
 
-- WS5 剩余 47 gaps (~106h) → 按 Top-10 优先级逐步消化
+### WS5 剩余 Gaps 清单 (2025-12-02 评估)
+
+**原 47 gaps → 剩余 26 gaps (~42h)**，完成率 55%
+
+#### P1 优先 (5 gaps, ~11h)
+| Gap | 估计工时 | 依赖 | 状态 |
+|-----|---------|------|------|
+| TextModelData.fromString | 3h | 新建类 | 待实施 |
+| AddSelectionToNextFindMatch | 4h | MultiCursorController | 待设计 |
+| MultiCursor Snippet 集成 | 3h | CursorCollection | 待实施 |
+| validatePosition (NaN/float) | 1h | 无 | 待实施 |
+
+#### P2 优先 (12 gaps, ~20h)
+- Snippet P3: nested/escape/inheritance (4 skipped tests)
+- findController Mac clipboard/context keys
+- bracketMatching pair colorization
+- editStack undo/redo boundaries
+- textChange operation merge
+
+#### P3 低优先 (9 gaps, ~11h)
+- WordOps edge cases (3 skipped tests: Issue51119/64810/74188)
+- intervalTree TS parity
+- columnSelection word wrap

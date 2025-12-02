@@ -6,6 +6,7 @@
 - Stamp every Sprint 04 handoff with [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) and keep Cursor/Snippet、DocUI backlog work tied to [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Current Focus
+- **Sprint05-M3-DiffRegressionTests** (完成): 扩展 Diff 回归测试套件。DiffTests 从 4 扩展到 59 tests，总计 Diff 相关测试从 40 扩展到 95 tests。新增 UnchangedRegions (10)、PostProcessCharChanges (8)、边界 Cases (9)、性能测试 (5)、TS 回归测试 (23)。详见 [Sprint05-M3-DiffRegressionTests-Result.md](../handoffs/Sprint05-M3-DiffRegressionTests-Result.md)。964/973 测试通过（964 pass + 9 skip）。
 - **Sprint05-M2-RangeMappingConversion** (完成): 实现 RangeMapping 转换 API。新增 `TextLength`、`TextReplacement`、`DiffTextEdit` 三个辅助类，添加 `RangeMapping.FromEdit()`、`FromEditJoin()`、`ToTextEdit()` 和 `DetailedLineRangeMapping.ToTextEdit()` 四个 API。新增 22 个测试。详见 [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md)。909/918 测试通过（909 pass + 9 skip）。
 - **Sprint05-M1-DiffCoreAPI** (完成): 实现 Diff 核心 API 补齐。添加 `DiffMove.Flip()`、`LineRangeMapping.Inverse()`、`LineRangeMapping.Clip()` 三个 API。新增 14 个测试到 `RangeMappingTests.cs`。详见 [Sprint05-M1-DiffCoreAPI-Result.md](../handoffs/Sprint05-M1-DiffCoreAPI-Result.md)。887/896 测试通过（887 pass + 9 skip）。
 - **Snippet-P2-Variables** (完成): 实现 Snippet Variable Resolver 框架。创建 `ISnippetVariableResolver` 接口，实现 `SelectionVariableResolver`（SELECTION, TM_SELECTED_TEXT）、`ModelVariableResolver`（TM_FILENAME）、`CompositeVariableResolver`（组合多 resolver）、`FallbackVariableResolver`（unknown 返回空字符串）。添加 `${VAR}` 和 `${VAR:default}` 语法解析。新增 24 个测试。详见 [Snippet-P2-Variables-Result.md](../handoffs/Snippet-P2-Variables-Result.md)。882/882 测试通过（873 pass + 9 skip）。
@@ -24,6 +25,7 @@
 - **WS1-PORT-SearchCore** (完成): 优化 `GetAccumulatedValue` 以支持 LineStarts 快速路径，添加 DEBUG 计数器到 `PieceTreeSearchCache`。详见 [WS1-PORT-SearchCore-Result.md](../handoffs/WS1-PORT-SearchCore-Result.md)。
 
 ## Key Deliverables
+- **Sprint05-M3-DiffRegressionTests** → [Sprint05-M3-DiffRegressionTests-Result.md](../handoffs/Sprint05-M3-DiffRegressionTests-Result.md): Diff 回归测试扩展，DiffTests 59 tests + RangeMappingTests 36 tests = 95 total，锚点 `#delta-2025-12-02-sprint05-m3-diff-regression-tests`。
 - **Sprint05-M2-RangeMappingConversion** → [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md): `TextLength` + `TextReplacement` + `DiffTextEdit` 辅助类，`RangeMapping.FromEdit()` + `FromEditJoin()` + `ToTextEdit()` + `DetailedLineRangeMapping.ToTextEdit()` 四个 API，22 新测试，锚点 `#delta-2025-12-02-sprint05-m2-rangemapping-conversion`。
 - **Sprint05-M1-DiffCoreAPI** → [Sprint05-M1-DiffCoreAPI-Result.md](../handoffs/Sprint05-M1-DiffCoreAPI-Result.md): `DiffMove.Flip()` + `LineRangeMapping.Inverse()` + `LineRangeMapping.Clip()` 三个 API，14 新测试，锚点 `#delta-2025-12-02-sprint05-m1-diff-core-api`。
 - **Snippet-P2-Variables** → [Snippet-P2-Variables-Result.md](../handoffs/Snippet-P2-Variables-Result.md): Variable Resolver 框架，`ISnippetVariableResolver` 接口，`SelectionVariableResolver`/`ModelVariableResolver`/`CompositeVariableResolver`/`FallbackVariableResolver` 实现，`${VAR}` 和 `${VAR:default}` 语法解析，24 个新测试，锚点 `#delta-2025-12-02-snippet-p2-variables`。
@@ -46,11 +48,12 @@
 - DocUI Find stack parity → [B3-FC-Result.md](../handoffs/B3-FC-Result.md), [AA4-008-Result.md](../handoffs/AA4-008-Result.md), and the `docs/reports/migration-log.md` rows for `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-b3-docui-staged`.
 
 ## Test Baselines
-**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **909 pass + 9 skip** (≈1m37s)
+**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **964 pass + 9 skip** (≈1m48s)
 
 **关键 targeted filters**:
+- `--filter DiffTests` → 59/59
 - `--filter RangeMappingTests` → 36/36
-- `--filter DiffTests` → 4/4
+- `--filter "DiffTests|RangeMappingTests"` → 95/95
 - `--filter SnippetControllerTests` → 80/80 (76p+4s)
 - `--filter CursorWordOperationsTests` → 41/41 (38p+3s)
 - `--filter CursorCoreTests` → 25/25
@@ -78,6 +81,8 @@
 
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-02 | Sprint05-M3-DiffRegressionTests | DiffTests 4→59，总 Diff 测试 40→95，全量 964+9 |
+| 2025-12-02 | P1 TODO 细化评估 | 为 Team Leader 分析 guessIndentation/TextModelData/AddSelection/Snippet/Diff 任务 |
 | 2025-12-02 | Sprint05-M2-RangeMappingConversion | TextLength + DiffTextEdit + FromEdit API，22 新测试 |
 | 2025-12-02 | Sprint05-M1-DiffCoreAPI | `DiffMove.Flip()` + `Inverse()` + `Clip()`，14 新测试 |
 | 2025-12-02 | Sprint 05 技术评估 | 为 Team Leader 提供 Diff/DocUI/Services 优先级建议 |
