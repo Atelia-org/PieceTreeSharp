@@ -49,7 +49,14 @@
 - CursorCollection、AtomicTabMoveOperations、WordOperations 完整实现
 - MarkdownRenderer 集成 FindDecorations + 枚举值 TS 对齐
 - BUILD-WARNINGS 清零
-- 测试基线达到 807 passed (当前)
+- 测试基线达到 807 passed
+
+### Sprint 05 (2025-12-02): Diff API & 测试扩展 🎉
+- Snippet P0-P2 全部完成（Final Tabstop, adjustWhitespace, Placeholder Grouping, Variable Resolver）
+- Diff 核心 API: LineSequence 修复, DiffMove.Flip, RangeMapping.Inverse/Clip/FromEdit/ToTextEdit
+- 大规模文档维护（Handoffs 归档 57 文件，认知文件压缩 54%）
+- WS5 Gap 重新评估（47→26 gaps，完成率 55%）
+- **测试基线达到 1008 passed（首次突破 1000！）**
 
 ---
 **状态更新提示：** 编辑本文件前请先核对 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md`](agent-team/indexes/README.md) 的最新 changefeed delta。
