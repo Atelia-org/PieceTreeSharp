@@ -25,17 +25,9 @@
 
 ## Active Goals
 
-- **Sprint 04 M2: Cursor & Snippet 完整实现** → [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)
-  - WS4-PORT-Collection: CursorCollection 完整生命周期 → ✅ Done
-  - WS4-PORT-Snippet P0-P1: Final Tabstop + adjustWhitespace → ✅ Done
-  - WS4-PORT-Snippet P1.5: Placeholder grouping → ✅ Done (`#delta-2025-12-02-snippet-p1.5`)
-  - WS4-PORT-Snippet P2: Variable resolver (TM_FILENAME/SELECTION) 🔄 **可选**
-  - WS4-QA: Cursor/Snippet deterministic 测试套件
-
-- **Sprint 04 M2: DocUI MarkdownRenderer 完善** → [`#delta-2025-11-26-aa4-cl8-markdown`](indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)
-  - CL8-Phase34 基础枚举与 FindDecorations 集成 → ✅ Done
-  - Decoration ingestion (owner filter, metadata) → ✅ Done (已集成)
-  - Intl.Segmenter word segmentation 适配 (P2, 可选)
+- **Sprint 04 M2 可选项** (非阻塞)
+  - WS4-PORT-Snippet P2: Variable resolver (TM_FILENAME/SELECTION)
+  - DocUI Intl.Segmenter word segmentation 适配
 
 - **Changefeed 历史清理** (低优先级，可批量处理)
   - PT-004 系列 (LineInfra/Positions/Edit) 发布正式 anchor
@@ -43,11 +35,6 @@
   - PT-008.Snapshot anchor
   - PT-009.LineOpt anchor
   - → context: [`docs/reports/migration-log.md`](../docs/reports/migration-log.md) "Active Items"
-
-- **WS3-PORT-TextModel**: IntervalTree 集成到 TextModel → ✅ Done
-  - DecorationsTrees 接入 lazy normalize → ✅
-  - `AcceptReplace` 替代 `AdjustDecorationsForEdit` → ✅
-  - DocUI perf harness (50k decorations O(log n)) → ✅ 6/6 tests passed
 
 ---
 
