@@ -6,6 +6,7 @@
 - Stamp every Sprint 04 handoff with [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) and keep Cursor/Snippet、DocUI backlog work tied to [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Current Focus
+- **TextModel-ValidatePosition-Tests** (完成): 添加 ValidatePosition 边界测试套件。新增 `TextModelValidatePositionTests.cs` (44 tests)，覆盖负数/零/超范围输入、ValidateRange、surrogate pair 边界（记录当前行为）。详见测试文件内注释。1008/1017 测试通过（1008 pass + 9 skip）。
 - **Sprint05-M3-DiffRegressionTests** (完成): 扩展 Diff 回归测试套件。DiffTests 从 4 扩展到 59 tests，总计 Diff 相关测试从 40 扩展到 95 tests。新增 UnchangedRegions (10)、PostProcessCharChanges (8)、边界 Cases (9)、性能测试 (5)、TS 回归测试 (23)。详见 [Sprint05-M3-DiffRegressionTests-Result.md](../handoffs/Sprint05-M3-DiffRegressionTests-Result.md)。964/973 测试通过（964 pass + 9 skip）。
 - **Sprint05-M2-RangeMappingConversion** (完成): 实现 RangeMapping 转换 API。新增 `TextLength`、`TextReplacement`、`DiffTextEdit` 三个辅助类，添加 `RangeMapping.FromEdit()`、`FromEditJoin()`、`ToTextEdit()` 和 `DetailedLineRangeMapping.ToTextEdit()` 四个 API。新增 22 个测试。详见 [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md)。909/918 测试通过（909 pass + 9 skip）。
 - **Sprint05-M1-DiffCoreAPI** (完成): 实现 Diff 核心 API 补齐。添加 `DiffMove.Flip()`、`LineRangeMapping.Inverse()`、`LineRangeMapping.Clip()` 三个 API。新增 14 个测试到 `RangeMappingTests.cs`。详见 [Sprint05-M1-DiffCoreAPI-Result.md](../handoffs/Sprint05-M1-DiffCoreAPI-Result.md)。887/896 测试通过（887 pass + 9 skip）。
@@ -48,9 +49,10 @@
 - DocUI Find stack parity → [B3-FC-Result.md](../handoffs/B3-FC-Result.md), [AA4-008-Result.md](../handoffs/AA4-008-Result.md), and the `docs/reports/migration-log.md` rows for `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-b3-docui-staged`.
 
 ## Test Baselines
-**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **964 pass + 9 skip** (≈1m48s)
+**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1008 pass + 9 skip** (≈2m)
 
 **关键 targeted filters**:
+- `--filter TextModelValidatePositionTests` → 44/44 ✨ NEW
 - `--filter DiffTests` → 59/59
 - `--filter RangeMappingTests` → 36/36
 - `--filter "DiffTests|RangeMappingTests"` → 95/95
@@ -81,6 +83,7 @@
 
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-02 | TextModel-ValidatePosition-Tests | 44 新测试，覆盖负数/零/超范围/surrogate，全量 1008+9 |
 | 2025-12-02 | Sprint05-M3-DiffRegressionTests | DiffTests 4→59，总 Diff 测试 40→95，全量 964+9 |
 | 2025-12-02 | P1 TODO 细化评估 | 为 Team Leader 分析 guessIndentation/TextModelData/AddSelection/Snippet/Diff 任务 |
 | 2025-12-02 | Sprint05-M2-RangeMappingConversion | TextLength + DiffTextEdit + FromEdit API，22 新测试 |
