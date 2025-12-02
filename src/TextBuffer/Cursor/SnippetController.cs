@@ -2,6 +2,9 @@
 // - Class: SnippetController2 (Lines: 30-500)
 // Ported: 2025-11-22
 // Extended: 2025-12-02 (P1: Final Tabstop $0, adjustWhitespace options)
+// Extended: 2025-12-02 (P1.5: Placeholder grouping for synchronized editing)
+
+using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Cursor;
 
@@ -64,6 +67,51 @@ public sealed class SnippetController : IDisposable
     public (TextPosition Start, TextPosition End)? GetCurrentPlaceholderRange()
     {
         return _session?.GetCurrentPlaceholderRange();
+    }
+
+    /// <summary>
+    /// Gets all ranges for the current placeholder index (including mirrors).
+    /// P1.5: Same-index placeholders are grouped together for synchronized editing.
+    /// TS: Uses OneSnippet.computePossibleSelections() (snippetSession.ts L200-230).
+    /// </summary>
+    /// <returns>All ranges for the current placeholder index, or null if not at a valid placeholder.</returns>
+    public IReadOnlyList<(TextPosition Start, TextPosition End)>? GetCurrentPlaceholderRanges()
+    {
+        return _session?.GetCurrentPlaceholderRanges();
+    }
+
+    /// <summary>
+    /// Gets all selections (as TextRange) for the current placeholder.
+    /// Convenience method that converts positions to ranges.
+    /// P1.5: For synchronized editing of same-index placeholders.
+    /// </summary>
+    /// <returns>All selections for the current placeholder, or null if not at a valid placeholder.</returns>
+    public IReadOnlyList<TextRange>? GetAllSelectionsForCurrentPlaceholder()
+    {
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = _session?.GetCurrentPlaceholderRanges();
+        if (ranges == null || ranges.Count == 0)
+        {
+            return null;
+        }
+
+        List<TextRange> result = new(ranges.Count);
+        foreach ((TextPosition Start, TextPosition End) range in ranges)
+        {
+            int startOffset = _model.GetOffsetAt(range.Start);
+            int endOffset = _model.GetOffsetAt(range.End);
+            result.Add(new TextRange(startOffset, endOffset));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Computes all possible selections for all placeholder groups.
+    /// TS: OneSnippet.computePossibleSelections() (snippetSession.ts L200-230).
+    /// </summary>
+    /// <returns>A dictionary mapping placeholder index to all ranges for that index.</returns>
+    public IReadOnlyDictionary<int, IReadOnlyList<(TextPosition Start, TextPosition End)>>? ComputePossibleSelections()
+    {
+        return _session?.ComputePossibleSelections();
     }
 
     public void InsertSnippetAt(TextPosition pos, string snippet)

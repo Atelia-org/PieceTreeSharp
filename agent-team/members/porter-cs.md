@@ -6,6 +6,7 @@
 - Stamp every Sprint 04 handoff with [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) and keep Cursor/Snippet、DocUI backlog work tied to [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Current Focus
+- **Snippet-P1.5** (完成): 实现 Placeholder Grouping 功能。添加 `_placeholderGroups` 字典按 index 分组占位符，修改 `NextPlaceholder()`/`PrevPlaceholder()` 按 unique index 导航，添加 `GetCurrentPlaceholderRanges()` / `ComputePossibleSelections()` 方法，修复 stickiness 为 `NeverGrowsWhenTypingAtEdges`。新增 8 个测试。详见 [Snippet-P1.5-Result.md](../handoffs/Snippet-P1.5-Result.md)。831/831 测试通过（826 pass + 5 skip）。
 - **WS3-PORT-TextModel** (完成): 将 IntervalTree 的 AcceptReplace 集成到 TextModel。新增 `DecorationsTrees.AcceptReplace` 方法聚合 3 个 scope tree。修改 `IntervalTree.AcceptReplace` 返回 `IReadOnlyList<DecorationChange>`，步骤 (3) 后强制 normalize 确保 `Decoration.Range` 值始终正确。修改 `NormalizeDelta` 同时更新 `Decoration.Range`。删除 `TextModel.AdjustDecorationsForEdit`（~40 行），在 `ApplyPendingEdits` 中调用新的 `_decorationTrees.AcceptReplace`。详见 [WS3-PORT-TextModel-Result.md](../handoffs/WS3-PORT-TextModel-Result.md)。818/823 测试通过（818 pass + 5 skip）。
 - **Snippet-P1** (完成): 实现 Snippet P0-P1 功能。Final Tabstop `$0` 支持 + `adjustWhitespace` 缩进对齐。重构 `SnippetSession.cs` (145 → 442 行)，扩展 `SnippetController.cs` (50 → 74 行)，新增 16 个测试到 `SnippetControllerTests.cs`。详见 [Snippet-P1-Result.md](../handoffs/Snippet-P1-Result.md)。823/823 测试通过（818 pass + 5 skip）。
 - **WS5-WordOperations** (完成): WordOperations 测试套件扩展 (#2 Priority from WS5-INV)。重构 `WordOperations.cs` (958 行)，重命名 `WordCharacterClassifier` 为 `CursorWordCharacterClassifier` 避免命名空间冲突，创建 `CursorWordOperationsTests.cs` (38 passing + 3 skipped)。详见 [WS5-WordOperations-Result.md](../handoffs/WS5-WordOperations-Result.md) + [`migration-log#ws5-wordoperations`](../../docs/reports/migration-log.md#ws5-wordoperations)。796/801 测试通过（796 pass + 5 skip）。
@@ -20,6 +21,7 @@
 - **WS1-PORT-SearchCore** (完成): 优化 `GetAccumulatedValue` 以支持 LineStarts 快速路径，添加 DEBUG 计数器到 `PieceTreeSearchCache`。详见 [WS1-PORT-SearchCore-Result.md](../handoffs/WS1-PORT-SearchCore-Result.md)。
 
 ## Key Deliverables
+- **Snippet-P1.5** → [Snippet-P1.5-Result.md](../handoffs/Snippet-P1.5-Result.md): Placeholder Grouping 功能，`_placeholderGroups` 字典，`GetCurrentPlaceholderRanges()` / `ComputePossibleSelections()` 方法，按组导航，stickiness 修复 `NeverGrowsWhenTypingAtEdges`，8 个新测试，锚点 `#delta-2025-12-02-snippet-p1.5`。
 - **WS3-PORT-TextModel** → [WS3-PORT-TextModel-Result.md](../handoffs/WS3-PORT-TextModel-Result.md): IntervalTree AcceptReplace 集成到 TextModel，`DecorationsTrees.AcceptReplace` 聚合器，`NormalizeDelta` 更新 `Decoration.Range`，删除旧 `AdjustDecorationsForEdit`，锚点 `#delta-2025-12-02-ws3-port-textmodel`。
 - **Snippet-P1** → [Snippet-P1-Result.md](../handoffs/Snippet-P1-Result.md): Final Tabstop `$0` 支持 + `adjustWhitespace` 缩进对齐，重构 `SnippetSession.cs` (442 行) + `SnippetController.cs` (74 行) + 21 测试，锚点 `#delta-2025-12-02-snippet-p1`。
 - **WS5-WordOperations** → [WS5-WordOperations-Result.md](../handoffs/WS5-WordOperations-Result.md): 完整 WordOperations 实现 (`WordOperations.cs` 958 行) + `CursorWordCharacterClassifier` + 41 测试（38 pass + 3 skip），锚点 `#delta-2025-11-28-ws5-wordoperations`；迁移日志 [`docs/reports/migration-log.md#ws5-wordoperations`](../../docs/reports/migration-log.md#ws5-wordoperations)。
@@ -38,8 +40,8 @@
 - DocUI Find stack parity → [B3-FC-Result.md](../handoffs/B3-FC-Result.md), [AA4-008-Result.md](../handoffs/AA4-008-Result.md), and the `docs/reports/migration-log.md` rows for `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-b3-docui-staged`.
 
 ## Test Baselines
-- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 823/823（818 pass + 5 skip，≈101s）per Snippet-P1-Result.md baseline。
-- `export PIECETREE_DEBUG=0 && dotnet test --filter SnippetControllerTests --nologo` → 21/21 (≈2s) for snippet controller tests。
+- `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 831/831（826 pass + 5 skip，≈100s）per Snippet-P1.5-Result.md baseline。
+- `export PIECETREE_DEBUG=0 && dotnet test --filter SnippetControllerTests --nologo` → 29/29 (≈2s) for snippet controller tests（含 P1.5 grouping 测试）。
 - `export PIECETREE_DEBUG=0 && dotnet test --filter CursorWordOperationsTests --nologo` → 41/41 (38 pass + 3 skip, ≈2s) for word operations tests。
 - `export PIECETREE_DEBUG=0 && dotnet test --filter DecorationEnumAlignmentTests --nologo` → 25/25 (≈0.1s) for decoration enum alignment tests。
 - `export PIECETREE_DEBUG=0 && dotnet test --filter CursorAtomicMoveTests --nologo` → 43/43 (≈1.7s) for atomic tab move operations tests。
@@ -68,6 +70,7 @@
 - Detailed run-by-run notes, rerun transcripts, and migrated worklogs now live in [agent-team/handoffs/](../handoffs/) and `docs/reports/migration-log.md`; cite those records (not this snapshot) for historical context or audit evidence.
 
 ## Activity Log
+- 2025-12-02 – **Snippet-P1.5 Placeholder Grouping Implementation**: 根据 `REVIEW-2025-12-02.md` 反馈实现 Placeholder Grouping 功能。(1) 添加 `_placeholderGroups` 字典按 index 分组占位符。(2) 修改 `NextPlaceholder()`/`PrevPlaceholder()` 按 unique index 导航，跳过同 index 重复项。(3) 添加 `GetCurrentPlaceholderRanges()` / `GetPlaceholderRangesByIndex()` / `ComputePossibleSelections()` 方法。(4) **关键修复**：设置 placeholder decoration stickiness 为 `NeverGrowsWhenTypingAtEdges`（与 TS 对齐），解决编辑后 decoration 位置未正确追踪的问题。(5) 添加 8 个新测试覆盖 grouping 功能。测试总数 831（826 pass + 5 skip）。
 - 2025-12-02 – **WS3-PORT-TextModel Implementation**: 将 IntervalTree AcceptReplace 集成到 TextModel。(1) 新增 `DecorationsTrees.AcceptReplace` 聚合 3 个 scope tree。(2) 修改 `IntervalTree.AcceptReplace` 返回 `IReadOnlyList<DecorationChange>`，Phase 4 收集节点变更。(3) `NoOverlapReplace` 收集被移动节点的变更。(4) **关键修复**：在 `NoOverlapReplace` 后强制 normalize，确保所有 `Decoration.Range` 值正确（lazy delta 不会更新右子树节点的 `Decoration.Range`）。(5) 修改 `NormalizeDelta` 同时更新 `Decoration.Range`。(6) 删除 `TextModel.AdjustDecorationsForEdit`（~40 行）。测试总数 823（818 pass + 5 skip）。
 - 2025-12-02 – **Snippet-P1 Implementation**: 根据 `INV-Snippet-Downgrade.md` Brief 实现 Snippet P0-P1 功能。(1) Final Tabstop `$0` 支持：识别 `$0`/`${0}` 作为最后导航点，`IsFinalTabstop` 属性，占位符排序（$0 始终最后）。(2) `adjustWhitespace` 缩进对齐：基于 TS L326-380，多行 snippet 第2行起添加 lineLeadingWhitespace。(3) 扩展解析器支持 `$n`/`${n}`/`${n:text}` 三种语法。重构 `SnippetSession.cs` (145→442 行)，扩展 `SnippetController.cs` (50→74 行)，新增 16 个测试。测试总数 823（818 pass + 5 skip）。
 - 2025-12-01 – **Team Talk #2 with Team Leader**: 测试性团队谈话。确认角色定位（TS→C# 移植专家）、核心职责（Code Porting, Semantic Parity, Test Coverage, Handoff Production）、移植原则（直译优先, 命名对齐, 注释同步, 文件头部标注）、协作流程（Investigator-TS → Porter-CS → QA-Automation）、输出顺序纪律（先完成所有工具调用，最后一次性输出完整汇报）。

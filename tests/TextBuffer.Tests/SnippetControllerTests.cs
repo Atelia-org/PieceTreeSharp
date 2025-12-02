@@ -4,8 +4,10 @@
 // Ported: 2025-11-22
 // Extended: 2025-11-30 with more TS parity tests
 // Extended: 2025-12-02 with Final Tabstop ($0) and adjustWhitespace tests
+// Extended: 2025-12-02 with Placeholder Grouping (P1.5) tests
 
 using PieceTree.TextBuffer.Cursor;
+using PieceTree.TextBuffer.Decorations;
 
 namespace PieceTree.TextBuffer.Tests;
 
@@ -431,5 +433,230 @@ public class SnippetControllerTests
         Assert.NotNull(range);
         Assert.Equal(new TextPosition(1, 1), range.Value.Start);
         Assert.Equal(new TextPosition(1, 6), range.Value.End); // "hello" is 5 chars
+    }
+
+    // ==================== P1.5: Placeholder Grouping Tests ====================
+
+    [Fact]
+    public void SnippetInsert_SameIndexPlaceholders_GroupedCorrectly()
+    {
+        // TS: Same index placeholders (e.g., ${1:foo} and ${1:foo}) should be grouped
+        // This is used for synchronized editing (mirrors)
+        TextModel model = new("x");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:foo} and ${1:foo}");
+
+        // Result: "foo and foox"
+        Assert.Equal("foo and foox", model.GetValue());
+
+        // Navigate to first placeholder
+        controller.NextPlaceholder();
+
+        // Get all ranges for current placeholder
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(2, ranges.Count); // Two placeholders with index 1
+
+        // First placeholder: "foo" at position 1-4
+        Assert.Equal(new TextPosition(1, 1), ranges[0].Start);
+        Assert.Equal(new TextPosition(1, 4), ranges[0].End);
+
+        // Second placeholder: "foo" at position 9-12 (after " and ")
+        Assert.Equal(new TextPosition(1, 9), ranges[1].Start);
+        Assert.Equal(new TextPosition(1, 12), ranges[1].End);
+    }
+
+    [Fact]
+    public void SnippetInsert_SameIndexPlaceholders_DifferentDefaults()
+    {
+        // Same index but different default text - all should be grouped
+        TextModel model = new("x");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:first} ${1:second}");
+
+        // Result: "first secondx" - each placeholder keeps its own default text
+        Assert.Equal("first secondx", model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(2, ranges.Count);
+
+        // First placeholder: "first" at 1-6
+        Assert.Equal(new TextPosition(1, 1), ranges[0].Start);
+        Assert.Equal(new TextPosition(1, 6), ranges[0].End);
+
+        // Second placeholder: "second" at 7-13
+        Assert.Equal(new TextPosition(1, 7), ranges[1].Start);
+        Assert.Equal(new TextPosition(1, 13), ranges[1].End);
+    }
+
+    [Fact]
+    public void SnippetInsert_ThreeSameIndexPlaceholders()
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a},${1:b},${1:c}");
+
+        // Result: "a,b,c"
+        Assert.Equal("a,b,c", model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(3, ranges.Count);
+
+        // Verify all three ranges
+        Assert.Equal(new TextPosition(1, 1), ranges[0].Start);
+        Assert.Equal(new TextPosition(1, 2), ranges[0].End); // "a"
+
+        Assert.Equal(new TextPosition(1, 3), ranges[1].Start);
+        Assert.Equal(new TextPosition(1, 4), ranges[1].End); // "b"
+
+        Assert.Equal(new TextPosition(1, 5), ranges[2].Start);
+        Assert.Equal(new TextPosition(1, 6), ranges[2].End); // "c"
+    }
+
+    [Fact]
+    public void SnippetInsert_MixedPlaceholders_OnlyCurrentGrouped()
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a}${2:b}${1:c}");
+
+        // Result: "abc"
+        Assert.Equal("abc", model.GetValue());
+
+        // Navigate to first placeholder (index 1)
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges1 = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges1);
+        Assert.Equal(2, ranges1.Count); // Two placeholders with index 1
+
+        // Navigate to second placeholder (index 2)
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges2 = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges2);
+        Assert.Single(ranges2); // Only one placeholder with index 2
+    }
+
+    [Fact]
+    public void GetAllSelectionsForCurrentPlaceholder_ReturnsTextRanges()
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:foo} ${1:bar}");
+
+        // Navigate to placeholder
+        controller.NextPlaceholder();
+        IReadOnlyList<TextRange>? selections = controller.GetAllSelectionsForCurrentPlaceholder();
+
+        Assert.NotNull(selections);
+        Assert.Equal(2, selections.Count);
+
+        // First selection: offset 0-3 ("foo")
+        Assert.Equal(0, selections[0].StartOffset);
+        Assert.Equal(3, selections[0].EndOffset);
+
+        // Second selection: offset 4-7 ("bar")
+        Assert.Equal(4, selections[1].StartOffset);
+        Assert.Equal(7, selections[1].EndOffset);
+    }
+
+    [Fact]
+    public void ComputePossibleSelections_ReturnsAllGroups()
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a}${2:b}${1:c}${2:d}");
+
+        // Result: "abcd"
+        Assert.Equal("abcd", model.GetValue());
+
+        IReadOnlyDictionary<int, IReadOnlyList<(TextPosition Start, TextPosition End)>>? selections = controller.ComputePossibleSelections();
+
+        Assert.NotNull(selections);
+        Assert.Equal(2, selections.Count); // Two groups: index 1 and index 2
+
+        // Index 1 has 2 placeholders
+        Assert.True(selections.ContainsKey(1));
+        Assert.Equal(2, selections[1].Count);
+
+        // Index 2 has 2 placeholders
+        Assert.True(selections.ContainsKey(2));
+        Assert.Equal(2, selections[2].Count);
+    }
+
+    [Fact]
+    public void ComputePossibleSelections_ExcludesFinalTabstop()
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a}$0${2:b}");
+
+        IReadOnlyDictionary<int, IReadOnlyList<(TextPosition Start, TextPosition End)>>? selections = controller.ComputePossibleSelections();
+
+        Assert.NotNull(selections);
+        Assert.Equal(2, selections.Count); // Only index 1 and 2
+
+        // Index 0 (final tabstop) should NOT be included
+        Assert.False(selections.ContainsKey(0));
+        Assert.True(selections.ContainsKey(1));
+        Assert.True(selections.ContainsKey(2));
+    }
+
+    [Fact]
+    public void PlaceholderGrouping_TracksEdits()
+    {
+        // Verify that grouped placeholders track model edits correctly
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:foo} and ${1:foo}");
+
+        // Result: "foo and foo"
+        Assert.Equal("foo and foo", model.GetValue());
+        
+        controller.NextPlaceholder();
+        
+        // Before edit, check single range is correct
+        (TextPosition Start, TextPosition End)? singleRange = controller.GetCurrentPlaceholderRange();
+        Assert.NotNull(singleRange);
+        Assert.Equal(new TextPosition(1, 1), singleRange.Value.Start);
+        Assert.Equal(new TextPosition(1, 4), singleRange.Value.End);
+        
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? rangesBefore = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(rangesBefore);
+        Assert.Equal(2, rangesBefore.Count);
+        
+        // Verify initial positions
+        Assert.Equal(new TextPosition(1, 1), rangesBefore[0].Start);  // First "foo" at 1
+        Assert.Equal(new TextPosition(1, 9), rangesBefore[1].Start);  // Second "foo" at 9 (after "foo and ")
+
+        // Insert text at the beginning
+        model.PushEditOperations([new TextEdit(new TextPosition(1, 1), new TextPosition(1, 1), "PREFIX ")]);
+        // Result: "PREFIX foo and foo"
+        Assert.Equal("PREFIX foo and foo", model.GetValue());
+
+        // After edit, check single range is updated
+        (TextPosition Start, TextPosition End)? singleRangeAfter = controller.GetCurrentPlaceholderRange();
+        Assert.NotNull(singleRangeAfter);
+        Assert.Equal(new TextPosition(1, 8), singleRangeAfter.Value.Start);  // Was 1, now 8
+        
+        // Get ranges again - they should have moved
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? rangesAfter = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(rangesAfter);
+        Assert.Equal(2, rangesAfter.Count);
+
+        // Both placeholders should have moved by 7 chars ("PREFIX " length)
+        Assert.Equal(new TextPosition(1, 8), rangesAfter[0].Start);  // Was 1
+        Assert.Equal(new TextPosition(1, 11), rangesAfter[0].End);   // Was 4
+
+        Assert.Equal(new TextPosition(1, 16), rangesAfter[1].Start); // Was 9
+        Assert.Equal(new TextPosition(1, 19), rangesAfter[1].End);   // Was 12
     }
 }

@@ -42,6 +42,9 @@ public sealed class SnippetInsertOptions
 /// It inserts the text and creates decorations for placeholders, providing navigation to next/prev placeholders.
 /// 
 /// Placeholder index 0 ($0) is the "final tabstop" - it's always navigated to last.
+/// 
+/// P1.5 Placeholder Grouping: Same-index placeholders are grouped together for synchronized editing.
+/// See TS: OneSnippet.computePossibleSelections() (snippetSession.ts L200-230)
 /// </summary>
 public sealed class SnippetSession : IDisposable
 {
@@ -50,6 +53,9 @@ public sealed class SnippetSession : IDisposable
     // Each placeholder keeps a live ModelDecoration so later edits move the range automatically.
     // Index 0 ($0) is treated specially as the final tabstop.
     private readonly List<(int Index, bool IsFinalTabstop, ModelDecoration Decoration)> _placeholders = [];
+    // P1.5: Placeholder grouping by index for synchronized editing
+    // TS: OneSnippet._placeholderGroups in snippetSession.ts
+    private readonly Dictionary<int, List<ModelDecoration>> _placeholderGroups = [];
     private int _current = -1;
     private bool _disposed;
 
@@ -120,12 +126,17 @@ public sealed class SnippetSession : IDisposable
             int absoluteEnd = absoluteStart + entry.Length;
             bool isFinalTabstop = entry.Index == 0;
 
+            // TS: snippetSession.ts OneSnippet._decor
+            // - inactive: NeverGrowsWhenTypingAtEdges (so placeholders shift, not expand)
+            // - active: AlwaysGrowsWhenTypingAtEdges (so typing expands the placeholder)
+            // We use NeverGrows here because these are "inactive" initially
             ModelDecorationOptions placeholderOptions = new()
             {
                 Description = isFinalTabstop ? "snippet-final-tabstop" : "snippet-placeholder",
                 RenderKind = DecorationRenderKind.Generic,
                 ShowIfCollapsed = true,
                 InlineDescription = "snippet",
+                Stickiness = TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
             };
 
             IReadOnlyList<ModelDecoration> created = _model.DeltaDecorations(
@@ -161,7 +172,29 @@ public sealed class SnippetSession : IDisposable
             return a.Index.CompareTo(b.Index);
         });
 
+        // P1.5: Build placeholder groups by index
+        // TS: groupBy(_snippet.placeholders, Placeholder.compareByIndex) in snippetSession.ts L48
+        GroupPlaceholdersByIndex();
+
         _current = -1;
+    }
+
+    /// <summary>
+    /// Groups placeholders by their index for synchronized editing.
+    /// TS: OneSnippet constructor uses groupBy() to create _placeholderGroups (snippetSession.ts L48).
+    /// </summary>
+    private void GroupPlaceholdersByIndex()
+    {
+        _placeholderGroups.Clear();
+        foreach ((int Index, bool IsFinalTabstop, ModelDecoration Decoration) entry in _placeholders)
+        {
+            if (!_placeholderGroups.TryGetValue(entry.Index, out List<ModelDecoration>? group))
+            {
+                group = [];
+                _placeholderGroups[entry.Index] = group;
+            }
+            group.Add(entry.Decoration);
+        }
     }
 
     /// <summary>
@@ -388,7 +421,20 @@ public sealed class SnippetSession : IDisposable
             return null;
         }
 
-        _current++;
+        // Move to next placeholder, skipping same-index duplicates (mirrors)
+        // TS: _placeholderGroupsIdx navigates between groups, not individual placeholders
+        int currentIndex = _current >= 0 ? _placeholders[_current].Index : -1;
+        do
+        {
+            _current++;
+        } while (_current < _placeholders.Count && _placeholders[_current].Index == currentIndex);
+
+        if (_current >= _placeholders.Count)
+        {
+            _current = _placeholders.Count; // sentinel
+            return null;
+        }
+
         return GetPlaceholderStart(_placeholders[_current]);
     }
 
@@ -401,8 +447,14 @@ public sealed class SnippetSession : IDisposable
 
         if (_current == _placeholders.Count)
         {
-            // if we just walked past the end, jump back to the last placeholder
+            // if we just walked past the end, jump back to the last placeholder group
             _current = _placeholders.Count - 1;
+            // Find the first in this group
+            int groupIndex = _placeholders[_current].Index;
+            while (_current > 0 && _placeholders[_current - 1].Index == groupIndex)
+            {
+                _current--;
+            }
             return GetPlaceholderStart(_placeholders[_current]);
         }
 
@@ -412,7 +464,31 @@ public sealed class SnippetSession : IDisposable
             return null;
         }
 
+        // Move to previous placeholder group
+        // TS: _placeholderGroupsIdx navigates between groups
+        int currentIndex = _placeholders[_current].Index;
+        
+        // Skip all items with same index (going backward)
+        while (_current > 0 && _placeholders[_current - 1].Index == currentIndex)
+        {
+            _current--;
+        }
+        
+        // Now _current points to the first item of current group, move to previous group
+        if (_current <= 0)
+        {
+            _current = -1;
+            return null;
+        }
+        
         _current--;
+        // Now find the first item in this new group
+        int newIndex = _placeholders[_current].Index;
+        while (_current > 0 && _placeholders[_current - 1].Index == newIndex)
+        {
+            _current--;
+        }
+        
         return GetPlaceholderStart(_placeholders[_current]);
     }
 
@@ -430,6 +506,89 @@ public sealed class SnippetSession : IDisposable
         int startOffset = placeholder.Decoration.Range.StartOffset;
         int endOffset = placeholder.Decoration.Range.EndOffset;
         return (_model.GetPositionAt(startOffset), _model.GetPositionAt(endOffset));
+    }
+
+    /// <summary>
+    /// Gets all ranges for the current placeholder index (including mirrors).
+    /// P1.5: Same-index placeholders are grouped together for synchronized editing.
+    /// TS: OneSnippet.computePossibleSelections() (snippetSession.ts L200-230).
+    /// </summary>
+    /// <returns>All ranges for the current placeholder index, or null if not at a valid placeholder.</returns>
+    public IReadOnlyList<(TextPosition Start, TextPosition End)>? GetCurrentPlaceholderRanges()
+    {
+        if (_current < 0 || _current >= _placeholders.Count)
+        {
+            return null;
+        }
+
+        int currentIndex = _placeholders[_current].Index;
+        return GetPlaceholderRangesByIndex(currentIndex);
+    }
+
+    /// <summary>
+    /// Gets all ranges for placeholders with the specified index.
+    /// TS: Part of computePossibleSelections() logic (snippetSession.ts L200-230).
+    /// </summary>
+    /// <param name="index">The placeholder index to query.</param>
+    /// <returns>All ranges for the specified index, or null if index not found or decorations lost.</returns>
+    public IReadOnlyList<(TextPosition Start, TextPosition End)>? GetPlaceholderRangesByIndex(int index)
+    {
+        if (!_placeholderGroups.TryGetValue(index, out List<ModelDecoration>? group) || group.Count == 0)
+        {
+            return null;
+        }
+
+        List<(TextPosition Start, TextPosition End)> result = new(group.Count);
+        foreach (ModelDecoration decoration in group)
+        {
+            // Get the current range from the model (decorations track edits automatically)
+            TextRange range = decoration.Range;
+            result.Add((_model.GetPositionAt(range.StartOffset), _model.GetPositionAt(range.EndOffset)));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Computes all possible selections for all placeholder groups.
+    /// TS: OneSnippet.computePossibleSelections() (snippetSession.ts L200-230).
+    /// </summary>
+    /// <returns>A dictionary mapping placeholder index to all ranges for that index.</returns>
+    public IReadOnlyDictionary<int, IReadOnlyList<(TextPosition Start, TextPosition End)>> ComputePossibleSelections()
+    {
+        Dictionary<int, IReadOnlyList<(TextPosition Start, TextPosition End)>> result = [];
+
+        foreach ((int index, List<ModelDecoration> group) in _placeholderGroups)
+        {
+            // Skip final tabstop in selection computation (TS: if (placeholder.isFinalTabstop) break;)
+            if (index == 0)
+            {
+                continue;
+            }
+
+            List<(TextPosition Start, TextPosition End)> ranges = new(group.Count);
+            bool hasValidRanges = true;
+
+            foreach (ModelDecoration decoration in group)
+            {
+                TextRange range = decoration.Range;
+                // Check if decoration still has a valid range
+                // TS: if (!range) { result.delete(placeholder.index); break; }
+                if (range.StartOffset < 0 || range.EndOffset < 0)
+                {
+                    hasValidRanges = false;
+                    break;
+                }
+                ranges.Add((_model.GetPositionAt(range.StartOffset), _model.GetPositionAt(range.EndOffset)));
+            }
+
+            if (hasValidRanges && ranges.Count > 0)
+            {
+                result[index] = ranges;
+            }
+        }
+
+        return result;
     }
 
     private TextPosition GetPlaceholderStart((int Index, bool IsFinalTabstop, ModelDecoration Decoration) placeholder)
