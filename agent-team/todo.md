@@ -38,8 +38,8 @@
   - **M4 (Week 4): 集成与测试** ✅ 基本完成 (909 tests)
 
 - **Sprint 05 Batch 2: 快速胜利任务** (可并行)
-  - [ ] Diff 回归测试扩展 (~2h) → 15+ 新测试
-  - [ ] validatePosition NaN/float 测试 (~1h)
+  - [x] Diff 回归测试扩展 (~2h) → ✅ +55 新测试 (40→95)
+  - [x] validatePosition 边界测试 (~1h) → ✅ +44 新测试
   - [ ] 解除 SelectHighlightsAction skipped test (~2h)
   - [ ] 解除 MultiCursorSnippet skipped test (~2h)
 
