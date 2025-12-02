@@ -3,14 +3,92 @@
 // - Class: LineRangeMapping (Lines: 19-195)
 // - Class: DetailedLineRangeMapping (Lines: 196-240)
 // - Function: lineRangeMappingFromRangeMappings (Lines: 322-395)
+// - Static: LineRangeMapping.inverse() (Lines: 19-45)
+// - Static: LineRangeMapping.clip() (Lines: 47-57)
+// - Static: RangeMapping.fromEdit() (Lines: 243-250)
+// - Static: RangeMapping.fromEditJoin() (Lines: 252-257)
+// - Instance: RangeMapping.toTextEdit() (Lines: 313-320)
+// - Static: DetailedLineRangeMapping.toTextEdit() (Lines: 196-205)
 // Ported: 2025-11-19
+// Updated: 2025-12-02 (Added Inverse, Clip, FromEdit, FromEditJoin, ToTextEdit)
 
+using PieceTree.TextBuffer.Core;
 using Range = PieceTree.TextBuffer.Core.Range;
 
 namespace PieceTree.TextBuffer.Diff;
 
 public sealed class RangeMapping
 {
+    /// <summary>
+    /// Creates RangeMappings from a DiffTextEdit.
+    /// Each replacement in the edit produces a mapping from original range to the new range after edit.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// RangeMapping.fromEdit() (Lines 243-250)
+    /// </remarks>
+    public static IReadOnlyList<RangeMapping> FromEdit(DiffTextEdit edit)
+    {
+        var newRanges = edit.GetNewRanges();
+        var result = new List<RangeMapping>(edit.Replacements.Count);
+        for (int i = 0; i < edit.Replacements.Count; i++)
+        {
+            result.Add(new RangeMapping(edit.Replacements[i].Range, newRanges[i]));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a single joined RangeMapping from a DiffTextEdit.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// RangeMapping.fromEditJoin() (Lines 252-257)
+    /// </remarks>
+    public static RangeMapping FromEditJoin(DiffTextEdit edit)
+    {
+        var mappings = FromEdit(edit);
+        return Join(mappings);
+    }
+
+    /// <summary>
+    /// Joins multiple RangeMappings into one.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// RangeMapping.join() (Lines 259-268)
+    /// </remarks>
+    public static RangeMapping Join(IReadOnlyList<RangeMapping> rangeMappings)
+    {
+        if (rangeMappings.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot join an empty list of range mappings");
+        }
+        var result = rangeMappings[0];
+        for (int i = 1; i < rangeMappings.Count; i++)
+        {
+            result = result.Join(rangeMappings[i]);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Asserts that the range mappings are sorted.
+    /// </summary>
+    public static void AssertSorted(IReadOnlyList<RangeMapping> rangeMappings)
+    {
+        for (int i = 1; i < rangeMappings.Count; i++)
+        {
+            var previous = rangeMappings[i - 1];
+            var current = rangeMappings[i];
+            if (!(previous.OriginalRange.GetEndPosition() <= current.OriginalRange.GetStartPosition()
+                && previous.ModifiedRange.GetEndPosition() <= current.ModifiedRange.GetStartPosition()))
+            {
+                throw new InvalidOperationException("Range mappings must be sorted");
+            }
+        }
+    }
+
     public RangeMapping(Range originalRange, Range modifiedRange)
     {
         OriginalRange = originalRange;
@@ -27,6 +105,19 @@ public sealed class RangeMapping
         return new RangeMapping(PlusRange(OriginalRange, other.OriginalRange), PlusRange(ModifiedRange, other.ModifiedRange));
     }
 
+    /// <summary>
+    /// Creates a TextReplacement that transforms the original to the modified text.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// RangeMapping.toTextEdit() (Lines 313-320)
+    /// </remarks>
+    public TextReplacement ToTextEdit(Func<Range, string> getValueOfRange)
+    {
+        var newText = getValueOfRange(ModifiedRange);
+        return new TextReplacement(OriginalRange, newText);
+    }
+
     public override string ToString() => $"{{{OriginalRange}->{ModifiedRange}}}";
 
     private static Range PlusRange(Range left, Range right)
@@ -39,6 +130,73 @@ public sealed class RangeMapping
 
 public class LineRangeMapping
 {
+    /// <summary>
+    /// Returns the inverse of the given mappings, representing the unchanged regions.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// LineRangeMapping.inverse() (Lines 19-45)
+    /// </remarks>
+    public static IReadOnlyList<LineRangeMapping> Inverse(
+        IReadOnlyList<LineRangeMapping> mapping,
+        int originalLineCount,
+        int modifiedLineCount)
+    {
+        var result = new List<LineRangeMapping>();
+        int lastOriginalEndLineNumber = 1;
+        int lastModifiedEndLineNumber = 1;
+
+        foreach (var m in mapping)
+        {
+            var r = new LineRangeMapping(
+                new LineRange(lastOriginalEndLineNumber, m.Original.StartLineNumber),
+                new LineRange(lastModifiedEndLineNumber, m.Modified.StartLineNumber)
+            );
+            if (!r.Modified.IsEmpty)
+            {
+                result.Add(r);
+            }
+            lastOriginalEndLineNumber = m.Original.EndLineNumberExclusive;
+            lastModifiedEndLineNumber = m.Modified.EndLineNumberExclusive;
+        }
+
+        var final = new LineRangeMapping(
+            new LineRange(lastOriginalEndLineNumber, originalLineCount + 1),
+            new LineRange(lastModifiedEndLineNumber, modifiedLineCount + 1)
+        );
+        if (!final.Modified.IsEmpty)
+        {
+            result.Add(final);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Clips the mappings to the specified original and modified ranges.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// LineRangeMapping.clip() (Lines 47-57)
+    /// </remarks>
+    public static IReadOnlyList<LineRangeMapping> Clip(
+        IReadOnlyList<LineRangeMapping> mapping,
+        LineRange originalRange,
+        LineRange modifiedRange)
+    {
+        var result = new List<LineRangeMapping>();
+        foreach (var m in mapping)
+        {
+            var original = m.Original.Intersect(originalRange);
+            var modified = m.Modified.Intersect(modifiedRange);
+            if (original is LineRange orig && !orig.IsEmpty && modified is LineRange mod && !mod.IsEmpty)
+            {
+                result.Add(new LineRangeMapping(orig, mod));
+            }
+        }
+        return result;
+    }
+
     public LineRangeMapping(LineRange original, LineRange modified)
     {
         Original = original;
@@ -137,6 +295,27 @@ public class LineRangeMapping
 
 public sealed class DetailedLineRangeMapping : LineRangeMapping
 {
+    /// <summary>
+    /// Converts a sequence of DetailedLineRangeMappings to a DiffTextEdit.
+    /// </summary>
+    /// <remarks>
+    /// TS Source: ts/src/vs/editor/common/diff/rangeMapping.ts
+    /// DetailedLineRangeMapping.toTextEdit() (Lines 196-205)
+    /// </remarks>
+    public static DiffTextEdit ToTextEdit(IReadOnlyList<DetailedLineRangeMapping> mapping, Func<Range, string> getValueOfRange)
+    {
+        var replacements = new List<TextReplacement>();
+        foreach (var m in mapping)
+        {
+            foreach (var r in m.InnerChanges)
+            {
+                var replacement = r.ToTextEdit(getValueOfRange);
+                replacements.Add(replacement);
+            }
+        }
+        return new DiffTextEdit(replacements);
+    }
+
     public DetailedLineRangeMapping(LineRange original, LineRange modified, IReadOnlyList<RangeMapping>? innerChanges)
         : base(original, modified)
     {

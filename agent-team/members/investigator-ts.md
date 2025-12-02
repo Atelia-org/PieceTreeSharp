@@ -55,6 +55,7 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-02 | Sprint 05 M1/M2 Diff API Review | 快速审阅 RangeMapping、DiffMove、TextLength、DiffTextEdit，36/36 测试通过，结论 **PASS** |
 | 2025-12-02 | Sprint 05 方向建议 | 为 Team Leader 分析审计报告，识别 gap 模块并按优先级排序，输出方向建议 |
 | 2025-12-02 | ts-test-alignment.md 审计 | 检查 Live Checkpoints/Backlog/Appendix 与当前状态对齐，识别 Intl.Segmenter 砍除需更新 |
 | 2025-12-02 | Sprint 04 M2 审计 | 更新 alignment-audit/00-08，反映 873 passed/9 skipped 基线 |

@@ -6,6 +6,8 @@
 - Stamp every Sprint 04 handoff with [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) and keep Cursor/Snippet、DocUI backlog work tied to [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Current Focus
+- **Sprint05-M2-RangeMappingConversion** (完成): 实现 RangeMapping 转换 API。新增 `TextLength`、`TextReplacement`、`DiffTextEdit` 三个辅助类，添加 `RangeMapping.FromEdit()`、`FromEditJoin()`、`ToTextEdit()` 和 `DetailedLineRangeMapping.ToTextEdit()` 四个 API。新增 22 个测试。详见 [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md)。909/918 测试通过（909 pass + 9 skip）。
+- **Sprint05-M1-DiffCoreAPI** (完成): 实现 Diff 核心 API 补齐。添加 `DiffMove.Flip()`、`LineRangeMapping.Inverse()`、`LineRangeMapping.Clip()` 三个 API。新增 14 个测试到 `RangeMappingTests.cs`。详见 [Sprint05-M1-DiffCoreAPI-Result.md](../handoffs/Sprint05-M1-DiffCoreAPI-Result.md)。887/896 测试通过（887 pass + 9 skip）。
 - **Snippet-P2-Variables** (完成): 实现 Snippet Variable Resolver 框架。创建 `ISnippetVariableResolver` 接口，实现 `SelectionVariableResolver`（SELECTION, TM_SELECTED_TEXT）、`ModelVariableResolver`（TM_FILENAME）、`CompositeVariableResolver`（组合多 resolver）、`FallbackVariableResolver`（unknown 返回空字符串）。添加 `${VAR}` 和 `${VAR:default}` 语法解析。新增 24 个测试。详见 [Snippet-P2-Variables-Result.md](../handoffs/Snippet-P2-Variables-Result.md)。882/882 测试通过（873 pass + 9 skip）。
 - **Snippet-P1.5** (完成): 实现 Placeholder Grouping 功能。添加 `_placeholderGroups` 字典按 index 分组占位符，修改 `NextPlaceholder()`/`PrevPlaceholder()` 按 unique index 导航，添加 `GetCurrentPlaceholderRanges()` / `ComputePossibleSelections()` 方法，修复 stickiness 为 `NeverGrowsWhenTypingAtEdges`。新增 8 个测试。详见 [Snippet-P1.5-Result.md](../handoffs/Snippet-P1.5-Result.md)。831/831 测试通过（826 pass + 5 skip）。
 - **WS3-PORT-TextModel** (完成): 将 IntervalTree 的 AcceptReplace 集成到 TextModel。新增 `DecorationsTrees.AcceptReplace` 方法聚合 3 个 scope tree。修改 `IntervalTree.AcceptReplace` 返回 `IReadOnlyList<DecorationChange>`，步骤 (3) 后强制 normalize 确保 `Decoration.Range` 值始终正确。修改 `NormalizeDelta` 同时更新 `Decoration.Range`。删除 `TextModel.AdjustDecorationsForEdit`（~40 行），在 `ApplyPendingEdits` 中调用新的 `_decorationTrees.AcceptReplace`。详见 [WS3-PORT-TextModel-Result.md](../handoffs/WS3-PORT-TextModel-Result.md)。818/823 测试通过（818 pass + 5 skip）。
@@ -22,6 +24,8 @@
 - **WS1-PORT-SearchCore** (完成): 优化 `GetAccumulatedValue` 以支持 LineStarts 快速路径，添加 DEBUG 计数器到 `PieceTreeSearchCache`。详见 [WS1-PORT-SearchCore-Result.md](../handoffs/WS1-PORT-SearchCore-Result.md)。
 
 ## Key Deliverables
+- **Sprint05-M2-RangeMappingConversion** → [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md): `TextLength` + `TextReplacement` + `DiffTextEdit` 辅助类，`RangeMapping.FromEdit()` + `FromEditJoin()` + `ToTextEdit()` + `DetailedLineRangeMapping.ToTextEdit()` 四个 API，22 新测试，锚点 `#delta-2025-12-02-sprint05-m2-rangemapping-conversion`。
+- **Sprint05-M1-DiffCoreAPI** → [Sprint05-M1-DiffCoreAPI-Result.md](../handoffs/Sprint05-M1-DiffCoreAPI-Result.md): `DiffMove.Flip()` + `LineRangeMapping.Inverse()` + `LineRangeMapping.Clip()` 三个 API，14 新测试，锚点 `#delta-2025-12-02-sprint05-m1-diff-core-api`。
 - **Snippet-P2-Variables** → [Snippet-P2-Variables-Result.md](../handoffs/Snippet-P2-Variables-Result.md): Variable Resolver 框架，`ISnippetVariableResolver` 接口，`SelectionVariableResolver`/`ModelVariableResolver`/`CompositeVariableResolver`/`FallbackVariableResolver` 实现，`${VAR}` 和 `${VAR:default}` 语法解析，24 个新测试，锚点 `#delta-2025-12-02-snippet-p2-variables`。
 - **Snippet-P1.5** → [Snippet-P1.5-Result.md](../handoffs/Snippet-P1.5-Result.md): Placeholder Grouping 功能，`_placeholderGroups` 字典，`GetCurrentPlaceholderRanges()` / `ComputePossibleSelections()` 方法，按组导航，stickiness 修复 `NeverGrowsWhenTypingAtEdges`，8 个新测试，锚点 `#delta-2025-12-02-snippet-p1.5`。
 - **WS3-PORT-TextModel** → [WS3-PORT-TextModel-Result.md](../handoffs/WS3-PORT-TextModel-Result.md): IntervalTree AcceptReplace 集成到 TextModel，`DecorationsTrees.AcceptReplace` 聚合器，`NormalizeDelta` 更新 `Decoration.Range`，删除旧 `AdjustDecorationsForEdit`，锚点 `#delta-2025-12-02-ws3-port-textmodel`。
@@ -42,9 +46,11 @@
 - DocUI Find stack parity → [B3-FC-Result.md](../handoffs/B3-FC-Result.md), [AA4-008-Result.md](../handoffs/AA4-008-Result.md), and the `docs/reports/migration-log.md` rows for `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-b3-docui-staged`.
 
 ## Test Baselines
-**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **873 pass + 9 skip** (≈100s)
+**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **909 pass + 9 skip** (≈1m37s)
 
 **关键 targeted filters**:
+- `--filter RangeMappingTests` → 36/36
+- `--filter DiffTests` → 4/4
 - `--filter SnippetControllerTests` → 80/80 (76p+4s)
 - `--filter CursorWordOperationsTests` → 41/41 (38p+3s)
 - `--filter CursorCoreTests` → 25/25
@@ -72,6 +78,8 @@
 
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-02 | Sprint05-M2-RangeMappingConversion | TextLength + DiffTextEdit + FromEdit API，22 新测试 |
+| 2025-12-02 | Sprint05-M1-DiffCoreAPI | `DiffMove.Flip()` + `Inverse()` + `Clip()`，14 新测试 |
 | 2025-12-02 | Sprint 05 技术评估 | 为 Team Leader 提供 Diff/DocUI/Services 优先级建议 |
 | 2025-12-02 | Snippet-P2-Variables | SnippetVariableResolver.cs (225 行)，24 新测试 |
 | 2025-12-02 | Snippet-P1.5 | Placeholder Grouping，stickiness 修复，8 新测试 |

@@ -45,13 +45,13 @@
 
 ---
 
-## 方向与决策的模糊之处
+## 已决策事项 (2025-12-02)
 
-| 问题 | 说明 | 待决策 |
-|------|------|--------|
-| **DocUI diff 渲染深度** | VS Code 的 DiffEditorWidget 包含 moved blocks、折叠、revert 按钮等，是否全部复刻？ | 建议先实现最小 diff 渲染（add/del 行标记 + inline diff） |
-| **ComputeMovedLines 启发式** | C# 版本有额外启发式，与 TS 输出可能不同 | 添加 parity 测试，明确是"增强"还是"偏差" |
-| **Services 层深度** | Undo 服务、Language Configuration 等是否需要完整移植？ | 待 DocUI diff 落地后再评估 |
+| 问题 | 决策 | 理由 |
+|------|------|------|
+| **DocUI diff 渲染深度** | ⏸️ **延后** | 缺乏需求调研，目前作为 headless 库，外层 DocUI 和 LLM Agent 对接未准备好。先完成 Diff 核心 API |
+| **ComputeMovedLines 启发式** | ✅ **保留增强** | 如果已有实现优于原版，就尽量保留。这是处理 TS/C# 不一致的基本模式 |
+| **Services 层深度** | ⏸️ **延后** | 待 DocUI diff 落地后再评估需求，避免过早设计 |
 
 ---
 
