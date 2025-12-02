@@ -4,7 +4,7 @@
 > 每次 runSubAgent 完成或里程碑变化时更新。
 
 ## Test Baseline
-- **Total:** 849 passed, 9 skipped
+- **Total:** 873 passed, 9 skipped
 - **Command:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
 - **Last Verified:** 2025-12-02
 

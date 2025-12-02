@@ -26,7 +26,7 @@
 ## Active Goals
 
 - **Sprint 04 M2 可选项** (非阻塞)
-  - WS4-PORT-Snippet P2: Variable resolver (TM_FILENAME/SELECTION)
+  - WS4-PORT-Snippet P2: Variable resolver → ✅ Done (SELECTION, TM_FILENAME)
   - DocUI Intl.Segmenter word segmentation 适配
 
 - **Changefeed 历史清理** (低优先级，可批量处理)
