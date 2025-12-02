@@ -11,7 +11,7 @@
 ## Current Phase & Sprint
 - **Phase:** 8 – Alignment Remediation
 - **Sprint:** 04 (2025-11-27 ~ 2025-12-12)
-- **Milestone:** M1 (WS1~WS3 基础完成) ✅ → M2 (Cursor/Snippet/DocUI) 进行中
+- **Milestone:** M2 (Cursor/Snippet/DocUI) ✅ 完成 (2025-12-02)
 
 ## 身份与传承
 - **名字**: 刘德智 (Liu Dezhi) / SageWeaver
@@ -35,17 +35,17 @@
 |----|-------|--------|-----------|
 | WS1 | PieceTree Search Parity | ✅ Done | `#delta-2025-11-27-ws1-port-search-step12` |
 | WS2 | Range/Selection Helpers | ✅ Done | `#delta-2025-11-26-ws2-port` |
-| WS3 | IntervalTree Lazy Normalize | Tree ✅, TextModel ✅ (AcceptReplace integrated) | `#delta-2025-12-02-ws3-textmodel` |
-| WS4 | Cursor & Snippet | Core ✅, Collection ✅, Snippet P0-P1 ✅ (+16 tests) | `#delta-2025-12-02-snippet-p1` |
-| WS5 | High-Risk Tests | ✅ Done (首批 45+WordOps 41) | `#delta-2025-11-28-ws5-wordoperations` |
+| WS3 | IntervalTree Lazy Normalize | ✅ Done (Tree + TextModel AcceptReplace) | `#delta-2025-12-02-ws3-textmodel` |
+| WS4 | Cursor & Snippet | ✅ Done (Core + Collection 94, Snippet P0-P2 77) | `#delta-2025-12-02-snippet-p2` |
+| WS5 | High-Risk Tests | ✅ Done (45+WordOps 41) | `#delta-2025-11-28-ws5-wordoperations` |
 
 ## Active Changefeed Anchors
 > 当前需要关注的 changefeed（完整列表见 `agent-team/indexes/README.md`）
 
-- `#delta-2025-11-30-snippet-tests` – Snippet 测试增强 (+9 tests, empty placeholder fix)
-- `#delta-2025-11-28-sprint04-r13-r18` – CL7 Stage1, CursorCollection, AtomicTabMove
-- `#delta-2025-11-28-ws5-wordoperations` – WordOperations 全量 + 41 tests
-- `#delta-2025-11-28-cl8-phase34` – MarkdownRenderer + enums (30 tests)
+- `#delta-2025-12-02-sprint04-m2` – Sprint 04 M2 完成里程碑 (873/9)
+- `#delta-2025-12-02-snippet-p2` – Snippet P0-P2 全部完成 (77 tests)
+- `#delta-2025-12-02-ws3-textmodel` – IntervalTree AcceptReplace 集成
+- `#delta-2025-12-02-docui-find` – FindModel/FindDecorations 完成
 
 ## Key References
 - Sprint Log: [`docs/sprints/sprint-04.md`](../docs/sprints/sprint-04.md)

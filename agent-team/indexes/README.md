@@ -7,6 +7,7 @@
 | --- | --- | --- |
 | [Core Docs Index](core-docs-index.md) | 核心文档的用途、Owner、更新时间与缺口行动列表 | 2025-11-20 |
 | [OI Backlog](oi-backlog.md) | 组织性基础设施改进任务（测试框架、工具、架构设计） | 2025-11-22 |
+| [Delta Ledger](#delta-ledger-overview) | 所有活跃 changefeed anchor 的时间线索引 | 2025-12-02 |
 
 ## Contributing Guidelines
 1. 每个索引文件命名为 `<topic>-index.md`。
@@ -30,11 +31,9 @@
 
 ### 2025-11-23 – DocUI & Decorations
 - **#delta-2025-11-23** – Batch #2 FindModel、LineCount/Regex/EmptyString tests + FR-01/FR-02 缓存优化（187/187）。
-- **#delta-2025-11-23-b3-fm** – `SelectAllMatches` 主光标顺序 parity + DocUI harness 扩展。
-- **#delta-2025-11-23-b3-fsel** – `FindUtilities` / selection seeding / `DocUIFindSelectionTests` 引入。
-- **DocUI FindController stack** (`#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-23-b3-fc-scope`, `#delta-2025-11-23-b3-fc-regexseed`, `#delta-2025-11-23-b3-fc-lifecycle`) – 控制器命令、scope 持久化、Regex seeding 与 widget lifecycle 的全集成，DocUIFindControllerTests 由 10→27。
-- **Decorations parity** (`#delta-2025-11-23-b3-decor-stickiness`, `#delta-2025-11-23-b3-decor-stickiness-review`) – 范围裁剪、owner-aware 查询、overview throttling 与 stickiness QA（Decoration/DocUIFindDecorations/Stickiness tests）。
-- **#delta-2025-11-23-b3-piecetree-fuzz** – env-seeded `PieceTreeFuzzHarness` + range diff 辅助与 deterministic 脚本的首个版本。
+- **DocUI FindController stack** (`#delta-2025-11-23-b3-fm`, `#delta-2025-11-23-b3-fsel`, `#delta-2025-11-23-b3-fc-*`) – SelectAllMatches、FindUtilities、控制器命令、scope/regex seeding/lifecycle（DocUIFindControllerTests 10→27）。
+- **Decorations parity** (`#delta-2025-11-23-b3-decor-stickiness*`) – 范围裁剪、owner-aware 查询、stickiness QA。
+- **#delta-2025-11-23-b3-piecetree-fuzz** – env-seeded `PieceTreeFuzzHarness` 首版。
 
 ### 2025-11-24 – DocUI Scope & PieceTree Reliability
 - **Scoped FindModel** (`#delta-2025-11-24-find-scope`, `#delta-2025-11-24-find-replace-scope`, `#delta-2025-11-24-find-primary`, `#delta-2025-11-24-b3-fm-multisel`) – 装饰范围回填、Regex replace scope、primary cursor 语义与多选区顺序全对齐。
@@ -64,9 +63,15 @@
 - **#delta-2025-11-28-ws5-wordoperations** – `WordOperations.cs` 全量重写、`CursorWordOperationsTests`（41 用例）及 3 个 pending skip。
 - **#delta-2025-11-28-cl8-phase34** – MarkdownRenderer 接入 FindDecorations、Minimap/GlyphMargin/InjectedText 枚举与 30 个枚举/renderer 覆盖。
 
+### 2025-12-02 – Sprint 04 M2 完成
+- **#delta-2025-12-02-sprint04-m2** – Sprint 04 M2 全部完成里程碑。测试基线 873 passed, 9 skipped (+287 since Sprint 03)。Snippet P0-P2 (77 tests)、Cursor/WordOps (94 tests)、IntervalTree AcceptReplace 集成完成。Related: `#delta-2025-12-02-snippet-p2`, `#delta-2025-12-02-ws3-textmodel`。
+- **#delta-2025-12-02-snippet-p2** – Snippet 功能 P0-P2 全部完成（77 passed, 4 skipped）：Final Tabstop、adjustWhitespace、Placeholder Grouping、Variable Resolver (SELECTION, TM_FILENAME)。Files: `SnippetSession.cs`, `SnippetController.cs`, `SnippetVariableResolver.cs`。
+- **#delta-2025-12-02-ws3-textmodel** – IntervalTree AcceptReplace 集成到 TextModel：`DecorationsTrees.AcceptReplace` 包装方法、TextModel 使用新 API、NormalizeDelta 更新 Decoration.Range。Files: `IntervalTree.cs`, `DecorationsTrees.cs`, `TextModel.cs`。
+
 ## Active Placeholders & Follow-Ups
-- **CL7 Stage 2** (`#delta-2025-11-26-aa4-cl7-*`, `#delta-2025-11-26-aa4-cl7-cursor-core`) – WordOps/Snippet/CursorCollection follow-up 必须在提交后更新此 anchor，并同步 Sprint/Task Board/TestMatrix。
-- **CL8 Markdown & Intl** (`#delta-2025-11-26-aa4-cl8-*`, `#delta-2025-11-26-aa4-cl8-markdown`) – DocUI MarkdownRenderer 的 Intl/decoration ingestion 仍在排期，所有相关 PR 需引用这些 placeholder。
+- **CL7 Stage 2** (`#delta-2025-11-26-aa4-cl7-*`) – WordOps/Snippet/CursorCollection 已通过 Sprint 04 M2 完成，参见 `#delta-2025-12-02-sprint04-m2`。
+- **CL8 Markdown & Intl** (`#delta-2025-11-26-aa4-cl8-*`) – DocUI MarkdownRenderer 的 Intl/decoration ingestion 延迟中，所有相关 PR 需引用 `#delta-2025-11-28-cl8-phase34`。
+- **Intl.Segmenter parity** – 需要 ICU4N 或文档化限制，延迟至后续 Sprint。
 
 ## Usage Tips
 - 在撰写 AGENTS / Sprint / Task Board 更新前，先在本文件找到对应 anchor，再打开 `docs/reports/migration-log.md` 获取验证命令。

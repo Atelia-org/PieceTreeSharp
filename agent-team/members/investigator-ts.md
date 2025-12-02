@@ -29,7 +29,8 @@
 4. `agent-team/handoffs/B3-TextModelSearch-INV.md`、`B3-TextModelSearch-QA.md` —— Janitor `Intl.Segmenter & WordSeparator cache` notes，并保持 rerun 命令在 `tests/TextBuffer.Tests/TestMatrix.md` 中最新，同时引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)。
 
 ## Key Deliverables
-- **[NEW 2025-12-02]** `agent-team/handoffs/REVIEW-SnippetVarResolver-2025-12-02.md` — TS Parity 审阅：SnippetVariableResolver，接口设计/SELECTION/TM_FILENAME/默认值处理 PASS WITH NOTES，16 个测试用例覆盖核心场景
+- **[NEW 2025-12-02]** `docs/reports/alignment-audit/00-08` — Sprint 04 M2 审计更新：873 passed/9 skipped 基线，Snippet P0-P2/Cursor/WordOps/IntervalTree AcceptReplace/FindModel 已完成标记
+- **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetVarResolver-2025-12-02.md` — TS Parity 审阅：SnippetVariableResolver，接口设计/SELECTION/TM_FILENAME/默认值处理 PASS WITH NOTES，16 个测试用例覆盖核心场景
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 快速审阅：Snippet 确定性测试 (27 tests)，边界情况/adjustWhitespace/Placeholder Grouping，52 passed/4 skipped (P2)，TS Reference 准确
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — TS Parity 审阅：Snippet P1.5 Placeholder Grouping，分组/导航逻辑 PASS，Stickiness 动态切换标记为 P2 追踪项
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-2025-12-02.md` — TS Parity 审阅：Snippet P0-P1 + WS3 AcceptReplace，算法对齐确认、功能差距识别
@@ -50,19 +51,10 @@
 历史调查与分批审计均已归档到 `agent-team/handoffs/`：AA4 系列（`AA4-SearchReview-20251125.md`、`AA4-Review-INV.md`、`AA4-FindModel-Review-INV.md`）、DocUI Batch #3（`B3-FC-Review.md`、`B3-DocUI-StagedReview-20251124.md`、`B3-Decor-INV.md`、`B3-Decor-Stickiness-Review.md`），以及 PieceTree 覆盖研究（`B3-PieceTree-Fuzz-INV.md`、`B3-PieceTree-Fuzz-Review-INV.md`、`B3-TestFailures-INV.md`、`B3-Snapshot-INV-20251125.md`）。需要细粒度时间线或测试详情时直接查阅这些 handoff 文档与 Sprint 03 Log。
 
 ## Session Log
+> 2025-11 活动历史已压缩归档到 `agent-team/archive/investigator-ts-log-202511.md`。
+
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
-| 2025-12-02 | TS Parity 审阅：SnippetVariableResolver | `agent-team/handoffs/REVIEW-SnippetVarResolver-2025-12-02.md` — 接口设计（简化签名）、SELECTION/TM_FILENAME 行为、默认值处理、CompositeResolver 审阅，16 测试覆盖，PASS WITH NOTES |
-| 2025-12-02 | 快速审阅：Snippet 确定性测试 (27 新增) | `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 边界情况/adjustWhitespace/Placeholder Grouping 测试审阅，52 passed/4 skipped (P2)，TS Reference 准确，PASS |
-| 2025-12-02 | TS Parity 审阅：Snippet P1.5 Placeholder Grouping | `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — 分组逻辑/导航语义/computePossibleSelections PASS，Stickiness 动态切换标记为 P2 |
-| 2025-12-02 | TS Parity 审阅：Snippet P0-P1 + WS3 AcceptReplace | `agent-team/handoffs/REVIEW-2025-12-02.md` — 对比 adjustWhitespace、Placeholder.compareByIndex、IntervalTree 四阶段算法，确认核心算法 100% 对齐，识别 placeholder grouping 功能缺失 |
-| 2025-12-02 | Snippet Downgrade Investigation | `agent-team/handoffs/INV-Snippet-Downgrade.md` — TS Snippet 功能完整清单（4 个源文件分析）、降级实现建议（Keep/Simplify/Skip 分类）、技术边界总结、Porter-CS 分阶段实现建议、QA 测试用例设计 |
-| 2025-12-01 | Team Leader 测试性团队谈话 #2：角色定位、职责、协作关系、输出顺序纪律确认 | 向 Team Leader 汇报了角色理解、核心职责、与 Porter-CS/QA-Automation 协作模式、Brief 结构、输出顺序纪律原因、记忆维护机制 |
-| 2025-12-01 | Team Leader 团队谈话：角色定位、职责、协作关系确认 | 向 Team Leader 汇报了角色理解、核心职责、与 Porter-CS/QA-Automation 协作模式、Brief 结构、记忆维护纪律 |
-| 2025-11-26 | WS5-INV 高风险测试 backlog 优先级排序 | `WS5-INV-TestBacklog.md` – Top-10 优先级列表、按模块分组 backlog、共享 harness 需求 |
-| 2025-11-27 | Alignment audit Module 01 更新（引用 `WS1-PORT-SearchCore`/`WS1-PORT-CRLF` 与 `#delta-2025-11-26-sprint04-r1-r11`） | 刷新 `docs/reports/alignment-audit/01-core-fundamentals.md`，补入 SearchCache/CRLF 依赖与 rerun 证据 |
-| 2025-11-27 | Alignment audit Module 02 更新（`WS2-PORT` + `FR-01/FR-02` + `AA4-CL8` 占位） | 刷新 `docs/reports/alignment-audit/02-core-support.md`：记录 Range/Selection/TextPosition helper 交付、`WordCharacterClassifierCache` LRU、Intl backlog (`#delta-2025-11-26-ws2-port`, `docs/reports/migration-log.md#ws2-port`, `docs/reports/migration-log.md#fr-01-02`, [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown))，并补入 `dotnet test --filter RangeSelectionHelperTests --nologo` 复测结果 |
-| 2025-11-27 | Alignment audit Module 03 更新（Stage 0 vs Stage 1） | `docs/reports/alignment-audit/03-cursor.md` 现引用 [`docs/reports/migration-log.md#ws4-port-core`](../../docs/reports/migration-log.md#ws4-port-core) 与 [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11)，并把 CL7 placeholders（`#delta-2025-11-26-aa4-cl7-cursor-core/-wordops/-column-nav/-snippet/-commands-tests`）及 `dotnet test --filter CursorCoreTests --nologo` 结果（39 通过 / 0 失败 / 2 skip，25/25 Stage 0 case 绿）写入 Stage 0/Stage 1 描述 |
-| 2025-11-27 | Alignment audit Module 05 更新（WS5 backlog + harness 钩子） | `docs/reports/alignment-audit/05-diff.md` 记录 Phase 8 无 Diff 变更（[`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11)）、把 backlog 绑定在 [`../indexes/README.md#delta-2025-11-23`](../indexes/README.md#delta-2025-11-23) 后未更新的 WS5 Top-10（[`../reports/migration-log.md#ws5-inv`](../../docs/reports/migration-log.md#ws5-inv)、[`WS5-INV-TestBacklog.md`](../handoffs/WS5-INV-TestBacklog.md)），并引用 [`WS5-PORT-Harness-Result.md`](../handoffs/WS5-PORT-Harness-Result.md) + 2025-11-27 `dotnet test --filter DiffTests --nologo` (4/4) 作为验证证据 |
-| 2025-11-28 | CL7 Stage 1 Cursor Wiring Investigation | `agent-team/handoffs/CL7-CursorWiring-Plan.md` – 详细实现计划，涵盖：1) 将 `Cursor.cs` 切换到 `SingleCursorState`；2) `CursorCollection` 实现 `setStates`/`normalize`/tracked range；3) `TextModelOptions.EnableVsCursorParity` 功能开关策略；4) 15-20 个新测试用例；5) 风险评估与回滚计划。复杂度评估：Medium。 |
-| 2025-11-28 | CL8 Renderer Investigation | `agent-team/handoffs/CL8-Renderer-Plan.md` – 4 阶段实现计划，涵盖：1) `DecorationOwnerIds.Any=0` 语义修复；2) `DecorationSearchOptions` 过滤开关（filterOutValidation/filterFontDecorations/onlyMinimapDecorations/onlyMarginDecorations）；3) `MarkdownRenderer` 直接消费 `FindDecorations`；4) `MinimapPosition`/`GlyphMarginLane`/`InjectedTextCursorStops`/`MinimapSectionHeaderStyle` 枚举值对齐。复杂度评估：Medium。 |
+| 2025-12-02 | Sprint 04 M2 审计 | 更新 alignment-audit/00-08，反映 873 passed/9 skipped 基线 |
+| 2025-12-02 | Snippet 系列审阅 | VariableResolver、Deterministic、Grouping、P0-P1 全部 PASS |
+| 2025-12-01 | 团队谈话 | 角色定位、协作关系、输出顺序纪律确认 |

@@ -21,27 +21,30 @@ LLM 使用 TextEditor 的方式：
 
 ## 功能分类
 
-### ✅ 保留（核心能力）
+### ✅ 保留（核心能力）— Sprint 04 M2 状态
 
-| 功能 | 模块 | 理由 | 移植优先级 |
-|------|------|------|-----------|
-| PieceTree 数据结构 | `PieceTreeModel` | 高效文本存储和编辑的基础 | P0 ✅ 已完成 |
-| Position/Range/Selection | `Core/*` | 精确定位能力 | P0 ✅ 已完成 |
-| Search（含正则） | `PieceTreeSearcher` | 查找定位 | P0 ✅ 已完成 |
-| Diff 算法 | `DiffComputer` | 变更对比，验证编辑结果 | P0 ✅ 已完成 |
-| Undo/Redo 栈 | `EditStack` | 回滚能力 | P0 ✅ 已完成 |
-| 装饰器系统 | `Decorations/*` | DocUI 渲染 Overlay 的基础 | P0 ✅ 已完成 |
-| 行号基础设施 | `PieceTreeModel` | 行号+锚点定位的基础 | P0 ✅ 已完成 |
+| 功能 | 模块 | 理由 | 移植优先级 | 状态 |
+|------|------|------|-----------|------|
+| PieceTree 数据结构 | `PieceTreeModel` | 高效文本存储和编辑的基础 | P0 | ✅ 已完成 |
+| Position/Range/Selection | `Core/*` | 精确定位能力 | P0 | ✅ 已完成 |
+| Search（含正则） | `PieceTreeSearcher` | 查找定位 | P0 | ✅ 已完成 |
+| Diff 算法 | `DiffComputer` | 变更对比，验证编辑结果 | P0 | ✅ 已完成 |
+| Undo/Redo 栈 | `EditStack` | 回滚能力 | P0 | ✅ 已完成 |
+| 装饰器系统 | `Decorations/*` | DocUI 渲染 Overlay 的基础 | P0 | ✅ 已完成 |
+| 行号基础设施 | `PieceTreeModel` | 行号+锚点定位的基础 | P0 | ✅ 已完成 |
 
-### 🔄 简化（保留核心，降级实现）
+**测试基线**: 873 passed, 9 skipped（2025-12-02）
+
+### 🔄 简化（保留核心，降级实现）— Sprint 04 M2 状态
 
 | 功能 | TS 原版 | 简化方向 | 理由 | 实施状态 |
 |------|--------|----------|------|----------|
-| Cursor 导航 | word/line/paragraph 级移动 | 只保留 goto position/line | LLM 不需要细粒度导航 | ✅ CursorState/Context 已对齐 |
-| 多光标 | 实时同步输入、复杂合并逻辑 | 简化为"多选区批量操作" | 不需要实时同步 | ⏳ Snippet 计划中（已标记降级） |
+| Cursor 导航 | word/line/paragraph 级移动 | 只保留 goto position/line | LLM 不需要细粒度导航 | ✅ CursorState/Context 已对齐 (94 tests) |
+| 多光标 | 实时同步输入、复杂合并逻辑 | 简化为"多选区批量操作" | 不需要实时同步 | ✅ CursorCollection 已完成 |
 | Sticky Column | 跨行移动保持列位置 | ❌ 不移植 | 人类键盘导航专属 | 🚫 明确不做 |
-| Word Boundary | Unicode 分词、CamelCase | 基础实现即可 | 搜索场景仍需要 | ✅ WordOperations 已完成核心 |
+| Word Boundary | Unicode 分词、CamelCase | 基础实现即可 | 搜索场景仍需要 | ✅ WordOperations 已完成 (41 tests) |
 | Bracket Matching | 括号配对查找 | 可选实现 | 语义层面有用，视觉层面不需要 | ⏸️ 暂缓，按需添加 |
+| Snippet | 代码片段插入与占位符 | 简化为批量文本操作 | 支持 AI 生成代码片段 | ✅ P0-P2 完成 (77 tests) |
 
 ### ❌ 砍掉（不移植）
 

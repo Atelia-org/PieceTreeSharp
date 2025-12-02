@@ -1,9 +1,12 @@
 # Services & Top-level 模块对齐审查报告
 
-**审查日期:** 2025-11-26\\
+**审查日期:** 2025-12-02 (Sprint 04 M2 更新)  
 **审查范围:** 10 个服务/模块（TextModel 服务面、搜索/查找堆栈、语言/撤销服务、DocUI 宿主）
 
 ## 概要
+
+> ✅ **Sprint 04 M2 重大进展：** FindModel/FindDecorations 已完成，**40 个 DocUI Find 测试通过**。
+
 - ✅ 完全对齐: 4/10
 - ⚠️ 存在偏差（设计差异 / 待扩展）: 4/10
 - ❌ 需要修正: 2/10
@@ -18,7 +21,7 @@
 | SearchHighlightOptions DTO | `src/TextBuffer/SearchHighlightOptions.cs` | ✅完全对齐 | DTO 字段与 `SearchParams` 子集一致。 |
 | Language Configuration Service | `src/TextBuffer/Services/ILanguageConfigurationService.cs` | ⚠️存在偏差 | 仅支持变更通知，不提供配置注册/解析或缓存。 |
 | TextPosition 帮助类 | `src/TextBuffer/TextPosition.cs` | ⚠️存在偏差 | [WS2-PORT](../migration-log.md#ws2-port) 新增 `With`/`Delta`/`IsBefore*`/`Compare`，但 `Lift`、`IsIPosition`、JSON roundtrip 及 Selection/Range 集成尚未同步，DocUI/Undo 仍需手写比较。 |
-| DocUI Find 宿主堆栈 | `src/TextBuffer/DocUI/*.cs` | ⚠️存在偏差 | 查找/替换流程已移植并复用 Range/Selection helpers，[WS5-QA](../migration-log.md#ws5-qa) 的 `PieceTreeBufferApiTests`/`PieceTreeSearchRegressionTests` 也验证了 DocUI 堆栈与底层搜索/缓冲区 API 的联动，但宿主契约（context keys、viewport、Replace 控制器）与 Intl word 缓存仍由 AA4 CL8 占位追踪（见 [#delta-2025-11-26-aa4-cl8-markdown](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)/[#delta-2025-11-26-aa4-cl8-capture](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-capture)/[#delta-2025-11-26-aa4-cl8-intl](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-intl)/[#delta-2025-11-26-aa4-cl8-wordcache](../../agent-team/indexes/README.md#delta-2025-11-26-aa4-cl8-wordcache)). |
+| DocUI Find 宿主堆栈 | `src/TextBuffer/DocUI/*.cs` | ✅ 完成 | 查找/替换流程已移植，**40 个测试通过**；Context keys/viewport reveal 待扩展 |
 | Clipboard / Storage shims | `src/TextBuffer/DocUI/DocUIFindController.cs` (Null 实现) | ❌需要修正 | 默认实现忽略所有持久化与全局剪贴板，功能无法生效。 |
 
 ### 服务层波及（WS2-PORT / WS5-QA / Sprint04 R1-R11）

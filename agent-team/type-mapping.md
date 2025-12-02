@@ -86,6 +86,18 @@ Sprint 00 (PT-003) aims to unblock Porter-CS before 2025-11-20 by locking down t
 | `IModelContentChangedEvent` (`textModelEvents.ts`) | `class TextModelContentChangedEventArgs : EventArgs` | Invariant: `Changes` ordered reverse-document order (safe to apply); `VersionId` matches model after change; Edge: `IsFlush` indicates total reset; `Eol` change is a separate flag. |
 | `SingleCursorState` (`cursorCommon.ts`) | `struct SingleCursorState` | Invariant: Tracks `SelectionStart` (Anchor Range), `Position` (Active), and `LeftoverVisibleColumns` (for vertical navigation); Edge: `SelectionStartKind` (Simple/Word/Line) determines expansion behavior. |
 
+## Phase 2.5: Cursor & Snippet (Sprint 04 M2)
+
+| TypeScript Source | Proposed C# Type | Notes |
+| --- | --- | --- |
+| `CursorCollection` (`cursor/cursorCollection.ts`) | `class CursorCollection` | ✅ 2025-12-02 完成（94 tests）。Invariant: 管理多选区 normalization、二级光标；Edge: cursor merge 需保持 primary cursor 稳定；QA: CursorMultiSelectionTests + CursorTests。 |
+| `WordOperations` (`cursor/cursorWordOperations.ts`) | `static class WordOperations` | ✅ 2025-11-28 完成（41 tests）。MoveWordLeft/Right、DeleteWordLeft/Right、DeleteInsideWord、SelectWord 全部实现。 |
+| `WordCharacterClassifier` (`cursorCommon.ts`) | `class WordCharacterClassifier` | ✅ 与 WordOperations 一同完成。Invariant: 字符分类器支持自定义分隔符；Edge: CJK + emoji 需要特殊处理。 |
+| `SnippetSession` (`snippet/snippetSession.ts`) | `class SnippetSession` | ✅ 2025-12-02 完成（P0-P2 全部，77 tests）。Invariant: 管理 placeholder 遍历和嵌套 snippet；Edge: 空 placeholder 和 final tabstop 处理。 |
+| `SnippetController` (`snippet/snippetController.ts`) | `class SnippetController` | ✅ 2025-12-02 完成。负责 snippet 生命周期管理和 decoration 跟踪。 |
+| `SnippetVariableResolver` (`snippet/snippetVariables.ts`) | `class SnippetVariableResolver` | ✅ 2025-12-02 新增。Invariant: 解析 `$TM_*`、`$CLIPBOARD` 等内置变量；Edge: 支持自定义变量 resolver 扩展。 |
+| `SnippetParser` (`snippet/snippetParser.ts`) | `class SnippetParser` | ✅ 2025-12-02 完成。Invariant: 解析 TextMate snippet 语法；Edge: transform、choice 需完整支持。 |
+
 ## Phase 3: Diffing & Decorations
 
 | TypeScript Source | Proposed C# Type | Notes |

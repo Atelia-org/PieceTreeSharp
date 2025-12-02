@@ -9,7 +9,7 @@
 ## Active Changefeeds & Backlog
 | Anchor | Coverage | Status / Next Hook |
 | --- | --- | --- |
-| [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | Sprint 04 R1–R11 交付汇总（WS1–WS5 首批里程碑） | ✅ Published 2025-11-26. 测试基线 365→585 (584 pass + 1 skip)。下一个 WS drop 需追加子 delta。 |
+| [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | Sprint 04 R1–R11 交付汇总（WS1–WS5 首批里程碑） | ✅ Published. 测试基线现为 **873 passed + 9 skip**。 |
 | [`#delta-2025-11-26-sprint04`](../indexes/README.md#delta-2025-11-26-sprint04) | Sprint 04 tracker + new Task Board (WS1–WS5). | Monitor WS1/WS3 drops; when new deltas publish, mirror them into `agent-team/indexes/README.md` and ensure Task Board links stay aligned. |
 | [`#delta-2025-11-26-alignment-audit`](../indexes/README.md#delta-2025-11-26-alignment-audit) | Alignment audit bundle refresh (00–08). | Watch DocMaintainer follow-ups; log any remediation deltas into `core-docs-index.md` once owners commit fixes. |
 | [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch) | TextModelSearch 45-test parity set. | Track additional AA4 CL7 search tasks; confirm new suites update `tests/TextBuffer.Tests/TestMatrix.md` before changing baseline references. |
@@ -44,5 +44,6 @@
 - Full worklogs, onboarding notes, and prior deltas now live in `agent-team/handoffs/` (per-run files) and the historical rows inside `agent-team/indexes/README.md`. Older memory snapshots remain in repo history if needed.
 
 ## Log
-- 2025-12-01 – **团队角色测试谈话**：Team Leader 进行首次角色定位测试。完成四项汇报：(1) 角色定位：changefeed 索引管理员，核心职责包含 Index Maintenance、Canonical Pointers、Broadcast Coordination、Archive Hygiene；(2) Changefeed/Anchor 概念解释：Changefeed 是变更流记录，Anchor 是索引中的唯一定位符（如 `#delta-2025-11-26-sprint04-r1-r11`），保证每次代码/文档变更有可追溯的规范指针；(3) DocMaintainer 协作：提供 canonical anchors 供其在文档中引用，在 sweep 前主动 surface blockers；(4) 输出顺序纪律：先完成所有工具调用（含认知文件更新），最后一次性输出汇报，避免 SubAgent 机制只返回最后一轮输出导致内容丢失。
-- 2025-11-27 – Refreshed `docs/reports/alignment-audit/06-services.md` to highlight `docs/reports/migration-log.md#ws2-port` helper ripple, `docs/reports/migration-log.md#ws5-qa` targeted runs, the `agent-team/indexes/README.md#delta-2025-11-26-sprint04-r1-r11` 585/585 baseline, and the open `#delta-2025-11-26-aa4-cl8-markdown`/`-capture`/`-intl`/`-wordcache` placeholders for Intl + word cache gaps.
+> 2025-11 活动历史已压缩。详见 `agent-team/archive/info-indexer-log-202511.md`。
+
+- 2025-12-01 – 团队角色测试谈话：确认 changefeed 索引管理员角色

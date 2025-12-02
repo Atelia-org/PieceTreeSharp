@@ -25,9 +25,13 @@
 
 ## Active Goals
 
-- **Sprint 04 M2 可选项** (非阻塞)
-  - WS4-PORT-Snippet P2: Variable resolver → ✅ Done (SELECTION, TM_FILENAME)
-  - DocUI Intl.Segmenter word segmentation 适配
+- **文档维护任务** (2025-12-02 批次)
+  - Handoffs 归档 → 待处理
+  - Alignment Audit 更新 → 待处理
+  - Task Board & Status 同步 → 待处理
+  - Plans 目录清理 → 待处理
+  - Team Members 认知维护 → 待处理
+  - Changefeed 清理 → 待处理
 
 - **Changefeed 历史清理** (低优先级，可批量处理)
   - PT-004 系列 (LineInfra/Positions/Edit) 发布正式 anchor

@@ -1,7 +1,14 @@
 # Task Board - Phase 8: Sprint 04 – Alignment Remediation
 
 **Sprint Window:** 2025-11-27 ~ 2025-12-12  
-**Goal:** 把 PieceTree 搜索、装饰树、Range/Cursor/测试 backlog 汇聚为一个冲刺，落实 ALIGN-20251126 工作流的 M0/M1 目标，并为 12 月中旬的 M2 验收准备 QA/DocUI 证据。
+**Goal:** 把 PieceTree 搜索、装饰树、Range/Cursor/测试 backlog 汇聚为一个冲刺，落实 ALIGN-20251126 工作流的 M0/M1/M2 目标。
+
+**Milestone Status:**
+- ✅ M0 (WS1~WS3 基础) — 完成
+- ✅ M1 (Cursor Core + Test Harness) — 完成
+- ✅ M2 (Cursor/Snippet/DocUI) — 完成 (2025-12-02)
+
+**Test Baseline:** 873 passed, 9 skipped
 
 **Changefeed Reminder:** 所有状态更新请同步 `agent-team/indexes/README.md#delta-2025-11-26-sprint04`；涉及 WS1 Step12（NodeAt2 tuple reuse + SearchCache 诊断）的内容需额外引用 `agent-team/indexes/README.md#delta-2025-11-27-ws1-port-search-step12`，并在触发 runSubAgent 或完成交付后立刻刷新 `docs/reports/migration-log.md` 与 `tests/TextBuffer.Tests/TestMatrix.md` 的引用。
 
@@ -20,26 +27,26 @@
 ## Workstream 2 – Range & Selection Helpers (ALIGN WS2)
 | ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS2-INV | Range/Selection API gap inventory (Due 2025-11-28) | Investigator-TS (Harper Lin) | `ts/src/vs/editor/common/core/range.ts`<br>`src/TextBuffer/Core/Range.*`<br>`docs/reports/alignment-audit/02-core-support.md` | 1 | In Progress | 根据 ALIGN 计划输出签名/语义对照与消费者列表。 |
+| WS2-INV | Range/Selection API gap inventory (Due 2025-11-28) | Investigator-TS (Harper Lin) | `ts/src/vs/editor/common/core/range.ts`<br>`src/TextBuffer/Core/Range.*`<br>`docs/reports/alignment-audit/02-core-support.md` | 1 | ✅ Done | 完成，签名/语义对照与消费者列表已输出。 |
 | WS2-PORT | Helper 实现与 `TextPosition` 扩展 | Porter-CS (Diego Torres) | `src/TextBuffer/Core/Range.Extensions.cs`<br>`src/TextBuffer/TextPosition.cs`<br>`src/TextBuffer/Cursor/Cursor.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws2-port)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws2-port) | 2 | ✅ Done | 2025-11-26 完成：75 个 Range/Selection/TextPosition helpers，440/440 通过。 |
-| WS2-QA | Helper-focused deterministic tests & DocUI/Cursor 适配 | QA-Automation (Erin Blake) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorWordOperationsTests.cs`<br>`DocUI/DocUIFindControllerTests.cs` | 2 | Planned | 目标：覆盖 boundary/zero-length cases，更新 `TestMatrix.md` + Sprint log。 |
+| WS2-QA | Helper-focused deterministic tests & DocUI/Cursor 适配 | QA-Automation (Erin Blake) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorWordOperationsTests.cs`<br>`DocUI/DocUIFindControllerTests.cs` | 2 | ✅ Done | 完成：CursorWordOperationsTests (94 tests)，boundary/zero-length cases 已覆盖。 |
 
 ## Workstream 3 – IntervalTree Lazy Normalize (ALIGN WS3)
 | ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | WS3-PLAN | Porter 方案基线（`PORT-IntervalTree-Normalize.md`） | Porter-CS (Felix Novak) | `agent-team/handoffs/PORT-IntervalTree-Normalize.md` | – | ✅ Ready | 方案覆盖 NodeFlags、delta、`AcceptReplace`、TextModel 集成与 perf harness。 |
 | WS3-PORT-Tree | IntervalTree Node/Delta/`ResolveState` 重写 | Porter-CS (Felix Novak) | `src/TextBuffer/Decorations/IntervalTree.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws3-port-tree)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws3-tree) | 3 | ✅ Done | 2025-11-26 完成：NodeFlags/delta/ResolveState/AcceptReplace 全部实现（~1470 行），DEBUG counters 已加入。 |
-| WS3-PORT-TextModel | DecorationsTrees/TextModel 接入 lazy 范围、`AcceptReplace`、filter toggles | Porter-CS (Felix Novak) | `src/TextBuffer/Decorations/DecorationsTrees.cs`<br>`src/TextBuffer/TextModel.cs` | 2 | Planned | 完成后取代 `AdjustDecorationsForEdit`，准备 DocUI perf harness。 |
+| WS3-PORT-TextModel | DecorationsTrees/TextModel 接入 lazy 范围、`AcceptReplace`、filter toggles | Porter-CS (Felix Novak) | `src/TextBuffer/Decorations/DecorationsTrees.cs`<br>`src/TextBuffer/TextModel.cs` | 2 | ✅ Done | AcceptReplace 集成完成，取代 `AdjustDecorationsForEdit`。 |
 | WS3-QA | Perf harness + IntervalTreeTests | QA-Automation (Priya Nair) | `tests/TextBuffer.Tests/DecorationTests.cs`<br>`DecorationStickinessTests.cs`<br>`DocUI/DocUIFindDecorationsTests.cs`<br>`tests/TextBuffer.Tests/IntervalTreeTests.cs` *(new)*<br>[`migration-log`](../docs/reports/migration-log.md#sprint04-r1-r11)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：IntervalTreeTests 13/13 + IntervalTreePerfTests 7/7，DEBUG counters 可访问。 |
-| WS3-OPS | Changefeed + Audit addendum | Info-Indexer + DocMaintainer | `docs/reports/alignment-audit/04-decorations.md`<br>`docs/reports/migration-log.md` | 1 | Planned | 发布 delta、更新 audit “Verification Notes” & Sprint log。 |
+| WS3-OPS | Changefeed + Audit addendum | Info-Indexer + DocMaintainer | `docs/reports/alignment-audit/04-decorations.md`<br>`docs/reports/migration-log.md` | 1 | ✅ Done | `#delta-2025-12-02-ws3-textmodel` 已发布。 |
 
 ## Workstream 4 – Cursor & Snippet Architecture (ALIGN WS4)
 | ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS4-INV | Cursor/Snippet blueprint (Due 2025-12-02) | Investigator-TS (Callie Stone) | `agent-team/handoffs/AA4-003-Audit.md`<br>`ts/src/vs/editor/common/cursor/*.ts` | 2 | In Progress | 输出 CursorConfig/SingleCursorState/SnippetSession 映射与分阶段交付列表。Gap refs: [`migration-log`](../docs/reports/migration-log.md#aa4-cl7-gap) / [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core)。 |
+| WS4-INV | Cursor/Snippet blueprint (Due 2025-12-02) | Investigator-TS (Callie Stone) | `agent-team/handoffs/AA4-003-Audit.md`<br>`ts/src/vs/editor/common/cursor/*.ts` | 2 | ✅ Done | CursorConfig/SingleCursorState/SnippetSession 映射与分阶段交付列表已完成。 |
 | WS4-PORT-Core | Stage 0 Cursor 基础架构 (config/state/context) | Porter-CS (Viktor Zoric) | `src/TextBuffer/Cursor/CursorConfiguration.cs`<br>`CursorState.cs`<br>`CursorContext.cs`<br>`tests/TextBuffer.Tests/CursorCoreTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws4-port-core)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws4-port-core) | 3 | ✅ Done | 2025-11-26 完成：CursorConfiguration、SingleCursorState/CursorState、ICoordinatesConverter、TextModel tracked ranges、25 unit tests。Stage 1~4 后续 WS4-PORT-Full。 |
-| WS4-PORT-Snippet | Snippet controller/session parity + placeholders 🔄 **降级实现** | Porter-CS (Viktor Zoric) | `src/TextBuffer/Cursor/SnippetController.cs`<br>`SnippetSession.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 2 | Planned | 目标：choice/variable/transform、多选区批量操作（简化，不含实时同步输入）。Sticky Column 不移植。 |
-| WS4-QA | Deterministic Cursor/Snippet suites + fuzz soak (简化范围内) | QA-Automation (Lena Brooks) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorMultiSelectionTests.cs`<br>`SnippetControllerTests.cs`<br>`SnippetMultiCursorFuzzTests.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 3 | Planned | 80% TS coverage (排除不移植功能)，运行列选择/wordPart/placeholder deterministic 套件 < 2 min。 |
+| WS4-PORT-Snippet | Snippet controller/session parity + placeholders 🔄 **降级实现** | Porter-CS (Viktor Zoric) | `src/TextBuffer/Cursor/SnippetController.cs`<br>`SnippetSession.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 2 | ✅ Done | P0-P2 全部完成（77 tests），choice/variable/transform 已实现。 |
+| WS4-QA | Deterministic Cursor/Snippet suites + fuzz soak (简化范围内) | QA-Automation (Lena Brooks) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorMultiSelectionTests.cs`<br>`SnippetControllerTests.cs`<br>`SnippetMultiCursorFuzzTests.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 3 | ✅ Done | CursorCollection (94 tests) + Snippet (77 tests) 完成，80% TS coverage 达成。 |
 
 ## Workstream 5 – High-Risk Deterministic & Feature Tests (ALIGN WS5)
 | ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |

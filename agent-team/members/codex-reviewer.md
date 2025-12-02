@@ -20,7 +20,8 @@
 
 ## Current Focus
 - **PieceTreeSharp 移植审查**: 验证 TS → C# 移植的语义对齐
-- **Sprint 04 代码质量**: CursorCollection、WordOperations、MarkdownRenderer 等模块
+- **当前基线**: 873 passed, 9 skipped
+- **关注模块**: CursorCollection, WordOperations, Snippet, MarkdownRenderer
 
 ## Coordination Hooks
 - **Porter-CS**: 审查移植代码的正确性和 TS parity
@@ -30,6 +31,7 @@
 ## Session Log
 | Date | Task | Findings |
 |------|------|----------|
+| 2025-12-02 | 认知文件维护 | 基线更新为 873 passed |
 | 2025-12-01 | 初始化 | 创建持久认知文件 |
 | 2025-12-01 | Team Leader 谈话 | 确认角色定位与记忆维护流程 |
 
