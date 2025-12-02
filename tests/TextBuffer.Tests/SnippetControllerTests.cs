@@ -1,10 +1,12 @@
 // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetController2.test.ts
 // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetSession.test.ts
+// Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetVariables.test.ts
 // - Tests: Snippet insertion, placeholder navigation
 // Ported: 2025-11-22
 // Extended: 2025-11-30 with more TS parity tests
 // Extended: 2025-12-02 with Final Tabstop ($0) and adjustWhitespace tests
 // Extended: 2025-12-02 with Placeholder Grouping (P1.5) tests
+// Extended: 2025-12-02 with Variable Resolver (P2) tests
 
 using PieceTree.TextBuffer.Cursor;
 using PieceTree.TextBuffer.Decorations;
@@ -1101,6 +1103,324 @@ public class SnippetControllerTests
         IReadOnlyList<(TextPosition Start, TextPosition End)>? iRanges = controller.GetCurrentPlaceholderRanges();
         Assert.NotNull(iRanges);
         Assert.Equal(3, iRanges.Count);
+    }
+
+    #endregion
+
+    // ==================== P2: Variable Resolver Tests ====================
+    // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetVariables.test.ts
+
+    #region Variable Resolver Tests
+
+    [Fact]
+    public void VariableResolver_SelectionVariable_ResolvesSelectedText()
+    {
+        // TS: test('Selection: undefined or empty is ok', ...)
+        TextModel model = new("hello world");
+        
+        // Create selection range "world" (positions (1,7) to (1,12))
+        SelectionVariableResolver resolver = new(model, new TextPosition(1, 7), new TextPosition(1, 12));
+
+        Assert.Equal("world", resolver.Resolve("SELECTION"));
+        Assert.Equal("world", resolver.Resolve("TM_SELECTED_TEXT"));
+    }
+
+    [Fact]
+    public void VariableResolver_SelectionVariable_EmptySelection()
+    {
+        // TS: Empty selection returns empty string
+        TextModel model = new("hello world");
+        
+        // Empty selection at position (1,1)
+        SelectionVariableResolver resolver = new(model, new TextPosition(1, 1), new TextPosition(1, 1));
+
+        Assert.Equal(string.Empty, resolver.Resolve("SELECTION"));
+        Assert.Equal(string.Empty, resolver.Resolve("TM_SELECTED_TEXT"));
+    }
+
+    [Fact]
+    public void VariableResolver_SelectionVariable_ReturnsNullForUnknown()
+    {
+        TextModel model = new("hello");
+        SelectionVariableResolver resolver = new(model, new TextPosition(1, 1), new TextPosition(1, 1));
+
+        Assert.Null(resolver.Resolve("TM_FILENAME"));
+        Assert.Null(resolver.Resolve("UNKNOWN_VAR"));
+    }
+
+    [Fact]
+    public void VariableResolver_ModelVariable_TmFilename()
+    {
+        // TS: test('ModelBasedVariableResolver, TM_FILENAME/TM_FILENAME_BASE', ...)
+        ModelVariableResolver resolver = new("test.cs");
+
+        Assert.Equal("test.cs", resolver.Resolve("TM_FILENAME"));
+    }
+
+    [Fact]
+    public void VariableResolver_ModelVariable_NullFilename()
+    {
+        // TM_FILENAME with no filename returns empty string
+        ModelVariableResolver resolver = new(null);
+
+        Assert.Equal(string.Empty, resolver.Resolve("TM_FILENAME"));
+    }
+
+    [Fact]
+    public void VariableResolver_ModelVariable_ReturnsNullForUnknown()
+    {
+        ModelVariableResolver resolver = new("test.cs");
+
+        Assert.Null(resolver.Resolve("SELECTION"));
+        Assert.Null(resolver.Resolve("UNKNOWN_VAR"));
+    }
+
+    [Fact]
+    public void VariableResolver_Composite_FirstMatchWins()
+    {
+        // TS: CompositeSnippetVariableResolver returns first non-null result
+        TextModel model = new("selected text");
+        SelectionVariableResolver selectionResolver = new(model, new TextPosition(1, 1), new TextPosition(1, 9));
+        ModelVariableResolver modelResolver = new("file.txt");
+
+        CompositeVariableResolver composite = new(selectionResolver, modelResolver);
+
+        // Selection resolver handles SELECTION
+        Assert.Equal("selected", composite.Resolve("SELECTION"));
+        // Model resolver handles TM_FILENAME
+        Assert.Equal("file.txt", composite.Resolve("TM_FILENAME"));
+    }
+
+    [Fact]
+    public void VariableResolver_Composite_FallsThrough()
+    {
+        // If first resolver returns null, try next
+        ModelVariableResolver resolver1 = new("file.txt");
+        TextModel model = new("hello");
+        SelectionVariableResolver resolver2 = new(model, new TextPosition(1, 1), new TextPosition(1, 6));
+
+        CompositeVariableResolver composite = new(resolver1, resolver2);
+
+        // Model resolver doesn't handle SELECTION, so falls through to selection resolver
+        Assert.Equal("hello", composite.Resolve("SELECTION"));
+    }
+
+    [Fact]
+    public void VariableResolver_Fallback_ReturnsEmptyString()
+    {
+        // FallbackVariableResolver returns empty string for any variable
+        FallbackVariableResolver resolver = FallbackVariableResolver.Instance;
+
+        Assert.Equal(string.Empty, resolver.Resolve("UNKNOWN"));
+        Assert.Equal(string.Empty, resolver.Resolve("TM_FILENAME"));
+        Assert.Equal(string.Empty, resolver.Resolve("ANYTHING"));
+    }
+
+    [Fact]
+    public void SnippetInsert_WithVariableResolver_ResolvesVariables()
+    {
+        // Full integration test with variable resolver
+        TextModel model = new("existing");
+        SnippetController controller = new(model);
+
+        ModelVariableResolver resolver = new("MyClass.cs");
+        SnippetInsertOptions options = new() { VariableResolver = resolver };
+
+        controller.InsertSnippetAt(new TextPosition(1, 1), "// File: ${TM_FILENAME}\n${1:code}", options);
+
+        string value = model.GetValue();
+        Assert.Contains("// File: MyClass.cs", value);
+    }
+
+    [Fact]
+    public void SnippetInsert_WithCompositeResolver()
+    {
+        TextModel model = new("hello world");
+        SnippetController controller = new(model);
+
+        // Select "world" (positions (1,7) to (1,12))
+        SelectionVariableResolver selectionResolver = new(model, new TextPosition(1, 7), new TextPosition(1, 12));
+        ModelVariableResolver modelResolver = new("test.cs");
+        CompositeVariableResolver composite = new(selectionResolver, modelResolver, FallbackVariableResolver.Instance);
+
+        SnippetInsertOptions options = new() { VariableResolver = composite };
+
+        controller.InsertSnippetAt(new TextPosition(1, 1), "file: ${TM_FILENAME}, sel: ${SELECTION}", options);
+
+        string value = model.GetValue();
+        // Note: The selection was from original "hello world", 
+        // but the snippet is inserted at position 1, shifting things
+        Assert.Contains("file: test.cs", value);
+    }
+
+    [Fact]
+    public void SnippetInsert_UnknownVariable_ExpandsToEmpty()
+    {
+        // TS: Unknown variables should silently expand to empty string
+        TextModel model = new("test");
+        SnippetController controller = new(model);
+
+        // No resolver provided, so all variables expand to empty
+        controller.InsertSnippetAt(new TextPosition(1, 1), "before${UNKNOWN_VAR}after");
+
+        Assert.Equal("beforeaftertest", model.GetValue());
+    }
+
+    [Fact]
+    public void SnippetInsert_VariableWithDefault_UsesDefaultWhenNotResolved()
+    {
+        // TS: ${VAR:default} uses default when variable not resolved
+        TextModel model = new("x");
+        SnippetController controller = new(model);
+
+        // No resolver, so default is used
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${TM_FILENAME:unknown.txt}");
+
+        Assert.Equal("unknown.txtx", model.GetValue());
+    }
+
+    [Fact]
+    public void SnippetInsert_VariableWithDefault_UsesResolvedValue()
+    {
+        // TS: ${VAR:default} uses resolved value when available
+        TextModel model = new("x");
+        SnippetController controller = new(model);
+
+        ModelVariableResolver resolver = new("actual.cs");
+        SnippetInsertOptions options = new() { VariableResolver = resolver };
+
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${TM_FILENAME:default.txt}", options);
+
+        Assert.Equal("actual.csx", model.GetValue());
+    }
+
+    [Fact]
+    public void SnippetInsert_VariableWithDefault_UsesDefaultForEmptySelection()
+    {
+        // When SELECTION is empty, use default value
+        TextModel model = new("x");
+        SnippetController controller = new(model);
+
+        SelectionVariableResolver resolver = new(model, new TextPosition(1, 1), new TextPosition(1, 1)); // Empty selection
+        SnippetInsertOptions options = new() { VariableResolver = resolver };
+
+        controller.InsertSnippetAt(new TextPosition(1, 1), "prefix ${SELECTION:nothing} suffix", options);
+
+        // Empty selection returns empty string, so default "nothing" is used
+        Assert.Equal("prefix nothing suffixx", model.GetValue());
+    }
+
+    [Fact]
+    public void SnippetInsert_MultipleVariables()
+    {
+        // TS: Multiple variables in one snippet
+        TextModel model = new("");
+        SnippetController controller = new(model);
+
+        SelectionVariableResolver selResolver = new(model, new TextPosition(1, 1), new TextPosition(1, 1));
+        ModelVariableResolver modelResolver = new("Program.cs");
+        CompositeVariableResolver composite = new(selResolver, modelResolver, FallbackVariableResolver.Instance);
+
+        SnippetInsertOptions options = new() { VariableResolver = composite };
+
+        controller.InsertSnippetAt(
+            new TextPosition(1, 1),
+            "// ${TM_FILENAME}\n// Selection: ${SELECTION:none}\n${1:code}",
+            options);
+
+        string value = model.GetValue();
+        Assert.Contains("// Program.cs", value);
+        Assert.Contains("// Selection: none", value);
+    }
+
+    [Fact]
+    public void SnippetInsert_VariablesAndPlaceholders_Mixed()
+    {
+        // Variables and placeholders can be mixed
+        TextModel model = new("");
+        SnippetController controller = new(model);
+
+        ModelVariableResolver resolver = new("Test.cs");
+        SnippetInsertOptions options = new() { VariableResolver = resolver };
+
+        controller.InsertSnippetAt(
+            new TextPosition(1, 1),
+            "namespace ${1:MyNamespace}\n{\n    // ${TM_FILENAME}\n    class ${2:MyClass} { $0 }\n}",
+            options);
+
+        string value = model.GetValue();
+        Assert.Contains("namespace MyNamespace", value);
+        Assert.Contains("// Test.cs", value);
+        Assert.Contains("class MyClass", value);
+
+        // Should have 3 placeholders: ${1}, ${2}, $0
+        TextPosition? p1 = controller.NextPlaceholder();
+        Assert.NotNull(p1);
+        Assert.False(controller.IsAtFinalTabstop);
+
+        TextPosition? p2 = controller.NextPlaceholder();
+        Assert.NotNull(p2);
+        Assert.False(controller.IsAtFinalTabstop);
+
+        TextPosition? p0 = controller.NextPlaceholder();
+        Assert.NotNull(p0);
+        Assert.True(controller.IsAtFinalTabstop);
+    }
+
+    [Fact]
+    public void SnippetInsert_SelectionVariable_WithActualSelection()
+    {
+        // Test with actual selected text
+        TextModel model = new("the quick brown fox");
+        SnippetController controller = new(model);
+
+        // Select "quick" (positions (1,5) to (1,10))
+        SelectionVariableResolver selResolver = new(model, new TextPosition(1, 5), new TextPosition(1, 10));
+        SnippetInsertOptions options = new() { VariableResolver = selResolver };
+
+        // Insert at position 1 (before "the")
+        controller.InsertSnippetAt(new TextPosition(1, 1), "selected: ${SELECTION}", options);
+
+        string value = model.GetValue();
+        Assert.Contains("selected: quick", value);
+    }
+
+    [Theory]
+    [InlineData("${TM_FILENAME}", "file.cs", "file.cs")]
+    [InlineData("${TM_FILENAME:default}", "file.cs", "file.cs")]
+    [InlineData("${TM_FILENAME:default}", null, "default")]
+    [InlineData("${UNKNOWN}", null, "")]
+    [InlineData("${UNKNOWN:fallback}", null, "fallback")]
+    public void SnippetInsert_VariableExpansion(string snippet, string? filename, string expected)
+    {
+        TextModel model = new("");
+        SnippetController controller = new(model);
+
+        ISnippetVariableResolver resolver = filename != null
+            ? new CompositeVariableResolver(new ModelVariableResolver(filename), FallbackVariableResolver.Instance)
+            : FallbackVariableResolver.Instance;
+
+        SnippetInsertOptions options = new() { VariableResolver = resolver };
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet, options);
+
+        Assert.Equal(expected, model.GetValue());
+    }
+
+    [Fact]
+    public void KnownSnippetVariableNames_IsKnown()
+    {
+        // Test the IsKnown helper
+        Assert.True(KnownSnippetVariableNames.IsKnown("SELECTION"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("TM_SELECTED_TEXT"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("TM_FILENAME"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("TM_FILENAME_BASE"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("CLIPBOARD"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("CURRENT_YEAR"));
+        Assert.True(KnownSnippetVariableNames.IsKnown("UUID"));
+
+        Assert.False(KnownSnippetVariableNames.IsKnown("UNKNOWN"));
+        Assert.False(KnownSnippetVariableNames.IsKnown("NOT_A_VAR"));
+        Assert.False(KnownSnippetVariableNames.IsKnown(""));
     }
 
     #endregion

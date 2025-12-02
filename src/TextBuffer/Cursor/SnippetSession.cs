@@ -4,8 +4,11 @@
 // - Static: SnippetSession.adjustWhitespace (Lines: 326-380)
 // Source: ts/src/vs/editor/contrib/snippet/browser/snippetParser.ts
 // - Class: Placeholder (Lines: 211-257) - isFinalTabstop semantics
+// Source: ts/src/vs/editor/contrib/snippet/browser/snippetVariables.ts
+// - Variable resolution pattern (Lines: 57-175)
 // Ported: 2025-11-22
 // Extended: 2025-12-02 (P1: Final Tabstop $0, adjustWhitespace)
+// Extended: 2025-12-02 (P2: Variable Resolver - TM_FILENAME, SELECTION)
 
 using System.Text;
 using System.Text.RegularExpressions;
@@ -33,6 +36,12 @@ public sealed class SnippetInsertOptions
     /// Number of characters to overwrite after the insertion point.
     /// </summary>
     public int OverwriteAfter { get; init; }
+
+    /// <summary>
+    /// Optional variable resolver for expanding variables like TM_FILENAME, SELECTION, etc.
+    /// If null, variables will be expanded to empty strings.
+    /// </summary>
+    public ISnippetVariableResolver? VariableResolver { get; init; }
 
     public static SnippetInsertOptions Default { get; } = new();
 }
@@ -66,6 +75,10 @@ public sealed class SnippetSession : IDisposable
     private static readonly Regex s_placeholderSimplePattern = new(@"\$\{(\d+)\}", RegexOptions.Compiled);
     // Matches: $n (simple tabstop without braces)
     private static readonly Regex s_tabstopPattern = new(@"\$(\d+)(?![{])", RegexOptions.Compiled);
+    // Matches: ${VAR} (variable without default)
+    private static readonly Regex s_variableSimplePattern = new(@"\$\{([A-Z_][A-Z_0-9]*)\}", RegexOptions.Compiled);
+    // Matches: ${VAR:default} (variable with default)
+    private static readonly Regex s_variableWithDefaultPattern = new(@"\$\{([A-Z_][A-Z_0-9]*):([^}]*)\}", RegexOptions.Compiled);
 
     public SnippetSession(TextModel model)
     {
@@ -107,10 +120,14 @@ public sealed class SnippetSession : IDisposable
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        // First, resolve variables (before whitespace adjustment)
+        // Variables like ${TM_FILENAME} and ${VAR:default} are expanded here
+        string resolvedSnippet = ResolveVariables(snippet, options.VariableResolver);
+
         // Apply whitespace adjustment if needed
         string adjustedSnippet = options.AdjustWhitespace
-            ? AdjustWhitespace(_model, start, snippet)
-            : snippet;
+            ? AdjustWhitespace(_model, start, resolvedSnippet)
+            : resolvedSnippet;
 
         // Parse placeholders and build plain text
         ParseResult result = ParseSnippet(adjustedSnippet);
@@ -407,6 +424,55 @@ public sealed class SnippetSession : IDisposable
     }
 
     private readonly record struct ParseResult(string PlainText, List<(int Index, int Start, int Length)> Placeholders);
+
+    /// <summary>
+    /// Resolves snippet variables like ${TM_FILENAME}, ${SELECTION}, ${VAR:default}.
+    /// Based on TS VariableResolver pattern (snippetVariables.ts).
+    /// 
+    /// Variable resolution order:
+    /// 1. Try the provided resolver (if any)
+    /// 2. Use default value from ${VAR:default} syntax
+    /// 3. Fall back to empty string for unknown variables
+    /// </summary>
+    /// <param name="snippet">The snippet template with variables.</param>
+    /// <param name="resolver">Optional variable resolver.</param>
+    /// <returns>The snippet with variables resolved to their values.</returns>
+    private static string ResolveVariables(string snippet, ISnippetVariableResolver? resolver)
+    {
+        if (string.IsNullOrEmpty(snippet))
+        {
+            return snippet;
+        }
+
+        // First, resolve ${VAR:default} patterns (variables with default values)
+        string result = s_variableWithDefaultPattern.Replace(snippet, match =>
+        {
+            string varName = match.Groups[1].Value;
+            string defaultValue = match.Groups[2].Value;
+            
+            // Try to resolve the variable
+            string? resolved = resolver?.Resolve(varName);
+            
+            // If resolved is non-null and non-empty, use it; otherwise use default
+            // TS behavior: if resolver returns undefined or empty string, use default
+            return !string.IsNullOrEmpty(resolved) ? resolved : defaultValue;
+        });
+
+        // Then, resolve ${VAR} patterns (variables without default values)
+        result = s_variableSimplePattern.Replace(result, match =>
+        {
+            string varName = match.Groups[1].Value;
+            
+            // Try to resolve the variable
+            string? resolved = resolver?.Resolve(varName);
+            
+            // If resolved is non-null, use it; otherwise empty string
+            // Unknown variables silently expand to empty string
+            return resolved ?? string.Empty;
+        });
+
+        return result;
+    }
 
     public TextPosition? NextPlaceholder()
     {
