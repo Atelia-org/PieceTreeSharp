@@ -93,3 +93,21 @@
   4. 输出顺序纪律：先工具调用 → 后汇报（避免中间输出丢失）
 - **认知文件更新**: 本条目
 - **待处理事项**: 无新增验证任务，等待 Porter-CS 交付
+
+## 2025-12-02 Snippet Deterministic Tests (#delta-2025-12-02-snippet-deterministic)
+- **任务**: Team Leader 要求补充 Cursor/Snippet 确定性测试套件
+- **范围**: 边界情况、adjustWhitespace、Placeholder Grouping
+- **新增测试**: 27 个测试（23 pass, 4 skip）
+  - Edge Cases: 7 tests (4 pass, 3 skip for P2 features)
+  - adjustWhitespace Extended: 6 tests (all pass)
+  - Placeholder Grouping Extended: 6 tests (all pass)
+  - Complex Scenarios: 3 tests (all pass)
+  - Placeholder Inheritance: 3 tests (all skip for P2)
+- **跳过的测试**: 4 个测试因 P2 功能尚未实现而跳过
+  - `SnippetInsert_NestedPlaceholder_ParsesCorrectly` - 嵌套占位符
+  - `SnippetInsert_NestedPlaceholders_ExpandCorrectly` - 嵌套占位符
+  - `SnippetInsert_EscapedCharacters` - 转义字符处理
+  - `SnippetInsert_PlaceholderInheritance` - 占位符默认值继承
+- **基线变更**: 830 tests (821 pass, 9 skip) → 858 tests (849 pass, 9 skip)
+- **全量测试**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → 858/858 (849 pass, 9 skip, 103.9s)
+- **Targeted rerun**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter SnippetControllerTests --nologo` → 56/56 (52 pass, 4 skip, 2.1s)

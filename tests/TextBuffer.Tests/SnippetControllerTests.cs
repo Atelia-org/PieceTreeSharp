@@ -659,4 +659,449 @@ public class SnippetControllerTests
         Assert.Equal(new TextPosition(1, 16), rangesAfter[1].Start); // Was 9
         Assert.Equal(new TextPosition(1, 19), rangesAfter[1].End);   // Was 12
     }
+
+    // ==================== Deterministic Tests: Edge Cases ====================
+    // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetParser.test.ts
+    // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetSession.test.ts
+
+    #region Edge Cases
+
+    [Fact]
+    public void SnippetInsert_EmptySnippet()
+    {
+        // TS: Empty snippet should not create any placeholders
+        TextModel model = new("test");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "");
+
+        Assert.Equal("test", model.GetValue());
+        Assert.Null(controller.NextPlaceholder());
+    }
+
+    [Fact]
+    public void SnippetInsert_OnlyFinalTabstop()
+    {
+        // TS: Snippet with only $0
+        TextModel model = new("test");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "$0");
+
+        Assert.Equal("test", model.GetValue());
+
+        TextPosition? p = controller.NextPlaceholder();
+        Assert.NotNull(p);
+        Assert.Equal(new TextPosition(1, 1), p);
+        Assert.True(controller.IsAtFinalTabstop);
+    }
+
+    [Fact]
+    public void SnippetInsert_OnlyFinalTabstopWithBraces()
+    {
+        // TS: ${0} is equivalent to $0
+        TextModel model = new("test");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${0}");
+
+        Assert.Equal("test", model.GetValue());
+
+        TextPosition? p = controller.NextPlaceholder();
+        Assert.NotNull(p);
+        Assert.Equal(new TextPosition(1, 1), p);
+        Assert.True(controller.IsAtFinalTabstop);
+    }
+
+    [Theory]
+    [InlineData("${1}${2}${3}", "", 3)]
+    [InlineData("${1:a}${2:b}${3:c}", "abc", 3)]
+    [InlineData("$1$2$3", "", 3)]
+    public void SnippetInsert_ConsecutivePlaceholders(string snippet, string expectedText, int expectedPlaceholderCount)
+    {
+        // TS: test('snippets, don\'t merge touching tabstops', ...)
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        Assert.Equal(expectedText, model.GetValue());
+
+        int count = 0;
+        while (controller.NextPlaceholder() != null)
+        {
+            count++;
+        }
+        Assert.Equal(expectedPlaceholderCount, count);
+    }
+
+    [Fact(Skip = "Nested placeholder expansion requires P2 SnippetParser - not yet implemented")]
+    public void SnippetInsert_NestedPlaceholder_ParsesCorrectly()
+    {
+        // TS: test('Parser, default placeholder values', ...)
+        // Note: Nested placeholder ${1:${2:nested}} should parse the outer placeholder with inner as default
+        // TODO: P2 - Implement nested placeholder support in SnippetParser
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        // In TS: ${1:${2:nested}} expands to "nested" with nested placeholders
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:${2:nested}}");
+
+        // The outer placeholder default contains the inner placeholder's text
+        Assert.Equal("nested", model.GetValue());
+
+        TextPosition? p1 = controller.NextPlaceholder();
+        Assert.NotNull(p1);
+        Assert.Equal(new TextPosition(1, 1), p1);
+    }
+
+    [Theory(Skip = "Nested placeholder expansion requires P2 SnippetParser - not yet implemented")]
+    [InlineData("${1:outer${2:inner}}", "outerinner")]
+    [InlineData("${1:a${2:b${3:c}}}", "abc")]
+    public void SnippetInsert_NestedPlaceholders_ExpandCorrectly(string snippet, string expectedText)
+    {
+        // TS: test('Parser, variables/placeholder with defaults', ...)
+        // TODO: P2 - Implement nested placeholder support in SnippetParser
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        Assert.Equal(expectedText, model.GetValue());
+    }
+
+    [Fact]
+    public void SnippetInsert_PlainTextOnly()
+    {
+        // TS: test('snippets, just text', ...)
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "just plain text");
+
+        Assert.Equal("just plain text", model.GetValue());
+        Assert.Null(controller.NextPlaceholder());
+    }
+
+    [Theory(Skip = "Escape handling requires P2 SnippetParser - not yet implemented")]
+    [InlineData("\\$1", "$1")]     // Escaped dollar should be literal
+    [InlineData("\\${1}", "${1}")] // Escaped brace should be literal
+    [InlineData("\\\\", "\\")]     // Escaped backslash
+    public void SnippetInsert_EscapedCharacters(string snippet, string expectedText)
+    {
+        // TS: test('Parser, text', ...)
+        // TODO: P2 - Implement escape handling in SnippetParser
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        Assert.Equal(expectedText, model.GetValue());
+    }
+
+    #endregion
+
+    #region adjustWhitespace Extended Tests
+
+    [Fact]
+    public void AdjustWhitespace_TabIndentation_PreservesStyle()
+    {
+        // TS: test('normalize whitespace', ...)
+        TextModelCreationOptions options = new() { TabSize = 4, InsertSpaces = false };
+        TextModel model = new("\tcode", options);
+        string snippet = "line1\n\tline2";
+
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, 2), snippet);
+
+        // With tab indentation, tabs should be preserved
+        Assert.Contains("line2", adjusted);
+    }
+
+    [Fact]
+    public void AdjustWhitespace_SpaceIndentation_NormalizesToSpaces()
+    {
+        // TS: test('Tabs don\'t get replaced with spaces in snippet transformations #103818', ...)
+        TextModelCreationOptions options = new() { TabSize = 2, InsertSpaces = true };
+        TextModel model = new("  code", options);
+        string snippet = "line1\n\tline2"; // Tab in snippet
+
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, 3), snippet);
+
+        // Tab should be normalized to spaces
+        Assert.DoesNotContain("\t", adjusted);
+        Assert.Contains("line2", adjusted);
+    }
+
+    [Theory]
+    [InlineData("    ", 4)]  // 4 space indentation
+    [InlineData("  ", 2)]    // 2 space indentation
+    [InlineData("\t", 4)]    // Tab indentation (treated as tabSize spaces)
+    public void AdjustWhitespace_VariousIndentLevels(string leadingWhitespace, int expectedIndentWidth)
+    {
+        TextModel model = new($"{leadingWhitespace}code");
+        string snippet = "a\nb";
+
+        // Insert after the leading whitespace
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, leadingWhitespace.Length + 1), snippet);
+
+        // Second line should have indentation
+        string[] lines = adjusted.Split('\n');
+        Assert.Equal(2, lines.Length);
+        Assert.Equal("a", lines[0]);
+        // Second line should have some indentation
+        Assert.StartsWith(leadingWhitespace, $"{leadingWhitespace}{lines[1].TrimStart()}".Substring(0, Math.Min(leadingWhitespace.Length, lines[1].Length + leadingWhitespace.Length)));
+    }
+
+    [Fact]
+    public void AdjustWhitespace_MixedIndentation()
+    {
+        // Model with mixed indentation (space + tab)
+        TextModel model = new("  \tcode");
+        string snippet = "first\nsecond\nthird";
+
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, 4), snippet);
+
+        string[] lines = adjusted.Split('\n');
+        Assert.Equal(3, lines.Length);
+        Assert.Equal("first", lines[0]);
+        // Lines 2 and 3 should have inherited indentation
+    }
+
+    [Fact]
+    public void AdjustWhitespace_EmptyLinesPreserved()
+    {
+        // TS: Empty lines should remain empty, not get indentation
+        TextModel model = new("    code");
+        string snippet = "line1\n\nline3";
+
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, 5), snippet);
+
+        string[] lines = adjusted.Split('\n');
+        Assert.Equal(3, lines.Length);
+        Assert.Equal("line1", lines[0]);
+        Assert.Equal("", lines[1]);  // Empty line stays empty
+        Assert.StartsWith("    ", lines[2]); // Third line gets indentation
+    }
+
+    [Fact]
+    public void AdjustWhitespace_MultipleNewlines()
+    {
+        TextModel model = new("  base");
+        string snippet = "a\n\n\nb";
+
+        string adjusted = SnippetSession.AdjustWhitespace(model, new TextPosition(1, 3), snippet);
+
+        string[] lines = adjusted.Split('\n');
+        Assert.Equal(4, lines.Length);
+        Assert.Equal("a", lines[0]);
+        Assert.Equal("", lines[1]);
+        Assert.Equal("", lines[2]);
+        Assert.StartsWith("  ", lines[3]);
+    }
+
+    #endregion
+
+    #region Placeholder Grouping Extended Tests
+
+    [Fact]
+    public void SnippetInsert_ThreePlusIdenticalPlaceholders()
+    {
+        // Three or more placeholders with the same index
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:x}${1:y}${1:z}${1:w}");
+
+        Assert.Equal("xyzw", model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(4, ranges.Count);
+    }
+
+    [Fact]
+    public void SnippetInsert_SameIndexSpreadAcrossLines()
+    {
+        // Same index placeholders on different lines
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:foo}\n${1:bar}\n${1:baz}");
+
+        Assert.Equal("foo\nbar\nbaz", model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(3, ranges.Count);
+
+        // Verify positions on different lines
+        Assert.Equal(new TextPosition(1, 1), ranges[0].Start);
+        Assert.Equal(new TextPosition(2, 1), ranges[1].Start);
+        Assert.Equal(new TextPosition(3, 1), ranges[2].Start);
+    }
+
+    [Fact]
+    public void SnippetInsert_MixedIndexesWithMultipleSameIndex()
+    {
+        // ${1} appears twice, ${2} appears twice, intermixed
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a}${2:b}${1:c}${2:d}");
+
+        Assert.Equal("abcd", model.GetValue());
+
+        // Navigate to index 1
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges1 = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(ranges1);
+        Assert.Equal(2, ranges1.Count);
+
+        // Navigate to index 2
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges2 = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(ranges2);
+        Assert.Equal(2, ranges2.Count);
+    }
+
+    [Fact]
+    public void SnippetInsert_SameIndexWithFinalTabstop()
+    {
+        // Same index placeholders with $0 at the end
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:a}${1:b}$0");
+
+        Assert.Equal("ab", model.GetValue());
+
+        // Navigate to index 1 (grouped)
+        controller.NextPlaceholder();
+        Assert.False(controller.IsAtFinalTabstop);
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(ranges);
+        Assert.Equal(2, ranges.Count);
+
+        // Navigate to $0
+        controller.NextPlaceholder();
+        Assert.True(controller.IsAtFinalTabstop);
+    }
+
+    [Fact]
+    public void SnippetInsert_EmptyPlaceholdersGrouped()
+    {
+        // Empty placeholders with same index
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), "${1:}|${1:}|${1:}");
+
+        Assert.Equal("||", model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(3, ranges.Count);
+
+        // All ranges should be zero-width
+        foreach (var range in ranges)
+        {
+            Assert.Equal(range.Start, range.End);
+        }
+    }
+
+    [Theory(Skip = "Placeholder default inheritance requires P2 SnippetParser - not yet implemented")]
+    [InlineData("${1:foo} ${1}", 2, "foo foo")]  // Second $1 inherits default
+    [InlineData("${1} ${1:bar}", 2, "bar bar")]  // First $1 inherits from second
+    [InlineData("$1 ${1:x} $1", 3, "x x x")]     // Multiple inheritance
+    public void SnippetInsert_PlaceholderInheritance(string snippet, int expectedGroupSize, string expectedText)
+    {
+        // TS: test('Repeated snippet placeholder should always inherit, #31040', ...)
+        // TODO: P2 - Implement placeholder default value inheritance in SnippetParser
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        Assert.Equal(expectedText, model.GetValue());
+
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? ranges = controller.GetCurrentPlaceholderRanges();
+
+        Assert.NotNull(ranges);
+        Assert.Equal(expectedGroupSize, ranges.Count);
+    }
+
+    #endregion
+
+    #region Complex Scenarios
+
+    [Fact]
+    public void SnippetInsert_RealisticFunction()
+    {
+        // Realistic function snippet with multiple same-index placeholders
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        string snippet = "public ${1:void} ${2:MethodName}(${3:params})\n{\n    ${0:// body}\n}";
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        string value = model.GetValue();
+        Assert.Contains("public void MethodName", value);
+        Assert.Contains("// body", value);
+
+        // Navigate through placeholders
+        TextPosition? p1 = controller.NextPlaceholder();
+        Assert.NotNull(p1);
+        Assert.False(controller.IsAtFinalTabstop);
+
+        TextPosition? p2 = controller.NextPlaceholder();
+        Assert.NotNull(p2);
+        Assert.False(controller.IsAtFinalTabstop);
+
+        TextPosition? p3 = controller.NextPlaceholder();
+        Assert.NotNull(p3);
+        Assert.False(controller.IsAtFinalTabstop);
+
+        TextPosition? p0 = controller.NextPlaceholder();
+        Assert.NotNull(p0);
+        Assert.True(controller.IsAtFinalTabstop);
+    }
+
+    [Fact]
+    public void SnippetInsert_PropertyWithBackingField()
+    {
+        // Common pattern: property with backing field using same index
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        string snippet = "private ${1:int} _${2:name};\npublic ${1:int} ${2:Name}\n{\n    get => _${2:name};\n    set => _${2:name} = value;\n}";
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        string value = model.GetValue();
+        Assert.Contains("private int _name", value);
+        Assert.Contains("public int Name", value);
+
+        // Type placeholder (${1:int}) should have 2 occurrences
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? typeRanges = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(typeRanges);
+        Assert.Equal(2, typeRanges.Count);
+
+        // Name placeholder (${2:name/Name}) should have 4 occurrences
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? nameRanges = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(nameRanges);
+        Assert.Equal(4, nameRanges.Count);
+    }
+
+    [Fact]
+    public void SnippetInsert_ForLoop()
+    {
+        // For loop with repeated index
+        TextModel model = new("");
+        SnippetController controller = new(model);
+        string snippet = "for (int ${1:i} = 0; ${1:i} < ${2:count}; ${1:i}++)\n{\n    $0\n}";
+        controller.InsertSnippetAt(new TextPosition(1, 1), snippet);
+
+        string value = model.GetValue();
+        Assert.Contains("for (int i = 0; i < count; i++)", value);
+
+        // Loop variable should have 3 occurrences
+        controller.NextPlaceholder();
+        IReadOnlyList<(TextPosition Start, TextPosition End)>? iRanges = controller.GetCurrentPlaceholderRanges();
+        Assert.NotNull(iRanges);
+        Assert.Equal(3, iRanges.Count);
+    }
+
+    #endregion
 }

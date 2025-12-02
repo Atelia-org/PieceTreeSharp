@@ -409,3 +409,27 @@ Matrix adjustments recorded in this pass: baseline counts stay at 585 and the WS
 - **MarkdownRendererTests (DocUI diff & future multi-cursor/snippet snapshots)** — only partial coverage is live because the canonical TS widget snapshot path is unknown; needs the AA4-CL8 changefeed to unblock `DocUI` overlay snapshots.
 - **AA4-007 CL7 cursor/word/snippet suites** — all entries remain Gap per `#delta-2025-11-26-aa4-cl7-*`; SharedHarnessExampleTests keep the helper surface exercised, but the real cursor/column/snippet regressions still require implementation + reruns.
 
+## Snippet Deterministic Tests (2025-12-02)
+
+| Test Group | Scope | Focus | Owner | Status | Reference |
+| --- | --- | --- | --- | --- | --- |
+| SnippetControllerTests (Edge Cases) | Deterministic | Empty snippet, only $0, consecutive placeholders, nested placeholder syntax (skip), plain text only | QA-Automation | 7 pass, 3 skip | `SnippetControllerTests.cs` `#region Edge Cases` |
+| SnippetControllerTests (adjustWhitespace) | Deterministic | Tab vs space indentation, mixed indent, empty lines, multiple newlines | QA-Automation | 6 pass | `SnippetControllerTests.cs` `#region adjustWhitespace Extended Tests` |
+| SnippetControllerTests (Placeholder Grouping) | Deterministic | 3+ same index, multi-line spread, mixed indexes, empty placeholders grouped | QA-Automation | 6 pass | `SnippetControllerTests.cs` `#region Placeholder Grouping Extended Tests` |
+| SnippetControllerTests (Complex Scenarios) | Deterministic | Realistic function, property with backing field, for loop | QA-Automation | 3 pass | `SnippetControllerTests.cs` `#region Complex Scenarios` |
+
+### Targeted reruns (Snippet Deterministic Tests, 2025-12-02)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter SnippetControllerTests --nologo` | 52/52 green, 4 skipped (2.1s) | `#delta-2025-12-02-snippet-deterministic`: P0-P1.5 snippet parity validated; 4 tests skipped for P2 features (nested placeholders, escape handling, placeholder default inheritance). |
+
+### Skipped Snippet Tests (P2 Features)
+
+| Test | Reason | TS Reference |
+| --- | --- | --- |
+| `SnippetInsert_NestedPlaceholder_ParsesCorrectly` | Nested placeholder expansion requires P2 SnippetParser | `snippetParser.test.ts` |
+| `SnippetInsert_NestedPlaceholders_ExpandCorrectly` | Nested placeholder expansion requires P2 SnippetParser | `snippetParser.test.ts` |
+| `SnippetInsert_EscapedCharacters` | Escape handling requires P2 SnippetParser | `snippetParser.test.ts` |
+| `SnippetInsert_PlaceholderInheritance` | Placeholder default inheritance requires P2 SnippetParser | Issue #31040 |
+

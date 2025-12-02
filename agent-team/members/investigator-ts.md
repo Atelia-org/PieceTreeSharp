@@ -29,7 +29,8 @@
 4. `agent-team/handoffs/B3-TextModelSearch-INV.md`、`B3-TextModelSearch-QA.md` —— Janitor `Intl.Segmenter & WordSeparator cache` notes，并保持 rerun 命令在 `tests/TextBuffer.Tests/TestMatrix.md` 中最新，同时引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)。
 
 ## Key Deliverables
-- **[NEW 2025-12-02]** `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — TS Parity 审阅：Snippet P1.5 Placeholder Grouping，分组/导航逻辑 PASS，Stickiness 动态切换标记为 P2 追踪项
+- **[NEW 2025-12-02]** `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 快速审阅：Snippet 确定性测试 (27 tests)，边界情况/adjustWhitespace/Placeholder Grouping，52 passed/4 skipped (P2)，TS Reference 准确
+- **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — TS Parity 审阅：Snippet P1.5 Placeholder Grouping，分组/导航逻辑 PASS，Stickiness 动态切换标记为 P2 追踪项
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-2025-12-02.md` — TS Parity 审阅：Snippet P0-P1 + WS3 AcceptReplace，算法对齐确认、功能差距识别
 - **[2025-12-02]** `agent-team/handoffs/INV-Snippet-Downgrade.md` — TS Snippet 功能完整清单、降级实现建议、技术边界、Porter/QA 建议
 - **[2025-11-26]** `agent-team/handoffs/WS5-INV-TestBacklog.md` —— 高风险测试 backlog 优先级排序，包含 Top-10 列表、按模块分组的完整 backlog、共享 harness 需求。
@@ -50,6 +51,7 @@
 ## Session Log
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-02 | 快速审阅：Snippet 确定性测试 (27 新增) | `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 边界情况/adjustWhitespace/Placeholder Grouping 测试审阅，52 passed/4 skipped (P2)，TS Reference 准确，PASS |
 | 2025-12-02 | TS Parity 审阅：Snippet P1.5 Placeholder Grouping | `agent-team/handoffs/REVIEW-SnippetGrouping-2025-12-02.md` — 分组逻辑/导航语义/computePossibleSelections PASS，Stickiness 动态切换标记为 P2 |
 | 2025-12-02 | TS Parity 审阅：Snippet P0-P1 + WS3 AcceptReplace | `agent-team/handoffs/REVIEW-2025-12-02.md` — 对比 adjustWhitespace、Placeholder.compareByIndex、IntervalTree 四阶段算法，确认核心算法 100% 对齐，识别 placeholder grouping 功能缺失 |
 | 2025-12-02 | Snippet Downgrade Investigation | `agent-team/handoffs/INV-Snippet-Downgrade.md` — TS Snippet 功能完整清单（4 个源文件分析）、降级实现建议（Keep/Simplify/Skip 分类）、技术边界总结、Porter-CS 分阶段实现建议、QA 测试用例设计 |
