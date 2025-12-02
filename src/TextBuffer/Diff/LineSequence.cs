@@ -24,7 +24,9 @@ internal sealed class LineSequence : ISequence
     public int GetBoundaryScore(int length)
     {
         int indentationBefore = length == 0 ? 0 : GetIndentation(_lines[length - 1]);
-        int indentationAfter = length == _lines.Length ? 0 : GetIndentation(_lines[Math.Min(length, _lines.Length - 1)]);
+        // Fix: When length < _lines.Length, use _lines[length] not Math.Min(length, _lines.Length - 1)
+        // TS: const indentationAfter = (length === this.lines.length) ? 0 : getIndentation(this.lines[length]);
+        int indentationAfter = length == _lines.Length ? 0 : GetIndentation(_lines[length]);
         return 1000 - (indentationBefore + indentationAfter);
     }
 

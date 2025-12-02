@@ -25,9 +25,33 @@
 
 ## Active Goals
 
-- **Sprint 05 规划** (待启动)
-  - 评估 WS5 剩余 47 gaps 优先级
-  - 确定下一阶段移植目标
+- **Sprint 05: Diff → DocUI 渲染链路** (2025-12-02 ~ )
+  - **M1 (Week 1): Diff 核心修复**
+    - [x] LineSequence.GetBoundaryScore 修复 → ✅ Done (2025-12-02)
+    - [ ] DiffMove.Flip() 补齐
+    - [ ] RangeMapping.Inverse/Clip 实现
+  - **M2 (Week 2): RangeMapping API 补齐**
+    - [ ] RangeMapping.FromEdit/FromEditJoin
+    - [ ] DetailedLineRangeMapping.ToTextEdit
+    - [ ] Diff 回归测试扩展 (4 → 20+)
+  - **M3 (Week 3): DocUI Diff 渲染**
+    - [ ] DiffRenderer interface 设计
+    - [ ] MarkdownRenderer DiffDecorations 集成
+    - [ ] Inline diff 标记（add/del 行）
+  - **M4 (Week 4): 集成与测试**
+    - [ ] Move blocks 高亮（可选）
+    - [ ] 全量回归测试
+    - [ ] 对齐度目标: 56% → 65%
+
+---
+
+## 方向与决策的模糊之处
+
+| 问题 | 说明 | 待决策 |
+|------|------|--------|
+| **DocUI diff 渲染深度** | VS Code 的 DiffEditorWidget 包含 moved blocks、折叠、revert 按钮等，是否全部复刻？ | 建议先实现最小 diff 渲染（add/del 行标记 + inline diff） |
+| **ComputeMovedLines 启发式** | C# 版本有额外启发式，与 TS 输出可能不同 | 添加 parity 测试，明确是"增强"还是"偏差" |
+| **Services 层深度** | Undo 服务、Language Configuration 等是否需要完整移植？ | 待 DocUI diff 落地后再评估 |
 
 ---
 

@@ -61,7 +61,7 @@
 
 | 项目 | 状态 | 阻塞 |
 |------|------|------|
-| Intl.Segmenter parity | ⏸️ 延迟 | 需要 ICU4N 或文档化限制 |
+| ~~Intl.Segmenter parity~~ | ❌ 已砍掉 | 2025-12-02 决定：LLM 用户不需要 CJK/Thai 分词，移除此需求 |
 | WordSeparator LRU cache | ⏸️ 延迟 | 性能优化，非功能阻塞 |
 | DocUI MarkdownRenderer | ⏸️ 延迟 | CL8 收尾后继续 |
 
@@ -81,7 +81,7 @@
 
 **Sprint 05 目标**：
 - CL8 DocUI Markdown renderer 收尾
-- Intl.Segmenter 替代方案评估（ICU4N 或文档化限制）
+- ~~Intl.Segmenter 替代方案评估~~ → 已砍掉（2025-12-02 决策：LLM 用户不需要）
 - 提升对齐度至 70%
 
 ## Appendix – TS Test Inventory (placeholder)
@@ -89,7 +89,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `ts/src/vs/editor/test/common/model/pieceTreeTextBuffer/pieceTreeTextBuffer.test.ts` | PieceTree builder, RB-tree invariants, search + snapshot sanity | Uses `PieceTreeTextBuffer/Base/Builder`, `WordCharacterClassifier`, `SearchData`, `createTextModel`, randomized fuzz helpers; blockers: deterministic RNG + word-separator adapter for .NET search hooks | B | `tests/TextBuffer.Tests/PieceTreeBaseTests.cs`, `PieceTreeBuilderTests.cs`, `PieceTreeSearchTests.cs` | Partial parity (C# lacks fuzz + invariant coverage). Priority #2 (search-offset cache) = ✅ Complete via R31–R34 (`INV/PORT/QA/DOC`) under [`#delta-2025-11-25-b3-search-offset`](../agent-team/indexes/README.md#delta-2025-11-25-b3-search-offset); QA logged `export PIECETREE_DEBUG=0 && dotnet test --filter PieceTreeSearchOffsetCacheTests --nologo` (5/5, 4.3s) + full `--nologo` sweep (324/324, 58.2s) in TestMatrix/migration log。 |
 | `ts/src/vs/editor/test/common/model/textModel.test.ts` | TextModel lifecycle, BOM/EOL handling, indentation inference, listener contract | Depends on `TextModel`, `createModelServices`, `IInstantiationService`, `PLAINTEXT_LANGUAGE_ID`, `DisposableStore`; blockers: need lightweight instantiation + option plumbing identical to TS defaults | B | `tests/TextBuffer.Tests/TextModelTests.cs` | Basic cases exist; advanced option/events not ported |
-| `ts/src/vs/editor/test/common/model/textModelSearch.test.ts` | TextModel regex/whole-word/multiline parity, CRLF compensation | Exercises `SearchParams.parseSearchRequest`, `SearchData`, and `Searcher` boundary helpers from `core/wordHelper.ts`/`wordCharacterClassifier.ts`; verifies `createFindMatch` capture arrays consumed by `contrib/find/browser/replacePattern.ts`. Porting requires reading `wordHelper.ts`, `wordCharacterClassifier.ts`, `common/model.ts` (SearchData), and `textModelSearch.ts`; blockers: shared WordSeparator cache + Intl.Segmenter parity + `RegexOptions` mismatch vs TS `strings.createRegExp`. | B | `tests/TextBuffer.Tests/TextModelSearchTests.cs` | Gap closed (Sprint 03 R36 / `#delta-2025-11-25-b3-textmodelsearch`): Investigator brief [`Review-20251125-Investigator.md`](../../agent-team/handoffs/Review-20251125-Investigator.md) 与 Porter memo [`B3-TextModelSearch-PORT.md`](../../agent-team/handoffs/B3-TextModelSearch-PORT.md) 证明 `SearchPatternUtilities.IsMultilineRegexSource` 已回归且 TS 45 项测试矩阵 (word boundary、multiline/CRLF、capture arrays、`parseSearchRequest`/`isMultiline`) 悉数移植到 `TextModelSearchTests.cs`。QA 路线：Porter-CS Run R36 记录 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~TextModelSearchTests --nologo` → 45/45 green (2.0s)，QA-Automation Run R37 于 [`agent-team/handoffs/B3-TextModelSearch-QA.md`](../../agent-team/handoffs/B3-TextModelSearch-QA.md) 中复跑同一 filter（45/45，2.5s）并执行全量 `--nologo`（365/365，61.6s）以刷新 TestMatrix 总计；两条 rerun 均挂 `#delta-2025-11-25-b3-textmodelsearch`。Backlog：Intl.Segmenter word segmentation + WordSeparator cache/perf 仍列入 AA4 待办。 |
+| `ts/src/vs/editor/test/common/model/textModelSearch.test.ts` | TextModel regex/whole-word/multiline parity, CRLF compensation | Exercises `SearchParams.parseSearchRequest`, `SearchData`, and `Searcher` boundary helpers from `core/wordHelper.ts`/`wordCharacterClassifier.ts`; verifies `createFindMatch` capture arrays consumed by `contrib/find/browser/replacePattern.ts`. Porting requires reading `wordHelper.ts`, `wordCharacterClassifier.ts`, `common/model.ts` (SearchData), and `textModelSearch.ts`; blockers: shared WordSeparator cache + `RegexOptions` mismatch vs TS `strings.createRegExp`. | B | `tests/TextBuffer.Tests/TextModelSearchTests.cs` | ✅ Gap closed (Sprint 03 R36 / `#delta-2025-11-25-b3-textmodelsearch`): Investigator brief [`Review-20251125-Investigator.md`](../../agent-team/handoffs/Review-20251125-Investigator.md) 与 Porter memo [`B3-TextModelSearch-PORT.md`](../../agent-team/handoffs/B3-TextModelSearch-PORT.md) 证明 `SearchPatternUtilities.IsMultilineRegexSource` 已回归且 TS 45 项测试矩阵 (word boundary、multiline/CRLF、capture arrays、`parseSearchRequest`/`isMultiline`) 悉数移植到 `TextModelSearchTests.cs`。QA 路线：Porter-CS Run R36 记录 `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter FullyQualifiedName~TextModelSearchTests --nologo` → 45/45 green (2.0s)，QA-Automation Run R37 于 [`agent-team/handoffs/B3-TextModelSearch-QA.md`](../../agent-team/handoffs/B3-TextModelSearch-QA.md) 中复跑同一 filter（45/45，2.5s）并执行全量 `--nologo`（365/365，61.6s）以刷新 TestMatrix 总计。Backlog：WordSeparator cache/perf 仍列入待办；~~Intl.Segmenter~~ 已砍掉 (2025-12-02)。 |
 | `ts/src/vs/editor/contrib/find/test/browser/findWidget.test.ts` | _Expected but not found_ – FindWidget DOM layout, history, accessibility | TS repo only has `find.test.ts`, `findModel.test.ts`, `findController.test.ts`, `replacePattern.test.ts` under `contrib/find/test/browser`. No dedicated FindWidget DOM harness exists; widget tests are implicitly covered by `findController.test.ts` via `withAsyncTestCodeEditor` stubs. | C | _Deferred – DocUI harness needed_ | **Recommendation**: Skip DOM widget tests; focus on FindModel logic + controller commands (existing TS tests sufficient) |
 | `ts/src/vs/editor/test/common/diff/diffComputer.test.ts` | Legacy `DiffComputer` line+char heuristics, trim whitespace toggles, edit replay | Depends on `legacyLinesDiffComputer`, `Range`, `createTextModel`, `Constants`; blockers: char-change pretty diff + whitespace flags flagged in `docs/reports/audit-checklist-aa3.md#cl3` | B | `tests/TextBuffer.Tests/DiffTests.cs` | Missing char-change assertions + pretty diff cases |
 | `ts/src/vs/editor/test/common/model/modelDecorations.test.ts` | Decorations creation/removal, stickiness, per-line queries | Uses `TextModel`, `EditOperation`, `TrackedRangeStickiness`, `EndOfLineSequence` | B | `tests/TextBuffer.Tests/DecorationTests.cs` | ✅ Complete (Sprint 04) — stickiness + per-line queries implemented |
@@ -201,13 +201,11 @@ Searcher.next(text) → isValidMatch() checks left/right boundaries
    - **Impact**: Minor perf hit for repeated searches with same `wordSeparators` string
    - **Recommendation**: Add `static ConcurrentDictionary` or `MemoryCache` in `SearchParams` or factory helper
 
-2. **Intl.Segmenter parity** ❌:
+2. **Intl.Segmenter parity** ❌ 已砍掉 (2025-12-02):
    - TS supports `intlSegmenterLocales` for Unicode word segmentation (e.g., CJK, Thai)
    - C# has no equivalent to `Intl.Segmenter`
-   - **Options**:
-     - Use ICU4N library (NuGet: `ICU4N`) for `BreakIterator` API
-     - Document limitation and skip for MVP
-   - **Current status**: Not implemented, not blocking core scenarios (Western languages work)
+   - **决策**: LLM 用户不需要 CJK/Thai 分词，移除此需求
+   - **影响**: 无——西方语言使用 separator-based 方案已足够
 
 3. **`wordHelper.ts` API** (getWordAtText, createWordRegExp) ❌:
    - TS uses `getWordAtText()` for hover/selection; FindModel uses `SearchParams` path instead
@@ -227,7 +225,7 @@ Searcher.next(text) → isValidMatch() checks left/right boundaries
 - [x] **`SearchParams.ParseSearchRequest()`** integration with `WordCharacterClassifier`
 - [x] **`PieceTreeSearcher.Next()`** word boundary filtering
 - [ ] **LRU cache** for `WordCharacterClassifier` instances (optional perf optimization)
-- [ ] **Intl.Segmenter** parity for non-Latin scripts (defer to post-MVP or ICU4N)
+- [x] ~~**Intl.Segmenter** parity for non-Latin scripts~~ → 已砍掉 (2025-12-02)
 - [ ] **`getWordAtText()`** API for hover/word-under-cursor (defer to Cursor features)
 - [ ] **Editor options layer** to provide default `wordSeparators` per language (defer to DocUI)
 
@@ -239,7 +237,7 @@ Create xUnit test suite `WordBoundaryTests.cs` covering:
 - Edge cases: start/end of string, empty match, zero-width matches
 - Multi-char operators: `->`, `::`, `==` (should split at operator)
 - Unicode: emoji boundaries, surrogate pairs, combining diacritics
-- CJK/Thai: Document limitation (no Intl.Segmenter) and skip or use ICU4N
+- CJK/Thai: 已砍掉 Intl.Segmenter 需求 (2025-12-02)——LLM 用户不需要，skip 相关测试
 
 #### Whole-Word Search Integration (Tier A)
 Extend `TextModelSearchTests.cs`:
@@ -256,10 +254,10 @@ Port `ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts`:
 
 ### Known Risks
 
-1. **Unicode Word Break Algorithm divergence**:
+1. **Unicode Word Break Algorithm divergence** → 已解决 (2025-12-02):
    - TS `Intl.Segmenter` follows UAX #29 (Unicode Standard Annex #29)
    - C# `WordCharacterClassifier` uses manual char class lookups (no segmenter)
-   - **Mitigation**: For Western languages, separator-based approach sufficient; for CJK, add ICU4N or document limitation
+   - **决策**: Intl.Segmenter 需求已砍掉——LLM 用户不需要 CJK/Thai 分词，西方语言 separator-based 方案已足够
 
 2. **Performance: No WordCharacterClassifier cache**:
    - Every search re-creates classifier from `wordSeparators` string
@@ -285,7 +283,7 @@ Port `ts/src/vs/editor/contrib/find/test/browser/findModel.test.ts`:
 3. **FindModel/FindDecorations stubs** (Tier C tests): If porting `findModel.test.ts`, need C# equivalents of `FindModelBoundToEditorModel`, `FindDecorations`, `FindReplaceState`
 
 ### Optional Items (可后续优化)
-1. **Intl.Segmenter parity** (ICU4N): For CJK/Thai word segmentation; not needed for Western languages
+1. ~~**Intl.Segmenter parity** (ICU4N)~~ → 已砍掉 (2025-12-02): LLM 用户不需要 CJK/Thai 分词
 2. **FindWidget DOM tests**: TS has no widget-specific tests; C# can skip or add Markdown snapshot tests for controller output
 3. **`getWordAtText()` API**: For hover/word-under-cursor; defer to future cursor feature work
 

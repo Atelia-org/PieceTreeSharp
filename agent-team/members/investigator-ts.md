@@ -42,7 +42,7 @@
 - `agent-team/handoffs/DocReview-20251126-INV.md`、`DocReview-20251126-R42-INV.md` —— 2025-11-26 文档压缩巡检与跨文档链接确认。
 
 ## Open Investigations
-1. **Intl.Segmenter & WordSeparator cache**：统一 `SearchParams.parseSearchRequest`、word operations、DocUI capture 的配置，引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch) + `B3-TextModelSearch-INV.md` 记录。
+1. ~~**Intl.Segmenter & WordSeparator cache**~~：**Intl.Segmenter 已砍掉** (2025-12-02 决策：LLM 用户不需要 CJK/Thai 分词)；WordSeparator cache 仍为可选性能优化项。
 2. **Cursor/Snippet backlog (CL7)**：`#delta-2025-11-26-aa4-cl7-cursor-core` 仍是 Gap；`WS4-PORT-Core-Result.md` + `WS5-INV-TestBacklog.md` 指出 `CursorsController`、`WordOperations`、`SnippetSession`、`ColumnSelectData` 尚未移植。
 3. **DocUI find/replace scope**：`#delta-2025-11-24-b3-docui-staged`、`#delta-2025-11-26-aa4-cl8-markdown` 注册的 Markdown renderer + DocUI capture 修复尚未落地；在 `B3-FC-Result.md`、`B3-DocUI-StagedFixes-QA-20251124.md` 查阅 rerun 证据。
 4. **AA4 alignment hygiene**：在 `docs/reports/audit-checklist-aa4.md` 中保持 CL7/CL8 备注与 Task Board/AGENTS 描述一致，直到新的 changefeed 覆盖剩余 gap。
@@ -55,6 +55,8 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-02 | Sprint 05 方向建议 | 为 Team Leader 分析审计报告，识别 gap 模块并按优先级排序，输出方向建议 |
+| 2025-12-02 | ts-test-alignment.md 审计 | 检查 Live Checkpoints/Backlog/Appendix 与当前状态对齐，识别 Intl.Segmenter 砍除需更新 |
 | 2025-12-02 | Sprint 04 M2 审计 | 更新 alignment-audit/00-08，反映 873 passed/9 skipped 基线 |
 | 2025-12-02 | Snippet 系列审阅 | VariableResolver、Deterministic、Grouping、P0-P1 全部 PASS |
 | 2025-12-01 | 团队谈话 | 角色定位、协作关系、输出顺序纪律确认 |

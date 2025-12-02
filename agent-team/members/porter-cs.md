@@ -72,6 +72,7 @@
 
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-02 | Sprint 05 技术评估 | 为 Team Leader 提供 Diff/DocUI/Services 优先级建议 |
 | 2025-12-02 | Snippet-P2-Variables | SnippetVariableResolver.cs (225 行)，24 新测试 |
 | 2025-12-02 | Snippet-P1.5 | Placeholder Grouping，stickiness 修复，8 新测试 |
 | 2025-12-02 | WS3-PORT-TextModel | IntervalTree AcceptReplace 集成 |
