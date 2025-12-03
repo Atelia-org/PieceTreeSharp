@@ -1,6 +1,6 @@
 # Issue Report: Claude Opus 4.5 Empty Response Bug
 
-> **Status:** Draft
+> **Status:** Ready to Submit ✅
 > **Target:** https://github.com/microsoft/vscode → New Issue (with label request for chat-oss-issue)
 > **Date:** 2025-12-03
 
@@ -12,13 +12,13 @@
 
 ### Summary
 
-When using Claude Opus 4.5 for conversation history summarization, the model returns an empty response (8 completion tokens, content: null) when tools are included in the request, even with `tool_choice: "none"`. This bug does not affect other models (GPT-4.1, Claude Sonnet 4.5, Claude Haiku 4.5, Gemini 3 Pro, etc.).
+When using Claude Opus 4.5 for conversation history summarization, the model frequently returns an empty response (8 completion tokens, content: null) when tools are included in the request, even with `tool_choice: "none"`. This bug does not affect other models (GPT-4.1, Claude Sonnet 4.5, Claude Haiku 4.5, Gemini 3 Pro, etc.).
 
 ### Environment
 
-- **VS Code Version:** [TODO: fill in]
-- **Copilot Chat Extension Version:** 0.33.x (from source)
-- **OS:** Linux
+- **VS Code Version:** Release version (Windows)
+- **Copilot Chat Extension Version:** Release version
+- **OS:** Windows / Linux (both affected)
 - **Model:** Claude Opus 4.5 (Preview)
 
 ### Steps to Reproduce
@@ -26,6 +26,8 @@ When using Claude Opus 4.5 for conversation history summarization, the model ret
 1. Start a long conversation in Copilot Chat (exceeding ~50% of context limit)
 2. Wait for automatic conversation summarization to trigger
 3. If using Claude Opus 4.5 as the model, the summarization request fails silently with empty output
+
+**Reproduction rate:** ~66% failure (2 out of 3 attempts in testing)
 
 ### Expected Behavior
 
@@ -37,6 +39,15 @@ The request completes with:
 - `finish_reason: "stop"` (appears successful)
 - `completion_tokens: 8` (some internal tokens)
 - `content: null` (no actual output)
+
+When it does succeed, the output quality may be degraded (e.g., 128K input compressed to only 1.5K output).
+
+### Reproduction on Stock VS Code
+
+**Confirmed:** This bug reproduces on stock VS Code (Windows release version), not just development builds. Tested 3 times:
+- Attempt 1: ❌ Empty output (8 tokens)
+- Attempt 2: ❌ Empty output (8 tokens)  
+- Attempt 3: ⚠️ Output present but unusually short (1.5K for 128K input)
 
 ### Diagnostic Data
 
@@ -117,10 +128,10 @@ This bug was discovered while developing [half-context summarization](https://gi
 
 ## Checklist Before Submission
 
-- [ ] Reproduce with upstream (full-context) summarization to confirm it's not half-context specific
-- [ ] Capture exact VS Code and extension versions
-- [ ] Confirm issue URL format for vscode repo
-- [ ] Review for sensitive information
+- [x] Reproduce with upstream (full-context) summarization to confirm it's not half-context specific
+- [x] Confirm on stock VS Code release (Windows)
+- [x] Confirm issue URL format for vscode repo
+- [ ] Final review before submission
 
 ## Log Files Reference
 
