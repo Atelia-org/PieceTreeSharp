@@ -29,7 +29,8 @@
 4. `agent-team/handoffs/B3-TextModelSearch-INV.md`、`B3-TextModelSearch-QA.md` —— Janitor `Intl.Segmenter & WordSeparator cache` notes，并保持 rerun 命令在 `tests/TextBuffer.Tests/TestMatrix.md` 中最新，同时引用 [`#delta-2025-11-25-b3-textmodelsearch`](../indexes/README.md#delta-2025-11-25-b3-textmodelsearch)。
 
 ## Key Deliverables
-- **[NEW 2025-12-02]** `agent-team/handoffs/WS5-Gap-Assessment-2025-12-02.md` — WS5 Gap 重评估：原 47 gaps 完成状态分析，26 个剩余 gaps (~42h)，按优先级排序的下一批 TODO
+- **[NEW 2025-12-03]** `agent-team/handoffs/INV-ConversationAccess-2025-12-03.md` — Developer Console 访问 Conversation 数据调查：确认无全局暴露，建议添加 debug 命令清除 round.summary
+- **[2025-12-02]** `agent-team/handoffs/WS5-Gap-Assessment-2025-12-02.md` — WS5 Gap 重评估：原 47 gaps 完成状态分析，26 个剩余 gaps (~42h)，按优先级排序的下一批 TODO
 - **[2025-12-02]** `docs/reports/alignment-audit/00-08` — Sprint 04 M2 审计更新：873 passed/9 skipped 基线，Snippet P0-P2/Cursor/WordOps/IntervalTree AcceptReplace/FindModel 已完成标记
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetVarResolver-2025-12-02.md` — TS Parity 审阅：SnippetVariableResolver，接口设计/SELECTION/TM_FILENAME/默认值处理 PASS WITH NOTES，16 个测试用例覆盖核心场景
 - **[2025-12-02]** `agent-team/handoffs/REVIEW-SnippetDeterministic-2025-12-02.md` — 快速审阅：Snippet 确定性测试 (27 tests)，边界情况/adjustWhitespace/Placeholder Grouping，52 passed/4 skipped (P2)，TS Reference 准确
@@ -56,6 +57,7 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-03 | Developer Console Conversation 访问调查 | 分析 ConversationStore/Conversation/ToolCallRound 数据结构，确认无全局暴露，建议添加 debug 命令 |
 | 2025-12-03 | LLM Request Dump 位置调查 | 分析 networking.ts/chatMLFetcher.ts/fetch.ts，识别最佳 dump 位置和请求区分方法 |
 | 2025-12-02 | SSE Stream 处理底层调查 | 分析 `stream.ts` SSEProcessor，识别 token 级日志添加位置、现有 trace/debug 调用 |
 | 2025-12-02 | 半上下文压缩非流式请求深入调查 | 分析 `stream: false` 请求路径、超时处理、StopWatch 用法，识别关键日志添加位置 |

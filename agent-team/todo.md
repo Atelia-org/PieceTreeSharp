@@ -14,7 +14,16 @@
 
 ## Immediate (新会话优先)
 
+- **Claude Opus 4.5 空输出 Bug Issue** 🔥
+  - Issue 草稿: [`docs/plans/issue-opus-empty-response.md`](../docs/plans/issue-opus-empty-response.md)
+  - 提交目标: https://github.com/microsoft/vscode (with chat-oss-issue label)
+  - 待完成:
+    - [ ] 用 upstream 原版全上下文压缩复现 (确认非半上下文特有)
+    - [ ] 填写 VS Code / Extension 版本号
+    - [ ] 提交 Issue
+
 - **半上下文压缩 PR 准备** (并行观察，无时间压力)
+  - PR 计划: [`docs/plans/half-context-pr-plan.md`](../docs/plans/half-context-pr-plan.md)
   - Upstream: `github.com/microsoft/vscode-copilot-chat`
   - 贡献指南: [`atelia-copilot-chat/CONTRIBUTING.md`](../atelia-copilot-chat/CONTRIBUTING.md)
   - 需要: Simulation tests cache (需 VS Code 团队成员重建)
