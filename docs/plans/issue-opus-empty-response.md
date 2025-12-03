@@ -60,7 +60,7 @@ When it does succeed, the output quality may be degraded (e.g., 128K input compr
   "postOptions": {
     "temperature": 0,
     "tool_choice": "none",
-    "tools": [/* 62 tool definitions */]
+    "tools": [/* 22 tool definitions */]
   }
 }
 ```
