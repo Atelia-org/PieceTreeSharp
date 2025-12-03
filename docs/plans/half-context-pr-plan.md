@@ -98,14 +98,15 @@ PR 涉及文件（预估）:
 
 ### Phase 1: 分支准备 ✅
 - [x] 确认双分支策略
-- [ ] 创建 `pr/half-context-summarize` 分支
-- [ ] 确认 upstream main 最新状态
+- [x] 创建 `pr/half-context-summarize` 分支 (基于 upstream/main e80c6901)
+- [x] 应用核心改动 (+140 行，1 个文件)
+- [x] 编译验证通过
 
-### Phase 2: 代码整理（在 PR 分支）
-- [ ] 从 feature 分支提取核心改动
-- [ ] 移除所有调试代码
-- [ ] 添加 feature flag 配置项
-- [ ] 代码风格对齐 (eslint, tsfmt)
+### Phase 2: 代码整理 ✅
+- [x] 从 feature 分支提取核心改动
+- [x] 移除所有调试代码 (0 个 console.log, 0 个 DEBUG)
+- [x] 添加 feature flag: `ENABLE_HALF_CONTEXT_SUMMARIZATION`
+- [x] 代码风格对齐 (lint-staged 通过)
 
 ### Phase 3: 测试补全
 - [ ] 添加 PropsBuilder 单元测试
@@ -116,6 +117,20 @@ PR 涉及文件（预估）:
 - [ ] 创建清晰的 PR 描述
 - [ ] DCO sign-off
 - [ ] 响应 review 反馈
+
+## Current Branch Status
+
+```
+pr/half-context-summarize (PR版 - 当前)
+├── 50bc0513 feat: add half-context summarization for conversation history
+└── e80c6901 (upstream/main) tracer: fix stringifying arrays
+
+feature/half-context-summarize (完整版)
+├── 4ab5fc31 dryRunSummarization use ConversationHistorySummarizer.getSummary directly
+├── 4483b624 github.copilot.debug.toggleSummarizationToolInjection
+├── 2773f6c4 half-context-summarize and dryRunSummarization
+└── ... (upstream commits)
+```
 
 ## Open Questions
 
