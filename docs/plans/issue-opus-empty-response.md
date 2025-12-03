@@ -122,7 +122,11 @@ Removing tools from the summarization request (while keeping them for regular ch
 
 ### Additional Context
 
-This bug was discovered while developing [half-context summarization](https://github.com/Atelia-org/atelia-copilot-chat/tree/feature/half-context-summarize), an experimental feature for better long conversation handling. The bug exists in the upstream summarization flow as well.
+This bug was discovered while investigating conversation summarization failures in long chat sessions. The bug exists in the stock VS Code Copilot Chat extension.
+
+---
+
+*Please add the `chat-oss-issue` label if appropriate.*
 
 ---
 
@@ -131,7 +135,7 @@ This bug was discovered while developing [half-context summarization](https://gi
 - [x] Reproduce with upstream (full-context) summarization to confirm it's not half-context specific
 - [x] Confirm on stock VS Code release (Windows)
 - [x] Confirm issue URL format for vscode repo
-- [ ] Final review before submission
+- [x] Final review before submission ✅
 
 ## Log Files Reference
 
