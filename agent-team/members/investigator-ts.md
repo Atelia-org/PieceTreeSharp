@@ -56,6 +56,7 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-03 | LLM Request Dump 位置调查 | 分析 networking.ts/chatMLFetcher.ts/fetch.ts，识别最佳 dump 位置和请求区分方法 |
 | 2025-12-02 | SSE Stream 处理底层调查 | 分析 `stream.ts` SSEProcessor，识别 token 级日志添加位置、现有 trace/debug 调用 |
 | 2025-12-02 | 半上下文压缩非流式请求深入调查 | 分析 `stream: false` 请求路径、超时处理、StopWatch 用法，识别关键日志添加位置 |
 | 2025-12-02 | atelia-copilot-chat LLM 调用架构调查 | 分析 LLM API 调用入口点、流式响应处理、半上下文压缩流程，输出架构图和日志点建议 |
