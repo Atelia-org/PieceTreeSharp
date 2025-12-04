@@ -24,11 +24,16 @@
 
 - **半上下文压缩 PR 准备** (并行观察，无时间压力)
   - PR 计划: [`docs/plans/half-context-pr-plan.md`](../docs/plans/half-context-pr-plan.md)
+  - 配置选项方案: [`docs/plans/half-context-config-option.md`](../docs/plans/half-context-config-option.md) ✅ 实施完成
   - Upstream: `github.com/microsoft/vscode-copilot-chat`
   - 贡献指南: [`atelia-copilot-chat/CONTRIBUTING.md`](../atelia-copilot-chat/CONTRIBUTING.md)
   - 需要: Simulation tests cache (需 VS Code 团队成员重建)
   - 待观察: 实际使用中的 edge cases
-  - 待补充: 测试、文档、代码规范
+  - Phase 2 ✅: 配置选项 `HalfContextSummarization` 已实施
+  - 待实施:
+    - [ ] 添加 PropsBuilder 单元测试
+    - [ ] 运行现有测试确认无回归
+    - [ ] 创建 PR 描述 + DCO sign-off
 
 ---
 

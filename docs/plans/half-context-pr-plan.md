@@ -105,8 +105,9 @@ PR 涉及文件（预估）:
 ### Phase 2: 代码整理 ✅
 - [x] 从 feature 分支提取核心改动
 - [x] 移除所有调试代码 (0 个 console.log, 0 个 DEBUG)
-- [x] 添加 feature flag: `ENABLE_HALF_CONTEXT_SUMMARIZATION`
+- [x] 添加 feature flag: `ConfigKey.Advanced.HalfContextSummarization`
 - [x] 代码风格对齐 (lint-staged 通过)
+- [x] 配置项声明 (package.json + package.nls.json)
 
 ### Phase 3: 测试补全
 - [ ] 添加 PropsBuilder 单元测试
