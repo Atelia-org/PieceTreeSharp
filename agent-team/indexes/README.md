@@ -7,12 +7,13 @@
 | --- | --- | --- |
 | [Core Docs Index](core-docs-index.md) | 核心文档的用途、Owner、更新时间与缺口行动列表 | 2025-11-20 |
 | [OI Backlog](oi-backlog.md) | 组织性基础设施改进任务（测试框架、工具、架构设计） | 2025-11-22 |
-| [Delta Ledger](#delta-ledger-overview) | 所有活跃 changefeed anchor 的时间线索引 | 2025-12-02 |
+| [Delta Ledger](#delta-ledger-overview) | 所有活跃 changefeed anchor 的时间线索引 | 2025-12-05 |
 
 ## Contributing Guidelines
 1. 每个索引文件命名为 `<topic>-index.md`。
 2. 索引内只保存结论、指针与少量上下文；冗长说明放回手册/hand-off/迁移日志。
 3. 当索引吸收了原文档的内容，记得在原文档留下指针或简述，并在此处更新 changefeed。
+4. **新格式（2025-12-05 起）**：Changefeed 采用「Batch 指针 + Sprint log 链接」格式，详细内容统一放在 Sprint log。
 
 ## Delta Ledger Overview
 以下条目按照时间顺序列出所有活跃 anchor。若需要命令、文件或测试列表，请在 `docs/reports/migration-log.md` 中查找对应行，或打开列出的 handoff。
@@ -74,10 +75,15 @@
 - **#delta-2025-12-04-p1-complete** – P1 任务全部完成：TextModelData.fromString、getValueLengthInRange + EOL variants、validatePosition 边界测试、Issue regressions 调研。测试基线 1085 passed (+77)。
 
 ### 2025-12-05 – Snippet Transform & MultiCursor 完整实现
-- **#delta-2025-12-05-snippet-transform** – Snippet Transform + FormatString 完整实现（直译 TS snippetParser.ts）：支持 upcase/downcase/capitalize/pascalcase/camelcase、regex 替换、条件分支。+33 tests 全部通过。Commit: `9515be1`。
-- **#delta-2025-12-05-multicursor-snippet** – MultiCursor Snippet 集成基础测试完成 (+6 tests)。
-- **#delta-2025-12-05-add-selection-to-next-find** – AddSelectionToNextFindMatch 完整实现：MultiCursorSession、MultiCursorSelectionController、34 个测试（18 Session + 16 Controller）。Commits: `4101981`, `575cfb2`。
-- **#delta-2025-12-05-p2-complete** – **P2 任务全部完成！** 测试基线 1158 passed (+73 本日)，P2 完成率 100% (6/6)。
+- **#delta-2025-12-05-batch4** — Snippet Transform + MultiCursor 集成 (+39 tests)
+  - 详见: [sprint-05.md#2025-12-05](../../docs/sprints/sprint-05.md#2025-12-05---snippet-transform--multicursor-完成)
+  - Commit: `9515be1`
+  - 子项: `#delta-2025-12-05-snippet-transform`, `#delta-2025-12-05-multicursor-snippet`
+- **#delta-2025-12-05-batch5** — P2 完成 + AddSelectionToNextFindMatch (+34 tests)
+  - 详见: [sprint-05.md#session-2](../../docs/sprints/sprint-05.md#session-2---addselectiontonextfindmatch-batch-5)
+  - Commits: `4101981`, `575cfb2`
+  - 子项: `#delta-2025-12-05-add-selection-to-next-find`, `#delta-2025-12-05-p2-complete`
+- **#delta-2025-12-05-p2-complete** — **P2 任务全部完成！** 测试基线 1158 passed (+73 本日)，P2 完成率 100% (6/6)。
 
 ## Active Placeholders & Follow-Ups
 - **CL7 Stage 2** (`#delta-2025-11-26-aa4-cl7-*`) – WordOps/Snippet/CursorCollection 已通过 Sprint 04 M2 完成，参见 `#delta-2025-12-02-sprint04-m2`。

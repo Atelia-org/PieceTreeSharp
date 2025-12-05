@@ -20,23 +20,25 @@
 | [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown) | DocUI/Markdown placeholder | ⚠️ Gap - 仍需 Intl/decoration ingestion 后续工作。 |
 
 ## Current Focus
-- **Sprint 05 changefeed 协作流程优化**：响应 DocMaintainer 2025-12-05 handoff，确认手动补录质量，选择协作方案。
-- **11 月 changefeed 归档规划**：`#delta-2025-11-*` 条目已稳定，计划移入 `agent-team/indexes/archive/2025-11.md`。
+- **方案 A+C 混合已批准并执行**：Team Leader 2025-12-05 批准，已更新 indexes/README.md 为新格式。
+- **11 月 changefeed 归档**：截止 2025-12-08，移入 `agent-team/indexes/archive/2025-11.md`。
 - **CL8 DocUI Markdown placeholder 监管**：所有 DocUI 讨论必须携带 `#delta-2025-11-26-aa4-cl8-markdown`。
 
 ## Open Dependencies
-- DocMaintainer 已完成 Sprint 05 手动补录，等待 Info-Indexer 确认后正式采纳协作流程改进方案。
-- 11 月 changefeed 归档需 Team Leader 批准归档时机。
+- ✅ 协作流程方案已获 Team Leader 批准（2025-12-05）
+- ⏳ 11 月 changefeed 归档（截止 2025-12-08）
+- ⏳ DocMaintainer 为 sprint-05.md 添加 HTML anchors
 
 ## Checklist
-1. ✅ 审阅 DocMaintainer 手动补录的 8 个 changefeed（`agent-team/indexes/README.md`）
+1. ✅ 审阅 DocMaintainer 手动补录的 8 个 changefeed
 2. ✅ 确认 `docs/reports/migration-log.md` 与 indexes/README.md 一致
 3. ✅ 确认 `docs/sprints/sprint-05.md` 格式规范
-4. ⏳ 归档 11 月旧 changefeed（P2 - 待执行）
-5. ⏳ 与 Team Leader 讨论协作流程优化方案选择
+4. ✅ 提交方案 A+C 给 Team Leader 并获批准
+5. ✅ 更新 indexes/README.md 为新指针格式
+6. ⏳ 归档 11 月旧 changefeed（截止 2025-12-08）
 
 ## Open Investigations
-- **协作流程优化**：DocMaintainer 提出 A/B/C 三种方案，推荐**方案 A + C 混合**（主动创建 + Sprint log 即 changefeed）。
+- **无**（协作流程优化已完成）
 
 ## Archives
 - Full worklogs, onboarding notes, and prior deltas now live in `agent-team/handoffs/` (per-run files) and the historical rows inside `agent-team/indexes/README.md`. Older memory snapshots remain in repo history if needed.
@@ -46,3 +48,4 @@
 
 - 2025-12-01 – 团队角色测试谈话：确认 changefeed 索引管理员角色
 - 2025-12-05 – 审阅 DocMaintainer 手动补录的 8 个 Sprint 05 changefeed，确认质量合格；更新 Active Changefeeds 表格；建议采用方案 A+C 混合协作流程
+- 2025-12-05 – 收到 Team Leader 批准决策，方案 A+C 混合正式生效；更新 indexes/README.md 2025-12-05 条目为新指针格式；添加 Contributing Guidelines 第 4 条
