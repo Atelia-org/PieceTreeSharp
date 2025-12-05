@@ -430,6 +430,22 @@ Matrix adjustments recorded in this pass: baseline counts stay at 585 and the WS
 | --- | --- | --- |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter MultiCursorSessionTests --nologo` | 18/18 green (2.1s) | `#delta-2025-12-05-multicursor-session`: MultiCursorSession unit tests for Ctrl+D "Add Selection To Next Find Match" functionality. |
 
+### Targeted reruns (MultiCursorSelectionControllerTests, 2025-12-05)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter MultiCursorSelectionControllerTests --nologo` | 16/16 green (2.1s) | `#delta-2025-12-05-multicursor-controller`: Integration tests for MultiCursorSelectionController API (Ctrl+D flow, session management, Move/Previous operations, SelectAll). |
+
+### MultiCursorSelectionControllerTests Coverage
+
+| Test Category | Count | TS Source Reference |
+| --- | --- | --- |
+| Ctrl+D Flow | 5 | `multicursor.test.ts` L78-200 (word expansion, successive adds, adjacent matches) |
+| Session Management | 3 | `multicursor.test.ts` L314 (session reuse, new session on text change, reset) |
+| Move/Previous Operations | 2 | `multicursor.test.ts` implicit (Move replaces last, AddPrevious backward) |
+| SelectAll | 2 | `multicursor.test.ts` L90 (SelectHighlightsAction finds all) |
+| Edge Cases | 4 | `multicursor.test.ts` various (empty list, whitespace cursor, multiline, custom options) |
+
 ### MultiCursorSession Test Coverage
 
 | Test Category | Count | TS Source Reference |

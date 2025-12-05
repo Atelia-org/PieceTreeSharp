@@ -9,6 +9,7 @@
 ## Active Changefeeds & Baselines
 | Anchor | Scope | Latest Stats | Evidence |
 | --- | --- | --- | --- |
+| `#delta-2025-12-05-multicursor-controller` | MultiCursorSelectionController integration tests | 16 new tests, **1167 total (1158p+9s)** | `tests/TextBuffer.Tests/TestMatrix.md` |
 | `#delta-2025-12-05-multicursor-session` | MultiCursorSession unit tests (Ctrl+D) | 18 new tests, **1151 total (1142p+9s)** | `tests/TextBuffer.Tests/TestMatrix.md` |
 | `#delta-2025-12-02-sprint04-m2` | Sprint 04 M2 全部完成，Snippet/Cursor/IntervalTree 交付 | **873 passed + 9 skip** | `tests/TextBuffer.Tests/TestMatrix.md` |
 | `#delta-2025-11-28-aa4-cl7-stage1-qa` | CL7 Stage 1 Cursor Wiring QA | 683/683 (681p+2s) | `agent-team/handoffs/CL7-QA-Result.md` |
@@ -19,9 +20,10 @@
 | `#delta-2025-11-25-b3-textmodelsearch` | TextModelSearch 45-case TS parity battery + Sprint 03 Run R37 full sweep. | Targeted `TextModelSearchTests` 45/45 green (2.5s) alongside full `export PIECETREE_DEBUG=0 && dotnet test ... --nologo` 365/365 green (61.6s). | `tests/TextBuffer.Tests/TestMatrix.md` (TextModelSearch row + R37 log) and `agent-team/handoffs/B3-TextModelSearch-QA.md`. |
 
 ## Canonical Commands
-**Full sweeps**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1142 passed + 9 skip** (≈105s)
+**Full sweeps**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1158 passed + 9 skip** (≈110s)
 
 **Key targeted filters**:
+- `--filter MultiCursorSelectionControllerTests` → 16/16
 - `--filter MultiCursorSessionTests` → 18/18
 - `--filter SnippetControllerTests` → 80/80 (76p+4s)
 - `--filter CursorCollectionTests` → 33/33
@@ -56,6 +58,7 @@
 ## 近期活动
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-05 | MultiCursorSelectionController Integration Tests | 16 新测试创建并全部通过，基线 → **1158 passed + 9 skipped** |
 | 2025-12-05 | MultiCursorSession Unit Tests | 18 新测试创建并全部通过，基线 → **1142 passed + 9 skipped** |
 | 2025-12-02 | Snippet Deterministic Tests | 27 新测试 (23p+4s)，基线 → **873 passed + 9 skipped** |
 | 2025-12-01 | Team Leader 谈话 | 角色验证，基线确认 |

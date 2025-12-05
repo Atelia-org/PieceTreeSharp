@@ -6,6 +6,7 @@
 - Stamp every Sprint 04 handoff with [`#delta-2025-11-26-sprint04-r1-r11`](../indexes/README.md#delta-2025-11-26-sprint04-r1-r11) and keep Cursor/Snippet、DocUI backlog work tied to [`#delta-2025-11-26-aa4-cl7-cursor-core`](../indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](../indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
 
 ## Current Focus
+- **MultiCursorSelectionController** (完成): 实现 `MultiCursorSelectionController.cs` 控制器层。提供对外 API：`AddSelectionToNextFindMatch`、`MoveSelectionToNextFindMatch`、`AddSelectionToPreviousFindMatch`、`MoveSelectionToPreviousFindMatch`、`SelectAllMatches`。管理 Session 生命周期（首次调用创建、搜索文本变化时重建）。全量 1142/1151 测试通过（1142 pass + 9 skip）。
 - **MultiCursorSession-Fix** (完成): 修复 `MultiCursorSession.cs` 编译错误。修复命名空间引用（`Find` → `DocUI` + `Core`），修复类型名称（`Position` → `TextPosition`，`TextRange` → `Range`），简化 FindModel 依赖为直接使用 `TextModel.FindNextMatch`。同时修复 `MultiCursorSessionResult.cs` 的 using 声明。全量 1124/1133 测试通过（1124 pass + 9 skip）。
 - **TextModel-ValidatePosition-Tests** (完成): 添加 ValidatePosition 边界测试套件。新增 `TextModelValidatePositionTests.cs` (44 tests)，覆盖负数/零/超范围输入、ValidateRange、surrogate pair 边界（记录当前行为）。详见测试文件内注释。1008/1017 测试通过（1008 pass + 9 skip）。
 - **Sprint05-M3-DiffRegressionTests** (完成): 扩展 Diff 回归测试套件。DiffTests 从 4 扩展到 59 tests，总计 Diff 相关测试从 40 扩展到 95 tests。新增 UnchangedRegions (10)、PostProcessCharChanges (8)、边界 Cases (9)、性能测试 (5)、TS 回归测试 (23)。详见 [Sprint05-M3-DiffRegressionTests-Result.md](../handoffs/Sprint05-M3-DiffRegressionTests-Result.md)。964/973 测试通过（964 pass + 9 skip）。
@@ -27,6 +28,7 @@
 - **WS1-PORT-SearchCore** (完成): 优化 `GetAccumulatedValue` 以支持 LineStarts 快速路径，添加 DEBUG 计数器到 `PieceTreeSearchCache`。详见 [WS1-PORT-SearchCore-Result.md](../handoffs/WS1-PORT-SearchCore-Result.md)。
 
 ## Key Deliverables
+- **MultiCursorSelectionController** → [PORT-MultiCursorSelectionController-2025-12-05.md](../handoffs/PORT-MultiCursorSelectionController-2025-12-05.md): 实现控制器层，提供 5 个 API 方法，Session 管理，~330 行，锚点 `#delta-2025-12-05-multicursor-controller`。
 - **MultiCursorSession-Fix** → [PORT-MultiCursorSession-Fix-2025-12-05.md](../handoffs/PORT-MultiCursorSession-Fix-2025-12-05.md): 修复 `MultiCursorSession.cs` + `MultiCursorSessionResult.cs` 编译错误，简化 FindModel 依赖，锚点 `#delta-2025-12-05-multicursor-session-fix`。
 - **Sprint05-M3-DiffRegressionTests** → [Sprint05-M3-DiffRegressionTests-Result.md](../handoffs/Sprint05-M3-DiffRegressionTests-Result.md): Diff 回归测试扩展，DiffTests 59 tests + RangeMappingTests 36 tests = 95 total，锚点 `#delta-2025-12-02-sprint05-m3-diff-regression-tests`。
 - **Sprint05-M2-RangeMappingConversion** → [Sprint05-M2-RangeMappingConversion-Result.md](../handoffs/Sprint05-M2-RangeMappingConversion-Result.md): `TextLength` + `TextReplacement` + `DiffTextEdit` 辅助类，`RangeMapping.FromEdit()` + `FromEditJoin()` + `ToTextEdit()` + `DetailedLineRangeMapping.ToTextEdit()` 四个 API，22 新测试，锚点 `#delta-2025-12-02-sprint05-m2-rangemapping-conversion`。
@@ -51,7 +53,7 @@
 - DocUI Find stack parity → [B3-FC-Result.md](../handoffs/B3-FC-Result.md), [AA4-008-Result.md](../handoffs/AA4-008-Result.md), and the `docs/reports/migration-log.md` rows for `#delta-2025-11-23-b3-fc-core`, `#delta-2025-11-24-find-scope`, `#delta-2025-11-24-b3-docui-staged`.
 
 ## Test Baselines
-**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1124 pass + 9 skip** (≈2m)
+**全量**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1142 pass + 9 skip** (≈2m)
 
 **关键 targeted filters**:
 - `--filter TextModelValidatePositionTests` → 44/44 ✨ NEW
@@ -85,6 +87,7 @@
 
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-05 | MultiCursorSelectionController | 实现控制器层，5 个 API，全量 1142+9 |
 | 2025-12-05 | MultiCursorSession-Fix | 修复编译错误，简化 FindModel 依赖，全量 1124+9 |
 | 2025-12-02 | TextModel-ValidatePosition-Tests | 44 新测试，覆盖负数/零/超范围/surrogate，全量 1008+9 |
 | 2025-12-02 | Sprint05-M3-DiffRegressionTests | DiffTests 4→59，总 Diff 测试 40→95，全量 964+9 |
