@@ -4,10 +4,10 @@
 > 每次 runSubAgent 完成或里程碑变化时更新。
 
 ## Test Baseline
-- **Total:** 1085 passed, 9 skipped 🚀
+- **Total:** 1123 passed, 9 skipped 🚀
 - **Command:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
-- **Last Verified:** 2025-12-04
-- **Session Delta:** +77 tests (1008 → 1085)
+- **Last Verified:** 2025-12-05
+- **Session Delta:** +38 tests (1085 → 1123)
 
 ## Current Phase & Sprint
 - **Phase:** 8 – Alignment Remediation

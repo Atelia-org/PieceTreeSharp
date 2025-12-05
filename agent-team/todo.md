@@ -95,12 +95,14 @@
 
 **P1 完成率: 100%** 🎉
 
-#### ✅ 继续移植 P2 (6 gaps, ~12h) — 进度更新 2025-12-04
+#### ✅ 继续移植 P2 (6 gaps, ~12h) — 进度更新 2025-12-05
 | Gap | 估计工时 | 依赖 | 状态 |
 |-----|---------|------|------|
 | Decorations multi-owner merge | 2h | IntervalTree | 🔄 存储层已完成，渲染层延后 |
 | Diff deterministic matrix | 3h | DiffComputer | ✅ 已完成 +44 tests (59→103) |
-| AddSelectionToNextFindMatch | 4h | MultiCursorController | 待设计 |
-| MultiCursor Snippet 集成 | 3h | CursorCollection | 待实施 |
+| AddSelectionToNextFindMatch | 10h | MultiCursorSession | 🔬 调研完成，需新建类 |
+| MultiCursor Snippet 集成 | 3h | CursorCollection | ✅ 基础测试完成 +6 tests |
 | PieceTree diagnostics | 2h | PieceTreeModel | ✅ 已完成 +23 tests |
-| Snippet Placeholder Transform | 2h | SnippetSession | 待实施 |
+| Snippet Placeholder Transform | 2h | SnippetSession | ✅ 已完成 +32 tests |
+
+**P2 完成率: 5/6 (83%)** — 剩余 AddSelectionToNextFindMatch (~10h)

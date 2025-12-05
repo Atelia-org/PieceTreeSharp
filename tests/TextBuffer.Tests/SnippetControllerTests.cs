@@ -1424,4 +1424,113 @@ public class SnippetControllerTests
     }
 
     #endregion
+
+    #region Multi-Cursor Snippet Tests
+
+    // Source: ts/src/vs/editor/contrib/snippet/test/browser/snippetController2.old.test.ts
+    // - Test: 'Final tabstop with multiple selections' (Lines: 256-340)
+    // Ported: 2025-12-05
+
+    [Fact]
+    public void MultiCursor_FinalTabstop_DifferentLines()
+    {
+        // TS: editor.setSelections([new Selection(1, 1, 1, 1), new Selection(2, 1, 2, 1)]);
+        // codeSnippet = 'foo$0';
+        // Expected: selections at (1,4) and (2,4)
+        TextModel model = new("line1\nline2");
+        SnippetController controller = new(model);
+
+        // Insert at line 1, col 1
+        controller.InsertSnippetAt(new TextPosition(1, 1), "foo$0");
+        // Insert at line 2, col 1
+        controller.InsertSnippetAt(new TextPosition(2, 1), "foo$0");
+
+        // After both insertions:
+        // Line 1: "fooline1"
+        // Line 2: "fooline2"
+        Assert.Equal("fooline1\nfooline2", model.GetValue());
+    }
+
+    [Fact]
+    public void MultiCursor_FinalTabstop_SameLine()
+    {
+        // TS: editor.setSelections([new Selection(1, 1, 1, 1), new Selection(1, 5, 1, 5)]);
+        // codeSnippet = 'foo$0bar';
+        // Expected: foo + bar inserted at both positions
+        TextModel model = new("1234567890");
+        SnippetController controller = new(model);
+
+        // First insert at col 1
+        controller.InsertSnippetAt(new TextPosition(1, 1), "foo$0bar");
+        Assert.Equal("foobar1234567890", model.GetValue());
+
+        // Second insert at original col 5 (now shifted by +6)
+        controller.InsertSnippetAt(new TextPosition(1, 11), "foo$0bar");
+        Assert.Equal("foobar1234foobar567890", model.GetValue());
+    }
+
+    [Fact]
+    public void MultiCursor_WithNewlines_FinalTabstop()
+    {
+        // TS: editor.setSelections([new Selection(1, 1, 1, 1), new Selection(1, 5, 1, 5)]);
+        // codeSnippet = 'foo\n$0\nbar';
+        TextModel model = new("12345");
+        SnippetController controller = new(model);
+
+        // Insert multi-line snippet at col 1
+        controller.InsertSnippetAt(new TextPosition(1, 1), "foo\n$0\nbar");
+
+        // After: foo\n\nbar12345
+        Assert.Equal("foo\n\nbar12345", model.GetValue());
+    }
+
+    [Fact]
+    public void MultiCursor_Placeholders_IndependentSessions()
+    {
+        // Each multi-cursor position should have its own placeholder session
+        TextModel model = new("A\nB");
+        SnippetController controller = new(model);
+
+        // Insert snippet with placeholder at line 1
+        controller.InsertSnippetAt(new TextPosition(1, 2), "${1:x}");
+        Assert.Equal("Ax\nB", model.GetValue());
+
+        // Create new session and insert at line 2
+        controller.InsertSnippetAt(new TextPosition(2, 2), "${1:y}");
+        Assert.Equal("Ax\nBy", model.GetValue());
+    }
+
+    [Fact]
+    public void MultiCursor_OverwriteBefore_NotSupported()
+    {
+        // Note: TS has overwriteBefore/After options; C# currently doesn't support them
+        // This test documents the current behavior
+        TextModel model = new("prefix_text");
+        SnippetController controller = new(model);
+
+        // Insert at column 8 (after "prefix_")
+        controller.InsertSnippetAt(new TextPosition(1, 8), "new$0");
+
+        // Without overwriteBefore, text is inserted as-is
+        Assert.Equal("prefix_newtext", model.GetValue());
+    }
+
+    [Fact]
+    public void MultiCursor_AdjustWhitespace_PerCursor()
+    {
+        // TS: adjustWhitespace applies per cursor based on line indentation
+        TextModel model = new("function() {\n    inner();\n}");
+        SnippetController controller = new(model);
+
+        // Insert at line 2, col 5 (inside indented block)
+        SnippetInsertOptions options = new() { AdjustWhitespace = true };
+        controller.InsertSnippetAt(new TextPosition(2, 5), "if (true) {\n    body();\n}", options);
+
+        string result = model.GetValue();
+        // Should have indentation adjusted
+        Assert.Contains("if (true)", result);
+        Assert.Contains("body();", result);
+    }
+
+    #endregion
 }

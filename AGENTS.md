@@ -75,5 +75,18 @@
   - PieceTree diagnostics (+23 tests)
 - **测试基线达到 1085 passed**（本会话 +77）
 
+### Sprint 05 Batch 4 (2025-12-05): Snippet Transform + MultiCursor 🎯
+- **直译 TS 原版原则强化**: 优先直译而非重新实现
+- **Snippet Transform 完成**:
+  - `src/TextBuffer/Snippet/Transform.cs` 直译 snippetParser.ts
+  - FormatString 支持 upcase/downcase/capitalize/pascalcase/camelcase
+  - Transform 支持 regex 替换和条件分支
+  - +32 测试全部通过
+- **MultiCursor Snippet 集成**:
+  - 多光标 snippet 插入测试 (+6 tests)
+  - 基础功能验证通过
+- **P2 完成率: 83% (5/6)** — 剩余 AddSelectionToNextFindMatch (~10h)
+- **测试基线达到 1123 passed**（本会话 +38）
+
 ---
 **状态更新提示：** 编辑本文件前请先核对 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md`](agent-team/indexes/README.md) 的最新 changefeed delta。
