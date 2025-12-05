@@ -68,6 +68,17 @@
 - **#delta-2025-12-02-snippet-p2** – Snippet 功能 P0-P2 全部完成（77 passed, 4 skipped）：Final Tabstop、adjustWhitespace、Placeholder Grouping、Variable Resolver (SELECTION, TM_FILENAME)。Files: `SnippetSession.cs`, `SnippetController.cs`, `SnippetVariableResolver.cs`。
 - **#delta-2025-12-02-ws3-textmodel** – IntervalTree AcceptReplace 集成到 TextModel：`DecorationsTrees.AcceptReplace` 包装方法、TextModel 使用新 API、NormalizeDelta 更新 Decoration.Range。Files: `IntervalTree.cs`, `DecorationsTrees.cs`, `TextModel.cs`。
 
+### 2025-12-04 – Sprint 05 启动 & LLM-Native 筛选
+- **#delta-2025-12-04-sprint05-start** – Sprint 05 启动，测试基线突破 1000 达到 1008 passed。
+- **#delta-2025-12-04-llm-native-filtering** – LLM-Native 功能筛选完成：7 gaps 无需移植（~14h 节省），8 gaps 降级实现（~18h→~8h），11 gaps 继续移植（~26h）。计划文档：`docs/plans/llm-native-editor-features.md`。
+- **#delta-2025-12-04-p1-complete** – P1 任务全部完成：TextModelData.fromString、getValueLengthInRange + EOL variants、validatePosition 边界测试、Issue regressions 调研。测试基线 1085 passed (+77)。
+
+### 2025-12-05 – Snippet Transform & MultiCursor 完整实现
+- **#delta-2025-12-05-snippet-transform** – Snippet Transform + FormatString 完整实现（直译 TS snippetParser.ts）：支持 upcase/downcase/capitalize/pascalcase/camelcase、regex 替换、条件分支。+33 tests 全部通过。Commit: `9515be1`。
+- **#delta-2025-12-05-multicursor-snippet** – MultiCursor Snippet 集成基础测试完成 (+6 tests)。
+- **#delta-2025-12-05-add-selection-to-next-find** – AddSelectionToNextFindMatch 完整实现：MultiCursorSession、MultiCursorSelectionController、34 个测试（18 Session + 16 Controller）。Commits: `4101981`, `575cfb2`。
+- **#delta-2025-12-05-p2-complete** – **P2 任务全部完成！** 测试基线 1158 passed (+73 本日)，P2 完成率 100% (6/6)。
+
 ## Active Placeholders & Follow-Ups
 - **CL7 Stage 2** (`#delta-2025-11-26-aa4-cl7-*`) – WordOps/Snippet/CursorCollection 已通过 Sprint 04 M2 完成，参见 `#delta-2025-12-02-sprint04-m2`。
 - **CL8 Markdown & Intl** (`#delta-2025-11-26-aa4-cl8-*`) – DocUI MarkdownRenderer 的 Intl/decoration ingestion 延迟中，所有相关 PR 需引用 `#delta-2025-11-28-cl8-phase34`。

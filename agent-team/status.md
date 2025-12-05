@@ -83,8 +83,28 @@
 - `#delta-2025-12-02-ws3-textmodel` – IntervalTree AcceptReplace 集成
 - `#delta-2025-12-02-docui-find` – FindModel/FindDecorations 完成
 
+## Pending Decisions
+
+### 文档流程改进建议 — ✅ 已批准 (2025-12-05)
+
+**Team Leader 批准了所有 3 项建议**，详见:
+- [`TeamLeader-to-DocMaintainer-2025-12-05.md`](handoffs/TeamLeader-to-DocMaintainer-2025-12-05.md) — 批准决策
+
+**批准的方案**:
+1. ✅ **Sprint Log 提前创建** — Planner 在 Planning 阶段创建框架
+2. ✅ **方案 A+C 混合** — Sprint log 为单一事实来源，changefeed 为轻量指针
+3. ✅ **文档同步 Checklist** — Handoff → Changefeed → Sprint log 三步走
+
+**执行状态**:
+- [x] DocMaintainer: 为 sprint-05.md 添加 HTML anchors ✅
+- [x] DocMaintainer: 创建/更新 Sprint log 模板 ✅
+- [ ] Info-Indexer: 更新 indexes/README.md 格式为指针样式 (截止 12-06)
+- [ ] Info-Indexer: 归档 11 月旧 changefeed (截止 12-08)
+
+---
+
 ## Key References
-- Sprint Log: [`docs/sprints/sprint-04.md`](../docs/sprints/sprint-04.md)
+- Sprint Log: [`docs/sprints/sprint-05.md`](../docs/sprints/sprint-05.md)
 - Task Board: [`agent-team/task-board.md`](task-board.md)
 - Migration Log: [`docs/reports/migration-log.md`](../docs/reports/migration-log.md)
 - Test Matrix: [`tests/TextBuffer.Tests/TestMatrix.md`](../tests/TextBuffer.Tests/TestMatrix.md)

@@ -74,6 +74,7 @@
   - Diff deterministic matrix (+44 tests, 59→103)
   - PieceTree diagnostics (+23 tests)
 - **测试基线达到 1085 passed**（本会话 +77）
+- **Changefeed**: [`#delta-2025-12-04-p1-complete`](agent-team/indexes/README.md#delta-2025-12-04-p1-complete)
 
 ### Sprint 05 Batch 4 (2025-12-05): Snippet Transform + MultiCursor 🎯
 - **直译 TS 原版原则强化**: 优先直译而非重新实现
@@ -91,6 +92,7 @@
   - Commit: `9515be1` - feat(snippet): Add Transform and FormatString
 - **P2 完成率: 83% (5/6)** — 剩余 AddSelectionToNextFindMatch (~10h)
 - **测试基线达到 1124 passed**（本会话 +39）
+- **Changefeed**: [`#delta-2025-12-05-snippet-transform`](agent-team/indexes/README.md#delta-2025-12-05-snippet-transform), [`#delta-2025-12-05-multicursor-snippet`](agent-team/indexes/README.md#delta-2025-12-05-multicursor-snippet)
 
 ### Sprint 05 Batch 5 (2025-12-05 继续): AddSelectionToNextFindMatch 完成 🎉
 - **任务分解文档**: `agent-team/handoffs/AddSelectionToNextFindMatch-TaskBreakdown.md`
@@ -99,6 +101,7 @@
 - **QAAutomation**: 创建 34 个测试（18 Session + 16 Controller）
 - **测试基线达到 1158 passed**（本会话 +73）
 - **P2 任务全部完成！** 🎊
+- **Changefeed**: [`#delta-2025-12-05-add-selection-to-next-find`](agent-team/indexes/README.md#delta-2025-12-05-add-selection-to-next-find), [`#delta-2025-12-05-p2-complete`](agent-team/indexes/README.md#delta-2025-12-05-p2-complete)
 
 ### 本会话成果汇总 (2025-12-05)
 - **3 个新特性**:

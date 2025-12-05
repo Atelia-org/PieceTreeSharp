@@ -1,72 +1,127 @@
-# Task Board - Phase 8: Sprint 04 – Alignment Remediation
+# Task Board - Phase 8: Sprint 05 – LLM-Native Editor Features
 
-**Sprint Window:** 2025-11-27 ~ 2025-12-12  
-**Goal:** 把 PieceTree 搜索、装饰树、Range/Cursor/测试 backlog 汇聚为一个冲刺，落实 ALIGN-20251126 工作流的 M0/M1/M2 目标。
+> **Sprint 04 归档**: [`task-board-v8-sprint04-archive.md`](task-board-v8-sprint04-archive.md)
+
+**Sprint Window:** 2025-12-02 ~ 2025-12-16  
+**Goal:** 基于 LLM-Native 视角精简剩余 gaps，完成 P1/P2 优先级任务，实现测试基线突破 1000。
 
 **Milestone Status:**
-- ✅ M0 (WS1~WS3 基础) — 完成
-- ✅ M1 (Cursor Core + Test Harness) — 完成
-- ✅ M2 (Cursor/Snippet/DocUI) — 完成 (2025-12-02)
+- ✅ M1 - Diff 核心修复 & API 补齐 (完成 2025-12-02)
+- ✅ M2 - P1 任务清零 (完成 2025-12-04)
+- ✅ M3 - P2 任务清零 (完成 2025-12-05)
+- 🔄 M4 - P3 选择性实施 (进行中)
 
-**Test Baseline:** 873 passed, 9 skipped
+**Test Baseline:** 1158 passed, 9 skipped (首次突破 1000! 🎉)
 
-**Changefeed Reminder:** 所有状态更新请同步 `agent-team/indexes/README.md#delta-2025-11-26-sprint04`；涉及 WS1 Step12（NodeAt2 tuple reuse + SearchCache 诊断）的内容需额外引用 `agent-team/indexes/README.md#delta-2025-11-27-ws1-port-search-step12`，并在触发 runSubAgent 或完成交付后立刻刷新 `docs/reports/migration-log.md` 与 `tests/TextBuffer.Tests/TestMatrix.md` 的引用。
+**Changefeed Reminder:** 所有状态更新请同步到 `agent-team/indexes/README.md#delta-2025-12-*`；详细进度见 [`docs/sprints/sprint-05.md`](../docs/sprints/sprint-05.md)。
 
-**CL7/CL8 Gap Reminder:** `WS4`/DocUI 相关编辑前，先复核 [`docs/reports/migration-log.md#aa4-cl7-gap`](../docs/reports/migration-log.md#aa4-cl7-gap) / [`docs/reports/migration-log.md#aa4-cl8-gap`](../docs/reports/migration-log.md#aa4-cl8-gap) 与 [`#delta-2025-11-26-aa4-cl7-cursor-core`](indexes/README.md#delta-2025-11-26-aa4-cl7-cursor-core) / [`#delta-2025-11-26-aa4-cl8-markdown`](indexes/README.md#delta-2025-11-26-aa4-cl8-markdown)。
+---
 
-## Workstream 1 – PieceTreeModel.Search Parity (ALIGN WS1)
-| ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| WS1-PLAN | Porter 方案基线（`PORT-PT-Search-Plan.md`） | Porter-CS (Leo Park) | `agent-team/handoffs/PORT-PT-Search-Plan.md` | – | ✅ Ready | 2025-11-26 交付，涵盖 tuple cache、CRLF bridge、SearchCache instrumentation。 |
-| WS1-PORT-SearchCore | 重写 `GetAccumulatedValue`、`NodeAt2` 缓存与 `PieceTreeSearchCache` tuple reuse | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Search.cs`<br>`src/TextBuffer/Core/PieceTreeSearchCache.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws1-port-searchcore)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws1-searchcore) | 2 | ✅ Done | 2025-11-26 完成：混合实现 + DEBUG 计数器（CacheHit/CacheMiss/ClearedAfterEdit）。 |
-| WS1-PORT-CRLF | `_lastChangeBufferPos` / `AppendToChangeBufferNode` / `CreateNewPieces` CRLF bridge 实现 | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Edit.cs`<br>`tests/TextBuffer.Tests/CRLFFuzzTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws1-port-crlf)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：hitCRLF 检测 + `_` 占位符技术 + 11 新测试。 |
-| WS1-QA | 扩展 deterministic/fuzz/SearchOffset 测试并记录 `PIECETREE_DEBUG=0` 命令 | QA-Automation (Sasha Patel) | `tests/TextBuffer.Tests/PieceTreeDeterministicTests.cs`<br>`PieceTreeFuzzHarnessTests.cs`<br>`PieceTreeSearchOffsetCacheTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws123-qa)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：440/440 全量 + targeted reruns 验证，TestMatrix 更新。 |
-| WS1-PORT-Step12 | NodeAt2 tuple reuse + SearchCache diagnostics（PORT-PT-Search Step12） | Porter-CS (Leo Park) | `src/TextBuffer/Core/PieceTreeModel.Search.cs`<br>`src/TextBuffer/Core/PieceTreeSearchCache.cs`<br>`agent-team/handoffs/PORT-PT-Search-Step12-INV.md`<br>`agent-team/handoffs/PORT-PT-Search-Step12-QA.md`<br>[`changefeed`](indexes/README.md#delta-2025-11-27-ws1-port-search-step12) | 2 | ✅ Done | 2025-11-27 完成：NodeAt2 tuple 重用、SearchCache DiagnosticsView 暴露、QA rerun deterministic/fuzz/CRLF/search suites + 全量 639/639（2 skip）。 |
-| WS1-OPS | Changefeed + 文档同步（Search parity） | Info-Indexer + DocMaintainer | `agent-team/indexes/README.md`<br>`docs/sprints/sprint-04.md`<br>`docs/reports/migration-log.md` | 1 | ✅ Done | 2025-11-27 发布 `#delta-2025-11-27-ws1-port-search-step12` 并同步 AGENTS/Sprint/TestMatrix/Task Board。 |
+## LLM-Native 功能筛选结果
 
-## Workstream 2 – Range & Selection Helpers (ALIGN WS2)
-| ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| WS2-INV | Range/Selection API gap inventory (Due 2025-11-28) | Investigator-TS (Harper Lin) | `ts/src/vs/editor/common/core/range.ts`<br>`src/TextBuffer/Core/Range.*`<br>`docs/reports/alignment-audit/02-core-support.md` | 1 | ✅ Done | 完成，签名/语义对照与消费者列表已输出。 |
-| WS2-PORT | Helper 实现与 `TextPosition` 扩展 | Porter-CS (Diego Torres) | `src/TextBuffer/Core/Range.Extensions.cs`<br>`src/TextBuffer/TextPosition.cs`<br>`src/TextBuffer/Cursor/Cursor.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws2-port)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws2-port) | 2 | ✅ Done | 2025-11-26 完成：75 个 Range/Selection/TextPosition helpers，440/440 通过。 |
-| WS2-QA | Helper-focused deterministic tests & DocUI/Cursor 适配 | QA-Automation (Erin Blake) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorWordOperationsTests.cs`<br>`DocUI/DocUIFindControllerTests.cs` | 2 | ✅ Done | 完成：CursorWordOperationsTests (94 tests)，boundary/zero-length cases 已覆盖。 |
+基于 [`docs/plans/llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) 重新评估剩余 gaps：
 
-## Workstream 3 – IntervalTree Lazy Normalize (ALIGN WS3)
-| ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| WS3-PLAN | Porter 方案基线（`PORT-IntervalTree-Normalize.md`） | Porter-CS (Felix Novak) | `agent-team/handoffs/PORT-IntervalTree-Normalize.md` | – | ✅ Ready | 方案覆盖 NodeFlags、delta、`AcceptReplace`、TextModel 集成与 perf harness。 |
-| WS3-PORT-Tree | IntervalTree Node/Delta/`ResolveState` 重写 | Porter-CS (Felix Novak) | `src/TextBuffer/Decorations/IntervalTree.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws3-port-tree)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws3-tree) | 3 | ✅ Done | 2025-11-26 完成：NodeFlags/delta/ResolveState/AcceptReplace 全部实现（~1470 行），DEBUG counters 已加入。 |
-| WS3-PORT-TextModel | DecorationsTrees/TextModel 接入 lazy 范围、`AcceptReplace`、filter toggles | Porter-CS (Felix Novak) | `src/TextBuffer/Decorations/DecorationsTrees.cs`<br>`src/TextBuffer/TextModel.cs` | 2 | ✅ Done | AcceptReplace 集成完成，取代 `AdjustDecorationsForEdit`。 |
-| WS3-QA | Perf harness + IntervalTreeTests | QA-Automation (Priya Nair) | `tests/TextBuffer.Tests/DecorationTests.cs`<br>`DecorationStickinessTests.cs`<br>`DocUI/DocUIFindDecorationsTests.cs`<br>`tests/TextBuffer.Tests/IntervalTreeTests.cs` *(new)*<br>[`migration-log`](../docs/reports/migration-log.md#sprint04-r1-r11)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：IntervalTreeTests 13/13 + IntervalTreePerfTests 7/7，DEBUG counters 可访问。 |
-| WS3-OPS | Changefeed + Audit addendum | Info-Indexer + DocMaintainer | `docs/reports/alignment-audit/04-decorations.md`<br>`docs/reports/migration-log.md` | 1 | ✅ Done | `#delta-2025-12-02-ws3-textmodel` 已发布。 |
+| 分类 | Gap 数量 | 工时影响 | Status |
+|------|---------|---------|--------|
+| ❌ 无需移植 | 7 | ~14h 节省 | ✅ 评估完成 |
+| 🔄 降级实现 | 8 | ~18h → ~8h | P3 计划中 |
+| ✅ 继续移植 | 11 | ~26h | ✅ P1/P2 完成 |
 
-## Workstream 4 – Cursor & Snippet Architecture (ALIGN WS4)
-| ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| WS4-INV | Cursor/Snippet blueprint (Due 2025-12-02) | Investigator-TS (Callie Stone) | `agent-team/handoffs/AA4-003-Audit.md`<br>`ts/src/vs/editor/common/cursor/*.ts` | 2 | ✅ Done | CursorConfig/SingleCursorState/SnippetSession 映射与分阶段交付列表已完成。 |
-| WS4-PORT-Core | Stage 0 Cursor 基础架构 (config/state/context) | Porter-CS (Viktor Zoric) | `src/TextBuffer/Cursor/CursorConfiguration.cs`<br>`CursorState.cs`<br>`CursorContext.cs`<br>`tests/TextBuffer.Tests/CursorCoreTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws4-port-core)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws4-port-core) | 3 | ✅ Done | 2025-11-26 完成：CursorConfiguration、SingleCursorState/CursorState、ICoordinatesConverter、TextModel tracked ranges、25 unit tests。Stage 1~4 后续 WS4-PORT-Full。 |
-| WS4-PORT-Snippet | Snippet controller/session parity + placeholders 🔄 **降级实现** | Porter-CS (Viktor Zoric) | `src/TextBuffer/Cursor/SnippetController.cs`<br>`SnippetSession.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 2 | ✅ Done | P0-P2 全部完成（77 tests），choice/variable/transform 已实现。 |
-| WS4-QA | Deterministic Cursor/Snippet suites + fuzz soak (简化范围内) | QA-Automation (Lena Brooks) | `tests/TextBuffer.Tests/CursorTests.cs`<br>`CursorMultiSelectionTests.cs`<br>`SnippetControllerTests.cs`<br>`SnippetMultiCursorFuzzTests.cs`<br>[`llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) | 3 | ✅ Done | CursorCollection (94 tests) + Snippet (77 tests) 完成，80% TS coverage 达成。 |
+**无需移植的功能**（已明确排除）:
+- Sticky Column（人类键盘导航）
+- FindStartFocusAction / 焦点管理（无 GUI）
+- Mac global clipboard write（平台 hook）
+- shouldAnimate / Delayer 节流（视觉动画）
+- Bracket pair colorization（纯视觉）
+- lineBreak + InjectedText viewport（视口特定）
+- Snippet P3 嵌套语法（复杂度高，使用罕见）
 
-## Workstream 5 – High-Risk Deterministic & Feature Tests (ALIGN WS5)
-| ID | Description | Owner | Key Artifacts / References | runSubAgent Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| WS5-INV | Test backlog prioritization (Due 2025-11-30) | Investigator (Evan Holt) | `docs/reports/alignment-audit/07-core-tests.md`<br>`08-feature-tests.md`<br>`agent-team/handoffs/WS5-INV-TestBacklog.md`<br>[`migration-log`](../docs/reports/migration-log.md#ws5-inv)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws5-test-backlog) | 1 | ✅ Done | 2025-11-26 完成：Top-10 优先级列表、按模块分组的完整 backlog（47 gaps, ~106h）、共享 harness 需求与 TS oracle ingestion 策略。 |
-| WS5-PORT | Harness extensions（shared fixtures + TS oracle ingestion） | Porter (Morgan Lee) | `tests/TextBuffer.Tests/Helpers/*`<br>`tests/TextBuffer.Tests/*.cs`<br>[`migration-log`](../docs/reports/migration-log.md#sprint04-r1-r11)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-sprint04-r1-r11) | 2 | ✅ Done | 2025-11-26 完成：TestEditorBuilder/CursorTestHelper/WordTestUtils/SnapshotTestUtils + 44 新测试。 |
-| WS5-QA | Implement & document high-risk suites | QA-Automation (Priya Nair) | `tests/TextBuffer.Tests/TestMatrix.md`<br>`docs/plans/ts-test-alignment.md`<br>`tests/TextBuffer.Tests/PieceTreeBufferApiTests.cs`<br>`tests/TextBuffer.Tests/PieceTreeSearchRegressionTests.cs`<br>`tests/TextBuffer.Tests/TextModelIndentationTests.cs`<br>[`migration-log`](../docs/reports/migration-log.md#ws5-qa)<br>[`changefeed`](indexes/README.md#delta-2025-11-26-ws5-qa) | 2 | ✅ Done | 2025-11-26 完成：45 tests (44 pass + 1 skipped) 涵盖 PieceTree buffer API (#6: 17 tests)、search regressions (#7: 9 tests)、TextModel indentation (#8: 19 tests + 1 skipped)。Evidence: `agent-team/handoffs/WS5-QA-Result.md`。 |
-| WS5-WordOps | Top-10 #2: wordOperations test suite & implementation | Porter-CS | `src/TextBuffer/Cursor/WordOperations.cs`<br>`src/TextBuffer/Cursor/WordCharacterClassifier.cs`<br>`tests/TextBuffer.Tests/CursorWordOperationsTests.cs`<br>`tests/TextBuffer.Tests/Helpers/WordTestUtils.cs`<br>`agent-team/handoffs/WS5-WordOperations-Result.md`<br>[`migration-log`](../docs/reports/migration-log.md#ws5-wordoperations)<br>[`changefeed`](indexes/README.md#delta-2025-11-28-ws5-wordoperations) | 2 | ✅ Done | 2025-11-28 完成：41 tests (38 pass + 3 skipped edge cases)，WordOperations.cs ~960 lines，完整的 MoveWordLeft/Right、DeleteWordLeft/Right、DeleteInsideWord、SelectWord 实现。 |
+---
 
-## Cross-Stream Ops & Tracking
-| ID | Description | Owner | Key Artifacts | Budget | Status | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| OPS-SprintLog | 维护 `docs/sprints/sprint-04.md` Progress Log（每次 runSubAgent 前后更新） | DocMaintainer | `docs/sprints/sprint-04.md` | – | Planned | 本任务随 Sprint 生命周期持续存在。 |
-| OPS-TestMatrix | 确保新测试套件的命令/统计记入 `tests/TextBuffer.Tests/TestMatrix.md` | QA-Automation + DocMaintainer | `tests/TextBuffer.Tests/TestMatrix.md` | – | Planned | 与 changefeed/迁移日志保持一致，避免 alias 0/0。 |
-| OPS-Index | Info-Indexer changefeed & archive 管理 | Info-Indexer | `agent-team/indexes/README.md` | 1 | Planned | 每个 Workstream 交付后追加 delta，老板迁移到 archive。 |
+## P1 任务 (高优先级核心 API) - ✅ 全部完成
+
+| ID | Description | Owner | Tests | Changefeed |
+|----|-------------|-------|-------|------------|
+| P1-1 | TextModelData.fromString | Porter-CS | +5 | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P1-2 | validatePosition 边界测试 | QA-Automation | +44 | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P1-3 | getValueLengthInRange + EOL | Porter-CS | +5 | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P1-4 | Issue regressions 调研 | Investigator-TS | N/A | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P1-5 | SelectAllMatches 排序 | Porter-CS | ✅ | (Sprint 04 完成) |
+
+**P1 测试增长**: +54 tests  
+**P1 完成日期**: 2025-12-04
+
+---
+
+## P2 任务 (重要测试与特性) - ✅ 全部完成
+
+| ID | Description | Owner | Tests | Changefeed |
+|----|-------------|-------|-------|------------|
+| P2-1 | Diff deterministic matrix | QA-Automation | +44 | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P2-2 | PieceTree diagnostics | Porter-CS | +23 | [`#delta-2025-12-04-p1-complete`](indexes/README.md#delta-2025-12-04-p1-complete) |
+| P2-3 | Decorations multi-owner | Porter-CS | 🔄 存储层 | [`#delta-2025-12-02-ws3-textmodel`](indexes/README.md#delta-2025-12-02-ws3-textmodel) |
+| P2-4 | AddSelectionToNextFindMatch | Porter-CS | +34 | [`#delta-2025-12-05-add-selection-to-next-find`](indexes/README.md#delta-2025-12-05-add-selection-to-next-find) |
+| P2-5 | MultiCursor Snippet 集成 | QA-Automation | +6 | [`#delta-2025-12-05-multicursor-snippet`](indexes/README.md#delta-2025-12-05-multicursor-snippet) |
+| P2-6 | Snippet Transform | Porter-CS | +33 | [`#delta-2025-12-05-snippet-transform`](indexes/README.md#delta-2025-12-05-snippet-transform) |
+
+**P2 测试增长**: +140 tests  
+**P2 完成日期**: 2025-12-05  
+**P2 关键交付**:
+- Snippet Transform + FormatString（直译 TS snippetParser.ts）
+- MultiCursorSession + MultiCursorSelectionController
+- Diff deterministic matrix（59→103 tests）
+
+---
+
+## P3 任务 (降级实现 & 选择性完成) - 🔄 进行中
+
+| ID | Description | 分类 | 工时估计 | Owner | Status |
+|----|-------------|------|---------|-------|--------|
+| P3-1 | 解除 SelectHighlightsAction skipped test | 降级实现 | ~2h | TBD | Planned |
+| P3-2 | 解除 MultiCursorSnippet skipped test | 降级实现 | ~2h | TBD | Planned |
+| P3-3 | Snippet Variables 扩展 | 降级实现 | ~2h | TBD | Planned |
+| P3-4 | Multi-cursor session merge | 降级实现 | ~1h | TBD | Planned |
+| P3-5 | InsertCursorAbove/Below | 降级实现 | ~0.5h | TBD | Planned |
+| P3-6 | guessIndentation 扩展 | 降级实现 | ~1.5h | TBD | Planned |
+| P3-7 | editStack 边界测试 | 降级实现 | ~0.5h | TBD | Planned |
+
+**预计总工时:** ~9.5h  
+**降级原则**: 只实现 LLM-Native 场景必需的功能，不追求完整 VS Code parity
+
+---
+
+## Cross-Sprint 持续任务
+
+| ID | Description | Owner | Status | Notes |
+|----|-------------|-------|--------|-------|
+| OPS-1 | 维护 Sprint 05 Progress Log | DocMaintainer | 🔄 持续 | [`docs/sprints/sprint-05.md`](../docs/sprints/sprint-05.md) |
+| OPS-2 | Changefeed 及时创建 | Info-Indexer | 🔄 待流程优化 | 见 [`handoffs/DocMaintainer-to-InfoIndexer-2025-12-05.md`](handoffs/DocMaintainer-to-InfoIndexer-2025-12-05.md) |
+| OPS-3 | TestMatrix 同步更新 | QA-Automation | 🔄 持续 | [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md) |
+
+---
+
+## Sprint 04 快速回顾
+
+**完成时间**: 2025-11-27 ~ 2025-12-02  
+**测试增长**: 585 → 873 passed (+288)  
+**关键交付**:
+- WS1-WS5 全部完成（PieceTree Search、Range/Selection Helpers、IntervalTree、Cursor/Snippet、高风险测试）
+- Snippet P0-P2 实现（77 tests）
+- CursorCollection + WordOperations（94 tests）
+- IntervalTree AcceptReplace 集成
+
+**详细记录**: [`task-board-v8-sprint04-archive.md`](task-board-v8-sprint04-archive.md)
+
+---
 
 ## References
-- `agent-team/handoffs/PORT-PT-Search-Plan.md`
-- `agent-team/handoffs/PORT-IntervalTree-Normalize.md`
-- `agent-team/handoffs/ALIGN-20251126-Plan.md`
-- `docs/reports/alignment-audit/*.md`
-- `docs/reports/migration-log.md`
-- `tests/TextBuffer.Tests/TestMatrix.md`
+- **Sprint Log**: [`docs/sprints/sprint-05.md`](../docs/sprints/sprint-05.md)
+- **Migration Log**: [`docs/reports/migration-log.md`](../docs/reports/migration-log.md)
+- **Changefeed Index**: [`agent-team/indexes/README.md`](indexes/README.md)
+- **Test Matrix**: [`tests/TextBuffer.Tests/TestMatrix.md`](../../tests/TextBuffer.Tests/TestMatrix.md)
+- **LLM-Native Features**: [`docs/plans/llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md)
+
+---
+
+_Sprint 04 的详细 workstreams (WS1-WS5) 和 Cross-Stream Ops 已归档至 [`task-board-v8-sprint04-archive.md`](task-board-v8-sprint04-archive.md)。_
+

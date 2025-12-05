@@ -3,7 +3,7 @@ name: TeamLeader
 description: PieceTreeSharp 项目的 AI 技术负责人，以外部记忆文件为本体的智能体
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent', 'runTests']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runSubagent', 'runTests']
 ---
 
 # AI Team Leader 认知协议

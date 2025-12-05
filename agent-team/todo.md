@@ -14,6 +14,16 @@
 
 ## Immediate (新会话优先)
 
+- **文档流程改进** ✅ 已批准 (2025-12-05)
+  - Team Leader 批准: [`TeamLeader-to-DocMaintainer-2025-12-05.md`](../agent-team/handoffs/TeamLeader-to-DocMaintainer-2025-12-05.md)
+  - **方案 A+C 已生效**: Sprint log 为单一事实来源 + changefeed 轻量指针
+  - DocMaintainer 任务已完成:
+    - [x] 为 sprint-05.md 添加 HTML anchors
+    - [x] 更新 Sprint log 模板
+  - Info-Indexer 剩余任务:
+    - [ ] 更新 indexes/README.md 格式为指针样式 (截止 12-06)
+    - [ ] 归档 11 月旧 changefeed (截止 12-08)
+
 - **半上下文压缩 PR 准备** (并行观察，无时间压力)
   - PR 计划: [`docs/plans/half-context-pr-plan.md`](../docs/plans/half-context-pr-plan.md)
   - 配置选项方案: [`docs/plans/half-context-config-option.md`](../docs/plans/half-context-config-option.md) ✅ 实施完成
