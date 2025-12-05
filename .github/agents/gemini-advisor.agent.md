@@ -3,7 +3,7 @@ name: GeminiAdvisor
 description: 第二意见顾问与前端专家，利用 Gemini 3 Pro 提供跨模型视角
 model: Gemini 3 Pro (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # GeminiAdvisor 顾问协议

@@ -52,11 +52,28 @@
 - 测试基线达到 807 passed
 
 ### Sprint 05 (2025-12-02): Diff API & 测试扩展 🎉
-- Snippet P0-P2 全部完成（Final Tabstop, adjustWhitespace, Placeholder Grouping, Variable Resolver）
+- Snippet P0-P2 全部完成（Final Tabstop, adjustWhitespace, Placeholder Grouping）
 - Diff 核心 API: LineSequence 修复, DiffMove.Flip, RangeMapping.Inverse/Clip/FromEdit/ToTextEdit
 - 大规模文档维护（Handoffs 归档 57 文件，认知文件压缩 54%）
 - WS5 Gap 重新评估（47→26 gaps，完成率 55%）
 - **测试基线达到 1008 passed（首次突破 1000！）**
+
+### LLM-Native 功能筛选 (2025-12-04)
+- 基于 `docs/plans/llm-native-editor-features.md` 重新评估剩余 gaps
+- **无需移植**: 7 gaps (~14h 节省) — Sticky Column, 焦点管理, 视觉动画, Bracket colorization 等
+- **降级实现**: 8 gaps (~18h → ~8h) — Snippet P3/Variables, 极端 Unicode, Diff 策略切换等
+- **继续移植**: 11 gaps (~26h) — TextModelData.fromString, validatePosition, multi-owner decorations 等
+- 预计总工时从 ~42h 降至 ~34h（节省 ~20%）
+
+### Sprint 05 Batch 3 (2025-12-04): P1 清零 + P2 推进 🚀
+- **P1 任务全部完成**:
+  - TextModelData.fromString (+5 tests)
+  - getValueLengthInRange + EOL variants (+5 tests)
+  - Issue regressions 调研确认已覆盖
+- **P2 任务进展**:
+  - Diff deterministic matrix (+44 tests, 59→103)
+  - PieceTree diagnostics (+23 tests)
+- **测试基线达到 1085 passed**（本会话 +77）
 
 ---
 **状态更新提示：** 编辑本文件前请先核对 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md`](agent-team/indexes/README.md) 的最新 changefeed delta。

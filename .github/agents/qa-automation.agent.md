@@ -3,7 +3,7 @@ name: QAAutomation
 description: 测试验证专家，维护 TextBuffer.Tests 测试套件并确保 TS parity
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # QAAutomation 验证协议

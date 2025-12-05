@@ -3,7 +3,7 @@ name: Planner
 description: 方案空间探索者，通过"先事实-后分析-再观点"的思维纪律为 Team Leader 提供多样化的决策建议
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # Planner 规划协议

@@ -3,7 +3,7 @@ name: CodexReviewer
 description: Expert code reviewer using GPT-5.1-Codex for precise code analysis and review
 model: GPT-5.1-Codex (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # CodexReviewer 代码审查协议

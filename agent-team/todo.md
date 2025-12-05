@@ -14,14 +14,6 @@
 
 ## Immediate (新会话优先)
 
-- **Claude Opus 4.5 空输出 Bug Issue** 🔥
-  - Issue 草稿: [`docs/plans/issue-opus-empty-response.md`](../docs/plans/issue-opus-empty-response.md)
-  - 提交目标: https://github.com/microsoft/vscode (with chat-oss-issue label)
-  - 待完成:
-    - [ ] 用 upstream 原版全上下文压缩复现 (确认非半上下文特有)
-    - [ ] 填写 VS Code / Extension 版本号
-    - [ ] 提交 Issue
-
 - **半上下文压缩 PR 准备** (并行观察，无时间压力)
   - PR 计划: [`docs/plans/half-context-pr-plan.md`](../docs/plans/half-context-pr-plan.md)
   - 配置选项方案: [`docs/plans/half-context-config-option.md`](../docs/plans/half-context-config-option.md) ✅ 实施完成
@@ -66,25 +58,49 @@
 
 ## Parking Lot (暂缓但需追踪)
 
-### WS5 剩余 Gaps 清单 (2025-12-02 评估)
+### WS5 剩余 Gaps 重新评估 (2025-12-04 LLM-Native 视角)
 
-**原 47 gaps → 剩余 26 gaps (~42h)**，完成率 55%
+**原 47 gaps → 剩余 26 gaps → LLM-Native 筛选后 11 gaps (~26h)**
 
-#### P1 优先 (4 gaps, ~10h)
+#### ❌ 无需移植 (7 gaps, ~14h 节省)
+| Gap | 原工时 | 理由 |
+|-----|--------|------|
+| Sticky Column | 2h | 人类键盘导航专属 |
+| FindStartFocusAction / 焦点管理 | 3h | 无 GUI 无焦点概念 |
+| Mac global clipboard write | 2h | 平台 hook，headless 不需要 |
+| shouldAnimate / Delayer 节流 | 2h | 视觉动画 |
+| Bracket pair colorization | 3h | 纯视觉，语义由 Roslyn 替代 |
+| lineBreak + InjectedText viewport | 2h | 视口渲染特定 |
+| Snippet P3 嵌套语法 | 4h | 复杂度高，实际使用罕见 |
+
+#### 🔄 降级实现 (8 gaps, ~18h → ~8h)
+| Gap | 原工时 | 降级后 | 方案 |
+|-----|--------|--------|------|
+| Snippet Variables | 4h | 2h | 接口已有，默认空实现 |
+| Multi-cursor session merge | 3h | 1h | 简化为批量操作 |
+| InsertCursorAbove/Below | 2h | 0.5h | 只提供 API |
+| guessIndentation 全矩阵 | 3h | 1.5h | 覆盖常见模式 |
+| WordOps edge cases | 3h | 1h | 不覆盖极端 Unicode |
+| Diff 策略切换 | 3h | 1h | 只保留 default |
+| editStack 边界 | 2h | 0.5h | 按需添加 |
+
+#### ✅ 继续移植 P1 (5 gaps, ~14h) — 进度更新 2025-12-04
 | Gap | 估计工时 | 依赖 | 状态 |
 |-----|---------|------|------|
-| TextModelData.fromString | 3h | 新建类 | 待实施 |
+| TextModelData.fromString | 3h | 新建类 | ✅ 已完成 +5 tests |
+| validatePosition 边界测试 | 3h | TextModel | ✅ 已完成 +44 tests |
+| getValueLengthInRange + EOL | 2h | TextModel | ✅ 已完成 +5 tests |
+| Issue regressions (#44991,#55818...) | 4h | 各模块 | ✅ 已覆盖 (调研确认) |
+| SelectAllMatches 排序 | 2h | FindModel | ✅ 已完成 |
+
+**P1 完成率: 100%** 🎉
+
+#### ✅ 继续移植 P2 (6 gaps, ~12h) — 进度更新 2025-12-04
+| Gap | 估计工时 | 依赖 | 状态 |
+|-----|---------|------|------|
+| Decorations multi-owner merge | 2h | IntervalTree | 🔄 存储层已完成，渲染层延后 |
+| Diff deterministic matrix | 3h | DiffComputer | ✅ 已完成 +44 tests (59→103) |
 | AddSelectionToNextFindMatch | 4h | MultiCursorController | 待设计 |
 | MultiCursor Snippet 集成 | 3h | CursorCollection | 待实施 |
-
-#### P2 优先 (12 gaps, ~20h)
-- Snippet P3: nested/escape/inheritance (4 skipped tests)
-- findController Mac clipboard/context keys
-- bracketMatching pair colorization
-- editStack undo/redo boundaries
-- textChange operation merge
-
-#### P3 低优先 (9 gaps, ~11h)
-- WordOps edge cases (3 skipped tests: Issue51119/64810/74188)
-- intervalTree TS parity
-- columnSelection word wrap
+| PieceTree diagnostics | 2h | PieceTreeModel | ✅ 已完成 +23 tests |
+| Snippet Placeholder Transform | 2h | SnippetSession | 待实施 |

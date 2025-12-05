@@ -3,7 +3,7 @@ name: PorterCS
 description: TS → C# 移植专家，负责 PieceTree/TextModel/Cursor 核心代码的 C# 实现
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # PorterCS 移植协议

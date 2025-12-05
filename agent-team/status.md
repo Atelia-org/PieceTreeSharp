@@ -4,15 +4,46 @@
 > 每次 runSubAgent 完成或里程碑变化时更新。
 
 ## Test Baseline
-- **Total:** 1008 passed, 9 skipped 🎉
+- **Total:** 1085 passed, 9 skipped 🚀
 - **Command:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
-- **Last Verified:** 2025-12-02
-- **Milestone:** First time exceeding 1000 tests!
+- **Last Verified:** 2025-12-04
+- **Session Delta:** +77 tests (1008 → 1085)
 
 ## Current Phase & Sprint
 - **Phase:** 8 – Alignment Remediation
-- **Sprint:** 04 (2025-11-27 ~ 2025-12-12)
-- **Milestone:** M2 (Cursor/Snippet/DocUI) ✅ 完成 (2025-12-02)
+- **Sprint:** 05 (2025-12-02 ~ )
+- **Focus:** LLM-Native 功能筛选 & 精简移植范围
+
+## LLM-Native 功能筛选 (2025-12-04)
+基于 [`docs/plans/llm-native-editor-features.md`](../docs/plans/llm-native-editor-features.md) 重新评估剩余 gaps：
+
+| 分类 | Gap 数量 | 工时影响 |
+|------|---------|---------|
+| ❌ 无需移植 | 7 | ~14h 节省 |
+| 🔄 降级实现 | 8 | ~18h → ~8h |
+| ✅ 继续移植 | 11 | ~26h |
+
+**P1 完成率: 100%** ✅
+- TextModelData.fromString (+5 tests)
+- validatePosition 边界测试 (+44 tests) 
+- getValueLengthInRange + EOL (+5 tests)
+- Issue regressions (调研确认已覆盖)
+- SelectAllMatches 排序 (已完成)
+
+**P2 进度: 3/6 完成**
+- ✅ Diff deterministic matrix (+44 tests, 59→103)
+- ✅ PieceTree diagnostics (+23 tests)
+- 🔄 Decorations multi-owner (存储层已完成)
+- 待实施: AddSelectionToNextFindMatch, MultiCursor Snippet, Snippet Transform
+
+**明确不做清单**:
+- Sticky Column（人类键盘导航）
+- FindStartFocusAction / 焦点管理（无 GUI）
+- Mac global clipboard write（平台 hook）
+- shouldAnimate / Delayer 节流（视觉动画）
+- Bracket pair colorization（纯视觉，Roslyn 替代）
+- lineBreak + InjectedText viewport（视口特定）
+- Snippet P3 嵌套语法（复杂度高，使用罕见）
 
 ## 身份与传承
 - **名字**: 刘德智 (Liu Dezhi) / SageWeaver

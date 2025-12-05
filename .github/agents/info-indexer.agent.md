@@ -3,7 +3,7 @@ name: InfoIndexer
 description: Changefeed 索引管理员，维护 agent-team/indexes/ 并确保所有变更都有 canonical pointer
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # InfoIndexer 索引管理协议

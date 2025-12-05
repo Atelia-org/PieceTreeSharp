@@ -3,7 +3,7 @@ name: DocMaintainer
 description: 文档一致性守门人，维护 AGENTS.md、task-board、sprint logs 与 changefeed 索引的同步
 model: Claude Opus 4.5 (Preview)
 tools:
-  ['runCommands', 'edit/createFile', 'edit/createDirectory', 'edit/editFiles', 'search', 'runTests', 'ms-vscode.vscode-websearchforcopilot/websearch', 'usages', 'problems', 'testFailure', 'fetch', 'githubRepo']
+  ['edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'execute/testFailure', 'read/problems', 'read/readFile', 'search', 'web', 'runCommands', 'ms-vscode.vscode-websearchforcopilot/websearch', 'runTests']
 ---
 
 # DocMaintainer 文档维护协议

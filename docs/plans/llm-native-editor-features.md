@@ -21,7 +21,7 @@ LLM 使用 TextEditor 的方式：
 
 ## 功能分类
 
-### ✅ 保留（核心能力）— Sprint 04 M2 状态
+### ✅ 保留（核心能力）— Sprint 05 更新 (2025-12-04)
 
 | 功能 | 模块 | 理由 | 移植优先级 | 状态 |
 |------|------|------|-----------|------|
@@ -32,21 +32,31 @@ LLM 使用 TextEditor 的方式：
 | Undo/Redo 栈 | `EditStack` | 回滚能力 | P0 | ✅ 已完成 |
 | 装饰器系统 | `Decorations/*` | DocUI 渲染 Overlay 的基础 | P0 | ✅ 已完成 |
 | 行号基础设施 | `PieceTreeModel` | 行号+锚点定位的基础 | P0 | ✅ 已完成 |
+| **TextModelData.fromString** | `TextModel` | LLM 需要可靠的文本解析 | P1 | 🔜 待实施 |
+| **validatePosition 边界** | `TextModel` | 精确定位是 LLM 编辑的基础 | P1 | ✅ +44 tests |
+| **SelectAllMatches 排序** | `FindModel` | 批量操作的基础 | P1 | ✅ 已完成 |
+| **Issue regressions** | 各模块 | 稳定性保障 | P1 | 🔜 部分待补 |
+| **Multi-owner decorations** | `Decorations` | DocUI overlay 渲染需要 | P2 | 🔜 待扩展 |
+| **AddSelectionToNextFindMatch** | `MultiCursor` | 多匹配交互流程 | P2 | 🔜 待设计 |
 
-**测试基线**: 873 passed, 9 skipped（2025-12-02）
+**测试基线**: 1008 passed, 9 skipped（2025-12-02）
 
-### 🔄 简化（保留核心，降级实现）— Sprint 04 M2 状态
+### 🔄 简化（保留核心，降级实现）— Sprint 05 更新 (2025-12-04)
 
 | 功能 | TS 原版 | 简化方向 | 理由 | 实施状态 |
 |------|--------|----------|------|----------|
 | Cursor 导航 | word/line/paragraph 级移动 | 只保留 goto position/line | LLM 不需要细粒度导航 | ✅ CursorState/Context 已对齐 (94 tests) |
 | 多光标 | 实时同步输入、复杂合并逻辑 | 简化为"多选区批量操作" | 不需要实时同步 | ✅ CursorCollection 已完成 |
-| Sticky Column | 跨行移动保持列位置 | ❌ 不移植 | 人类键盘导航专属 | 🚫 明确不做 |
 | Word Boundary | Unicode 分词、CamelCase | 基础实现即可 | 搜索场景仍需要 | ✅ WordOperations 已完成 (41 tests) |
-| Bracket Matching | 括号配对查找 | 可选实现 | 语义层面有用，视觉层面不需要 | ⏸️ 暂缓，按需添加 |
-| Snippet | 代码片段插入与占位符 | 简化为批量文本操作 | 支持 AI 生成代码片段 | ✅ P0-P2 完成 (77 tests) |
+| Bracket Matching | 括号配对查找 | ❌ 不移植（升级） | 视觉配色无用，语义分析由 Roslyn 更好替代 | 🚫 明确不做 |
+| Snippet | 代码片段插入与占位符 | P0-P2 完成，P3 降级 | 支持 AI 生成代码片段 | ✅ 77 tests，嵌套语法不做 |
+| Snippet Variables | TM_FILENAME/CLIPBOARD/UUID 等 | 提供接口，默认空实现 | 用户按需注入，headless 库不预设环境 | 🔄 接口已有，实现延后 |
+| guessIndentation | 30+ 种模式矩阵 | 覆盖常见 8-10 种 | 边缘场景价值低 | 🔄 19 tests 已覆盖主路径 |
+| WordOps 边缘 | Issue #51119/#64810/#74188 | 不覆盖极端 Unicode | 基础 ASCII + 常见 Unicode 足够 | 🔄 38/41 已通过 |
+| Diff 策略切换 | algorithm=advanced/legacy | 只保留 default | Move detection 已实现 | 🔄 核心完成，策略切换不做 |
+| editStack 边界 | 复杂 undo/redo 边界 | 基础栈已完成 | 复杂边界按需添加 | ✅ 已有可用实现 |
 
-### ❌ 砍掉（不移植）
+### ❌ 砍掉（不移植）— Sprint 05 更新 (2025-12-04)
 
 | 功能 | 理由 | 验证状态 |
 |------|------|----------|
@@ -55,13 +65,19 @@ LLM 使用 TextEditor 的方式：
 | IME 输入法支持 | 不需要 | ✅ 未在 TODO |
 | 自动补全 UI | LLM 自己就是补全引擎 | ✅ 未在 TODO |
 | 语法高亮 | LLM 理解语义不靠颜色 | ✅ 未在 TODO |
-| Minimap/Overview | 不需要视觉概览 | ✅ 未在 TODO |
+| Minimap/Overview ruler | 不需要视觉概览 | ✅ 未在 TODO |
 | 缩进指南线 | 视觉辅助 | ✅ 未在 TODO |
 | Smooth scrolling | 没有滚动概念 | ✅ 未在 TODO |
 | 代码折叠 UI | 视觉交互，LoD 机制可替代 | ✅ 未在 TODO |
 | Hover 提示 | 鼠标交互 | ✅ 未在 TODO |
 | 上下文菜单 | 鼠标交互 | ✅ 未在 TODO |
-| Sticky Column | 人类键盘导航专属 | ✅ 从简化列表升级为不移植 |
+| **Sticky Column** | 人类键盘导航专属 | ✅ 明确不做 |
+| **FindStartFocusAction / 焦点管理** | 无 GUI 无焦点概念 | ✅ 明确不做 |
+| **shouldAnimate / Delayer 节流** | 视觉动画，LLM 批量操作不需要 | ✅ 明确不做 |
+| **Mac global clipboard write** | 平台特定 hook，headless 不需要 | ✅ 明确不做 |
+| **Bracket pair colorization** | 纯视觉辅助，语义分析由 Roslyn 替代 | ✅ 明确不做 |
+| **lineBreak + InjectedText viewport** | 视口渲染特定，DocUI 不使用视口概念 | ✅ 明确不做 |
+| **Snippet P3 嵌套语法** | `${1:\${2:nested}}` 复杂度高，实际使用罕见 | ✅ 明确不做 |
 
 ### 🆕 新增（LLM-Native 功能）
 
