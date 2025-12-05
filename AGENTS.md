@@ -81,12 +81,21 @@
   - `src/TextBuffer/Snippet/Transform.cs` 直译 snippetParser.ts
   - FormatString 支持 upcase/downcase/capitalize/pascalcase/camelcase
   - Transform 支持 regex 替换和条件分支
-  - +32 测试全部通过
+  - +33 tests 全部通过（含 capitalize 单字符边界测试）
 - **MultiCursor Snippet 集成**:
   - 多光标 snippet 插入测试 (+6 tests)
   - 基础功能验证通过
+- **代码审阅与提交**:
+  - Transform.cs capitalize 边界情况改进
+  - 添加 Regex.ToString() 注释说明
+  - Commit: `9515be1` - feat(snippet): Add Transform and FormatString
 - **P2 完成率: 83% (5/6)** — 剩余 AddSelectionToNextFindMatch (~10h)
-- **测试基线达到 1123 passed**（本会话 +38）
+- **测试基线达到 1124 passed**（本会话 +39）
+
+### Sprint 05 Batch 5 (2025-12-05 继续): AddSelectionToNextFindMatch 启动 🚧
+- **任务分解文档**: `agent-team/handoffs/AddSelectionToNextFindMatch-TaskBreakdown.md`
+- **Task 1 完成**: MultiCursorSessionResult.cs (record + ScrollType enum)
+- **Task 2 进行中**: MultiCursorSession.cs (需类型系统适配)
 
 ---
 **状态更新提示：** 编辑本文件前请先核对 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md`](agent-team/indexes/README.md) 的最新 changefeed delta。

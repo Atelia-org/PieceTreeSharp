@@ -424,6 +424,25 @@ Matrix adjustments recorded in this pass: baseline counts stay at 585 and the WS
 | --- | --- | --- |
 | `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter SnippetControllerTests --nologo` | 52/52 green, 4 skipped (2.1s) | `#delta-2025-12-02-snippet-deterministic`: P0-P1.5 snippet parity validated; 4 tests skipped for P2 features (nested placeholders, escape handling, placeholder default inheritance). |
 
+### Targeted reruns (MultiCursorSession Tests, 2025-12-05)
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --filter MultiCursorSessionTests --nologo` | 18/18 green (2.1s) | `#delta-2025-12-05-multicursor-session`: MultiCursorSession unit tests for Ctrl+D "Add Selection To Next Find Match" functionality. |
+
+### MultiCursorSession Test Coverage
+
+| Test Category | Count | TS Source Reference |
+| --- | --- | --- |
+| Basic Add/Move | 6 | `multicursor.test.ts` L78-200 |
+| Edge Cases | 4 | `multicursor.test.ts` L113, L183-192 |
+| Case Sensitivity | 2 | `multicursor.test.ts` L253 |
+| Multi-line/CRLF | 2 | `multicursor.test.ts` L78, L155 |
+| Whole Word | 1 | `multicursor.test.ts` L314 |
+| Result Properties | 3 | `multicursor.test.ts` various |
+
+**Notes**: Case sensitivity and whole word tests document expected TS parity behavior but may use flexible assertions pending full TextModelSearch matchCase/wholeWord support verification.
+
 ### Skipped Snippet Tests (P2 Features)
 
 | Test | Reason | TS Reference |

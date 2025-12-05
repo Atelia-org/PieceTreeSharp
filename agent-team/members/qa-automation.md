@@ -1,4 +1,4 @@
-# QA-Automation Snapshot (2025-12-02)
+# QA-Automation Snapshot (2025-12-05)
 
 ## Role & Mission
 - Own TextBuffer parity verification per `AGENTS.md`, keeping `tests/TextBuffer.Tests` aligned with TS sources and documenting every rerun inside `tests/TextBuffer.Tests/TestMatrix.md`.
@@ -9,6 +9,7 @@
 ## Active Changefeeds & Baselines
 | Anchor | Scope | Latest Stats | Evidence |
 | --- | --- | --- | --- |
+| `#delta-2025-12-05-multicursor-session` | MultiCursorSession unit tests (Ctrl+D) | 18 new tests, **1151 total (1142p+9s)** | `tests/TextBuffer.Tests/TestMatrix.md` |
 | `#delta-2025-12-02-sprint04-m2` | Sprint 04 M2 全部完成，Snippet/Cursor/IntervalTree 交付 | **873 passed + 9 skip** | `tests/TextBuffer.Tests/TestMatrix.md` |
 | `#delta-2025-11-28-aa4-cl7-stage1-qa` | CL7 Stage 1 Cursor Wiring QA | 683/683 (681p+2s) | `agent-team/handoffs/CL7-QA-Result.md` |
 | `#delta-2025-11-26-ws1-searchcore` | WS1 PieceTree search offset cache + DEBUG counters. | Full 440/440 green (62.1s); targeted `PieceTreeSearchOffsetCacheTests` 5/5 (1.7s). | `agent-team/handoffs/WS123-QA-Result.md`. |
@@ -16,15 +17,12 @@
 | `#delta-2025-11-26-ws3-tree` | WS3 IntervalTree rewrite with lazy delta normalization + DEBUG counters. | Full 440/440 green (62.1s); targeted `DecorationTests` 12/12 + `DecorationStickinessTests` 4/4 (1.7s each). | `agent-team/handoffs/WS123-QA-Result.md`. |
 | `#delta-2025-11-26-ws4-port-core` | WS4 Cursor Stage 0 infrastructure。 | Targeted `CursorCoreTests` 25/25 (1.8s) + gating full sweeps tracked under R1-R11。 | `agent-team/handoffs/WS4-PORT-Core-Result.md`、`tests/TextBuffer.Tests/TestMatrix.md` Cursor rows。 |
 | `#delta-2025-11-25-b3-textmodelsearch` | TextModelSearch 45-case TS parity battery + Sprint 03 Run R37 full sweep. | Targeted `TextModelSearchTests` 45/45 green (2.5s) alongside full `export PIECETREE_DEBUG=0 && dotnet test ... --nologo` 365/365 green (61.6s). | `tests/TextBuffer.Tests/TestMatrix.md` (TextModelSearch row + R37 log) and `agent-team/handoffs/B3-TextModelSearch-QA.md`. |
-| `#delta-2025-11-25-b3-piecetree-deterministic-crlf` | PieceTree deterministic + CRLF normalization harness. | `PIECETREE_DEBUG=0` targeted `--filter PieceTreeDeterministicTests` 50/50 green (3.5s) plus paired full sweep 308/308 green (67.2s). | `tests/TextBuffer.Tests/TestMatrix.md` deterministic rows + `agent-team/handoffs/B3-PieceTree-Deterministic-CRLF-QA.md`. |
-| `#delta-2025-11-25-b3-search-offset` | PieceTree search-offset cache wrapper validation. | Targeted `--filter PieceTreeSearchOffsetCacheTests` 5/5 green (4.3s) with the R31 baseline `--nologo` run 324/324 green (58.2s). | `tests/TextBuffer.Tests/TestMatrix.md` R31 + targeted block, `agent-team/handoffs/B3-PieceTree-SearchOffset-QA.md`. |
-| `#delta-2025-11-24-b3-docui-staged` | DocUI staged fixes (FindModel + Decorations). | `--filter FullyQualifiedName~FindModelTests` 46/46 green and `--filter FullyQualifiedName~DocUIFindDecorationsTests` 9/9 green (PIECETREE_DEBUG=0). | `tests/TextBuffer.Tests/TestMatrix.md` DocUI rows and `agent-team/handoffs/B3-DocUI-StagedFixes-QA-20251124.md`. |
-| `#delta-2025-11-26-sprint04` | Doc maintenance + Sprint 04 kickoff guardrails for QA memory + rerun cadence. | Current snapshot trimmed to active anchors; doc sweep status tracked in `agent-team/handoffs/doc-maintenance-20251126.md`. | `agent-team/indexes/README.md#delta-2025-11-26-sprint04`. |
 
 ## Canonical Commands
-**Full sweeps**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **873 passed + 9 skip** (≈100s)
+**Full sweeps**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo` → **1142 passed + 9 skip** (≈105s)
 
 **Key targeted filters**:
+- `--filter MultiCursorSessionTests` → 18/18
 - `--filter SnippetControllerTests` → 80/80 (76p+4s)
 - `--filter CursorCollectionTests` → 33/33
 - `--filter CursorCoreTests` → 25/25
@@ -58,5 +56,6 @@
 ## 近期活动
 | 日期 | 任务 | 结果 |
 | --- | --- | --- |
+| 2025-12-05 | MultiCursorSession Unit Tests | 18 新测试创建并全部通过，基线 → **1142 passed + 9 skipped** |
 | 2025-12-02 | Snippet Deterministic Tests | 27 新测试 (23p+4s)，基线 → **873 passed + 9 skipped** |
 | 2025-12-01 | Team Leader 谈话 | 角色验证，基线确认 |

@@ -57,6 +57,7 @@
 
 | 日期 | 任务 | 产出 |
 | --- | --- | --- |
+| 2025-12-05 | MultiCursorSession 移植类型系统调研 | 分析现有 C# 类型映射，识别 `PieceTree.TextBuffer.Find` 命名空间缺失问题，输出适配方案 |
 | 2025-12-03 | Developer Console Conversation 访问调查 | 分析 ConversationStore/Conversation/ToolCallRound 数据结构，确认无全局暴露，建议添加 debug 命令 |
 | 2025-12-03 | LLM Request Dump 位置调查 | 分析 networking.ts/chatMLFetcher.ts/fetch.ts，识别最佳 dump 位置和请求区分方法 |
 | 2025-12-02 | SSE Stream 处理底层调查 | 分析 `stream.ts` SSEProcessor，识别 token 级日志添加位置、现有 trace/debug 调用 |

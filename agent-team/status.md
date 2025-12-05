@@ -4,10 +4,11 @@
 > 每次 runSubAgent 完成或里程碑变化时更新。
 
 ## Test Baseline
-- **Total:** 1123 passed, 9 skipped 🚀
+- **Total:** 1124 passed, 9 skipped 🚀
 - **Command:** `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
-- **Last Verified:** 2025-12-05
-- **Session Delta:** +38 tests (1085 → 1123)
+- **Last Verified:** 2025-12-05 15:30
+- **Session Delta:** +39 tests (1085 → 1124)
+- **Latest Commit:** `9515be1` - feat(snippet): Add Transform and FormatString with full TS parity
 
 ## Current Phase & Sprint
 - **Phase:** 8 – Alignment Remediation
