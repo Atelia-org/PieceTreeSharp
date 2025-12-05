@@ -282,6 +282,41 @@ public sealed class PieceTreeBuffer
 
     public string GetNearestChunk(int offset) => _model.GetNearestChunk(offset);
 
+    /// <summary>
+    /// Gets the length of the text in the given range, accounting for EOL preference.
+    /// </summary>
+    public int GetValueLengthInRange(Core.Range range, EndOfLinePreference eol = EndOfLinePreference.TextDefined)
+    {
+        if (range.IsEmpty)
+            return 0;
+
+        if (range.StartLineNumber == range.EndLineNumber)
+            return range.EndColumn - range.StartColumn;
+
+        int startOffset = GetOffsetAt(range.StartLineNumber, range.StartColumn);
+        int endOffset = GetOffsetAt(range.EndLineNumber, range.EndColumn);
+
+        // EOL compensation: adjust for difference between desired and actual EOL length
+        int eolCompensation = 0;
+        string desiredEol = GetDesiredEol(eol);
+        string actualEol = GetEol();
+        if (desiredEol.Length != actualEol.Length)
+        {
+            int delta = desiredEol.Length - actualEol.Length;
+            int eolCount = range.EndLineNumber - range.StartLineNumber;
+            eolCompensation = delta * eolCount;
+        }
+
+        return endOffset - startOffset + eolCompensation;
+    }
+
+    private string GetDesiredEol(EndOfLinePreference eol) => eol switch
+    {
+        EndOfLinePreference.LF => "\n",
+        EndOfLinePreference.CRLF => "\r\n",
+        _ => GetEol()  // TextDefined
+    };
+
     private static bool IsBasicAscii(string value)
     {
         foreach (char ch in value)

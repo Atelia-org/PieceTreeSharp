@@ -203,6 +203,15 @@ public class TextModel : ITextSearchAccess
 
     public int GetLength() => _buffer.Length;
 
+    /// <summary>
+    /// Gets the length of the text in the given range, accounting for EOL preference.
+    /// </summary>
+    public int GetValueLengthInRange(Range range, EndOfLinePreference eol = EndOfLinePreference.TextDefined)
+    {
+        var validRange = ValidateRange(range);
+        return _buffer.GetValueLengthInRange(validRange, eol);
+    }
+
     public int GetLineCount()
     {
         if (_buffer.Length == 0)
