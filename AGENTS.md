@@ -92,10 +92,25 @@
 - **P2 完成率: 83% (5/6)** — 剩余 AddSelectionToNextFindMatch (~10h)
 - **测试基线达到 1124 passed**（本会话 +39）
 
-### Sprint 05 Batch 5 (2025-12-05 继续): AddSelectionToNextFindMatch 启动 🚧
+### Sprint 05 Batch 5 (2025-12-05 继续): AddSelectionToNextFindMatch 完成 🎉
 - **任务分解文档**: `agent-team/handoffs/AddSelectionToNextFindMatch-TaskBreakdown.md`
-- **Task 1 完成**: MultiCursorSessionResult.cs (record + ScrollType enum)
-- **Task 2 进行中**: MultiCursorSession.cs (需类型系统适配)
+- **InvestigatorTS**: C# 类型系统适配调研（Selection/Position/Range/FindModel）
+- **PorterCS**: 实现 MultiCursorSession + MultiCursorSelectionController
+- **QAAutomation**: 创建 34 个测试（18 Session + 16 Controller）
+- **测试基线达到 1158 passed**（本会话 +73）
+- **P2 任务全部完成！** 🎊
+
+### 本会话成果汇总 (2025-12-05)
+- **3 个新特性**:
+  1. Snippet Transform + FormatString (+33 tests)
+  2. MultiCursor Snippet 集成 (+6 tests)
+  3. AddSelectionToNextFindMatch 完整实现 (+34 tests)
+- **3 次提交**:
+  - `9515be1` - Snippet Transform
+  - `4101981` - MultiCursorSession
+  - `575cfb2` - MultiCursorSelectionController
+- **测试基线**: 1085 → **1158** (+73, +6.7%)
+- **P2 完成率**: 83% → **100%**
 
 ---
 **状态更新提示：** 编辑本文件前请先核对 [`docs/reports/migration-log.md`](docs/reports/migration-log.md) 与 [`agent-team/indexes/README.md`](agent-team/indexes/README.md) 的最新 changefeed delta。
