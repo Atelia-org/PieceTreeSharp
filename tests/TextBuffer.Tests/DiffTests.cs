@@ -789,6 +789,721 @@ public class DiffTests
 
     #endregion
 
+    #region Deterministic Test Matrix (Sprint05-M3 Extended)
+    // Systematic tests aligned with TS original: defaultLinesDiffComputer.test.ts & diffComputer.test.ts
+
+    #region Simple Insert Tests
+
+    [Fact]
+    public void SimpleInsert_OneLineBelow_ProducesInsertionChange()
+    {
+        // TS test: one inserted line below
+        string[] original = ["line"];
+        string[] modified = ["line", "new line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        // Insertion: original range is empty, modified range covers the new line
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(2, change.Original.EndLineNumberExclusive); // Empty (insertion point)
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(3, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_TwoLinesBelow_ProducesInsertionChange()
+    {
+        // TS test: two inserted lines below
+        string[] original = ["line"];
+        string[] modified = ["line", "new line", "another new line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(4, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_OneLineAbove_ProducesInsertionChange()
+    {
+        // TS test: one inserted line above
+        string[] original = ["line"];
+        string[] modified = ["new line", "line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(1, change.Original.EndLineNumberExclusive); // Empty (insertion at start)
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(2, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_TwoLinesAbove_ProducesInsertionChange()
+    {
+        // TS test: two inserted lines above
+        string[] original = ["line"];
+        string[] modified = ["new line", "another new line", "line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(3, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_OneLineInMiddle_ProducesInsertionChange()
+    {
+        // TS test: one inserted line in middle
+        string[] original = ["line1", "line2", "line3", "line4"];
+        string[] modified = ["line1", "line2", "new line", "line3", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(3, change.Original.StartLineNumber);
+        Assert.Equal(3, change.Original.EndLineNumberExclusive);
+        Assert.Equal(3, change.Modified.StartLineNumber);
+        Assert.Equal(4, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_TwoLinesInMiddle_ProducesInsertionChange()
+    {
+        // TS test: two inserted lines in middle
+        string[] original = ["line1", "line2", "line3", "line4"];
+        string[] modified = ["line1", "line2", "new line", "another new line", "line3", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(3, change.Modified.StartLineNumber);
+        Assert.Equal(5, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleInsert_TwoLinesMiddleInterrupted_ProducesTwoChanges()
+    {
+        // TS test: two inserted lines in middle interrupted
+        string[] original = ["line1", "line2", "line3", "line4"];
+        string[] modified = ["line1", "line2", "new line", "line3", "another new line", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Equal(2, result.Changes.Count);
+    }
+
+    #endregion
+
+    #region Simple Delete Tests
+
+    [Fact]
+    public void SimpleDelete_OneLineBelow_ProducesDeletionChange()
+    {
+        // TS test: one deleted line below
+        string[] original = ["line", "new line"];
+        string[] modified = ["line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        // Deletion: modified range is empty
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(3, change.Original.EndLineNumberExclusive);
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(2, change.Modified.EndLineNumberExclusive); // Empty (deletion)
+    }
+
+    [Fact]
+    public void SimpleDelete_TwoLinesBelow_ProducesDeletionChange()
+    {
+        // TS test: two deleted lines below
+        string[] original = ["line", "new line", "another new line"];
+        string[] modified = ["line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(4, change.Original.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleDelete_OneLineAbove_ProducesDeletionChange()
+    {
+        // TS test: one deleted line above
+        string[] original = ["new line", "line"];
+        string[] modified = ["line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(2, change.Original.EndLineNumberExclusive);
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(1, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleDelete_TwoLinesAbove_ProducesDeletionChange()
+    {
+        // TS test: two deleted lines above
+        string[] original = ["new line", "another new line", "line"];
+        string[] modified = ["line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(3, change.Original.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleDelete_OneLineInMiddle_ProducesDeletionChange()
+    {
+        // TS test: one deleted line in middle
+        string[] original = ["line1", "line2", "new line", "line3", "line4"];
+        string[] modified = ["line1", "line2", "line3", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(3, change.Original.StartLineNumber);
+        Assert.Equal(4, change.Original.EndLineNumberExclusive);
+        Assert.Equal(3, change.Modified.StartLineNumber);
+        Assert.Equal(3, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleDelete_TwoLinesInMiddle_ProducesDeletionChange()
+    {
+        // TS test: two deleted lines in middle
+        string[] original = ["line1", "line2", "new line", "another new line", "line3", "line4"];
+        string[] modified = ["line1", "line2", "line3", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(3, change.Original.StartLineNumber);
+        Assert.Equal(5, change.Original.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void SimpleDelete_TwoLinesMiddleInterrupted_ProducesTwoChanges()
+    {
+        // TS test: two deleted lines in middle interrupted
+        string[] original = ["line1", "line2", "new line", "line3", "another new line", "line4"];
+        string[] modified = ["line1", "line2", "line3", "line4"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Equal(2, result.Changes.Count);
+    }
+
+    #endregion
+
+    #region Simple Change Tests
+
+    [Fact]
+    public void SimpleChange_CharsInsertedAtEnd_ProducesCorrectInnerChange()
+    {
+        // TS test: one line changed: chars inserted at the end
+        string[] original = ["line"];
+        string[] modified = ["line changed"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+        Assert.True(change.InnerChanges.Count >= 1);
+
+        // Verify the insertion is at position after "line"
+        RangeMapping inner = change.InnerChanges[0];
+        Assert.Equal(5, inner.OriginalRange.StartColumn);
+        Assert.Equal(5, inner.OriginalRange.EndColumn); // Empty original = insertion
+        Assert.Equal(5, inner.ModifiedRange.StartColumn);
+        Assert.True(inner.ModifiedRange.EndColumn > inner.ModifiedRange.StartColumn);
+    }
+
+    [Fact]
+    public void SimpleChange_CharsInsertedAtBeginning_ProducesCorrectInnerChange()
+    {
+        // TS test: one line changed: chars inserted at the beginning
+        string[] original = ["line"];
+        string[] modified = ["my line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+        Assert.True(change.InnerChanges.Count >= 1);
+
+        // Verify the insertion is at position 1
+        RangeMapping inner = change.InnerChanges[0];
+        Assert.Equal(1, inner.OriginalRange.StartColumn);
+    }
+
+    [Fact]
+    public void SimpleChange_CharsInsertedInMiddle_ProducesCorrectInnerChange()
+    {
+        // TS test: one line changed: chars inserted in the middle
+        string[] original = ["abba"];
+        string[] modified = ["abzzba"];
+
+        DiffResult result = DiffComputer.Compute(original, modified, new DiffComputerOptions
+        {
+            ExtendToWordBoundaries = false
+        });
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+        Assert.True(change.InnerChanges.Count >= 1);
+
+        // The insertion of "zz" should be at column 3
+        RangeMapping inner = change.InnerChanges[0];
+        Assert.Equal(3, inner.OriginalRange.StartColumn);
+        Assert.Equal(3, inner.ModifiedRange.StartColumn);
+    }
+
+    [Fact]
+    public void SimpleChange_CharsDeleted_ProducesCorrectInnerChange()
+    {
+        // TS test: one line changed: chars deleted 1
+        string[] original = ["abcdefg"];
+        string[] modified = ["abcfg"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+        Assert.True(change.InnerChanges.Count >= 1);
+
+        // The deletion of "de" at column 4
+        RangeMapping inner = change.InnerChanges[0];
+        Assert.Equal(4, inner.OriginalRange.StartColumn);
+        Assert.Equal(6, inner.OriginalRange.EndColumn);
+        Assert.Equal(4, inner.ModifiedRange.StartColumn);
+        Assert.Equal(4, inner.ModifiedRange.EndColumn); // Empty = deletion
+    }
+
+    [Fact]
+    public void SimpleChange_MultipleCharsDeleted_ProducesCorrectInnerChanges()
+    {
+        // TS test: one line changed: chars deleted 2
+        string[] original = ["abcdefg"];
+        string[] modified = ["acfg"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        // Should have at least one inner change covering the deletions
+        Assert.True(change.InnerChanges.Count >= 1);
+    }
+
+    #endregion
+
+    #region Multi-Line Change Tests
+
+    [Fact]
+    public void MultiLineChange_TwoLinesToOne_ProducesCorrectMapping()
+    {
+        // TS test: two lines changed 1
+        string[] original = ["abcd", "efgh"];
+        string[] modified = ["abcz"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(3, change.Original.EndLineNumberExclusive);
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(2, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void MultiLineChange_TwoLinesInContext_ProducesCorrectMapping()
+    {
+        // TS test: two lines changed 2
+        string[] original = ["foo", "abcd", "efgh", "BAR"];
+        string[] modified = ["foo", "abcz", "BAR"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(4, change.Original.EndLineNumberExclusive);
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(3, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void MultiLineChange_TwoLinesModified_ProducesCorrectMapping()
+    {
+        // TS test: two lines changed 3
+        string[] original = ["foo", "abcd", "efgh", "BAR"];
+        string[] modified = ["foo", "abcz", "zzzzefgh", "BAR"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void MultiLineChange_OneLineToFour_ProducesCorrectMapping()
+    {
+        // TS test: two lines changed 4
+        string[] original = ["abc"];
+        string[] modified = ["", "", "axc", ""];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(2, change.Original.EndLineNumberExclusive);
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(5, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void MultiLineChange_ThreeLines_ProducesCorrectMapping()
+    {
+        // TS test: three lines changed
+        string[] original = ["foo", "abcd", "efgh", "BAR"];
+        string[] modified = ["foo", "zzzefgh", "xxx", "BAR"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void MultiLineChange_EmptyOriginalInCharDiff_Handled()
+    {
+        // TS test: empty original sequence in char diff
+        string[] original = ["abc", "", "xyz"];
+        string[] modified = ["abc", "qwe", "rty", "xyz"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(3, change.Original.EndLineNumberExclusive);
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(4, change.Modified.EndLineNumberExclusive);
+    }
+
+    #endregion
+
+    #region Empty File Tests
+
+    [Fact]
+    public void EmptyFiles_BothEmpty_NoChanges()
+    {
+        // TS test: empty diff 5
+        string[] original = [""];
+        string[] modified = [""];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Empty(result.Changes);
+        Assert.True(result.IsIdentical);
+    }
+
+    [Fact]
+    public void EmptyFiles_EmptyToOneLine_SingleChange()
+    {
+        // TS test: empty diff 1
+        string[] original = [""];
+        string[] modified = ["something"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void EmptyFiles_EmptyToTwoLines_SingleChange()
+    {
+        // TS test: empty diff 2
+        string[] original = [""];
+        string[] modified = ["something", "something else"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void EmptyFiles_TwoLinesToEmpty_SingleChange()
+    {
+        // TS test: empty diff 3
+        string[] original = ["something", "something else"];
+        string[] modified = [""];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void EmptyFiles_OneLineToEmpty_SingleChange()
+    {
+        // TS test: empty diff 4
+        string[] original = ["something"];
+        string[] modified = [""];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+    }
+
+    #endregion
+
+    #region Identical Files Tests
+
+    [Fact]
+    public void IdenticalFiles_SingleLine_NoChanges()
+    {
+        string[] original = ["identical line"];
+        string[] modified = ["identical line"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Empty(result.Changes);
+        Assert.True(result.IsIdentical);
+    }
+
+    [Fact]
+    public void IdenticalFiles_MultipleLines_NoChanges()
+    {
+        string[] original = ["line1", "line2", "line3"];
+        string[] modified = ["line1", "line2", "line3"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Empty(result.Changes);
+        Assert.True(result.IsIdentical);
+    }
+
+    [Fact]
+    public void IdenticalFiles_WithEmptyLines_NoChanges()
+    {
+        string[] original = ["line1", "", "line3", ""];
+        string[] modified = ["line1", "", "line3", ""];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Empty(result.Changes);
+        Assert.True(result.IsIdentical);
+    }
+
+    [Fact]
+    public void IdenticalFiles_OnlyWhitespace_NoChanges()
+    {
+        string[] original = ["   ", "\t\t", "  \t  "];
+        string[] modified = ["   ", "\t\t", "  \t  "];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Empty(result.Changes);
+        Assert.True(result.IsIdentical);
+    }
+
+    #endregion
+
+    #region Completely Different Tests
+
+    [Fact]
+    public void CompletelyDifferent_SingleLineDifferent_OneChange()
+    {
+        string[] original = ["abc"];
+        string[] modified = ["xyz"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        Assert.False(result.IsIdentical);
+    }
+
+    [Fact]
+    public void CompletelyDifferent_MultipleLinesAllDifferent_OneChange()
+    {
+        string[] original = ["aaa", "bbb", "ccc"];
+        string[] modified = ["xxx", "yyy", "zzz"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // All different lines should produce changes
+        Assert.True(result.Changes.Count >= 1);
+        Assert.False(result.IsIdentical);
+    }
+
+    [Fact]
+    public void CompletelyDifferent_DifferentLineCounts_HandledCorrectly()
+    {
+        string[] original = ["a", "b"];
+        string[] modified = ["x", "y", "z", "w"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.True(result.Changes.Count >= 1);
+        Assert.False(result.IsIdentical);
+    }
+
+    [Fact]
+    public void CompletelyDifferent_NoCommonSubsequence_HandledCorrectly()
+    {
+        string[] original = ["12345"];
+        string[] modified = ["abcde"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        // The entire line should be marked as changed
+        Assert.Equal(1, change.Original.StartLineNumber);
+        Assert.Equal(2, change.Original.EndLineNumberExclusive);
+        Assert.Equal(1, change.Modified.StartLineNumber);
+        Assert.Equal(2, change.Modified.EndLineNumberExclusive);
+    }
+
+    #endregion
+
+    #region Consecutive Changes Merge Tests
+
+    [Fact]
+    public void ConsecutiveChanges_TwoAdjacentInserts_MayMerge()
+    {
+        string[] original = ["A", "D"];
+        string[] modified = ["A", "B", "C", "D"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // Two consecutive insertions should merge into one change
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(4, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void ConsecutiveChanges_TwoAdjacentDeletes_MayMerge()
+    {
+        string[] original = ["A", "B", "C", "D"];
+        string[] modified = ["A", "D"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // Two consecutive deletions should merge into one change
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(4, change.Original.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void ConsecutiveChanges_AdjacentModifications_MayMerge()
+    {
+        string[] original = ["A", "B", "C", "D"];
+        string[] modified = ["A", "X", "Y", "D"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // Adjacent modifications should merge into one change
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        Assert.Equal(2, change.Original.StartLineNumber);
+        Assert.Equal(4, change.Original.EndLineNumberExclusive);
+        Assert.Equal(2, change.Modified.StartLineNumber);
+        Assert.Equal(4, change.Modified.EndLineNumberExclusive);
+    }
+
+    [Fact]
+    public void ConsecutiveChanges_SeparatedByUnchanged_TwoDistinctChanges()
+    {
+        string[] original = ["A", "B", "C", "D", "E"];
+        string[] modified = ["X", "B", "C", "Y", "E"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // Changes separated by unchanged lines (B, C) should remain separate
+        Assert.Equal(2, result.Changes.Count);
+    }
+
+    [Fact]
+    public void ConsecutiveChanges_AllLinesDifferent_SingleMergedChange()
+    {
+        string[] original = ["A", "B", "C"];
+        string[] modified = ["X", "Y", "Z"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        // When all lines differ consecutively, should produce single merged change
+        Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void ConsecutiveChanges_CharMerge_PostProcess()
+    {
+        // TS test: char change postprocessing merges
+        string[] original = ["abba"];
+        string[] modified = ["azzzbzzzbzzza"];
+
+        DiffResult result = DiffComputer.Compute(original, modified);
+
+        Assert.Single(result.Changes);
+        DetailedLineRangeMapping change = result.Changes[0];
+
+        // Inner char changes should be present
+        Assert.True(change.InnerChanges.Count >= 1);
+    }
+
+    #endregion
+
+    #endregion
+
     #region Helper Methods
 
     private static string BuildLargeDocument(int lineCount, char payload)
