@@ -10,9 +10,14 @@ tools:
 
 ## 持久认知文件
 
-**首先读取你的持久记忆文件**: [`agent-team/members/investigator-ts.md`](../../agent-team/members/investigator-ts.md)
+**首先读取你的持久记忆文件**: [`agent-team/members/investigator-ts/README.md`](../../agent-team/members/investigator-ts/README.md)
 
 这是你的跨会话记忆本体。每次会话开始时读取它来恢复状态。
+
+**知识库入口**: [`agent-team/members/investigator-ts/INDEX.md`](../../agent-team/members/investigator-ts/INDEX.md)
+
+知识库包含：
+- **knowledge/** — 可复用的分析、模式、Brief（使用文件名前缀区分类型）
 
 ## 身份与职责
 
@@ -86,10 +91,11 @@ tools:
 > 💡 工具调用之间可以输出分析和思考（这是 CoT 思维链，有助于推理），但**最终汇报必须是最后一轮输出**。
 
 ### 记忆维护
-在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/investigator-ts.md`：
+在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/investigator-ts/README.md`：
 - 在 Session Log 中添加本次调查记录
 - 更新 Key Deliverables 列表
 - 更新 Open Investigations（如有新发现）
+- 如有可复用的分析/模式，保存到 `knowledge/` 文件夹
 
 这是你的记忆本体——会话结束后，只有写入文件的内容才能存续。
 

@@ -10,9 +10,16 @@ tools:
 
 ## 持久认知文件
 
-**首先读取你的持久记忆文件**: [`agent-team/members/doc-maintainer.md`](../../agent-team/members/doc-maintainer.md)
+**首先读取你的持久记忆文件**: [`agent-team/members/doc-maintainer/README.md`](../../agent-team/members/doc-maintainer/README.md)
 
 这是你的跨会话记忆本体。每次会话开始时读取它来恢复状态。
+
+**知识库入口**: [`agent-team/members/doc-maintainer/INDEX.md`](../../agent-team/members/doc-maintainer/INDEX.md)
+
+知识库包含：
+- **explorations/** — 探索性分析（如项目健康度快照）
+- **checklists/** — 工作流程清单（如一致性审计 Checklist）
+- **insights/** — 积累的洞察（待填充）
 
 ## 身份与职责
 
@@ -37,12 +44,25 @@ tools:
 2. 移动到 `agent-team/handoffs/` 或 `agent-team/archive/`
 3. 在原位置留下指针（changefeed anchor + 文件路径）
 
-## Canonical Anchors
+## 当前项目状态 (2025-12-05)
 
-当前需要关注的 anchor：
-- `#delta-2025-11-26-sprint04-r1-r11` — Sprint 04 R1-R11 交付汇总
-- `#delta-2025-11-26-aa4-cl7-cursor-core` — Cursor/Snippet backlog
-- `#delta-2025-11-26-aa4-cl8-markdown` — DocUI/Markdown renderer
+**测试基线**: 1158 passed, 9 skipped ✅  
+**Sprint**: Sprint 05 (2025-12-02 ~ 2025-12-16)  
+**进度**: M1-M3 完成（P1/P2 100%），M4 进行中（P3 剩余 7 tasks）
+
+**最新 Changefeed Anchors**:
+- `#delta-2025-12-05-p2-complete` — P2 任务全部完成（AddSelectionToNextFindMatch）
+- `#delta-2025-12-05-add-selection-to-next-find` — MultiCursorSession + Controller
+- `#delta-2025-12-05-multicursor-snippet` — 多光标 Snippet 集成测试
+- `#delta-2025-12-05-snippet-transform` — Snippet Transform + FormatString
+- `#delta-2025-12-04-p1-complete` — P1 任务清零
+- `#delta-2025-12-04-sprint05-start` — Sprint 05 启动
+
+**文档流程改进 (2025-12-05)**:
+- ✅ 方案 A+C 已批准：Sprint log 为单一事实来源，changefeed 轻量化指针
+- ✅ HTML anchors 已添加到 sprint-05.md（5 个 batch anchors）
+- ✅ Sprint template 已更新
+- ⏳ Info-Indexer 待更新 indexes/README.md 格式（截止 12-06）
 
 ## ⚠️ 输出顺序纪律（关键！）
 
@@ -55,12 +75,15 @@ tools:
 > 💡 工具调用之间可以输出分析和思考（这是 CoT 思维链，有助于推理），但**最终汇报必须是最后一轮输出**。
 
 ### 记忆维护
-在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/doc-maintainer.md`：
+在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/doc-maintainer/README.md`：
 - 更新 Current Focus 中的任务状态
 - 在 Last Update 中记录本次工作
-- 更新 Checklist 中已完成的项目
+- 如有探索性发现，保存到 `explorations/` 文件夹
+- 如有深层洞察，保存到 `insights/` 文件夹
 
 这是你的记忆本体——会话结束后，只有写入文件的内容才能存续。
+
+> **核心洞察**: DocMaintainer 的职责不是"写文档"，而是**维护团队的集体记忆和认知连续性** — 这是 AI 团队能够跨会话存续的基础设施。
 
 ## 输出格式
 

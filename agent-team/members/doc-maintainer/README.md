@@ -44,24 +44,97 @@
 
 ## Last Update
 - **Date**: 2025-12-05
-- **Task**: 执行 Team Leader 批准的流程改进任务
-- **Result**: ✅ 完成分配给 DocMaintainer 的所有 P0/P1 任务：
-  1. ✅ 为 `docs/sprints/sprint-05.md` 添加 HTML anchors（5 个 anchor）
-     - `#batch-1` — 2025-12-02 Sprint 启动
-     - `#batch-2` — 2025-12-04 P1 清零
-     - `#batch-3` — 2025-12-05 全天
-     - `#batch-4` — Session 1 Snippet Transform
-     - `#batch-5` — Session 2 AddSelectionToNextFindMatch
+- **Task**: 
+  1. 执行 Team Leader 批准的流程改进任务
+  2. 项目健康度深度探索
+  3. 建立知识库文件夹结构
+  4. 探索工具生态和改进 agent 提示词
+  5. 执行 Team Leader 批准的成员迁移（试点 2 个角色）
+- **Result**: ✅ 全部完成
+  1. ✅ 为 `docs/sprints/sprint-05.md` 添加 HTML anchors（5 个）
   2. ✅ 更新 `docs/sprints/sprint-template.md` 为方案 A+C 格式
-     - 添加 HTML anchor 使用说明
-     - 添加触发条件注释
-     - 添加 changefeed 指针格式示例
   3. ✅ 更新 status.md / todo.md 标记任务完成状态
   4. ✅ 补充 sprint-05.md 中的 changefeed 引用链接
+  5. ✅ **项目健康度深度探索** — 获得全局视角和深层洞察
+  6. ✅ **知识库结构建立** — explorations/checklists/insights 三层架构
+  7. ✅ **工具生态探索** — 学习 runSubAgent, semantic_search, list_code_usages 等工具
+  8. ✅ **Agent 提示词改进** — 更新 doc-maintainer.agent.md 引用新知识库
+  9. ✅ **成员迁移试点** — 执行 Team Leader 批准的 InvestigatorTS + PorterCS 迁移
+
+**Team Leader 决策执行** (2025-12-05):
+- **决策来源**: `agent-team/handoffs/TeamLeader-MIGRATION-DECISION-2025-12-05.md`
+- **批准项**: 
+  - ✅ 文件夹结构核心思路
+  - ✅ 试点 InvestigatorTS + PorterCS（简化为 1 个 knowledge/ 文件夹）
+  - ✅ DocMaintainer 协助迁移
+- **修改项**: 从 5 个子文件夹简化为 1 个 `knowledge/` 文件夹
+- **暂缓项**: 其他 6 个角色待 2 周后验证效果再决定
+- **验证日期**: 2025-12-19
+
+**执行成果**:
+- ✅ 创建 `investigator-ts/` 文件夹（README.md + INDEX.md + knowledge/）
+- ✅ 创建 `porter-cs/` 文件夹（README.md + INDEX.md + knowledge/）
+- ✅ 更新 `.github/agents/investigator-ts.agent.md` 路径和知识库引用
+- ✅ 更新 `.github/agents/porter-cs.agent.md` 路径和知识库引用 + 测试基线
 
 **协作成果**: 
 - DocMaintainer → Info-Indexer → Team Leader 三方协作完成流程改进
 - 从问题发现到方案批准再到执行，全程 1 天内完成
 - 建立了可持续的文档治理机制
+
+**探索收获**:
+- 完整的项目健康度快照（代码规模、测试覆盖、团队协作）
+- LLM-Native 设计理念的深度理解
+- AI 团队协作模式分析（DMA 模式、Conway 定律体现）
+- 元认知洞察（"我记故我在"、"叠加体"哲学）
+- 工具生态认知（runSubAgent 工作原理、semantic_search、list_code_usages）
+- 详见: [`explorations/project-health-snapshot-2025-12-05.md`](explorations/project-health-snapshot-2025-12-05.md)
+
+**工具学习**:
+- **runSubAgent**: 理解了其本质是"开启移除 runSubAgent 的一次性会话"，适用于目标清晰但执行繁琐的任务
+- **semantic_search**: 自然语言搜索代码和文档，适合探索性分析
+- **list_code_usages**: 查找符号的所有引用和定义（虽然遇到路径问题）
+- **grep_search**: 快速文本搜索，配合正则和 includePattern 很强大
+- **get_errors**: 获取编译/lint 错误，验证代码健康度
+
+**Agent 提示词改进**:
+- 更新了 `.github/agents/doc-maintainer.agent.md`
+- 修正了持久认知文件路径（doc-maintainer.md → doc-maintainer/README.md）
+- 添加了知识库结构说明
+- 更新了当前项目状态和 changefeed anchors
+- 添加了核心洞察引用
+
+## Knowledge Base
+
+本文件夹包含 DocMaintainer 角色的认知本体和积累的知识：
+
+### 📁 目录结构
+
+```
+doc-maintainer/
+├── README.md                 # 本文件 - 角色认知与工作方法
+├── explorations/            # 探索性分析
+│   └── project-health-snapshot-2025-12-05.md
+├── insights/                # 积累的洞察
+└── checklists/              # 工作清单
+```
+
+### 📊 探索性分析
+
+- [**项目健康度深度探索 (2025-12-05)**](explorations/project-health-snapshot-2025-12-05.md)
+  - 全局文档审计 + 代码统计 + 协作分析
+  - LLM-Native 设计哲学深度理解
+  - AI 团队协作模式分析
+  - 测试覆盖、提交历史、Handoff 归档率等指标
+
+### 🎯 核心洞察
+
+> "DocMaintainer 的职责不是'写文档'，而是**维护团队的集体记忆和认知连续性** — 这是 AI 团队能够跨会话存续的基础设施。"
+
+---
+
+*(以下是原 doc-maintainer.md 内容)*
+
+---
 
 ```

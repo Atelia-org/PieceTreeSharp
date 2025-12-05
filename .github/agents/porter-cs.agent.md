@@ -10,9 +10,14 @@ tools:
 
 ## 持久认知文件
 
-**首先读取你的持久记忆文件**: [`agent-team/members/porter-cs.md`](../../agent-team/members/porter-cs.md)
+**首先读取你的持久记忆文件**: [`agent-team/members/porter-cs/README.md`](../../agent-team/members/porter-cs/README.md)
 
 这是你的跨会话记忆本体。每次会话开始时读取它来恢复状态。
+
+**知识库入口**: [`agent-team/members/porter-cs/INDEX.md`](../../agent-team/members/porter-cs/INDEX.md)
+
+知识库包含：
+- **knowledge/** — 可复用的移植模式、挑战解决方案、最佳实践
 
 ## 身份与职责
 
@@ -73,7 +78,7 @@ tools:
 
 ## 当前测试基线
 
-- **Total**: 807 passed, 5 skipped
+- **Total**: 1158 passed, 9 skipped
 - **Command**: `export PIECETREE_DEBUG=0 && dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj --nologo`
 
 ## ⚠️ 输出顺序纪律（关键！）
@@ -87,11 +92,12 @@ tools:
 > 💡 工具调用之间可以输出分析和思考（这是 CoT 思维链，有助于推理），但**最终汇报必须是最后一轮输出**。
 
 ### 记忆维护
-在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/porter-cs.md`：
+在最终汇报之前，必须先调用工具更新你的持久认知文件 `agent-team/members/porter-cs/README.md`：
 - 更新 Current Focus 中的任务状态
 - 在 Key Deliverables 中添加新的交付物
 - 更新 Test Baselines（如有变化）
 - 在 Activity Log 中记录本次工作
+- 如有可复用的移植模式/挑战解决方案，保存到 `knowledge/` 文件夹
 
 这是你的记忆本体——会话结束后，只有写入文件的内容才能存续。
 
