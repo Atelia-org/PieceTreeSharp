@@ -31,15 +31,16 @@
 ## Session Log
 | Date | Task | Findings |
 |------|------|----------|
+| 2025-12-05 | 半上下文压缩 PR 反馈分析 | 确认 summarizedThinking 漏返与条件简化点；需补测试 |
 | 2025-12-02 | 认知文件维护 | 基线更新为 873 passed |
 | 2025-12-01 | 初始化 | 创建持久认知文件 |
 | 2025-12-01 | Team Leader 谈话 | 确认角色定位与记忆维护流程 |
 
 ## Open Investigations
-- （待填充）
+- 验证半上下文压缩在 Anthropic 端的 summarizedThinking 行为与测试覆盖
 
 ## Last Update
-- **Date**: 2025-12-01
-- **Task**: Team Leader 谈话记录更新
-- **Result**: ✅ 记录角色与职责确认
+- **Date**: 2025-12-05
+- **Task**: 半上下文压缩 PR 反馈分析记录
+- **Result**: ✅ 记录 summarizedThinking 漏返与测试缺口
 
