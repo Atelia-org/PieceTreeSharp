@@ -22,7 +22,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
    - **Define Scope**: Define the specific TS module slice to port (e.g., "Port `getLineContent` optimization").
 
 2. **Phase 1: Investigation (Offloaded)**
-   - **Action**: Call `runSubAgent` (`subagentType="Investigator-TS"`).
+   - **Action**: Call `runSubAgent` (`subagentName="Investigator-TS"`).
    - **Prompt**:
      > "Analyze [TS Files] and compare with current C# implementation in `src/TextBuffer`.
      > **DO NOT** output the analysis here.
@@ -30,7 +30,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
      > Include: TS symbols, invariants, missing C# coverage, edge cases, and 2-3 TS tests to port."
 
 3. **Phase 2: Implementation (Offloaded)**
-   - **Action**: Call `runSubAgent` (`subagentType="Porter-CS"`).
+   - **Action**: Call `runSubAgent` (`subagentName="Porter-CS"`).
    - **Prompt**:
      > "Read `agent-team/handoffs/${TASK_ID}-Brief.md`.
     > Implement the logic in `src/TextBuffer/<target-file>.cs`.
@@ -42,7 +42,7 @@ Use this prompt to orchestrate the AI Team using the **Direct Memory Access (DMA
    - **Action**: Read `agent-team/handoffs/${TASK_ID}-Result.md` (The "Interrupt").
    - **Decision**:
      - **Success**: Update `docs/reports/migration-log.md` and update the `TASK_ID` row in `agent-team/task-board.md` to "Done".
-     - **Failure**: Call `runSubAgent` (`subagentType="Porter-CS"`) again. Prompt: "Read `agent-team/handoffs/${TASK_ID}-Result.md` to see the errors. Fix the implementation and re-run tests."
+     - **Failure**: Call `runSubAgent` (`subagentName="Porter-CS"`) again. Prompt: "Read `agent-team/handoffs/${TASK_ID}-Result.md` to see the errors. Fix the implementation and re-run tests."
 
 5. **Iterate**
    - Clear the "Interrupt" (acknowledge the result) and pick the next Task ID.
