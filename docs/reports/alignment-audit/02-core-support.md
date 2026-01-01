@@ -160,7 +160,7 @@ WS2-PORT (`docs/reports/migration-log.md#ws2-port`, [`agent-team/indexes/README.
 ## 建议优先级
 - **高:** 继续 WS2-PORT 后续项：实现 `RangeMapping`/`SelectionRangeMapping`/`TrackedRange` 桥接，并评估让 `Selection` 暴露 `isISelection` 或共有接口，方便 Cursor/DocUI/Decorations 共用（关联 `AA4-CL7` backlog）。
 - **中:** 扩展 `WordCharacterClassifierCache` 以支撑 locale-aware 边界（`Intl.Segmenter`、词缓存多语言配置），并将 SearchTypes/DocUI/Find stack 统一回 `#delta-2025-11-26-aa4-cl8-markdown` 占位。
-- **低:** 为 C# 端特有的行为（PieceTreeSearchCache limit 默认值、TextMetadataScanner 的 NEL 检测、PieceTreeTextBufferFactory 的 build result 包装）补充注释和变更日志，避免后续审计重复记录。
+- **低:** 为 C# 端特有的行为（PieceTreeSearchCache limit 默认值、TextMetadataScanner 的 NEL 检测、PieceTreeTextBufferFactory 的 build result 包装）补充注释和变更日志，避免后续核查重复记录。
 
 ## 验证记录
 - 对照阅读 `src/TextBuffer/Core/*.cs` 与对应 TypeScript：如 `pieceTreeBase.ts L207-263`（搜索缓存）、`selection.ts L1-200`、`strings.ts L674-696` 等。

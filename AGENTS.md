@@ -33,9 +33,9 @@
 - AI Team 协作架构（runSubAgent + agent-team/）建立
 - 测试基线达到 56 passed
 
-### Phase 5-6 (2025-11-20): 对齐审计 AA2/AA3
+### Phase 5-6 (2025-11-20): 对齐核查 AA2/AA3
 - 完成 CRLF/Search/Undo/Decorations 多轮修复
-- Sprint 01（AA3）CL1~CL4 全部审计与修复交付
+- Sprint 01（AA3）CL1~CL4 全部核查与修复交付
 - 测试基线达到 88 passed
 
 ### Sprint 03 (2025-11-22~25): FindModel & PieceTree 深度对齐

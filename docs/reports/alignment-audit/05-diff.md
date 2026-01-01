@@ -375,7 +375,7 @@ public static class LineRangeMappingExtensions
 
 **低优先级:**
 1. 仅将 `ExtendToWordBoundaries` 暴露在内部；若必须公开需提供文档或 UI 提示
-2. 视需要补齐 `lineRangeMappingFromChange` 等辅助函数，减少未来差异审计工作量
+2. 视需要补齐 `lineRangeMappingFromChange` 等辅助函数，减少未来差异核查工作量
 
 ### Verification Notes
 - 对照 `src/TextBuffer/Diff/**/*.cs` 与 `ts/src/vs/editor/common/diff/**/*.ts`，确认 AA3-006/008 已补齐 `LinesDiff`/`HeuristicSequenceOptimizations`/`DiffComputer` 主干

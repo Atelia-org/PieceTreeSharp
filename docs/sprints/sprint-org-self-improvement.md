@@ -1,8 +1,8 @@
 # Sprint OI-01 – 组织自我完善
 - **Date Range:** 2025-11-19 ~ 2025-11-23
-- **Theme / Goal:** 审计并优化 AI Team 的协作结构、文档体系与流程模板
+- **Theme / Goal:** 核查并优化 AI Team 的协作结构、文档体系与流程模板
 - **Success Criteria:**
-  - 核心文档正交性审计完成并生成行动项
+  - 核心文档正交性核查完成并生成行动项
   - 至少 1 个索引文件上线，减轻 AGENTS/task-board 描述冗余
   - runSubAgent 输入模板固化，主循环 checklist 更新
   - Task Board 精简策略实施，DocMaintainer/Info-Indexer 分工落地
@@ -17,8 +17,8 @@
 | P2 | OI-005 | 更新主循环 & Checklist，加入 Info-Indexer 钩子 | 1 | Main Agent | Done (2025-11-19) |
 
 ## Plan
-### Milestone A – 审计与索引 (Day 1-2)
-- Deliverables: 文档审计报告、`core-docs-index.md`
+### Milestone A – 核查与索引 (Day 1-2)
+- Deliverables: 文档核查报告、`core-docs-index.md`
 - Validation: DocMaintainer 复核并同步 AGENTS
 
 ### Milestone B – 模板与流程 (Day 2-3)

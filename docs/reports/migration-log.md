@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | PT-004.LineInfra | `LineStartTable` / `ChunkBuffer` 元数据 + `PieceTreeSearchCache` 钩子 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (7/7) | Info-Indexer 需要新 delta 覆盖行起始缓存与 search cache 诊断，随后才能在 Task Board 标记完成。 |
 | PT-004.Positions | `TextPosition` 与 `PieceTreeBuffer` offset/position API | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (10/10) | 发布 changefeed，引用 `TextPosition.cs`、`PieceTreeBuffer.cs` 和 `UnitTest1.cs` 的位置互换测试。 |
-| PT-004.Edit | 插入/删除/RB 旋转 + Buffer 增量编辑管线 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (13/13) | 将 `PieceTreeModel.Edit.cs` / `PieceTreeBuffer.cs` 的增量实现登记到 Info-Indexer，供后续审计引用。 |
+| PT-004.Edit | 插入/删除/RB 旋转 + Buffer 增量编辑管线 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (13/13) | 将 `PieceTreeModel.Edit.cs` / `PieceTreeBuffer.cs` 的增量实现登记到 Info-Indexer，供后续核查引用。 |
 | PT-005.Search | `PieceTreeSearcher` + `SearchTypes` 基础查找 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (16/16) | 用 Info-Indexer delta 绑定 SearchTypes 与 `PieceTreeSearchTests.cs`，否则无法追踪 search 行为变更。 |
 | PT-008.Snapshot | `PieceTreeSnapshot` / `ITextSnapshot` / `PieceTreeModel.CreateSnapshot` | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (18/18) | 需要 changefeed 说明 snapshot 语义与 `PieceTreeSnapshotTests.cs` 证据，供 TextModel Snapshot 依赖。 |
 | PT-009.LineOpt | `_lastVisitedLine` 顺序访问缓存 | `dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` (20/20) | 发布缓存优化 delta，并在 Info-Indexer 说明 `PieceTreeBaseTests` 缓存失效验证。 |
@@ -21,7 +21,7 @@
 ## Timeline Snapshot (Condensed)
 | Date Range | Focus | Outcome Snapshot | Anchors |
 | --- | --- | --- | --- |
-| 2025-11-19 | Phase 0–4 bootstrap（PieceTree Builder、TextModel、Diff/Decor、首轮审计） | Type mapping、PieceTree façade、基础测试 50→56，全局流程与 handoff 建立。 | `#delta-2025-11-19` |
+| 2025-11-19 | Phase 0–4 bootstrap（PieceTree Builder、TextModel、Diff/Decor、首轮核查） | Type mapping、PieceTree façade、基础测试 50→56，全局流程与 handoff 建立。 | `#delta-2025-11-19` |
 | 2025-11-20 | AA2/AA3 Remediation | CRLF 修复、Undo/EOL 选项、TextModel 搜索、Diff/Decor parity；测试 56→85。 | `#delta-2025-11-20` |
 | 2025-11-21 | AA4 CL5–CL7 + Snippet Hotfix | Builder/Factory、ChangeBuffer/CRLF、Cursor/Snippet skeleton 与 QA 通过；测试 85→115。 | `#delta-2025-11-21` |
 | 2025-11-22 | Batch #1 ReplacePattern + 文档修复 + OI Backlog | ReplacePattern 全量移植（142/142）及文档纠错，OI backlog 初始化。 | `#delta-2025-11-22` |

@@ -34,7 +34,7 @@
 ## Action Items (runSubAgent-granularity)
 | Task | Example Prompt / Inputs | Assignee | Target File(s) | Status |
 | --- | --- | --- | --- | --- |
-| OI-001 文档正交性审计 | "审阅现有核心文档，输出重复/缺口列表" | DocMaintainer + Info-Indexer | docs/meetings, docs/sprints, AGENTS.md | Planned |
+| OI-001 文档正交性核查 | "审阅现有核心文档，输出重复/缺口列表" | DocMaintainer + Info-Indexer | docs/meetings, docs/sprints, AGENTS.md | Planned |
 | OI-002 索引与摘要体系 | "创建 indexes/README + 首个索引" | Info-Indexer | agent-team/indexes | Planned |
 | OI-003 流程模板化 | "完善 runSubAgent 输入模板与流程指南" | Planner | agent-team/main-loop-methodology.md | Planned |
 | OI-004 任务板压缩策略 | "提出 Task Board 精简方案并实施" | DocMaintainer | agent-team/task-board.md | Planned |
@@ -53,7 +53,7 @@
 - PieceTree TS coverage: `agent-team/type-mapping.md` 目前完整记下 `pieceTreeBase.ts` 节点字段、不变量与 `rbTreeBase.ts` 重平衡步骤，但 `pieceTreeTextBufferBuilder.ts`、`textModelSearch.ts`、`prefixSumComputer.ts` 仍是空白，这些 blind spots 会影响我们评估初始化、搜索与性能路径。
 - Blind spot handling: Search/regex 调用链与 Builder 管线尚未建立类型映射，下一轮 PT-003 计划围绕其 call graph 构建字段列表，同时确认是否需要先 stub 还是一次性映射，以免 Porter-CS 的 RBTree 接口等待过久。
 - Coordination requests: Info-Indexer 请明确 `agent-team/indexes/` 目录的文件命名与层级（例如 `core-ts-piece-tree.md` 是否放在 `core-*` 子树），这样我能把调查输出转成索引条目，不再在 Task Board/会议中重复描述；Porter-CS 也请列出 C# RBTree 预期公开 API（插入/删除、snapshot rebuild、search hints），我好在类型映射中显式标注相关 TS entry point。
-- Doc manageability: 建议让 Investigator 产出的长篇笔记只存在于 `type-mapping.md` 与对应索引文件，`docs/meetings` 只记录结论/依赖变化，再配合 Info-Indexer 的摘要，保持核心文档正交且易于审计。
+- Doc manageability: 建议让 Investigator 产出的长篇笔记只存在于 `type-mapping.md` 与对应索引文件，`docs/meetings` 只记录结论/依赖变化，再配合 Info-Indexer 的摘要，保持核心文档正交且易于核查。
 
 ### Porter-CS
 - Assessment: C# 侧目前只有 `PieceTreeBuffer` 的 `StringBuilder` 占位实现与 `Core/ChunkBuffer.cs`、`Core/PieceSegment.cs` 两个数据结构；真正的红黑树组织 (`PieceTreeNode`、sentinel、size/line metadata) 仍缺失，这让 `ApplyEdit` 只能做线性文本替换。PT-004 的首个交付需要在 `Core/` 下建立节点/树容器、暴露 `InsertPiece`/`DeleteSpan`/`LocateLineByOffset` API，并在 `PieceTreeBuffer` 中勾住这些入口以便稍后替换 Builder 与 Search 流程。
@@ -72,5 +72,5 @@
 
 ### Info-Indexer
 - Scope & deliverables: OI-002 将在 48 小时内交付 `agent-team/indexes/core-docs-index.md` v0，列出 AGENTS / Sprint / Meeting / Task Board 的职责、最近更新时间与压缩状态；同批次我会整理 QA-Automation 提供的测试资产清单，汇成 `qa-test-assets-index.md` 的首张表（接口、文件、负责人、复核节奏），以便 Task Board 只引用索引条目。
-- Coordination: DocMaintainer 每次触发 OI-001 审计前可以直接 consume 我输出的“核心文档状态”行级 diff；Planner 在 OI-003 模板内加入 `Indexing Hooks` 段后，我会附上 copy-ready 片段，确保 runSubAgent prompt 自动携带最新索引路径；另外会和 QA-Automation 对齐资产表字段，并与 Investigator-TS 约定 `ts-cs-crosswalk` 索引的命名与存档节奏，避免在会议记录重复铺陈。
+- Coordination: DocMaintainer 每次触发 OI-001 核查前可以直接 consume 我输出的"核心文档状态"行级 diff；Planner 在 OI-003 模板内加入 `Indexing Hooks` 段后，我会附上 copy-ready 片段，确保 runSubAgent prompt 自动携带最新索引路径；另外会和 QA-Automation 对齐资产表字段，并与 Investigator-TS 约定 `ts-cs-crosswalk` 索引的命名与存档节奏，避免在会议记录重复铺陈。
 - Changefeed & delta summaries: 每个索引更新都会在 `agent-team/indexes/README.md` 新增 `Added / Compressed / Blocked` 三行 delta 摘要，并同步在会议或 Task Board 中只贴指针；长篇差异写在索引文件的 Update Log，DocMaintainer 仅需引用时间戳即可复核，从而保持核心文档正交又可追溯。

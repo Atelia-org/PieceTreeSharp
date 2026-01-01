@@ -2,7 +2,7 @@
 - **Date Range:** 2025-11-21 ~ 2025-11-28
 - **Theme / Goal:** 继续推进 TS↔C# 对照审核，聚焦 PieceTree Builder/ChangeBuffer、增量编辑、Cursor WordOps 与 DocUI Find/Replace 管线，确保 DocUI-ready 体验覆盖 chunk 构建到搜索装饰全链路。
 - **Success Criteria:**
-  - CL5~CL8（见 `docs/reports/audit-checklist-aa4.md`）完成 Investigator 审计与 Porter 修复交付，差异清单与实现结果分别落地 handoff 文件。
+  - CL5~CL8（见 `docs/reports/audit-checklist-aa4.md`）完成 Investigator 核查与 Porter 修复交付，差异清单与实现结果分别落地 handoff 文件。
   - Builder/ChangeBuffer/Cursor/DocUI 相关测试补齐，`dotnet test tests/TextBuffer.Tests/TextBuffer.Tests.csproj` ≥ 92 项保持绿色，并在 `tests/TextBuffer.Tests/TestMatrix.md` 登记新覆盖。
   - `docs/reports/migration-log.md` & `agent-team/indexes/README.md` 记录 AA4 变更，AGENTS / Sprint / Task Board 同步至 Info-Indexer 最新 changefeed。
   - DocUI MarkdownRenderer 展现搜索/替换 overlay、chunk 元数据显示、Cursor word selection 标记，形成对 LLM 友好的多层装饰输出。
